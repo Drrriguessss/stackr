@@ -3,13 +3,14 @@ import { useState } from 'react'
 import { Play, Check, Plus, Eye, EyeOff, Headphones, BookOpen } from 'lucide-react'
 
 interface ContentItem {
-  id: string
+  id: number
   title: string
-  author: string
-  rating: number
+  author?: string
+  artist?: string
+  director?: string
   year: number
-  gradient: string
-  type: string
+  rating: number
+  genre: string
 }
 
 interface ContentCardProps {
@@ -62,6 +63,11 @@ export default function ContentCard({ item, onAddToLibrary, category }: ContentC
 
   const actionButtons = getActionButtons()
 
+  // Obtenir l'auteur/artiste/réalisateur selon le type
+  const getCreator = () => {
+    return item.author || item.artist || item.director || 'Unknown'
+  }
+
   return (
     <div 
       className="relative group cursor-pointer"
@@ -69,13 +75,19 @@ export default function ContentCard({ item, onAddToLibrary, category }: ContentC
       onMouseLeave={() => setShowButtons(false)}
     >
       {/* Carte principale */}
-      <div className={`relative h-48 sm:h-64 rounded-xl p-4 sm:p-6 text-white overflow-hidden transition-transform duration-200 group-hover:scale-105 ${item.gradient}`}>
+      <div className={`relative h-48 sm:h-64 rounded-xl p-4 sm:p-6 text-white overflow-hidden transition-transform duration-200 group-hover:scale-105 ${
+        // Gradient basé sur la catégorie
+        category === 'games' ? 'bg-gradient-to-br from-green-500 to-emerald-700' :
+        category === 'movies' ? 'bg-gradient-to-br from-blue-500 to-indigo-700' :
+        category === 'music' ? 'bg-gradient-to-br from-purple-500 to-pink-700' :
+        'bg-gradient-to-br from-orange-500 to-red-700'
+      }`}>
         
         {/* Contenu de la carte */}
         <div className="relative z-10 h-full flex flex-col justify-between">
           <div className="flex-1">
             <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2 line-clamp-2">{item.title}</h3>
-            <p className="text-sm sm:text-base text-white/80 mb-2 sm:mb-4">{item.author}</p>
+            <p className="text-sm sm:text-base text-white/80 mb-2 sm:mb-4">{getCreator()}</p>
           </div>
           
           <div className="flex items-center justify-between">
