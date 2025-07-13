@@ -7,10 +7,10 @@ interface CategoryTabsProps {
 
 export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
   const tabs = [
-    { id: 'games', name: 'Games' },
-    { id: 'movies', name: 'Movies/Series' },
-    { id: 'music', name: 'Music' },
-    { id: 'books', name: 'Books' },
+    { id: 'games', name: 'Games', shortName: 'Games' },
+    { id: 'movies', name: 'Movies/Series', shortName: 'Movies' },
+    { id: 'music', name: 'Music', shortName: 'Music' },
+    { id: 'books', name: 'Books', shortName: 'Books' },
   ]
 
   return (
@@ -19,13 +19,15 @@ export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsPro
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 text-center ${
+          className={`flex-1 py-3 px-2 sm:px-4 rounded-lg font-medium transition-all duration-200 text-center text-sm sm:text-base ${
             activeTab === tab.id
               ? 'bg-white text-gray-900 shadow-lg font-semibold'
               : 'text-gray-400 hover:text-white hover:bg-gray-700'
           }`}
         >
-          {tab.name}
+          {/* Affiche le nom court sur mobile, nom complet sur desktop */}
+          <span className="sm:hidden">{tab.shortName}</span>
+          <span className="hidden sm:inline">{tab.name}</span>
         </button>
       ))}
     </div>

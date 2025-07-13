@@ -1,17 +1,15 @@
 'use client'
-import { Star, Plus, Play, Check, Eye, Headphones } from 'lucide-react'
+import { useState } from 'react'
+import { Play, Check, Plus, Eye, EyeOff, Headphones, BookOpen } from 'lucide-react'
 
 interface ContentItem {
-  id: number
+  id: string
   title: string
-  author?: string
-  artist?: string
-  director?: string
-  year: number
+  author: string
   rating: number
-  genre: string
-  category?: 'games' | 'movies' | 'music' | 'books'
-  type?: 'movie' | 'series'
+  year: number
+  gradient: string
+  type: string
 }
 
 interface ContentCardProps {
@@ -21,103 +19,82 @@ interface ContentCardProps {
 }
 
 export default function ContentCard({ item, onAddToLibrary, category }: ContentCardProps) {
-  const creator = item.author || item.artist || item.director || 'Unknown'
-  
-  // Détecter automatiquement si c'est une série ou un film
-  const detectType = (title: string, genre: string) => {
-    const seriesKeywords = ['season', 'série', 'series', 'saison', 'episode', 'ep.', 'tome', 'volume']
-    const titleLower = title.toLowerCase()
-    const genreLower = genre.toLowerCase()
-    
-    const isSeries = seriesKeywords.some(keyword => 
-      titleLower.includes(keyword) || genreLower.includes(keyword)
-    )
-    
-    return isSeries ? 'series' : 'movie'
-  }
+  const [showButtons, setShowButtons] = useState(false)
 
-  // Obtenir les boutons d'action selon la catégorie
+  // Configuration des boutons selon la catégorie avec icônes
   const getActionButtons = () => {
     switch (category) {
       case 'games':
         return [
-          { status: 'want', label: 'Want to Play', shortLabel: 'Want', icon: Plus, color: 'bg-gray-700/80 hover:bg-gray-600' },
-          { status: 'current', label: 'Currently Playing', shortLabel: 'Playing', icon: Play, color: 'bg-blue-600/80 hover:bg-blue-500' },
-          { status: 'completed', label: 'Completed', shortLabel: 'Done', icon: Check, color: 'bg-green-600/80 hover:bg-green-500' }
+          { status: 'want-to-play', label: 'Want to Play', shortLabel: 'Want', icon: Plus },
+          { status: 'playing', label: 'Currently Playing', shortLabel: 'Playing', icon: Play },
+          { status: 'completed', label: 'Completed', shortLabel: 'Done', icon: Check }
         ]
-      
       case 'movies':
-        const contentType = item.type || detectType(item.title, item.genre)
-        if (contentType === 'series') {
-          return [
-            { status: 'want', label: 'Want to Watch', shortLabel: 'Want', icon: Plus, color: 'bg-gray-700/80 hover:bg-gray-600' },
-            { status: 'current', label: 'Currently Watching', shortLabel: 'Watching', icon: Eye, color: 'bg-blue-600/80 hover:bg-blue-500' },
-            { status: 'completed', label: 'Watched', shortLabel: 'Done', icon: Check, color: 'bg-green-600/80 hover:bg-green-500' }
-          ]
-        } else {
-          return [
-            { status: 'want', label: 'Want to Watch', shortLabel: 'Want', icon: Plus, color: 'bg-gray-700/80 hover:bg-gray-600' },
-            { status: 'completed', label: 'Watched', shortLabel: 'Done', icon: Check, color: 'bg-green-600/80 hover:bg-green-500' }
-          ]
-        }
-      
+        const isMovie = !item.title.toLowerCase().includes('season') && 
+                       !item.title.toLowerCase().includes('series') &&
+                       !item.title.toLowerCase().includes('show')
+        return isMovie 
+          ? [
+              { status: 'want-to-watch', label: 'Want to Watch', shortLabel: 'Want', icon: Plus },
+              { status: 'watched', label: 'Watched', shortLabel: 'Watched', icon: Check }
+            ]
+          : [
+              { status: 'want-to-watch', label: 'Want to Watch', shortLabel: 'Want', icon: Plus },
+              { status: 'watching', label: 'Currently Watching', shortLabel: 'Watching', icon: Eye },
+              { status: 'watched', label: 'Watched', shortLabel: 'Done', icon: Check }
+            ]
       case 'music':
         return [
-          { status: 'want', label: 'Want to Listen', shortLabel: 'Want', icon: Plus, color: 'bg-gray-700/80 hover:bg-gray-600' },
-          { status: 'completed', label: 'Listened to', shortLabel: 'Done', icon: Headphones, color: 'bg-green-600/80 hover:bg-green-500' }
+          { status: 'want-to-listen', label: 'Want to Listen', shortLabel: 'Want', icon: Plus },
+          { status: 'listened', label: 'Listened to', shortLabel: 'Heard', icon: Headphones }
         ]
-      
       case 'books':
         return [
-          { status: 'want', label: 'Want to Read', shortLabel: 'Want', icon: Plus, color: 'bg-gray-700/80 hover:bg-gray-600' },
-          { status: 'current', label: 'Currently Reading', shortLabel: 'Reading', icon: Play, color: 'bg-blue-600/80 hover:bg-blue-500' },
-          { status: 'completed', label: 'Read', shortLabel: 'Done', icon: Check, color: 'bg-green-600/80 hover:bg-green-500' }
+          { status: 'want-to-read', label: 'Want to Read', shortLabel: 'Want', icon: Plus },
+          { status: 'reading', label: 'Currently Reading', shortLabel: 'Reading', icon: BookOpen },
+          { status: 'read', label: 'Read', shortLabel: 'Done', icon: Check }
         ]
-      
       default:
-        return [
-          { status: 'want', label: 'Want', shortLabel: 'Want', icon: Plus, color: 'bg-gray-700/80 hover:bg-gray-600' },
-          { status: 'completed', label: 'Done', shortLabel: 'Done', icon: Check, color: 'bg-green-600/80 hover:bg-green-500' }
-        ]
+        return []
     }
   }
 
   const actionButtons = getActionButtons()
-  
-  // Générer un gradient unique basé sur le titre
-  const getGradient = (title: string) => {
-    const gradients = [
-      'from-purple-500 to-blue-600',
-      'from-blue-500 to-cyan-600', 
-      'from-green-500 to-teal-600',
-      'from-yellow-500 to-orange-600',
-      'from-red-500 to-pink-600',
-      'from-indigo-500 to-purple-600',
-      'from-cyan-500 to-blue-500',
-      'from-pink-500 to-rose-600',
-    ]
-    const index = title.length % gradients.length
-    return gradients[index]
-  }
 
   return (
-    <div className="group bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:scale-105">
-      
-      {/* Cover Image */}
-      <div className={`aspect-[3/4] bg-gradient-to-br ${getGradient(item.title)} relative overflow-hidden`}>
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="absolute inset-0 flex items-end p-4">
-          <div className="text-white font-bold text-sm leading-tight line-clamp-3">
-            {item.title}
+    <div 
+      className="relative group cursor-pointer"
+      onMouseEnter={() => setShowButtons(true)}
+      onMouseLeave={() => setShowButtons(false)}
+    >
+      {/* Carte principale */}
+      <div className={`relative h-48 sm:h-64 rounded-xl p-4 sm:p-6 text-white overflow-hidden transition-transform duration-200 group-hover:scale-105 ${item.gradient}`}>
+        
+        {/* Contenu de la carte */}
+        <div className="relative z-10 h-full flex flex-col justify-between">
+          <div className="flex-1">
+            <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2 line-clamp-2">{item.title}</h3>
+            <p className="text-sm sm:text-base text-white/80 mb-2 sm:mb-4">{item.author}</p>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1">
+              <span className="text-yellow-300 text-lg sm:text-xl">⭐</span>
+              <span className="text-sm sm:text-base font-semibold">{item.rating}</span>
+            </div>
+            <span className="text-xs sm:text-sm text-white/70">{item.year}</span>
           </div>
         </div>
-        
-        {/* Hover overlay avec boutons d'action adaptatifs - CENTRÉ */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-4">
-          <div className={`grid gap-2 w-full max-w-[140px] ${
+
+        {/* Boutons au hover sur desktop */}
+        <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-200 hidden sm:flex items-center justify-center ${
+          showButtons ? 'opacity-100' : 'opacity-0'
+        }`}>
+          <div className={`grid gap-2 ${
             actionButtons.length === 2 
               ? 'grid-cols-2' 
-              : 'grid-cols-1 sm:grid-cols-3'
+              : 'grid-cols-3'
           }`}>
             {actionButtons.map((button) => {
               const IconComponent = button.icon
@@ -125,38 +102,21 @@ export default function ContentCard({ item, onAddToLibrary, category }: ContentC
                 <button
                   key={button.status}
                   onClick={() => onAddToLibrary(item, button.status)}
-                  className={`${button.color} text-white p-2 rounded-lg backdrop-blur-sm transition-colors flex flex-col items-center justify-center min-h-[44px]`}
-                  title={button.label}
+                  className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white p-2 rounded-lg font-medium transition-all duration-200 text-center text-sm"
                 >
-                  <IconComponent size={16} />
-                  <span className="text-xs mt-1 text-center leading-tight">
-                    {button.shortLabel}
-                  </span>
+                  <div className="flex flex-col items-center space-y-1">
+                    <IconComponent size={16} />
+                    <span className="text-xs">{button.shortLabel}</span>
+                  </div>
                 </button>
               )
             })}
           </div>
         </div>
       </div>
-      
-      {/* Card Content */}
-      <div className="p-4">
-        <h3 className="font-semibold text-white mb-1 line-clamp-2 text-sm leading-tight">
-          {item.title}
-        </h3>
-        <p className="text-gray-400 text-xs mb-3 truncate">
-          {creator}
-        </p>
-        
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-1">
-            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-            <span className="text-white text-sm font-medium">{item.rating}</span>
-          </div>
-          <span className="text-gray-500 text-xs">{item.year}</span>
-        </div>
 
-        {/* Boutons d'action permanents - TOUJOURS VISIBLES */}
+      {/* Boutons permanents en bas sur mobile */}
+      <div className="sm:hidden mt-2">
         <div className={`grid gap-1 ${
           actionButtons.length === 2 
             ? 'grid-cols-2' 
@@ -168,11 +128,13 @@ export default function ContentCard({ item, onAddToLibrary, category }: ContentC
               <button
                 key={`permanent-${button.status}`}
                 onClick={() => onAddToLibrary(item, button.status)}
-                className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white p-2 rounded-lg transition-colors flex items-center justify-center space-x-1 text-xs"
+                className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white p-2 rounded-lg font-medium transition-all duration-200 text-center"
                 title={button.label}
               >
-                <IconComponent size={12} />
-                <span className="truncate">{button.shortLabel}</span>
+                <div className="flex flex-col items-center space-y-1">
+                  <IconComponent size={14} />
+                  <span className="text-xs truncate">{button.shortLabel}</span>
+                </div>
               </button>
             )
           })}
