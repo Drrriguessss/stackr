@@ -113,10 +113,38 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
     
     setLoading(true)
     try {
-      const rawgId = gameId.replace('game-', '')
+      // ✅ GESTION INTELLIGENTE DES IDS
+      let rawgId = gameId
+      
+      // Si l'ID commence par 'game-', l'enlever
+      if (gameId.startsWith('game-')) {
+        rawgId = gameId.replace('game-', '')
+      }
+      
+      // Si ce n'est pas un nombre (cas des jeux de sampleContent), essayer de le chercher par nom
+      if (isNaN(Number(rawgId))) {
+        console.log('ID non numérique détecté, recherche par nom...')
+        // Utiliser l'API de recherche pour trouver le jeu
+        const searchResponse = await fetch(
+          `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(rawgId)}&page_size=1`
+        )
+        const searchData = await searchResponse.json()
+        
+        if (searchData.results && searchData.results.length > 0) {
+          rawgId = searchData.results[0].id.toString()
+        } else {
+          throw new Error('Game not found in search')
+        }
+      }
+      
       const response = await fetch(
         `https://api.rawg.io/api/games/${rawgId}?key=${RAWG_API_KEY}`
       )
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
+      }
+      
       const data = await response.json()
       setGameDetail(data)
       
@@ -129,6 +157,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
       
     } catch (error) {
       console.error('Erreur lors du chargement des détails:', error)
+      setGameDetail(null)
     } finally {
       setLoading(false)
     }
@@ -178,8 +207,19 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div 
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        // Fermer si on clique sur le backdrop
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div 
+        className="bg-gray-900 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()} // Empêcher la fermeture si on clique dans la modal
+      >
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -329,145 +369,147 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
             </div>
 
             {/* Contenu des onglets */}
-            <div className="p-4 flex-1 overflow-y-auto">
-              {activeTab === 'info' && (
-                <div className="space-y-6">
-                  {/* Description */}
-                  <div>
-                    <h4 className="text-white font-semibold mb-2">About</h4>
-                    <p className="text-gray-300 text-sm leading-relaxed">
-                      {gameDetail.description_raw || 'No description available.'}
-                    </p>
-                  </div>
+            <div className="flex-1 overflow-y-auto bg-gray-900">
+              <div className="p-4">
+                {activeTab === 'info' && (
+                  <div className="space-y-6">
+                    {/* Description */}
+                    <div>
+                      <h4 className="text-white font-semibold mb-2">About</h4>
+                      <p className="text-gray-300 text-sm leading-relaxed">
+                        {gameDetail.description_raw || 'No description available.'}
+                      </p>
+                    </div>
 
-                  {/* Screenshots */}
-                  {gameDetail.screenshots && gameDetail.screenshots.length > 0 && (
-                    <div>
-                      <h4 className="text-white font-semibold mb-2">Screenshots</h4>
-                      <div className="relative">
-                        <img
-                          src={gameDetail.screenshots[currentScreenshot]?.image}
-                          alt="Screenshot"
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
-                        {gameDetail.screenshots.length > 1 && (
-                          <>
-                            <button
-                              onClick={prevScreenshot}
-                              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full"
-                            >
-                              <ChevronLeft size={20} />
-                            </button>
-                            <button
-                              onClick={nextScreenshot}
-                              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full"
-                            >
-                              <ChevronRight size={20} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Infos détaillées */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <h5 className="text-white font-medium mb-1">Platforms</h5>
-                      <p className="text-gray-400">
-                        {gameDetail.platforms?.map(p => p.platform.name).join(', ') || 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <h5 className="text-white font-medium mb-1">Release Date</h5>
-                      <p className="text-gray-400">
-                        {gameDetail.released ? new Date(gameDetail.released).toLocaleDateString() : 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <h5 className="text-white font-medium mb-1">Developer</h5>
-                      <p className="text-gray-400">
-                        {gameDetail.developers?.[0]?.name || 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <h5 className="text-white font-medium mb-1">Publisher</h5>
-                      <p className="text-gray-400">
-                        {gameDetail.publishers?.[0]?.name || 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <h5 className="text-white font-medium mb-1">Genres</h5>
-                      <p className="text-gray-400">
-                        {gameDetail.genres?.map(g => g.name).join(', ') || 'N/A'}
-                      </p>
-                    </div>
-                    {gameDetail.metacritic && (
+                    {/* Screenshots */}
+                    {gameDetail.screenshots && gameDetail.screenshots.length > 0 && (
                       <div>
-                        <h5 className="text-white font-medium mb-1">Metacritic</h5>
-                        <p className="text-gray-400">{gameDetail.metacritic}/100</p>
+                        <h4 className="text-white font-semibold mb-2">Screenshots</h4>
+                        <div className="relative">
+                          <img
+                            src={gameDetail.screenshots[currentScreenshot]?.image}
+                            alt="Screenshot"
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
+                          {gameDetail.screenshots.length > 1 && (
+                            <>
+                              <button
+                                onClick={prevScreenshot}
+                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full"
+                              >
+                                <ChevronLeft size={20} />
+                              </button>
+                              <button
+                                onClick={nextScreenshot}
+                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full"
+                              >
+                                <ChevronRight size={20} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     )}
-                  </div>
 
-                  {/* Tags populaires */}
-                  {gameDetail.tags && gameDetail.tags.length > 0 && (
-                    <div>
-                      <h4 className="text-white font-semibold mb-2">Popular Tags</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {gameDetail.tags.slice(0, 10).map((tag, index) => (
-                          <span
-                            key={index}
-                            className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs"
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
+                    {/* Infos détaillées */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <h5 className="text-white font-medium mb-1">Platforms</h5>
+                        <p className="text-gray-400">
+                          {gameDetail.platforms?.map(p => p.platform.name).join(', ') || 'N/A'}
+                        </p>
                       </div>
+                      <div>
+                        <h5 className="text-white font-medium mb-1">Release Date</h5>
+                        <p className="text-gray-400">
+                          {gameDetail.released ? new Date(gameDetail.released).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <h5 className="text-white font-medium mb-1">Developer</h5>
+                        <p className="text-gray-400">
+                          {gameDetail.developers?.[0]?.name || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <h5 className="text-white font-medium mb-1">Publisher</h5>
+                        <p className="text-gray-400">
+                          {gameDetail.publishers?.[0]?.name || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <h5 className="text-white font-medium mb-1">Genres</h5>
+                        <p className="text-gray-400">
+                          {gameDetail.genres?.map(g => g.name).join(', ') || 'N/A'}
+                        </p>
+                      </div>
+                      {gameDetail.metacritic && (
+                        <div>
+                          <h5 className="text-white font-medium mb-1">Metacritic</h5>
+                          <p className="text-gray-400">{gameDetail.metacritic}/100</p>
+                        </div>
+                      )}
                     </div>
-                  )}
 
-                  {/* Liens */}
-                  <div className="flex space-x-4">
-                    {gameDetail.website && (
-                      <a
-                        href={gameDetail.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center space-x-2 text-blue-400 hover:text-blue-300"
-                      >
-                        <Globe size={16} />
-                        <span>Official Website</span>
-                        <ExternalLink size={12} />
-                      </a>
+                    {/* Tags populaires */}
+                    {gameDetail.tags && gameDetail.tags.length > 0 && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-2">Popular Tags</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {gameDetail.tags.slice(0, 10).map((tag, index) => (
+                            <span
+                              key={index}
+                              className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs"
+                            >
+                              {tag.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                  </div>
-                </div>
-              )}
 
-              {activeTab === 'social' && (
-                <div className="space-y-4">
-                  <div className="text-center text-gray-400">
-                    <Users size={48} className="mx-auto mb-2 opacity-50" />
-                    <p>Social features coming soon!</p>
-                    <p className="text-sm mt-2">
-                      Friend stats, community ratings, and more will be available here.
-                    </p>
+                    {/* Liens */}
+                    <div className="flex space-x-4">
+                      {gameDetail.website && (
+                        <a
+                          href={gameDetail.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-2 text-blue-400 hover:text-blue-300"
+                        >
+                          <Globe size={16} />
+                          <span>Official Website</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {activeTab === 'more' && (
-                <div className="space-y-4">
-                  <div className="text-center text-gray-400">
-                    <Tag size={48} className="mx-auto mb-2 opacity-50" />
-                    <p>Additional info coming soon!</p>
-                    <p className="text-sm mt-2">
-                      DLC, similar games, and extended details will be available here.
-                    </p>
+                {activeTab === 'social' && (
+                  <div className="space-y-4">
+                    <div className="text-center text-gray-400">
+                      <Users size={48} className="mx-auto mb-2 opacity-50" />
+                      <p>Social features coming soon!</p>
+                      <p className="text-sm mt-2">
+                        Friend stats, community ratings, and more will be available here.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
+                {activeTab === 'more' && (
+                  <div className="space-y-4">
+                    <div className="text-center text-gray-400">
+                      <Tag size={48} className="mx-auto mb-2 opacity-50" />
+                      <p>Additional info coming soon!</p>
+                      <p className="text-sm mt-2">
+                        DLC, similar games, and extended details will be available here.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         ) : (
