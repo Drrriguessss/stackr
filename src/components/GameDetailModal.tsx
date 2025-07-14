@@ -49,6 +49,20 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   const [showCustomTag, setShowCustomTag] = useState(false)
   const [customTag, setCustomTag] = useState('')
 
+  // Bloquer le scroll de l'arrière-plan quand la modal est ouverte
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    // Cleanup au démontage
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
   // Simuler des reviews (en attendant le backend)
   const mockReviews: Review[] = [
     {
@@ -164,8 +178,8 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-hidden">
+      <div className="bg-gray-900 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -315,7 +329,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
             </div>
 
             {/* Contenu des onglets */}
-            <div className="p-4 max-h-96 overflow-y-auto">
+            <div className="p-4 flex-1 overflow-y-auto">
               {activeTab === 'info' && (
                 <div className="space-y-6">
                   {/* Description */}
