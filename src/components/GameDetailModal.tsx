@@ -53,6 +53,8 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   const [showReviewBox, setShowReviewBox] = useState(false)
   const [userReview, setUserReview] = useState('')
   const [showFullReview, setShowFullReview] = useState<{ [key: string]: boolean }>({})
+  const [similarGames, setSimilarGames] = useState<any[]>([])
+  const [developerGames, setDeveloperGames] = useState<any[]>([])
 
   const scrollableRef = useRef<HTMLDivElement>(null)
 
@@ -116,10 +118,16 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
         }
         
         if (targetElement) {
-          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          // ✅ AJUSTER OFFSET POUR VOIR LE TITRE
+          const elementTop = targetElement.offsetTop
+          const offset = 20 // Espace au-dessus du titre
+          scrollableRef.current.scrollTo({
+            top: elementTop - offset,
+            behavior: 'smooth'
+          })
         }
       }
-    }, 50) // Petit délai pour laisser React mettre à jour le DOM
+    }, 50)
   }
 
   useEffect(() => {
@@ -183,6 +191,28 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
       
       const data = await response.json()
       setGameDetail(data)
+      
+      // ✅ RECHERCHER JEUX SIMILAIRES PAR GENRE
+      if (data.genres && data.genres.length > 0) {
+        const genreNames = data.genres.map((g: any) => g.name).join(',')
+        const similarResponse = await fetch(
+          `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${encodeURIComponent(genreNames)}&page_size=4&ordering=-rating`
+        )
+        const similarData = await similarResponse.json()
+        setSimilarGames(similarData.results || [])
+      }
+      
+      // ✅ RECHERCHER JEUX DU MÊME DÉVELOPPEUR
+      if (data.developers && data.developers.length > 0) {
+        const devName = data.developers[0].name
+        const devResponse = await fetch(
+          `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&developers=${encodeURIComponent(devName)}&page_size=3&ordering=-rating`
+        )
+        const devData = await devResponse.json()
+        // Filtrer pour ne pas inclure le jeu actuel
+        const filteredDevGames = devData.results?.filter((game: any) => game.id !== data.id) || []
+        setDeveloperGames(filteredDevGames.slice(0, 2))
+      }
       
       const screenshotsResponse = await fetch(
         `https://api.rawg.io/api/games/${rawgId}/screenshots?key=${RAWG_API_KEY}`
@@ -565,12 +595,24 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                     <div id="more-similar-games">
                       <h4 className="text-white font-semibold mb-3">Similar Games</h4>
                       <div className="grid grid-cols-2 gap-3">
-                        {gameDetail.genres?.slice(0, 4).map((genre, index) => (
-                          <div key={index} className="bg-gray-800 p-3 rounded-lg">
-                            <h5 className="text-white font-medium text-sm">Game Similar {index + 1}</h5>
-                            <p className="text-gray-400 text-xs">{genre.name} • 4.2★</p>
-                          </div>
-                        ))}
+                        {similarGames.length > 0 ? (
+                          similarGames.slice(0, 4).map((game) => (
+                            <div key={game.id} className="bg-gray-800 p-3 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors">
+                              <h5 className="text-white font-medium text-sm truncate">{game.name}</h5>
+                              <p className="text-gray-400 text-xs">
+                                {game.genres?.[0]?.name || 'Game'} • {game.rating ? `${game.rating.toFixed(1)}★` : 'N/A'}
+                              </p>
+                            </div>
+                          ))
+                        ) : (
+                          // Fallback si pas de résultats API
+                          gameDetail.genres?.slice(0, 4).map((genre, index) => (
+                            <div key={index} className="bg-gray-800 p-3 rounded-lg">
+                              <h5 className="text-white font-medium text-sm">Game Similar {index + 1}</h5>
+                              <p className="text-gray-400 text-xs">{genre.name} • 4.2★</p>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
 
@@ -578,14 +620,28 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                       <div>
                         <h4 className="text-white font-semibold mb-3">More from {gameDetail.developers[0].name}</h4>
                         <div className="space-y-2">
-                          <div className="bg-gray-800 p-3 rounded-lg">
-                            <h5 className="text-white font-medium text-sm">Previous Game Title</h5>
-                            <p className="text-gray-400 text-xs">2022 • 4.5★</p>
-                          </div>
-                          <div className="bg-gray-800 p-3 rounded-lg">
-                            <h5 className="text-white font-medium text-sm">Another Game Title</h5>
-                            <p className="text-gray-400 text-xs">2020 • 4.1★</p>
-                          </div>
+                          {developerGames.length > 0 ? (
+                            developerGames.map((game) => (
+                              <div key={game.id} className="bg-gray-800 p-3 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors">
+                                <h5 className="text-white font-medium text-sm">{game.name}</h5>
+                                <p className="text-gray-400 text-xs">
+                                  {game.released ? new Date(game.released).getFullYear() : 'TBA'} • {game.rating ? `${game.rating.toFixed(1)}★` : 'N/A'}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            // Fallback si pas de résultats API
+                            <>
+                              <div className="bg-gray-800 p-3 rounded-lg">
+                                <h5 className="text-white font-medium text-sm">Previous Game Title</h5>
+                                <p className="text-gray-400 text-xs">2022 • 4.5★</p>
+                              </div>
+                              <div className="bg-gray-800 p-3 rounded-lg">
+                                <h5 className="text-white font-medium text-sm">Another Game Title</h5>
+                                <p className="text-gray-400 text-xs">2020 • 4.1★</p>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
