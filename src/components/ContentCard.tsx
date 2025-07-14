@@ -127,9 +127,9 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
         </div>
 
         {/* Boutons au hover sur desktop */}
-        <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-200 flex items-center justify-center ${
-          showButtons ? 'opacity-100' : 'opacity-0'
-        }`}>
+        <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-all duration-200 flex items-center justify-center ${
+          showButtons ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`} style={{ zIndex: 20 }}>
           <div className={`grid gap-2 ${
             actionButtons.length === 2 
               ? 'grid-cols-2' 
@@ -141,7 +141,11 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
               return (
                 <button
                   key={button.status}
-                  onClick={() => handleButtonClick(button.status)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleButtonClick(button.status)
+                  }}
                   className={`p-3 rounded-lg font-medium transition-all duration-200 text-center text-sm transform ${getButtonStyle(button.status)}`}
                 >
                   <div className="flex flex-col items-center space-y-1">
