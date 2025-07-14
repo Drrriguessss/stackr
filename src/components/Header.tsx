@@ -1,43 +1,56 @@
 'use client'
+import { useState } from 'react'
 import { Search, Camera, Bell } from 'lucide-react'
+import SearchModal from './SearchModal'
 
-export default function Header() {
+interface HeaderProps {
+  onAddToLibrary: (item: any, status: string) => void
+}
+
+export default function Header({ onAddToLibrary }: HeaderProps) {
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
+
   return (
-    <header className="sticky top-0 z-50 bg-gray-900 border-b border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          
-          {/* Logo */}
-          <div className="flex items-center">
-            <h1 className="text-2xl font-bold text-white">Stackr</h1>
-          </div>
+    <>
+      <header className="flex items-center justify-between p-6 bg-gray-900">
+        {/* Logo */}
+        <div className="flex items-center">
+          <h1 className="text-2xl font-bold text-white">Stackr</h1>
+        </div>
 
-          {/* Barre de recherche */}
-          <div className="flex-1 max-w-lg mx-8">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                className="w-full bg-gray-800 text-white placeholder-gray-400 rounded-xl px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-              />
-              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+        {/* Barre de recherche */}
+        <div className="flex-1 max-w-md mx-8">
+          <div 
+            className="relative cursor-pointer"
+            onClick={() => setIsSearchModalOpen(true)}
+          >
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <div className="w-full pl-10 pr-4 py-3 bg-gray-800 rounded-xl text-gray-400 hover:bg-gray-700 transition-colors">
+              Search games, movies, music, books...
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center space-x-4">
-            <button className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800">
-              <Camera size={20} />
-            </button>
-            <button className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800">
-              <Bell size={20} />
-            </button>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-xl transition-colors">
-              Se connecter
-            </button>
-          </div>
         </div>
-      </div>
-    </header>
+
+        {/* Actions */}
+        <div className="flex items-center space-x-4">
+          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+            <Camera className="text-gray-400 hover:text-white" size={24} />
+          </button>
+          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+            <Bell className="text-gray-400 hover:text-white" size={24} />
+          </button>
+          <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+            Se connecter
+          </button>
+        </div>
+      </header>
+
+      {/* Modal de recherche */}
+      <SearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onAddToLibrary={onAddToLibrary}
+      />
+    </>
   )
 }
