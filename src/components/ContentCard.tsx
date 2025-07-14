@@ -89,7 +89,8 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
     // Ouvrir la fiche produit seulement pour les jeux pour l'instant
     const itemCategory = item.category || category
     if (itemCategory === 'games' && onOpenGameDetail) {
-      onOpenGameDetail(item.id)
+      // ✅ PASSER LE TITRE DU JEU POUR LA RECHERCHE API
+      onOpenGameDetail(item.title)
     }
   }
 

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { X, Star, ChevronLeft, ChevronRight, ExternalLink, Calendar, Users, Tag, Globe, Clock } from 'lucide-react'
+import { X, Star, ChevronLeft, ChevronRight, ExternalLink, Users, Tag, Globe } from 'lucide-react'
 
 interface GameDetailModalProps {
   isOpen: boolean
@@ -49,7 +49,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   const [showCustomTag, setShowCustomTag] = useState(false)
   const [customTag, setCustomTag] = useState('')
 
-  // Bloquer le scroll de l'arrière-plan quand la modal est ouverte
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -57,13 +56,11 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
       document.body.style.overflow = 'unset'
     }
     
-    // Cleanup au démontage
     return () => {
       document.body.style.overflow = 'unset'
     }
   }, [isOpen])
 
-  // Simuler des reviews (en attendant le backend)
   const mockReviews: Review[] = [
     {
       id: '1',
@@ -83,7 +80,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
     }
   ]
 
-  // Stats simulées pour les boutons
   const gameStats = {
     'want-to-play': 1247,
     'currently-playing': 856,
@@ -99,7 +95,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   }, [isOpen, gameId])
 
   useEffect(() => {
-    // Vérifier si le jeu est déjà dans la library
     const libraryItem = library.find(item => item.id === gameId)
     if (libraryItem) {
       setSelectedStatus(libraryItem.status)
@@ -113,18 +108,14 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
     
     setLoading(true)
     try {
-      // ✅ GESTION INTELLIGENTE DES IDS
       let rawgId = gameId
       
-      // Si l'ID commence par 'game-', l'enlever
       if (gameId.startsWith('game-')) {
         rawgId = gameId.replace('game-', '')
       }
       
-      // Si ce n'est pas un nombre (cas des jeux de sampleContent), essayer de le chercher par nom
       if (isNaN(Number(rawgId))) {
         console.log('ID non numérique détecté, recherche par nom...')
-        // Utiliser l'API de recherche pour trouver le jeu
         const searchResponse = await fetch(
           `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(rawgId)}&page_size=1`
         )
@@ -148,7 +139,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
       const data = await response.json()
       setGameDetail(data)
       
-      // Récupérer les screenshots
       const screenshotsResponse = await fetch(
         `https://api.rawg.io/api/games/${rawgId}/screenshots?key=${RAWG_API_KEY}`
       )
@@ -210,25 +200,23 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
     <div 
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={(e) => {
-        // Fermer si on clique sur le backdrop
         if (e.target === e.currentTarget) {
           onClose()
         }
       }}
     >
       <div 
-        className="bg-gray-900 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()} // Empêcher la fermeture si on clique dans la modal
+        className="bg-gray-900 rounded-xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
       >
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
           </div>
         ) : gameDetail ? (
-          <>
-            {/* Header avec image de fond */}
+          <div className="flex flex-col h-full overflow-hidden">
             <div 
-              className="relative h-64 bg-cover bg-center"
+              className="relative h-48 bg-cover bg-center flex-shrink-0"
               style={{ backgroundImage: `url(${gameDetail.background_image})` }}
             >
               <div className="absolute inset-0 bg-black/60"></div>
@@ -239,7 +227,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                 <X size={24} />
               </button>
               
-              {/* Info du jeu dans le header */}
               <div className="absolute bottom-4 left-4 right-4 flex items-end space-x-4">
                 <img
                   src={gameDetail.background_image}
@@ -249,7 +236,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                 <div className="flex-1 text-white">
                   <h1 className="text-2xl font-bold mb-2">{gameDetail.name}</h1>
                   
-                  {/* Rating Stackr */}
                   {gameDetail.rating_count >= 10 && (
                     <div className="flex items-center space-x-2 mb-2">
                       <div className="flex">
@@ -272,8 +258,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
               </div>
             </div>
 
-            {/* Boutons d'action avec stats */}
-            <div className="p-4 border-b border-gray-700">
+            <div className="p-4 border-b border-gray-700 flex-shrink-0">
               <div className="flex space-x-2 mb-3">
                 {['want-to-play', 'currently-playing', 'completed'].map((status) => (
                   <button
@@ -293,7 +278,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                 ))}
               </div>
               
-              {/* Custom tag button */}
               <button
                 onClick={() => setShowCustomTag(!showCustomTag)}
                 className="text-sm text-blue-400 hover:text-blue-300"
@@ -314,7 +298,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                 </div>
               )}
               
-              {/* Info d'ajout à la library */}
               {selectedStatus && (
                 <div className="mt-3 text-sm text-gray-400">
                   Added to your library on {new Date().toLocaleDateString()}
@@ -322,8 +305,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
               )}
             </div>
 
-            {/* Carrousel de reviews */}
-            <div className="p-4 border-b border-gray-700">
+            <div className="p-4 border-b border-gray-700 flex-shrink-0">
               <h3 className="text-white font-semibold mb-3">Recent Reviews</h3>
               <div className="flex space-x-4 overflow-x-auto pb-2">
                 {mockReviews.map((review) => (
@@ -351,8 +333,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
               </div>
             </div>
 
-            {/* Onglets */}
-            <div className="flex border-b border-gray-700">
+            <div className="flex border-b border-gray-700 flex-shrink-0">
               {(['info', 'social', 'more'] as const).map((tab) => (
                 <button
                   key={tab}
@@ -368,12 +349,10 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
               ))}
             </div>
 
-            {/* Contenu des onglets */}
             <div className="flex-1 overflow-y-auto bg-gray-900">
               <div className="p-4">
                 {activeTab === 'info' && (
                   <div className="space-y-6">
-                    {/* Description */}
                     <div>
                       <h4 className="text-white font-semibold mb-2">About</h4>
                       <p className="text-gray-300 text-sm leading-relaxed">
@@ -381,7 +360,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                       </p>
                     </div>
 
-                    {/* Screenshots */}
                     {gameDetail.screenshots && gameDetail.screenshots.length > 0 && (
                       <div>
                         <h4 className="text-white font-semibold mb-2">Screenshots</h4>
@@ -411,7 +389,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                       </div>
                     )}
 
-                    {/* Infos détaillées */}
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <h5 className="text-white font-medium mb-1">Platforms</h5>
@@ -451,7 +428,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                       )}
                     </div>
 
-                    {/* Tags populaires */}
                     {gameDetail.tags && gameDetail.tags.length > 0 && (
                       <div>
                         <h4 className="text-white font-semibold mb-2">Popular Tags</h4>
@@ -468,7 +444,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                       </div>
                     )}
 
-                    {/* Liens */}
                     <div className="flex space-x-4">
                       {gameDetail.website && (
                         <a
@@ -487,34 +462,158 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                 )}
 
                 {activeTab === 'social' && (
-                  <div className="space-y-4">
-                    <div className="text-center text-gray-400">
-                      <Users size={48} className="mx-auto mb-2 opacity-50" />
-                      <p>Social features coming soon!</p>
-                      <p className="text-sm mt-2">
-                        Friend stats, community ratings, and more will be available here.
-                      </p>
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-white font-semibold mb-4">Community Stats</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-gray-800 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-blue-400">{gameStats['want-to-play'].toLocaleString()}</div>
+                          <div className="text-sm text-gray-400">Want to Play</div>
+                        </div>
+                        <div className="bg-gray-800 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-green-400">{gameStats['currently-playing'].toLocaleString()}</div>
+                          <div className="text-sm text-gray-400">Currently Playing</div>
+                        </div>
+                        <div className="bg-gray-800 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-purple-400">{gameStats['completed'].toLocaleString()}</div>
+                          <div className="text-sm text-gray-400">Completed</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-white font-semibold mb-3">Friends Activity</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3 bg-gray-800 p-3 rounded-lg">
+                          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">A</div>
+                          <div className="flex-1">
+                            <p className="text-white text-sm"><span className="font-medium">Alex</span> is currently playing this game</p>
+                            <p className="text-gray-400 text-xs">2 hours ago</p>
+                          </div>
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star key={star} size={12} className="text-yellow-400 fill-current" />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 bg-gray-800 p-3 rounded-lg">
+                          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">M</div>
+                          <div className="flex-1">
+                            <p className="text-white text-sm"><span className="font-medium">Marie</span> completed this game</p>
+                            <p className="text-gray-400 text-xs">1 day ago</p>
+                          </div>
+                          <div className="flex">
+                            {[1, 2, 3, 4].map((star) => (
+                              <Star key={star} size={12} className="text-yellow-400 fill-current" />
+                            ))}
+                            <Star size={12} className="text-gray-400" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-white font-semibold mb-3">Popular Lists</h4>
+                      <div className="space-y-2">
+                        <div className="bg-gray-800 p-3 rounded-lg">
+                          <h5 className="text-white font-medium">Best RPGs of 2024</h5>
+                          <p className="text-gray-400 text-sm">by GameMaster_2024 • 156 games</p>
+                        </div>
+                        <div className="bg-gray-800 p-3 rounded-lg">
+                          <h5 className="text-white font-medium">Must Play This Year</h5>
+                          <p className="text-gray-400 text-sm">by PixelWarrior • 89 games</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {activeTab === 'more' && (
-                  <div className="space-y-4">
-                    <div className="text-center text-gray-400">
-                      <Tag size={48} className="mx-auto mb-2 opacity-50" />
-                      <p>Additional info coming soon!</p>
-                      <p className="text-sm mt-2">
-                        DLC, similar games, and extended details will be available here.
-                      </p>
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-white font-semibold mb-3">Similar Games</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {gameDetail.genres?.slice(0, 4).map((genre, index) => (
+                          <div key={index} className="bg-gray-800 p-3 rounded-lg">
+                            <h5 className="text-white font-medium text-sm">Game Similar {index + 1}</h5>
+                            <p className="text-gray-400 text-xs">{genre.name} • 4.2★</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {gameDetail.developers && gameDetail.developers.length > 0 && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-3">More from {gameDetail.developers[0].name}</h4>
+                        <div className="space-y-2">
+                          <div className="bg-gray-800 p-3 rounded-lg">
+                            <h5 className="text-white font-medium text-sm">Previous Game Title</h5>
+                            <p className="text-gray-400 text-xs">2022 • 4.5★</p>
+                          </div>
+                          <div className="bg-gray-800 p-3 rounded-lg">
+                            <h5 className="text-white font-medium text-sm">Another Game Title</h5>
+                            <p className="text-gray-400 text-xs">2020 • 4.1★</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <h4 className="text-white font-semibold mb-3">Technical Details</h4>
+                      <div className="space-y-3">
+                        {gameDetail.esrb_rating && (
+                          <div>
+                            <h5 className="text-white font-medium text-sm mb-1">ESRB Rating</h5>
+                            <p className="text-gray-400 text-sm">{gameDetail.esrb_rating.name}</p>
+                          </div>
+                        )}
+                        <div>
+                          <h5 className="text-white font-medium text-sm mb-1">Supported Languages</h5>
+                          <p className="text-gray-400 text-sm">English, French, Spanish, German, Japanese</p>
+                        </div>
+                        <div>
+                          <h5 className="text-white font-medium text-sm mb-1">Game Size</h5>
+                          <p className="text-gray-400 text-sm">~45 GB</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-white font-semibold mb-3">External Links</h4>
+                      <div className="space-y-2">
+                        {gameDetail.website && (
+                          <a
+                            href={gameDetail.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300 hover:text-white transition-colors"
+                          >
+                            <Globe size={16} />
+                            <span>Official Website</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                        <div className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300">
+                          <span>🎮</span>
+                          <span>Steam Store</span>
+                          <ExternalLink size={12} />
+                        </div>
+                        <div className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300">
+                          <span>🎯</span>
+                          <span>Metacritic</span>
+                          <ExternalLink size={12} />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             </div>
-          </>
+          </div>
         ) : (
           <div className="p-8 text-center text-gray-400">
-            Game not found
+            <p>Game not found</p>
+            <p className="text-sm mt-2">Unable to load game details. Please try again.</p>
           </div>
         )}
       </div>
