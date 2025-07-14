@@ -2,9 +2,8 @@
 import { useState } from 'react'
 import Header from '@/components/Header'
 import CategoryTabs from '@/components/CategoryTabs'
-import ContentSection from '@/components/ContentSection'
+import ContentCard from '@/components/ContentCard'
 import { sampleContent } from '@/data/sampleContent'
-import { discoverSections, sectionData } from '@/data/discoverConfig'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('games')
@@ -19,10 +18,8 @@ export default function Home() {
     }
     
     setLibrary(prev => {
-      // Éviter les doublons
       const exists = prev.find(libItem => libItem.id === item.id)
       if (exists) {
-        // Mettre à jour le statut si l'item existe déjà
         return prev.map(libItem => 
           libItem.id === item.id 
             ? { ...libItem, status, addedAt: new Date().toISOString() }
@@ -35,34 +32,23 @@ export default function Home() {
     console.log('Added to library:', newItem)
   }
 
-  // Obtenir le contenu selon les IDs configurés
-  const getContentByIds = (ids: number[]) => {
-    const allContent = {
-      games: sampleContent.games,
-      movies: sampleContent.movies,
-      music: sampleContent.music,
-      books: sampleContent.books
+  // Obtenir le contenu actuel selon l'onglet
+  const getCurrentContent = () => {
+    switch (activeTab) {
+      case 'games':
+        return sampleContent.games
+      case 'movies':
+        return sampleContent.movies
+      case 'music':
+        return sampleContent.music
+      case 'books':
+        return sampleContent.books
+      default:
+        return sampleContent.games
     }
-
-    const currentContent = allContent[activeTab as keyof typeof allContent] || []
-    
-    return ids
-      .map(id => currentContent.find(item => item.id === id))
-      .filter((item): item is NonNullable<typeof item> => item !== undefined)
   }
 
-  // Obtenir les sections pour l'onglet actuel
-  const getCurrentSections = () => {
-    const sections = discoverSections[activeTab as keyof typeof discoverSections] || []
-    const data = sectionData[activeTab as keyof typeof sectionData] || {}
-    
-    return sections.map(section => ({
-      ...section,
-      items: getContentByIds(data[section.id as keyof typeof data] || [])
-    }))
-  }
-
-  const currentSections = getCurrentSections()
+  const currentContent = getCurrentContent()
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -76,29 +62,42 @@ export default function Home() {
           onTabChange={setActiveTab} 
         />
 
-        {/* Sections de découverte */}
-        <div className="space-y-8">
-          {currentSections.map((section) => (
-            <ContentSection
-              key={section.id}
-              title={section.title}
-              items={section.items}
-              category={activeTab}
-              onAddToLibrary={handleAddToLibrary}
-            />
-          ))}
-        </div>
-
-        {/* Section Your Library (si la bibliothèque n'est pas vide) */}
-        {library.length > 0 && (
-          <div className="mt-16">
-            <ContentSection
-              title="Your Library"
-              items={library.filter(item => item.category === activeTab || !item.category)}
-              category={activeTab}
-              onAddToLibrary={handleAddToLibrary}
-            />
+        {/* Section Popular this week */}
+        <section className="mb-12">
+          <h2 className="text-3xl font-bold text-white mb-8">Popular this week</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+            {currentContent.map((item) => (
+              <ContentCard
+                key={item.id}
+                item={item}
+                onAddToLibrary={handleAddToLibrary}
+                category={activeTab}
+              />
+            ))}
           </div>
+        </section>
+
+        {/* Section Your Library */}
+        {library.length > 0 && (
+          <section>
+            <h2 className="text-3xl font-bold text-white mb-8">Your Library</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+              {library
+                .filter(item => item.category === activeTab || !item.category)
+                .map((item) => (
+                  <div key={`library-${item.id}`} className="relative">
+                    <ContentCard
+                      item={item}
+                      onAddToLibrary={handleAddToLibrary}
+                      category={activeTab}
+                    />
+                    <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                      {item.status}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </section>
         )}
       </div>
     </div>
