@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { X, Search, Star } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { X, Search, Star, Loader2, Wifi, WifiOff } from 'lucide-react'
 
 interface SearchResult {
   id: string
@@ -27,50 +27,130 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [error, setError] = useState<string | null>(null)
+  const [searchCache] = useState<Map<string, SearchResult[]>>(new Map())
+  
+  const inputRef = useRef<HTMLInputElement>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
 
   // API Keys
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
   const OMDB_API_KEY = '649f9a63'
 
-  // Recherche avec debounce
+  // Focus input when modal opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [isOpen])
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('')
+      setResults([])
+      setSelectedIndex(-1)
+      setError(null)
+    }
+  }, [isOpen])
+
+  // Fetch with timeout utility
+  const fetchWithTimeout = async (url: string, timeout = 8000): Promise<Response> => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    
+    try {
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+      clearTimeout(timeoutId)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      return response
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout - please try again')
+      }
+      throw error
+    }
+  }
+
+  // Debounced search with caching
+  const debouncedSearch = useCallback(
+    debounce((searchQuery: string, category: string) => {
+      performSearch(searchQuery, category)
+    }, 500),
+    []
+  )
+
   useEffect(() => {
     if (!query.trim() || query.length < 2) {
       setResults([])
+      setSelectedIndex(-1)
+      setError(null)
       return
     }
 
-    const searchTimeout = setTimeout(() => {
-      performSearch(query)
-    }, 500)
+    // Check cache first
+    const cacheKey = `${activeCategory}-${query.toLowerCase()}`
+    if (searchCache.has(cacheKey)) {
+      const cachedResults = searchCache.get(cacheKey)!
+      setResults(cachedResults)
+      setSelectedIndex(-1)
+      return
+    }
 
-    return () => clearTimeout(searchTimeout)
-  }, [query, activeCategory])
+    debouncedSearch(query, activeCategory)
+  }, [query, activeCategory, debouncedSearch, searchCache])
 
-  const performSearch = async (searchQuery: string) => {
+  const performSearch = async (searchQuery: string, category: string) => {
+    if (!searchQuery.trim()) return
+    
     setLoading(true)
+    setError(null)
+    setSelectedIndex(-1)
+    
     const allResults: SearchResult[] = []
+    const errors: string[] = []
 
     try {
-      const searchPromises = []
+      const searchPromises: Promise<SearchResult[]>[] = []
 
-      // 1. RAWG API - Jeux vidéo
-      if (activeCategory === 'all' || activeCategory === 'games') {
-        searchPromises.push(searchGames(searchQuery))
+      // Add search promises based on category
+      if (category === 'all' || category === 'games') {
+        searchPromises.push(searchGames(searchQuery).catch(err => {
+          errors.push(`Games: ${err.message}`)
+          return []
+        }))
       }
 
-      // 2. OMDb API - Films/Séries  
-      if (activeCategory === 'all' || activeCategory === 'movies') {
-        searchPromises.push(searchMovies(searchQuery))
+      if (category === 'all' || category === 'movies') {
+        searchPromises.push(searchMovies(searchQuery).catch(err => {
+          errors.push(`Movies: ${err.message}`)
+          return []
+        }))
       }
 
-      // 3. iTunes API - Musique
-      if (activeCategory === 'all' || activeCategory === 'music') {
-        searchPromises.push(searchMusic(searchQuery))
+      if (category === 'all' || category === 'music') {
+        searchPromises.push(searchMusic(searchQuery).catch(err => {
+          errors.push(`Music: ${err.message}`)
+          return []
+        }))
       }
 
-      // 4. Google Books API - Livres
-      if (activeCategory === 'all' || activeCategory === 'books') {
-        searchPromises.push(searchBooks(searchQuery))
+      if (category === 'all' || category === 'books') {
+        searchPromises.push(searchBooks(searchQuery).catch(err => {
+          errors.push(`Books: ${err.message}`)
+          return []
+        }))
       }
 
       const results = await Promise.all(searchPromises)
@@ -78,121 +158,171 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
         allResults.push(...categoryResults)
       })
 
+      // Sort results by relevance (title match first, then by rating)
+      allResults.sort((a, b) => {
+        const aTitleMatch = a.title.toLowerCase().includes(searchQuery.toLowerCase())
+        const bTitleMatch = b.title.toLowerCase().includes(searchQuery.toLowerCase())
+        
+        if (aTitleMatch && !bTitleMatch) return -1
+        if (!aTitleMatch && bTitleMatch) return 1
+        
+        return (b.rating || 0) - (a.rating || 0)
+      })
+
+      // Cache results
+      const cacheKey = `${category}-${searchQuery.toLowerCase()}`
+      searchCache.set(cacheKey, allResults)
+
       setResults(allResults)
+
+      if (errors.length > 0 && allResults.length === 0) {
+        setError(`Search failed: ${errors.join(', ')}`)
+      }
+
     } catch (error) {
-      console.error('Erreur de recherche:', error)
+      console.error('Search error:', error)
+      setError(error instanceof Error ? error.message : 'Search failed')
     } finally {
       setLoading(false)
     }
   }
 
-  // Recherche jeux - RAWG API
+  // API Search functions with better error handling
   const searchGames = async (query: string): Promise<SearchResult[]> => {
-    try {
-      const response = await fetch(
-        `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=5`
-      )
-      const data = await response.json()
-      
-      return data.results?.map((game: any) => ({
-        id: `game-${game.id}`,
-        title: game.name,
-        author: game.developers?.[0]?.name || 'Unknown',
-        year: game.released ? new Date(game.released).getFullYear() : 2024,
-        rating: game.rating || 0,
-        genre: game.genres?.[0]?.name || 'Unknown',
-        category: 'games' as const,
-        image: game.background_image,
-        // Ajouter les propriétés manquantes pour ContentCard
-        artist: undefined,
-        director: undefined
-      })) || []
-    } catch (error) {
-      console.error('Erreur RAWG API:', error)
-      return []
+    const url = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=8`
+    const response = await fetchWithTimeout(url)
+    const data = await response.json()
+    
+    if (!data.results) {
+      throw new Error('No games data received')
     }
+    
+    return data.results.map((game: any) => ({
+      id: `game-${game.id}`,
+      title: game.name || 'Unknown Game',
+      author: game.developers?.[0]?.name || 'Unknown Developer',
+      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
+      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
+      genre: game.genres?.[0]?.name || 'Unknown',
+      category: 'games' as const,
+      image: game.background_image,
+      artist: undefined,
+      director: undefined
+    }))
   }
 
-  // Recherche films/séries - OMDb API
   const searchMovies = async (query: string): Promise<SearchResult[]> => {
-    try {
-      const response = await fetch(
-        `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(query)}&type=movie`
-      )
-      const data = await response.json()
-      
-      if (data.Response === 'False') return []
-      
-      return data.Search?.slice(0, 5).map((movie: any) => ({
-        id: `movie-${movie.imdbID}`,
-        title: movie.Title,
-        director: 'Unknown',
-        year: parseInt(movie.Year) || 2024,
-        rating: 0,
-        genre: movie.Genre || 'Unknown',
-        category: 'movies' as const,
-        image: movie.Poster !== 'N/A' ? movie.Poster : undefined,
-        // Ajouter les propriétés manquantes pour ContentCard
-        author: undefined,
-        artist: undefined
-      })) || []
-    } catch (error) {
-      console.error('Erreur OMDb API:', error)
-      return []
+    const url = `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(query)}&type=movie&page=1`
+    const response = await fetchWithTimeout(url)
+    const data = await response.json()
+    
+    if (data.Response === 'False') {
+      throw new Error(data.Error || 'No movies found')
     }
+    
+    return data.Search?.slice(0, 8).map((movie: any) => ({
+      id: `movie-${movie.imdbID}`,
+      title: movie.Title || 'Unknown Movie',
+      director: 'Unknown Director',
+      year: parseInt(movie.Year) || new Date().getFullYear(),
+      rating: 0,
+      genre: movie.Genre || 'Unknown',
+      category: 'movies' as const,
+      image: movie.Poster !== 'N/A' ? movie.Poster : undefined,
+      author: undefined,
+      artist: undefined
+    })) || []
   }
 
-  // Recherche musique - iTunes API
   const searchMusic = async (query: string): Promise<SearchResult[]> => {
-    try {
-      const response = await fetch(
-        `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=5`
-      )
-      const data = await response.json()
-      
-      return data.results?.map((album: any) => ({
-        id: `music-${album.collectionId}`,
-        title: album.collectionName,
-        artist: album.artistName,
-        year: album.releaseDate ? new Date(album.releaseDate).getFullYear() : 2024,
-        rating: 0,
-        genre: album.primaryGenreName || 'Unknown',
-        category: 'music' as const,
-        image: album.artworkUrl100,
-        // Ajouter les propriétés manquantes pour ContentCard
-        author: undefined,
-        director: undefined
-      })) || []
-    } catch (error) {
-      console.error('Erreur iTunes API:', error)
-      return []
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=8`
+    const response = await fetchWithTimeout(url)
+    const data = await response.json()
+    
+    if (!data.results) {
+      throw new Error('No music data received')
+    }
+    
+    return data.results.map((album: any) => ({
+      id: `music-${album.collectionId}`,
+      title: album.collectionName || 'Unknown Album',
+      artist: album.artistName || 'Unknown Artist',
+      year: album.releaseDate ? new Date(album.releaseDate).getFullYear() : new Date().getFullYear(),
+      rating: 0,
+      genre: album.primaryGenreName || 'Unknown',
+      category: 'music' as const,
+      image: album.artworkUrl100,
+      author: undefined,
+      director: undefined
+    }))
+  }
+
+  const searchBooks = async (query: string): Promise<SearchResult[]> => {
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=8&printType=books`
+    const response = await fetchWithTimeout(url)
+    const data = await response.json()
+    
+    if (!data.items) {
+      throw new Error('No books found')
+    }
+    
+    return data.items.map((book: any) => ({
+      id: `book-${book.id}`,
+      title: book.volumeInfo.title || 'Unknown Book',
+      author: book.volumeInfo.authors?.[0] || 'Unknown Author',
+      year: book.volumeInfo.publishedDate ? parseInt(book.volumeInfo.publishedDate) : new Date().getFullYear(),
+      rating: book.volumeInfo.averageRating ? Number(book.volumeInfo.averageRating.toFixed(1)) : 0,
+      genre: book.volumeInfo.categories?.[0] || 'Unknown',
+      category: 'books' as const,
+      image: book.volumeInfo.imageLinks?.thumbnail,
+      artist: undefined,
+      director: undefined
+    }))
+  }
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!results.length) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedIndex(prev => Math.min(prev + 1, results.length - 1))
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedIndex(prev => Math.max(prev - 1, -1))
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (selectedIndex >= 0) {
+          handleSelectResult(results[selectedIndex])
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        onClose()
+        break
     }
   }
 
-  // Recherche livres - Google Books API
-  const searchBooks = async (query: string): Promise<SearchResult[]> => {
-    try {
-      const response = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5`
-      )
-      const data = await response.json()
-      
-      return data.items?.map((book: any) => ({
-        id: `book-${book.id}`,
-        title: book.volumeInfo.title,
-        author: book.volumeInfo.authors?.[0] || 'Unknown',
-        year: book.volumeInfo.publishedDate ? parseInt(book.volumeInfo.publishedDate) : 2024,
-        rating: book.volumeInfo.averageRating || 0,
-        genre: book.volumeInfo.categories?.[0] || 'Unknown',
-        category: 'books' as const,
-        image: book.volumeInfo.imageLinks?.thumbnail,
-        // Ajouter les propriétés manquantes pour ContentCard
-        artist: undefined,
-        director: undefined
-      })) || []
-    } catch (error) {
-      console.error('Erreur Google Books API:', error)
-      return []
+  // Scroll selected item into view
+  useEffect(() => {
+    if (selectedIndex >= 0 && resultsRef.current) {
+      const selectedElement = resultsRef.current.children[selectedIndex] as HTMLElement
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
+    }
+  }, [selectedIndex])
+
+  const handleSelectResult = (result: SearchResult) => {
+    if (result.category === 'games' && onOpenGameDetail) {
+      onOpenGameDetail(result.id.replace('game-', ''))
+      onClose()
+    } else {
+      onAddToLibrary(result, 'want-to-watch')
+      onClose()
     }
   }
 
@@ -200,138 +330,206 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     return result.author || result.artist || result.director || 'Unknown'
   }
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryInfo = (category: string) => {
     switch (category) {
-      case 'games': return 'bg-green-500'
-      case 'movies': return 'bg-blue-500'
-      case 'music': return 'bg-purple-500'
-      case 'books': return 'bg-orange-500'
-      default: return 'bg-gray-500'
+      case 'games': return { color: 'bg-green-500', icon: '🎮' }
+      case 'movies': return { color: 'bg-blue-500', icon: '🎬' }
+      case 'music': return { color: 'bg-purple-500', icon: '🎵' }
+      case 'books': return { color: 'bg-orange-500', icon: '📚' }
+      default: return { color: 'bg-gray-500', icon: '📄' }
     }
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-20">
-      <div className="bg-gray-900 rounded-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-16 px-4">
+      <div className="bg-gray-900 rounded-xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl border border-gray-700">
         {/* Header */}
         <div className="flex items-center p-4 border-b border-gray-700">
-          <Search className="text-gray-400 mr-3" size={20} />
+          <Search className="text-gray-400 mr-3 flex-shrink-0" size={20} />
           <input
+            ref={inputRef}
             type="text"
             placeholder="Search games, movies, music, books..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-lg"
-            autoFocus
           />
+          {loading && <Loader2 className="animate-spin text-gray-400 mr-3" size={16} />}
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white ml-3"
+            className="text-gray-400 hover:text-white ml-3 p-1 rounded-lg hover:bg-gray-700 transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Filtres de catégorie */}
-        <div className="flex space-x-2 p-4 border-b border-gray-700">
-          {['all', 'games', 'movies', 'music', 'books'].map((category) => (
+        {/* Category filters */}
+        <div className="flex space-x-2 p-4 border-b border-gray-700 overflow-x-auto">
+          {[
+            { key: 'all', label: 'All', icon: '🔍' },
+            { key: 'games', label: 'Games', icon: '🎮' },
+            { key: 'movies', label: 'Movies', icon: '🎬' },
+            { key: 'music', label: 'Music', icon: '🎵' },
+            { key: 'books', label: 'Books', icon: '📚' }
+          ].map(({ key, label, icon }) => (
             <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                activeCategory === category
-                  ? 'bg-white text-gray-900'
+              key={key}
+              onClick={() => setActiveCategory(key)}
+              className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                activeCategory === key
+                  ? 'bg-white text-gray-900 shadow-lg'
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
+              <span>{icon}</span>
+              <span>{label}</span>
             </button>
           ))}
         </div>
 
-        {/* Résultats */}
-        <div className="max-h-96 overflow-y-auto">
-          {loading && (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-            </div>
-          )}
-
-          {!loading && query.length >= 2 && results.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
-              No results found for "{query}"
-            </div>
-          )}
-
-          {!loading && results.length > 0 && (
-            <div className="space-y-2 p-4">
-              {results.map((result) => (
-                <div
-                  key={result.id}
-                  className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-                  onClick={() => {
-                    if (result.category === 'games' && onOpenGameDetail) {
-                      onOpenGameDetail(result.id)
-                    }
-                  }}
+        {/* Results */}
+        <div className="max-h-96 overflow-y-auto" ref={resultsRef}>
+          {/* Error state */}
+          {error && (
+            <div className="flex items-center justify-center py-8 px-4">
+              <div className="text-center">
+                <WifiOff className="mx-auto text-gray-400 mb-2" size={24} />
+                <p className="text-red-400 text-sm">{error}</p>
+                <button
+                  onClick={() => performSearch(query, activeCategory)}
+                  className="mt-2 text-blue-400 hover:text-blue-300 text-sm underline"
                 >
-                  {/* Image */}
-                  <div className="w-12 h-12 rounded-lg bg-gray-700 flex-shrink-0 overflow-hidden">
-                    {result.image ? (
-                      <img
-                        src={result.image}
-                        alt={result.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        ?
-                      </div>
-                    )}
-                  </div>
+                  Try again
+                </button>
+              </div>
+            </div>
+          )}
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-white font-medium truncate">{result.title}</h3>
-                      <span className={`px-2 py-1 rounded text-xs font-medium text-white ${getCategoryColor(result.category)}`}>
-                        {result.category}
-                      </span>
-                    </div>
-                    <p className="text-gray-400 text-sm truncate">{getCreator(result)}</p>
-                    <div className="flex items-center space-x-2 text-xs text-gray-500">
-                      <span>{result.year}</span>
-                      {result.rating && result.rating > 0 && (
-                        <>
-                          <span>•</span>
-                          <div className="flex items-center">
-                            <Star size={12} className="text-yellow-400 mr-1" />
-                            <span>{result.rating.toFixed(1)}</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
+          {/* Loading state */}
+          {loading && !error && (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center space-x-2 text-gray-400">
+                <Loader2 className="animate-spin" size={20} />
+                <span>Searching...</span>
+              </div>
+            </div>
+          )}
 
-                  {/* Bouton d'ajout */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation() // Empêcher le clic sur la div parent
-                      onAddToLibrary(result, 'want-to-watch')
-                      onClose()
-                    }}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+          {/* No results */}
+          {!loading && !error && query.length >= 2 && results.length === 0 && (
+            <div className="text-center py-8 text-gray-400">
+              <Search className="mx-auto mb-2" size={24} />
+              <p>No results found for "<span className="text-white">{query}</span>"</p>
+              <p className="text-sm mt-1">Try different keywords or check spelling</p>
+            </div>
+          )}
+
+          {/* Results list */}
+          {!loading && !error && results.length > 0 && (
+            <div className="p-4 space-y-2">
+              {results.map((result, index) => {
+                const categoryInfo = getCategoryInfo(result.category)
+                const isSelected = index === selectedIndex
+                
+                return (
+                  <div
+                    key={result.id}
+                    className={`flex items-center space-x-4 p-3 rounded-lg transition-all cursor-pointer ${
+                      isSelected 
+                        ? 'bg-blue-600/20 border border-blue-500/50' 
+                        : 'hover:bg-gray-800 border border-transparent'
+                    }`}
+                    onClick={() => handleSelectResult(result)}
                   >
-                    Add
-                  </button>
-                </div>
-              ))}
+                    {/* Image */}
+                    <div className="w-12 h-12 rounded-lg bg-gray-700 flex-shrink-0 overflow-hidden">
+                      {result.image ? (
+                        <img
+                          src={result.image}
+                          alt={result.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden')
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full flex items-center justify-center text-lg ${result.image ? 'hidden' : ''}`}>
+                        {categoryInfo.icon}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h3 className="text-white font-medium truncate">{result.title}</h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${categoryInfo.color} flex-shrink-0`}>
+                          {result.category}
+                        </span>
+                      </div>
+                      <p className="text-gray-400 text-sm truncate">{getCreator(result)}</p>
+                      <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
+                        <span>{result.year}</span>
+                        {result.genre && (
+                          <>
+                            <span>•</span>
+                            <span className="truncate">{result.genre}</span>
+                          </>
+                        )}
+                        {result.rating && result.rating > 0 && (
+                          <>
+                            <span>•</span>
+                            <div className="flex items-center">
+                              <Star size={12} className="text-yellow-400 mr-1" />
+                              <span>{result.rating}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Add button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAddToLibrary(result, 'want-to-watch')
+                        onClose()
+                      }}
+                      className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0"
+                    >
+                      Add
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
+
+        {/* Footer hint */}
+        {results.length > 0 && (
+          <div className="px-4 py-2 border-t border-gray-700 text-xs text-gray-500 flex items-center justify-between">
+            <span>Use ↑↓ to navigate, Enter to select</span>
+            <span>{results.length} result{results.length !== 1 ? 's' : ''}</span>
+          </div>
+        )}
       </div>
     </div>
   )
+}
+
+// Debounce utility
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+  
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
 }
