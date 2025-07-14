@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Header from '@/components/Header'
 import CategoryTabs from '@/components/CategoryTabs'
-import ContentCard from '@/components/ContentCard'
+import ContentSection from '@/components/ContentSection'
 import { sampleContent } from '@/data/sampleContent'
 
 export default function Home() {
@@ -30,6 +30,41 @@ export default function Home() {
     })
   }
 
+  // Configuration des sections par catégorie
+  const getSections = () => {
+    const allContent = getCurrentContent()
+    
+    // Diviser le contenu en 3 sections de 2 items chacune
+    const popularItems = allContent.slice(0, 2)
+    const topRatedItems = allContent.slice(2, 4) 
+    const editorPicksItems = allContent.slice(4, 6)
+
+    const sectionConfig = {
+      games: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Top rated of all time', items: topRatedItems },
+        { title: "Editor's Choice", items: editorPicksItems }
+      ],
+      movies: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Highly rated', items: topRatedItems },
+        { title: 'Staff picks', items: editorPicksItems }
+      ],
+      music: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Top albums', items: topRatedItems },
+        { title: 'Hidden gems', items: editorPicksItems }
+      ],
+      books: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Bestsellers', items: topRatedItems },
+        { title: 'Must reads', items: editorPicksItems }
+      ]
+    }
+
+    return sectionConfig[activeTab as keyof typeof sectionConfig] || sectionConfig.games
+  }
+
   const getCurrentContent = () => {
     switch (activeTab) {
       case 'games': return sampleContent.games
@@ -40,52 +75,41 @@ export default function Home() {
     }
   }
 
-  const currentContent = getCurrentContent()
+  const sections = getSections()
 
   return (
     <div className="min-h-screen bg-gray-950">
       <Header />
       
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <CategoryTabs 
           activeTab={activeTab} 
           onTabChange={setActiveTab} 
         />
 
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold text-white mb-8">Popular this week</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            {currentContent.map((item: any) => (
-              <ContentCard
-                key={item.id}
-                item={item}
-                onAddToLibrary={handleAddToLibrary}
-                category={activeTab}
-              />
-            ))}
-          </div>
-        </section>
+        {/* Sections horizontales scrollables */}
+        <div className="space-y-6 sm:space-y-8">
+          {sections.map((section, index) => (
+            <ContentSection
+              key={`${activeTab}-${index}`}
+              title={section.title}
+              items={section.items}
+              category={activeTab}
+              onAddToLibrary={handleAddToLibrary}
+            />
+          ))}
+        </div>
 
+        {/* Section Your Library */}
         {library.length > 0 && (
-          <section>
-            <h2 className="text-3xl font-bold text-white mb-8">Your Library</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-              {library
-                .filter((item: any) => item.category === activeTab)
-                .map((item: any) => (
-                  <div key={`library-${item.id}`} className="relative">
-                    <ContentCard
-                      item={item}
-                      onAddToLibrary={handleAddToLibrary}
-                      category={activeTab}
-                    />
-                    <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-                      {item.status}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </section>
+          <div className="mt-8 sm:mt-12">
+            <ContentSection
+              title="Your Library"
+              items={library.filter((item: any) => item.category === activeTab)}
+              category={activeTab}
+              onAddToLibrary={handleAddToLibrary}
+            />
+          </div>
         )}
       </div>
     </div>

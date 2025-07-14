@@ -3,22 +3,11 @@ import { useState, useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import ContentCard from './ContentCard'
 
-interface ContentItem {
-  id: number
-  title: string
-  author?: string
-  artist?: string
-  director?: string
-  year: number
-  rating: number
-  genre: string
-}
-
 interface ContentSectionProps {
   title: string
-  items: ContentItem[]
+  items: any[]
   category: string
-  onAddToLibrary: (item: ContentItem, status: string) => void
+  onAddToLibrary: (item: any, status: string) => void
 }
 
 export default function ContentSection({ title, items, category, onAddToLibrary }: ContentSectionProps) {
@@ -29,7 +18,7 @@ export default function ContentSection({ title, items, category, onAddToLibrary 
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return
     
-    const scrollAmount = 320 // Largeur d'une carte + gap
+    const scrollAmount = 280 // Largeur d'une carte + gap
     const newScrollLeft = scrollRef.current.scrollLeft + (direction === 'right' ? scrollAmount : -scrollAmount)
     
     scrollRef.current.scrollTo({
@@ -42,18 +31,18 @@ export default function ContentSection({ title, items, category, onAddToLibrary 
     if (!scrollRef.current) return
     
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
-    setShowLeftArrow(scrollLeft > 0)
+    setShowLeftArrow(scrollLeft > 10)
     setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10)
   }
 
   return (
-    <section className="mb-12">
+    <section className="mb-8">
       {/* Header avec titre et flèches */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">{title}</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-white">{title}</h2>
         
-        {/* Flèches de navigation */}
-        <div className="flex space-x-2">
+        {/* Flèches de navigation - cachées sur mobile */}
+        <div className="hidden sm:flex space-x-2">
           <button
             onClick={() => scroll('left')}
             className={`p-2 rounded-full transition-all duration-200 ${
@@ -84,14 +73,10 @@ export default function ContentSection({ title, items, category, onAddToLibrary 
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex space-x-4 overflow-x-auto scrollbar-hide pb-4"
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
+          className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide"
         >
           {items.map((item) => (
-            <div key={item.id} className="flex-shrink-0 w-72">
+            <div key={item.id} className="flex-shrink-0 w-64 sm:w-72">
               <ContentCard
                 item={item}
                 onAddToLibrary={onAddToLibrary}
@@ -103,7 +88,7 @@ export default function ContentSection({ title, items, category, onAddToLibrary 
 
         {/* Gradient de fin pour indiquer qu'on peut scroller */}
         {showRightArrow && (
-          <div className="absolute top-0 right-0 w-16 h-full bg-gradient-to-l from-gray-950 to-transparent pointer-events-none" />
+          <div className="absolute top-0 right-0 w-12 h-full bg-gradient-to-l from-gray-950 to-transparent pointer-events-none hidden sm:block" />
         )}
       </div>
 
