@@ -723,39 +723,11 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                             </div>
                           ))
                         ) : (
-                          // Fallback si pas de résultats API
-                          <>
-                            <div className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden">
-                              <div className="relative w-24 h-20 bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">
-                                <span className="text-white text-lg">🎮</span>
-                              </div>
-                              <div className="flex-1 p-3 flex flex-col justify-center">
-                                <h5 className="text-white font-medium text-sm">Similar Game 1</h5>
-                                <div className="flex items-center justify-between mt-1">
-                                  <span className="text-gray-400 text-xs">2022</span>
-                                  <div className="flex items-center space-x-1">
-                                    <Star size={10} className="text-yellow-400 fill-current" />
-                                    <span className="text-gray-300 text-xs">4.2</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden">
-                              <div className="relative w-24 h-20 bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">
-                                <span className="text-white text-lg">🎮</span>
-                              </div>
-                              <div className="flex-1 p-3 flex flex-col justify-center">
-                                <h5 className="text-white font-medium text-sm">Similar Game 2</h5>
-                                <div className="flex items-center justify-between mt-1">
-                                  <span className="text-gray-400 text-xs">2021</span>
-                                  <div className="flex items-center space-x-1">
-                                    <Star size={10} className="text-yellow-400 fill-current" />
-                                    <span className="text-gray-300 text-xs">4.5</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </>
+                          // ✅ AFFICHER MESSAGE DE CHARGEMENT PENDANT QUE L'API CHARGE
+                          <div className="col-span-2 text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-3"></div>
+                            <p className="text-gray-400 text-sm">Loading similar games...</p>
+                          </div>
                         )}
                       </div>
                     </div>

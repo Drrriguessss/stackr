@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import ContentCard from './ContentCard'
+import GameCardHorizontal from './GameCardHorizontal'
 
 interface ContentSectionProps {
   title: string
@@ -9,10 +9,17 @@ interface ContentSectionProps {
   category: string
   onAddToLibrary: (item: any, status: string) => void
   library?: any[]
-  onOpenGameDetail?: (gameId: string) => void // ✅ NOUVELLE PROP
+  onOpenGameDetail?: (gameId: string) => void
 }
 
-export default function ContentSection({ title, items, category, onAddToLibrary, library = [], onOpenGameDetail }: ContentSectionProps) {
+export default function ContentSection({ 
+  title, 
+  items, 
+  category, 
+  onAddToLibrary, 
+  library = [], 
+  onOpenGameDetail = () => {} 
+}: ContentSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(true)
@@ -20,7 +27,7 @@ export default function ContentSection({ title, items, category, onAddToLibrary,
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return
     
-    const scrollAmount = 280 // Largeur d'une carte + gap
+    const scrollAmount = 400 // Plus large pour les cartes horizontales
     const newScrollLeft = scrollRef.current.scrollLeft + (direction === 'right' ? scrollAmount : -scrollAmount)
     
     scrollRef.current.scrollTo({
@@ -35,6 +42,24 @@ export default function ContentSection({ title, items, category, onAddToLibrary,
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
     setShowLeftArrow(scrollLeft > 10)
     setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10)
+  }
+
+  // Transformer les items pour GameCardHorizontal
+  const transformedItems = items.map(item => ({
+    id: item.id,
+    title: item.title,
+    image: item.image,
+    year: item.year,
+    rating: item.rating,
+    genre: item.genre || (category === 'games' ? 'Game' : category.slice(0, -1)), // "games" -> "Game"
+    status: item.status
+  }))
+
+  const handleAddToLibraryWrapper = (gameId: string, status: string) => {
+    const item = items.find(i => i.id === gameId)
+    if (item) {
+      onAddToLibrary(item, status)
+    }
   }
 
   return (
@@ -77,19 +102,18 @@ export default function ContentSection({ title, items, category, onAddToLibrary,
           onScroll={handleScroll}
           className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide"
         >
-          {items.map((item) => (
-            <div key={item.id} className="flex-shrink-0 w-48 sm:w-56 md:w-64">
-              <ContentCard
-                item={item}
-                onAddToLibrary={onAddToLibrary}
-                category={category}
+          {transformedItems.map((item) => (
+            <div key={item.id} className="flex-shrink-0 w-80 sm:w-96">
+              <GameCardHorizontal
+                game={item}
+                onCardClick={onOpenGameDetail}
+                onAddToLibrary={handleAddToLibraryWrapper}
                 library={library}
-                onOpenGameDetail={onOpenGameDetail} // ✅ PASSER LA FONCTION
               />
             </div>
           ))}
         </div>
-
+        
         {/* Gradient de fin pour indiquer qu'on peut scroller */}
         {showRightArrow && (
           <div className="absolute top-0 right-0 w-12 h-full bg-gradient-to-l from-gray-950 to-transparent pointer-events-none hidden sm:block" />
