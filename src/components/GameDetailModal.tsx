@@ -100,34 +100,30 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
     // Attendre que le DOM soit mis à jour puis scroller jusqu'à la première section de chaque onglet
     setTimeout(() => {
       if (scrollableRef.current) {
-        let targetElement: HTMLElement | null = null
+        let scrollPosition = 0
         
+        // ✅ POSITIONS FIXES BASÉES SUR VOS IMAGES
         switch (newTab) {
           case 'info':
-            // Scroller jusqu'à "About" (première section de Info)
-            targetElement = scrollableRef.current.querySelector('#info-about')
+            // Scroll jusqu'au début du contenu des onglets
+            scrollPosition = 400 // Position approximative après reviews
             break
           case 'social':
-            // Scroller jusqu'à "Community Stats" (première section de Social)
-            targetElement = scrollableRef.current.querySelector('#social-community-stats')
+            // Scroll pour voir "Community Stats" complètement
+            scrollPosition = 380 // Position pour voir le titre en entier
             break
           case 'more':
-            // Scroller jusqu'à "Similar Games" (première section de More)
-            targetElement = scrollableRef.current.querySelector('#more-similar-games')
+            // Scroll pour voir "Similar Games" complètement  
+            scrollPosition = 380 // Même position que social
             break
         }
         
-        if (targetElement) {
-          // ✅ AJUSTER OFFSET POUR VOIR LE TITRE
-          const elementTop = targetElement.offsetTop
-          const offset = 20 // Espace au-dessus du titre
-          scrollableRef.current.scrollTo({
-            top: elementTop - offset,
-            behavior: 'smooth'
-          })
-        }
+        scrollableRef.current.scrollTo({
+          top: scrollPosition,
+          behavior: 'smooth'
+        })
       }
-    }, 50)
+    }, 100) // Délai plus long pour s'assurer que le contenu est rendu
   }
 
   useEffect(() => {
@@ -192,26 +188,43 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
       const data = await response.json()
       setGameDetail(data)
       
-      // ✅ RECHERCHER JEUX SIMILAIRES PAR GENRE
-      if (data.genres && data.genres.length > 0) {
-        const genreNames = data.genres.map((g: any) => g.name).join(',')
-        const similarResponse = await fetch(
-          `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${encodeURIComponent(genreNames)}&page_size=4&ordering=-rating`
-        )
-        const similarData = await similarResponse.json()
-        setSimilarGames(similarData.results || [])
+      // ✅ RECHERCHER JEUX SIMILAIRES - VERSION SIMPLIFIÉE
+      try {
+        // Recherche par tags populaires du jeu actuel
+        if (data.tags && data.tags.length > 0) {
+          const popularTag = data.tags[0].name
+          const similarResponse = await fetch(
+            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(popularTag)}&page_size=6&ordering=-rating`
+          )
+          const similarData = await similarResponse.json()
+          if (similarData.results) {
+            // Filtrer le jeu actuel et prendre les 4 premiers
+            const filtered = similarData.results.filter((game: any) => game.id !== data.id).slice(0, 4)
+            setSimilarGames(filtered)
+            console.log('Similar games loaded:', filtered.length)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading similar games:', error)
       }
       
-      // ✅ RECHERCHER JEUX DU MÊME DÉVELOPPEUR
-      if (data.developers && data.developers.length > 0) {
-        const devName = data.developers[0].name
-        const devResponse = await fetch(
-          `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&developers=${encodeURIComponent(devName)}&page_size=3&ordering=-rating`
-        )
-        const devData = await devResponse.json()
-        // Filtrer pour ne pas inclure le jeu actuel
-        const filteredDevGames = devData.results?.filter((game: any) => game.id !== data.id) || []
-        setDeveloperGames(filteredDevGames.slice(0, 2))
+      // ✅ RECHERCHER JEUX DU DÉVELOPPEUR - VERSION SIMPLIFIÉE
+      try {
+        if (data.developers && data.developers.length > 0) {
+          const devName = data.developers[0].name
+          const devResponse = await fetch(
+            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(devName)}&page_size=5&ordering=-rating`
+          )
+          const devData = await devResponse.json()
+          if (devData.results) {
+            // Filtrer le jeu actuel et prendre les 2 premiers
+            const filtered = devData.results.filter((game: any) => game.id !== data.id).slice(0, 2)
+            setDeveloperGames(filtered)
+            console.log('Developer games loaded:', filtered.length)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading developer games:', error)
       }
       
       const screenshotsResponse = await fetch(
