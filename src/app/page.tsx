@@ -5,13 +5,36 @@ import CategoryTabs from '@/components/CategoryTabs'
 import ContentCard from '@/components/ContentCard'
 import { sampleContent } from '@/data/sampleContent'
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState('games')
-  const [library, setLibrary] = useState<any[]>([])
+// 📝 TYPES DÉFINIS POUR CORRIGER LES ERREURS TYPESCRIPT
 
-  // Fonction pour ajouter du contenu à la bibliothèque
-  const handleAddToLibrary = (item: any, status: string) => {
-    const newItem = {
+type CategoryType = 'games' | 'movies' | 'music' | 'books'
+
+interface ContentItem {
+  id: string
+  title: string
+  image: string
+  category?: CategoryType
+  // Propriétés optionnelles selon le type de contenu
+  year?: string
+  rating?: number
+  genre?: string
+  author?: string
+  artist?: string
+  platform?: string
+}
+
+interface LibraryItem extends ContentItem {
+  status: string
+  addedAt: string
+}
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<CategoryType>('games')
+  const [library, setLibrary] = useState<LibraryItem[]>([])
+
+  // ✅ Fonction typée pour ajouter du contenu à la bibliothèque
+  const handleAddToLibrary = (item: ContentItem, status: string) => {
+    const newItem: LibraryItem = {
       ...item,
       status,
       addedAt: new Date().toISOString()
@@ -32,8 +55,8 @@ export default function Home() {
     console.log('Added to library:', newItem)
   }
 
-  // Obtenir le contenu actuel selon l'onglet
-  const getCurrentContent = () => {
+  // ✅ Fonction typée pour obtenir le contenu actuel
+  const getCurrentContent = (): ContentItem[] => {
     switch (activeTab) {
       case 'games':
         return sampleContent.games

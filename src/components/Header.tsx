@@ -1,11 +1,7 @@
 'use client'
 import { Search, Camera, Bell } from 'lucide-react'
 
-interface HeaderProps {
-  onAddToLibrary: (item: any, status: string) => void
-}
-
-export default function Header({ onAddToLibrary }: HeaderProps) {
+export default function Header() {
   return (
     <header className="flex items-center justify-between p-6 bg-gray-900">
       {/* Logo */}
