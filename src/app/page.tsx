@@ -109,6 +109,7 @@ export default function Home() {
               items={library.filter((item: any) => item.category === activeTab)}
               category={activeTab}
               onAddToLibrary={handleAddToLibrary}
+              library={library}
             />
           </div>
         )}
