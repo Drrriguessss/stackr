@@ -91,12 +91,35 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
 
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
 
-  // Fonction pour changer d'onglet et remettre scroll à zéro
+  // Fonction pour changer d'onglet et scroll jusqu'à la première section
   const changeTab = (newTab: 'info' | 'social' | 'more') => {
     setActiveTab(newTab)
-    if (scrollableRef.current) {
-      scrollableRef.current.scrollTop = 0
-    }
+    
+    // Attendre que le DOM soit mis à jour puis scroller jusqu'à la première section de chaque onglet
+    setTimeout(() => {
+      if (scrollableRef.current) {
+        let targetElement: HTMLElement | null = null
+        
+        switch (newTab) {
+          case 'info':
+            // Scroller jusqu'à "About" (première section de Info)
+            targetElement = scrollableRef.current.querySelector('#info-about')
+            break
+          case 'social':
+            // Scroller jusqu'à "Community Stats" (première section de Social)
+            targetElement = scrollableRef.current.querySelector('#social-community-stats')
+            break
+          case 'more':
+            // Scroller jusqu'à "Similar Games" (première section de More)
+            targetElement = scrollableRef.current.querySelector('#more-similar-games')
+            break
+        }
+        
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }
+    }, 50) // Petit délai pour laisser React mettre à jour le DOM
   }
 
   useEffect(() => {
@@ -434,7 +457,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
               <div className="p-4 bg-gray-900">
                 {activeTab === 'info' && (
                   <div className="space-y-6">
-                    <div>
+                    <div id="info-about">
                       <h4 className="text-white font-semibold mb-2">About</h4>
                       <p className="text-gray-300 text-sm leading-relaxed">
                         {gameDetail.description_raw || 'No description available.'}
@@ -472,7 +495,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
 
                 {activeTab === 'social' && (
                   <div className="space-y-6">
-                    <div>
+                    <div id="social-community-stats">
                       <h4 className="text-white font-semibold mb-4">Community Stats</h4>
                       <div className="grid grid-cols-3 gap-4">
                         <div className="bg-gray-800 p-4 rounded-lg text-center">
@@ -539,7 +562,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
 
                 {activeTab === 'more' && (
                   <div className="space-y-6">
-                    <div>
+                    <div id="more-similar-games">
                       <h4 className="text-white font-semibold mb-3">Similar Games</h4>
                       <div className="grid grid-cols-2 gap-3">
                         {gameDetail.genres?.slice(0, 4).map((genre, index) => (
