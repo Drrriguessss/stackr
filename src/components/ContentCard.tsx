@@ -118,28 +118,30 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
     >
       {/* Carte principale - ✅ AJOUT DU CLIC */}
       <div 
-        className={`relative h-48 sm:h-64 rounded-xl p-4 sm:p-6 text-white overflow-hidden transition-transform duration-200 group-hover:scale-105 ${
-          // Gradient basé sur la vraie catégorie
-          (item.category || category) === 'games' ? 'bg-gradient-to-br from-green-500 to-emerald-700' :
-          (item.category || category) === 'movies' ? 'bg-gradient-to-br from-blue-500 to-indigo-700' :
-          (item.category || category) === 'music' ? 'bg-gradient-to-br from-purple-500 to-pink-700' :
-          'bg-gradient-to-br from-orange-500 to-red-700'
-        }`}
+        className="relative h-48 sm:h-64 rounded-xl overflow-hidden transition-transform duration-200 group-hover:scale-105 cursor-pointer"
         onClick={handleCardClick}
       >
-        {/* ✅ IMAGE DE FOND SI DISPONIBLE */}
-        {item.image && (
+        {/* ✅ IMAGE PRINCIPALE EN BACKGROUND */}
+        {item.image ? (
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-30"
+            className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${item.image})` }}
           />
+        ) : (
+          /* Fallback gradient si pas d'image */
+          <div className={`absolute inset-0 ${
+            (item.category || category) === 'games' ? 'bg-gradient-to-br from-green-500 to-emerald-700' :
+            (item.category || category) === 'movies' ? 'bg-gradient-to-br from-blue-500 to-indigo-700' :
+            (item.category || category) === 'music' ? 'bg-gradient-to-br from-purple-500 to-pink-700' :
+            'bg-gradient-to-br from-orange-500 to-red-700'
+          }`} />
         )}
         
         {/* Overlay gradient pour lisibilité du texte */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         
         {/* Contenu de la carte */}
-        <div className="relative z-10 h-full flex flex-col justify-between">
+        <div className="relative z-10 h-full flex flex-col justify-between p-4 sm:p-6 text-white">
           <div className="flex-1">
             <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2 line-clamp-2">{item.title}</h3>
             <p className="text-sm sm:text-base text-white/80 mb-2 sm:mb-4">{getCreator()}</p>

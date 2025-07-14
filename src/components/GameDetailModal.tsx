@@ -306,7 +306,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                 <div className="mt-4 pt-4 border-t border-gray-600">
                   <h4 className="text-white font-medium mb-3">Rate this game</h4>
                   <div className="flex items-center space-x-2 mb-3">
-                    {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((rating) => (
+                    {[1, 2, 3, 4, 5].map((rating) => (
                       <button
                         key={rating}
                         onClick={() => {
@@ -318,7 +318,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         className="relative"
                       >
                         <Star
-                          size={20}
+                          size={24}
                           className={`transition-colors ${
                             (hoverRating || userRating) >= rating
                               ? 'text-yellow-400 fill-current'
@@ -328,7 +328,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                       </button>
                     ))}
                     {userRating > 0 && (
-                      <span className="text-white ml-2">{userRating}</span>
+                      <span className="text-white ml-2">{userRating}/5</span>
                     )}
                   </div>
                   

@@ -43,10 +43,10 @@ export default function Home() {
   const getSections = () => {
     const allContent = getCurrentContent()
     
-    // Diviser le contenu en 3 sections de 2 items chacune
-    const popularItems = allContent.slice(0, 2)
-    const topRatedItems = allContent.slice(2, 4) 
-    const editorPicksItems = allContent.slice(4, 6)
+    // ✅ DIVISER EN 3 SECTIONS DE 4 ITEMS CHACUNE (au lieu de 2)
+    const popularItems = allContent.slice(0, 4)
+    const topRatedItems = allContent.slice(4, 8) 
+    const editorPicksItems = allContent.slice(0, 4) // Réutiliser les premiers pour variety
 
     const sectionConfig = {
       games: [
