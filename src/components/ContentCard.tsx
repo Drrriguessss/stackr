@@ -118,7 +118,7 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
     >
       {/* Carte principale - ✅ AJOUT DU CLIC */}
       <div 
-        className="relative h-48 sm:h-64 rounded-xl overflow-hidden transition-transform duration-200 group-hover:scale-105 cursor-pointer"
+        className="relative h-32 sm:h-40 md:h-48 lg:h-56 rounded-xl overflow-hidden transition-transform duration-200 group-hover:scale-105 cursor-pointer"
         onClick={handleCardClick}
       >
         {/* ✅ IMAGE PRINCIPALE EN BACKGROUND */}

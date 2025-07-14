@@ -1,12 +1,12 @@
 'use client'
 import { useState } from 'react'
-import { Search, Camera, Bell } from 'lucide-react'
+import { Search, Camera, Bell, User } from 'lucide-react'
 import SearchModal from './SearchModal'
 
 interface HeaderProps {
   onAddToLibrary: (item: any, status: string) => void
   library: any[]
-  onOpenGameDetail?: (gameId: string) => void // ✅ NOUVELLE PROP
+  onOpenGameDetail?: (gameId: string) => void
 }
 
 export default function Header({ onAddToLibrary, library, onOpenGameDetail }: HeaderProps) {
@@ -28,7 +28,8 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
           >
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <div className="w-full pl-10 pr-4 py-3 bg-gray-800 rounded-xl text-gray-400 hover:bg-gray-700 transition-colors">
-              Search games, movies, music, books...
+              <span className="hidden md:inline">Search games, movies, music, books...</span>
+              <span className="md:hidden">Search...</span>
             </div>
           </div>
         </div>
@@ -41,8 +42,9 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
           <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
             <Bell className="text-gray-400 hover:text-white" size={24} />
           </button>
-          <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-            Se connecter
+          {/* ✅ ICÔNE UTILISATEUR AU LIEU DU BOUTON */}
+          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+            <User className="text-gray-400 hover:text-white" size={24} />
           </button>
         </div>
       </header>
@@ -53,8 +55,8 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
         onClose={() => setIsSearchModalOpen(false)}
         onAddToLibrary={onAddToLibrary}
         onOpenGameDetail={(gameId) => {
-          setIsSearchModalOpen(false) // ✅ FERMER RECHERCHE
-          onOpenGameDetail?.(gameId) // ✅ OUVRIR FICHE PRODUIT
+          setIsSearchModalOpen(false)
+          onOpenGameDetail?.(gameId)
         }}
       />
     </>

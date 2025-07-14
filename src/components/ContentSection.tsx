@@ -78,7 +78,7 @@ export default function ContentSection({ title, items, category, onAddToLibrary,
           className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide"
         >
           {items.map((item) => (
-            <div key={item.id} className="flex-shrink-0 w-64 sm:w-72">
+            <div key={item.id} className="flex-shrink-0 w-48 sm:w-56 md:w-64">
               <ContentCard
                 item={item}
                 onAddToLibrary={onAddToLibrary}

@@ -274,7 +274,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
             </div>
 
             {/* Zone scrollable */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
               {/* Boutons d'action */}
               <div className="p-4 border-b border-gray-700">
                 <div className="flex space-x-2 mb-3">
@@ -481,14 +481,93 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         </div>
                       </div>
                     </div>
+
+                    <div>
+                      <h4 className="text-white font-semibold mb-3">Friends Activity</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3 bg-gray-800 p-3 rounded-lg">
+                          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">A</div>
+                          <div className="flex-1">
+                            <p className="text-white text-sm"><span className="font-medium">Alex</span> is currently playing this game</p>
+                            <p className="text-gray-400 text-xs">2 hours ago</p>
+                          </div>
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star key={star} size={12} className="text-yellow-400 fill-current" />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 bg-gray-800 p-3 rounded-lg">
+                          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">M</div>
+                          <div className="flex-1">
+                            <p className="text-white text-sm"><span className="font-medium">Marie</span> completed this game</p>
+                            <p className="text-gray-400 text-xs">1 day ago</p>
+                          </div>
+                          <div className="flex">
+                            {[1, 2, 3, 4].map((star) => (
+                              <Star key={star} size={12} className="text-yellow-400 fill-current" />
+                            ))}
+                            <Star size={12} className="text-gray-400" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-white font-semibold mb-3">Popular Lists</h4>
+                      <div className="space-y-2">
+                        <div className="bg-gray-800 p-3 rounded-lg">
+                          <h5 className="text-white font-medium">Best RPGs of 2024</h5>
+                          <p className="text-gray-400 text-sm">by GameMaster_2024 • 156 games</p>
+                        </div>
+                        <div className="bg-gray-800 p-3 rounded-lg">
+                          <h5 className="text-white font-medium">Must Play This Year</h5>
+                          <p className="text-gray-400 text-sm">by PixelWarrior • 89 games</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 {activeTab === 'more' && (
                   <div className="space-y-6">
                     <div>
+                      <h4 className="text-white font-semibold mb-3">Similar Games</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {gameDetail.genres?.slice(0, 4).map((genre, index) => (
+                          <div key={index} className="bg-gray-800 p-3 rounded-lg">
+                            <h5 className="text-white font-medium text-sm">Game Similar {index + 1}</h5>
+                            <p className="text-gray-400 text-xs">{genre.name} • 4.2★</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {gameDetail.developers && gameDetail.developers.length > 0 && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-3">More from {gameDetail.developers[0].name}</h4>
+                        <div className="space-y-2">
+                          <div className="bg-gray-800 p-3 rounded-lg">
+                            <h5 className="text-white font-medium text-sm">Previous Game Title</h5>
+                            <p className="text-gray-400 text-xs">2022 • 4.5★</p>
+                          </div>
+                          <div className="bg-gray-800 p-3 rounded-lg">
+                            <h5 className="text-white font-medium text-sm">Another Game Title</h5>
+                            <p className="text-gray-400 text-xs">2020 • 4.1★</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
                       <h4 className="text-white font-semibold mb-3">Technical Details</h4>
                       <div className="space-y-3">
+                        {gameDetail.esrb_rating && (
+                          <div>
+                            <h5 className="text-white font-medium text-sm mb-1">ESRB Rating</h5>
+                            <p className="text-gray-400 text-sm">{gameDetail.esrb_rating.name}</p>
+                          </div>
+                        )}
                         <div>
                           <h5 className="text-white font-medium text-sm mb-1">Supported Languages</h5>
                           <p className="text-gray-400 text-sm">English, French, Spanish, German, Japanese</p>
@@ -496,6 +575,34 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         <div>
                           <h5 className="text-white font-medium text-sm mb-1">Game Size</h5>
                           <p className="text-gray-400 text-sm">~45 GB</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-white font-semibold mb-3">External Links</h4>
+                      <div className="space-y-2">
+                        {gameDetail.website && (
+                          <a
+                            href={gameDetail.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300 hover:text-white transition-colors"
+                          >
+                            <Globe size={16} />
+                            <span>Official Website</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                        <div className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300">
+                          <span>🎮</span>
+                          <span>Steam Store</span>
+                          <ExternalLink size={12} />
+                        </div>
+                        <div className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300">
+                          <span>🎯</span>
+                          <span>Metacritic</span>
+                          <ExternalLink size={12} />
                         </div>
                       </div>
                     </div>
@@ -511,6 +618,17 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
           </div>
         )}
       </div>
+      
+      {/* CSS pour masquer scrollbar */}
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   )
 }
