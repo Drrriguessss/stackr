@@ -7,7 +7,7 @@ interface ContentSectionProps {
   category: string
   onAddToLibrary: (item: any, status: string) => void
   library: any[]
-  onOpenGameDetail?: (gameId: string) => void // ✅ Optionnel
+  onOpenGameDetail?: (gameId: string) => void
 }
 
 export default function ContentSection({ 
@@ -28,19 +28,30 @@ export default function ContentSection({
         </button>
       </div>
 
-      {/* Cards Grid - Mobile optimized */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+      {/* ✅ Carrousel horizontal au lieu de grid */}
+      <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
         {items.map((item) => (
-          <ContentCard
-            key={item.id}
-            item={item}
-            category={category}
-            onAddToLibrary={onAddToLibrary}
-            library={library}
-            onOpenGameDetail={onOpenGameDetail}
-          />
+          <div key={item.id} className="flex-shrink-0 w-32">
+            <ContentCard
+              item={item}
+              category={category}
+              onAddToLibrary={onAddToLibrary}
+              library={library}
+              onOpenGameDetail={onOpenGameDetail}
+            />
+          </div>
         ))}
       </div>
+      
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </section>
   )
 }

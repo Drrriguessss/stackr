@@ -146,71 +146,148 @@ export default function GameDetailModal({
     try {
       setSimilarGamesLoading(true)
       
+      // ✅ STRATÉGIE AMÉLIORÉE : Essayer plusieurs approches
+      let similarResponse;
+      let similarData;
+      
+      // Approche 1: Par genre principal avec ID
       if (gameData.genres && gameData.genres.length > 0) {
-        const mainGenre = gameData.genres[0].name
+        const genreId = gameData.genres[0].id || gameData.genres[0].name;
+        console.log('Trying genre:', genreId, 'for game:', gameData.name);
         
-        // Timeout de 5 secondes
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000)
+        try {
+          similarResponse = await fetch(
+            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${genreId}&ordering=-rating&page_size=12&metacritic=75,100`,
+            { signal: AbortSignal.timeout(5000) }
+          );
+          
+          if (similarResponse.ok) {
+            similarData = await similarResponse.json();
+            if (similarData.results && similarData.results.length > 2) {
+              const filtered = similarData.results
+                .filter((game: any) => game.id !== gameData.id && game.background_image)
+                .slice(0, 8);
+              
+              if (filtered.length >= 4) {
+                console.log('✅ Genre search successful:', filtered.length, 'games');
+                setSimilarGames(filtered);
+                setSimilarGamesLoading(false);
+                return;
+              }
+            }
+          }
+        } catch (error) {
+          console.log('Genre search failed, trying tags...');
+        }
+      }
+      
+      // Approche 2: Par tags populaires
+      if (gameData.tags && gameData.tags.length > 0) {
+        const popularTag = gameData.tags[0].id || gameData.tags[0].name;
+        console.log('Trying tag:', popularTag);
         
-        const similarResponse = await fetch(
-          `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${mainGenre}&ordering=-rating&page_size=6`,
-          { signal: controller.signal }
-        )
-        
-        clearTimeout(timeoutId)
+        try {
+          similarResponse = await fetch(
+            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&tags=${popularTag}&ordering=-added&page_size=12`,
+            { signal: AbortSignal.timeout(5000) }
+          );
+          
+          if (similarResponse.ok) {
+            similarData = await similarResponse.json();
+            if (similarData.results && similarData.results.length > 2) {
+              const filtered = similarData.results
+                .filter((game: any) => game.id !== gameData.id && game.background_image)
+                .slice(0, 8);
+              
+              if (filtered.length >= 4) {
+                console.log('✅ Tags search successful:', filtered.length, 'games');
+                setSimilarGames(filtered);
+                setSimilarGamesLoading(false);
+                return;
+              }
+            }
+          }
+        } catch (error) {
+          console.log('Tags search failed, using popular games...');
+        }
+      }
+      
+      // Approche 3: Jeux populaires récents comme fallback
+      try {
+        similarResponse = await fetch(
+          `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&dates=2023-01-01,2024-12-31&ordering=-rating&page_size=12`,
+          { signal: AbortSignal.timeout(5000) }
+        );
         
         if (similarResponse.ok) {
-          const similarData = await similarResponse.json()
+          similarData = await similarResponse.json();
           if (similarData.results && similarData.results.length > 0) {
             const filtered = similarData.results
-              .filter((game: any) => game.id !== gameData.id)
-              .slice(0, 6)
-            setSimilarGames(filtered)
-          } else {
-            throw new Error('No results')
+              .filter((game: any) => game.id !== gameData.id && game.background_image)
+              .slice(0, 8);
+            
+            console.log('✅ Popular games fallback:', filtered.length, 'games');
+            setSimilarGames(filtered);
+            setSimilarGamesLoading(false);
+            return;
           }
-        } else {
-          throw new Error('API error')
         }
-      } else {
-        throw new Error('No genres')
+      } catch (error) {
+        console.log('All API attempts failed');
       }
-    } catch (error) {
-      console.error('Similar games error:', error)
-      // ✅ Fallback immédiat avec jeux populaires
+      
+      // Fallback final avec jeux statiques mais réalistes
+      console.log('Using static fallback games');
       setSimilarGames([
         { 
-          id: 999991, 
-          name: 'Popular Action Game', 
-          rating: 4.5, 
-          released: '2023-01-01', 
-          background_image: null 
+          id: 3498, 
+          name: 'Grand Theft Auto V', 
+          rating: 4.47, 
+          released: '2013-09-17', 
+          background_image: 'https://media.rawg.io/media/games/20a/20aa03a10cda45239fe22d035c0ebe64.jpg'
         },
         { 
-          id: 999992, 
-          name: 'Trending Adventure', 
-          rating: 4.3, 
-          released: '2023-02-01', 
-          background_image: null 
+          id: 3328, 
+          name: 'The Witcher 3: Wild Hunt', 
+          rating: 4.66, 
+          released: '2015-05-18', 
+          background_image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg'
         },
         { 
-          id: 999993, 
-          name: 'Acclaimed RPG', 
-          rating: 4.7, 
-          released: '2023-03-01', 
-          background_image: null 
+          id: 4200, 
+          name: 'Portal 2', 
+          rating: 4.61, 
+          released: '2011-04-18', 
+          background_image: 'https://media.rawg.io/media/games/328/3283617cb7d75d67257fc58339188742.jpg'
         },
         { 
-          id: 999994, 
-          name: 'Indie Masterpiece', 
-          rating: 4.4, 
-          released: '2023-04-01', 
-          background_image: null 
+          id: 5286, 
+          name: 'Tomb Raider', 
+          rating: 4.05, 
+          released: '2013-03-05', 
+          background_image: 'https://media.rawg.io/media/games/021/021c4e21a1824d2526f925eff6324653.jpg'
+        },
+        { 
+          id: 13536, 
+          name: 'Portal', 
+          rating: 4.51, 
+          released: '2007-10-09', 
+          background_image: 'https://media.rawg.io/media/games/7fa/7fa0b586293c5861ee32490e953a4996.jpg'
+        },
+        { 
+          id: 12020, 
+          name: 'Left 4 Dead 2', 
+          rating: 4.09, 
+          released: '2009-11-16', 
+          background_image: 'https://media.rawg.io/media/games/d58/d588947d4286e7b5e0e12e1bea7d9844.jpg'
         }
-      ])
+      ]);
+      
+    } catch (error) {
+      console.error('Complete similar games failure:', error);
+      setSimilarGames([]);
     } finally {
-      setSimilarGamesLoading(false)
+      setSimilarGamesLoading(false);
     }
   }
 
@@ -698,78 +775,40 @@ export default function GameDetailModal({
                   <div className="space-y-6">
                     <div id="more-similar-games">
                       <h4 className="text-white font-semibold mb-4">Similar Games</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {similarGamesLoading ? (
-                          <div className="col-span-2 text-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-3"></div>
-                            <p className="text-gray-400 text-sm">Loading similar games...</p>
-                          </div>
-                        ) : similarGames.length > 0 ? (
-                          similarGames.map((game) => (
-                            <div key={game.id} className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden hover:from-gray-700 hover:to-gray-800 transition-all duration-300 cursor-pointer transform hover:scale-102 hover:shadow-lg">
-                              <div className="relative w-24 h-20 bg-gray-700 flex-shrink-0">
-                                {game.background_image ? (
-                                  <img
-                                    src={game.background_image}
-                                    alt={game.name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                                    <span className="text-white text-lg">🎮</span>
-                                  </div>
-                                )}
-                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-                              </div>
-                              <div className="flex-1 p-3 flex flex-col justify-center">
-                                <h5 className="text-white font-medium text-sm truncate group-hover:text-blue-300 transition-colors">
-                                  {game.name}
-                                </h5>
-                                <div className="flex items-center justify-between mt-1">
-                                  <span className="text-gray-400 text-xs">
-                                    {game.released ? new Date(game.released).getFullYear() : 'TBA'}
-                                  </span>
-                                  <div className="flex items-center space-x-1">
-                                    <Star size={10} className="text-yellow-400 fill-current" />
-                                    <span className="text-gray-300 text-xs">
-                                      {game.rating ? game.rating.toFixed(1) : 'N/A'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="col-span-2 text-center py-8">
-                            <p className="text-gray-400 text-sm">No similar games found</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {gameDetail.developers && gameDetail.developers.length > 0 && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-4">More from {gameDetail.developers[0].name}</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {developerGames.length > 0 ? (
-                            developerGames.map((game) => (
-                              <div key={game.id} className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden hover:from-gray-700 hover:to-gray-800 transition-all duration-300 cursor-pointer transform hover:scale-102 hover:shadow-lg">
-                                <div className="relative w-24 h-20 bg-gray-700 flex-shrink-0">
+                      {similarGamesLoading ? (
+                        <div className="text-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-3"></div>
+                          <p className="text-gray-400 text-sm">Loading similar games...</p>
+                        </div>
+                      ) : similarGames.length > 0 ? (
+                        <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
+                          {similarGames.map((game) => (
+                            <div key={game.id} className="flex-shrink-0 w-32">
+                              <div className="group cursor-pointer">
+                                <div className="relative w-32 h-40 bg-gray-700 rounded-lg overflow-hidden">
                                   {game.background_image ? (
                                     <img
                                       src={game.background_image}
                                       alt={game.name}
-                                      className="w-full h-full object-cover"
+                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                     />
                                   ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                                      <span className="text-white text-lg">🎮</span>
+                                    <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                                      <span className="text-white text-2xl">🎮</span>
                                     </div>
                                   )}
                                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+                                  
+                                  {/* Play button overlay */}
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                      <span className="text-white text-lg">▶</span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex-1 p-3 flex flex-col justify-center">
-                                  <h5 className="text-white font-medium text-sm truncate group-hover:text-purple-300 transition-colors">
+                                
+                                <div className="mt-2">
+                                  <h5 className="text-white font-medium text-sm leading-tight group-hover:text-blue-300 transition-colors line-clamp-2">
                                     {game.name}
                                   </h5>
                                   <div className="flex items-center justify-between mt-1">
@@ -777,7 +816,7 @@ export default function GameDetailModal({
                                       {game.released ? new Date(game.released).getFullYear() : 'TBA'}
                                     </span>
                                     <div className="flex items-center space-x-1">
-                                      <Star size={10} className="text-yellow-400 fill-current" />
+                                      <span className="text-yellow-400 text-xs">★</span>
                                       <span className="text-gray-300 text-xs">
                                         {game.rating ? game.rating.toFixed(1) : 'N/A'}
                                       </span>
@@ -785,35 +824,97 @@ export default function GameDetailModal({
                                   </div>
                                 </div>
                               </div>
-                            ))
-                          ) : (
-                            <>
-                              <div className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden">
-                                <div className="relative w-24 h-20 bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
-                                  <span className="text-white text-lg">🎮</span>
-                                </div>
-                                <div className="flex-1 p-3 flex flex-col justify-center">
-                                  <h5 className="text-white font-medium text-sm">Previous Game Title</h5>
-                                  <div className="flex items-center justify-between mt-1">
-                                    <span className="text-gray-400 text-xs">2022</span>
-                                    <div className="flex items-center space-x-1">
-                                      <Star size={10} className="text-yellow-400 fill-current" />
-                                      <span className="text-gray-300 text-xs">4.5</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-gray-400 text-sm">No similar games found</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {gameDetail.developers && gameDetail.developers.length > 0 && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-4">More from {gameDetail.developers[0].name}</h4>
+                        <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
+                          {developerGames.length > 0 ? (
+                            developerGames.map((game) => (
+                              <div key={game.id} className="flex-shrink-0 w-32">
+                                <div className="group cursor-pointer">
+                                  <div className="relative w-32 h-40 bg-gray-700 rounded-lg overflow-hidden">
+                                    {game.background_image ? (
+                                      <img
+                                        src={game.background_image}
+                                        alt={game.name}
+                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                                        <span className="text-white text-2xl">🎮</span>
+                                      </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+                                    
+                                    {/* Play button overlay */}
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                        <span className="text-white text-lg">▶</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="mt-2">
+                                    <h5 className="text-white font-medium text-sm leading-tight group-hover:text-purple-300 transition-colors line-clamp-2">
+                                      {game.name}
+                                    </h5>
+                                    <div className="flex items-center justify-between mt-1">
+                                      <span className="text-gray-400 text-xs">
+                                        {game.released ? new Date(game.released).getFullYear() : 'TBA'}
+                                      </span>
+                                      <div className="flex items-center space-x-1">
+                                        <span className="text-yellow-400 text-xs">★</span>
+                                        <span className="text-gray-300 text-xs">
+                                          {game.rating ? game.rating.toFixed(1) : 'N/A'}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                              <div className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden">
-                                <div className="relative w-24 h-20 bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
-                                  <span className="text-white text-lg">🎮</span>
+                            ))
+                          ) : (
+                            <>
+                              <div className="flex-shrink-0 w-32">
+                                <div className="group cursor-pointer">
+                                  <div className="relative w-32 h-40 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                                    <span className="text-white text-2xl">🎮</span>
+                                  </div>
+                                  <div className="mt-2">
+                                    <h5 className="text-white font-medium text-sm">Previous Game</h5>
+                                    <div className="flex items-center justify-between mt-1">
+                                      <span className="text-gray-400 text-xs">2022</span>
+                                      <div className="flex items-center space-x-1">
+                                        <span className="text-yellow-400 text-xs">★</span>
+                                        <span className="text-gray-300 text-xs">4.5</span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex-1 p-3 flex flex-col justify-center">
-                                  <h5 className="text-white font-medium text-sm">Another Game Title</h5>
-                                  <div className="flex items-center justify-between mt-1">
-                                    <span className="text-gray-400 text-xs">2020</span>
-                                    <div className="flex items-center space-x-1">
-                                      <Star size={10} className="text-yellow-400 fill-current" />
-                                      <span className="text-gray-300 text-xs">4.1</span>
+                              </div>
+                              <div className="flex-shrink-0 w-32">
+                                <div className="group cursor-pointer">
+                                  <div className="relative w-32 h-40 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                                    <span className="text-white text-2xl">🎮</span>
+                                  </div>
+                                  <div className="mt-2">
+                                    <h5 className="text-white font-medium text-sm">Another Game</h5>
+                                    <div className="flex items-center justify-between mt-1">
+                                      <span className="text-gray-400 text-xs">2020</span>
+                                      <div className="flex items-center space-x-1">
+                                        <span className="text-yellow-400 text-xs">★</span>
+                                        <span className="text-gray-300 text-xs">4.1</span>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>

@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Plus, Play, Check, ChevronDown } from 'lucide-react'
+import { Plus, Play, ChevronDown } from 'lucide-react'
 
 interface ContentCardProps {
   item: {
@@ -14,7 +14,7 @@ interface ContentCardProps {
   category: string
   onAddToLibrary: (item: any, status: string) => void
   library: any[]
-  onOpenGameDetail?: (gameId: string) => void // ✅ Rendre optionnel
+  onOpenGameDetail?: (gameId: string) => void
 }
 
 export default function ContentCard({ item, category, onAddToLibrary, library, onOpenGameDetail }: ContentCardProps) {
@@ -53,76 +53,57 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
     }
   }
 
-  const truncateTitle = (title: string, maxLength: number = 20) => {
+  const truncateTitle = (title: string, maxLength: number = 15) => {
     return title.length > maxLength ? title.substring(0, maxLength) + '...' : title
   }
 
   return (
-    <div 
-      className="group relative bg-gray-900/60 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-gray-800/70 transition-all duration-300 cursor-pointer border border-gray-700/50 hover:border-gray-600/50"
-      onClick={handleCardClick}
-    >
-      {/* Image Container - Aspect ratio fixe */}
-      <div className="aspect-[4/5] relative overflow-hidden">
+    <div className="group cursor-pointer">
+      {/* ✅ Image Container - Plus compacte pour carrousel */}
+      <div 
+        className="relative w-32 h-40 bg-gray-900 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300"
+        onClick={handleCardClick}
+      >
         <img
           src={item.image}
           alt={item.title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         
-        {/* Gradient overlay pour le texte */}
+        {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
         
         {/* Play button overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-            <Play size={20} className="text-white ml-1" />
-          </div>
-        </div>
-      </div>
-
-      {/* Content overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-3">
-        {/* Title and Info */}
-        <div className="mb-2">
-          <h3 className="text-white font-semibold text-sm leading-tight mb-1" title={item.title}>
-            {truncateTitle(item.title, 25)}
-          </h3>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-300">{item.year}</span>
-            <div className="flex items-center space-x-1">
-              <span className="text-yellow-400">★</span>
-              <span className="text-gray-300">{item.rating.toFixed(1)}</span>
-            </div>
+          <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+            <Play size={16} className="text-white ml-0.5" />
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between">
-          {isInLibrary ? (
-            <div className="flex items-center space-x-2 text-xs">
-              <span className="text-lg">{getStatusIcon(libraryItem?.status)}</span>
-              <span className={`font-medium ${getStatusColor(libraryItem?.status)}`}>
-                {libraryItem?.status === 'want-to-play' ? 'Want to Play' : 
-                 libraryItem?.status === 'currently-playing' ? 'Playing' : 'Completed'}
-              </span>
+        {/* Content overlay - Bottom */}
+        <div className="absolute bottom-0 left-0 right-0 p-2">
+          {/* Status indicator si en bibliothèque */}
+          {isInLibrary && (
+            <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs">
+              ✓
             </div>
-          ) : (
-            <div className="relative">
+          )}
+          
+          {/* Add button */}
+          {!isInLibrary && (
+            <div className="absolute top-2 right-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation()
                   setShowActions(!showActions)
                 }}
-                className="flex items-center space-x-1 bg-blue-600/80 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors backdrop-blur-sm"
+                className="w-8 h-8 bg-blue-600/80 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors backdrop-blur-sm"
               >
                 <Plus size={14} />
-                <span>Add</span>
-                <ChevronDown size={12} className={`transition-transform ${showActions ? 'rotate-180' : ''}`} />
               </button>
 
               {showActions && (
-                <div className="absolute bottom-full left-0 mb-1 bg-gray-900/95 backdrop-blur-sm rounded-lg border border-gray-700 overflow-hidden shadow-xl z-10">
+                <div className="absolute top-full right-0 mt-1 bg-gray-900/95 backdrop-blur-sm rounded-lg border border-gray-700 overflow-hidden shadow-xl z-20 whitespace-nowrap">
                   {[
                     { status: 'want-to-play', label: 'Want to Play', icon: '📋' },
                     { status: 'currently-playing', label: 'Playing', icon: '🎮' },
@@ -131,7 +112,7 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
                     <button
                       key={status}
                       onClick={(e) => handleStatusSelect(status, e)}
-                      className="w-full flex items-center space-x-2 px-3 py-2 text-xs text-gray-300 hover:text-white hover:bg-gray-800/80 transition-colors whitespace-nowrap"
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-xs text-gray-300 hover:text-white hover:bg-gray-800/80 transition-colors"
                     >
                       <span>{icon}</span>
                       <span>{label}</span>
@@ -144,10 +125,35 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
         </div>
       </div>
 
+      {/* ✅ Info sous l'image - Plus compact */}
+      <div className="mt-2">
+        <h3 className="text-white font-semibold text-sm leading-tight group-hover:text-blue-300 transition-colors line-clamp-2" title={item.title}>
+          {truncateTitle(item.title, 18)}
+        </h3>
+        <div className="flex items-center justify-between mt-1 text-xs">
+          <span className="text-gray-400">{item.year}</span>
+          <div className="flex items-center space-x-1">
+            <span className="text-yellow-400">★</span>
+            <span className="text-gray-300">{item.rating.toFixed(1)}</span>
+          </div>
+        </div>
+        
+        {/* Status sous l'image si en bibliothèque */}
+        {isInLibrary && (
+          <div className="flex items-center space-x-1 mt-1">
+            <span className="text-xs">{getStatusIcon(libraryItem?.status)}</span>
+            <span className={`text-xs font-medium ${getStatusColor(libraryItem?.status)}`}>
+              {libraryItem?.status === 'want-to-play' ? 'Want to Play' : 
+               libraryItem?.status === 'currently-playing' ? 'Playing' : 'Completed'}
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* Click overlay to close actions */}
       {showActions && (
         <div 
-          className="fixed inset-0 z-0" 
+          className="fixed inset-0 z-10" 
           onClick={(e) => {
             e.stopPropagation()
             setShowActions(false)
