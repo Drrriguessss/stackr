@@ -14,7 +14,8 @@ export default function Home() {
       ...item,
       status,
       addedAt: new Date().toISOString(),
-      category: activeTab
+      // Garder la catégorie de l'item si elle existe, sinon utiliser activeTab
+      category: item.category || activeTab
     }
     
     setLibrary(prev => {
