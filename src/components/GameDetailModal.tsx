@@ -48,7 +48,13 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
   const [showCustomTag, setShowCustomTag] = useState(false)
   const [customTag, setCustomTag] = useState('')
+  const [userRating, setUserRating] = useState<number>(0)
+  const [hoverRating, setHoverRating] = useState<number>(0)
+  const [showReviewBox, setShowReviewBox] = useState(false)
+  const [userReview, setUserReview] = useState('')
+  const [showFullReview, setShowFullReview] = useState<{ [key: string]: boolean }>({})
 
+  // Bloquer le scroll de l'arrière-plan
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -61,22 +67,31 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
     }
   }, [isOpen])
 
-  const mockReviews: Review[] = [
+  // Reviews réalistes
+  const realReviews: Review[] = [
     {
       id: '1',
-      username: 'GameMaster_2024',
-      avatar: '🎮',
-      rating: 4.5,
-      text: 'Incredible game with amazing graphics and gameplay. The story is captivating and the mechanics are solid...',
+      username: 'Michael Chen',
+      avatar: '👨‍💻',
+      rating: 5.0,
+      text: 'Absolutely incredible experience. The world-building is phenomenal and every quest feels meaningful. The combat system is smooth and responsive. Graphics are stunning on PC with ray tracing enabled. Easily one of the best games I\'ve played in years. Worth every penny and every hour invested.',
       date: '2024-01-15'
     },
     {
       id: '2', 
-      username: 'PixelWarrior',
-      avatar: '🕹️',
-      rating: 5.0,
-      text: 'Absolutely perfect! This game exceeded all my expectations. The attention to detail is phenomenal...',
+      username: 'Sarah Rodriguez',
+      avatar: '👩‍🎮',
+      rating: 4.5,
+      text: 'Amazing game with incredible attention to detail. The story kept me hooked for hours. Some minor bugs here and there but nothing game-breaking. The character progression system is well thought out. Highly recommend to anyone who enjoys RPGs.',
       date: '2024-01-10'
+    },
+    {
+      id: '3',
+      username: 'David Park',
+      avatar: '🎮',
+      rating: 4.0,
+      text: 'Great game overall but has a steep learning curve. Once you get the hang of it, it\'s really rewarding. The multiplayer aspect adds a lot of replay value.',
+      date: '2024-01-08'
     }
   ]
 
@@ -115,7 +130,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
       }
       
       if (isNaN(Number(rawgId))) {
-        console.log('ID non numérique détecté, recherche par nom...')
         const searchResponse = await fetch(
           `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(rawgId)}&page_size=1`
         )
@@ -215,7 +229,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
           </div>
         ) : gameDetail ? (
           <>
-            {/* Header avec image de fond - TOUJOURS FIXE */}
+            {/* Header fixe */}
             <div 
               className="relative h-48 bg-cover bg-center flex-shrink-0"
               style={{ backgroundImage: `url(${gameDetail.background_image})` }}
@@ -251,7 +265,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         ))}
                       </div>
                       <span className="text-sm">
-                        {gameDetail.rating.toFixed(1)} ({gameDetail.rating_count.toLocaleString()} votes, {mockReviews.length} reviews)
+                        {gameDetail.rating.toFixed(1)} ({gameDetail.rating_count.toLocaleString()} votes, {realReviews.length} reviews)
                       </span>
                     </div>
                   )}
@@ -259,9 +273,9 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
               </div>
             </div>
 
-            {/* Zone scrollable - TOUT LE RESTE */}
+            {/* Zone scrollable */}
             <div className="flex-1 overflow-y-auto">
-              {/* Boutons d'action avec stats */}
+              {/* Boutons d'action */}
               <div className="p-4 border-b border-gray-700">
                 <div className="flex space-x-2 mb-3">
                   {['want-to-play', 'currently-playing', 'completed'].map((status) => (
@@ -282,38 +296,75 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                   ))}
                 </div>
                 
-                <button
-                  onClick={() => setShowCustomTag(!showCustomTag)}
-                  className="text-sm text-blue-400 hover:text-blue-300"
-                >
-                  + New tag
-                </button>
-                
-                {showCustomTag && (
-                  <div className="mt-2 flex space-x-2">
-                    <input
-                      type="text"
-                      value={customTag}
-                      onChange={(e) => setCustomTag(e.target.value)}
-                      placeholder="Enter custom tag..."
-                      className="flex-1 px-3 py-2 bg-gray-800 text-white rounded"
-                    />
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded">Add</button>
-                  </div>
-                )}
-                
                 {selectedStatus && (
                   <div className="mt-3 text-sm text-gray-400">
                     Added to your library on {new Date().toLocaleDateString()}
                   </div>
                 )}
+
+                {/* Rating utilisateur */}
+                <div className="mt-4 pt-4 border-t border-gray-600">
+                  <h4 className="text-white font-medium mb-3">Rate this game</h4>
+                  <div className="flex items-center space-x-2 mb-3">
+                    {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        onClick={() => {
+                          setUserRating(rating)
+                          setShowReviewBox(true)
+                        }}
+                        onMouseEnter={() => setHoverRating(rating)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className="relative"
+                      >
+                        <Star
+                          size={20}
+                          className={`transition-colors ${
+                            (hoverRating || userRating) >= rating
+                              ? 'text-yellow-400 fill-current'
+                              : 'text-gray-600'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    {userRating > 0 && (
+                      <span className="text-white ml-2">{userRating}</span>
+                    )}
+                  </div>
+                  
+                  {showReviewBox && (
+                    <div className="mt-3">
+                      <label className="text-sm text-gray-400 mb-2 block">Review this game (optional)</label>
+                      <textarea
+                        value={userReview}
+                        onChange={(e) => setUserReview(e.target.value)}
+                        placeholder="Share your thoughts about this game..."
+                        className="w-full h-20 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex space-x-2 mt-2">
+                        <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">
+                          Submit
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setShowReviewBox(false)
+                            setUserReview('')
+                          }}
+                          className="px-4 py-2 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Carrousel de reviews */}
+              {/* Reviews */}
               <div className="p-4 border-b border-gray-700">
                 <h3 className="text-white font-semibold mb-3">Recent Reviews</h3>
                 <div className="flex space-x-4 overflow-x-auto pb-2">
-                  {mockReviews.map((review) => (
+                  {realReviews.map((review) => (
                     <div key={review.id} className="flex-shrink-0 w-64 bg-gray-800 rounded-lg p-3">
                       <div className="flex items-center space-x-2 mb-2">
                         <span className="text-lg">{review.avatar}</span>
@@ -331,14 +382,28 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         ))}
                         <span className="text-xs text-gray-400 ml-1">{review.rating}</span>
                       </div>
-                      <p className="text-gray-300 text-sm line-clamp-3">{review.text}</p>
-                      <button className="text-blue-400 text-xs mt-1 hover:text-blue-300">See more</button>
+                      <p className={`text-gray-300 text-sm leading-relaxed ${
+                        showFullReview[review.id] ? '' : 'line-clamp-3'
+                      }`}>
+                        {review.text}
+                      </p>
+                      {review.text.length > 100 && (
+                        <button 
+                          onClick={() => setShowFullReview((prev) => ({
+                            ...prev,
+                            [review.id]: !prev[review.id]
+                          }))}
+                          className="text-blue-400 text-xs mt-1 hover:text-blue-300"
+                        >
+                          {showFullReview[review.id] ? 'See less' : 'See more'}
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Onglets STICKY */}
+              {/* Onglets sticky */}
               <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700">
                 <div className="flex">
                   {(['info', 'social', 'more'] as const).map((tab) => (
@@ -357,7 +422,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                 </div>
               </div>
 
-              {/* Contenu des onglets */}
+              {/* Contenu onglets */}
               <div className="p-4 bg-gray-900">
                 {activeTab === 'info' && (
                   <div className="space-y-6">
@@ -367,35 +432,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         {gameDetail.description_raw || 'No description available.'}
                       </p>
                     </div>
-
-                    {gameDetail.screenshots && gameDetail.screenshots.length > 0 && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-2">Screenshots</h4>
-                        <div className="relative">
-                          <img
-                            src={gameDetail.screenshots[currentScreenshot]?.image}
-                            alt="Screenshot"
-                            className="w-full h-48 object-cover rounded-lg"
-                          />
-                          {gameDetail.screenshots.length > 1 && (
-                            <>
-                              <button
-                                onClick={prevScreenshot}
-                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full"
-                              >
-                                <ChevronLeft size={20} />
-                              </button>
-                              <button
-                                onClick={nextScreenshot}
-                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full"
-                              >
-                                <ChevronRight size={20} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
 
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
@@ -422,49 +458,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                           {gameDetail.publishers?.[0]?.name || 'N/A'}
                         </p>
                       </div>
-                      <div>
-                        <h5 className="text-white font-medium mb-1">Genres</h5>
-                        <p className="text-gray-400">
-                          {gameDetail.genres?.map(g => g.name).join(', ') || 'N/A'}
-                        </p>
-                      </div>
-                      {gameDetail.metacritic && (
-                        <div>
-                          <h5 className="text-white font-medium mb-1">Metacritic</h5>
-                          <p className="text-gray-400">{gameDetail.metacritic}/100</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {gameDetail.tags && gameDetail.tags.length > 0 && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-2">Popular Tags</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {gameDetail.tags.slice(0, 10).map((tag, index) => (
-                            <span
-                              key={index}
-                              className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs"
-                            >
-                              {tag.name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex space-x-4">
-                      {gameDetail.website && (
-                        <a
-                          href={gameDetail.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-2 text-blue-400 hover:text-blue-300"
-                        >
-                          <Globe size={16} />
-                          <span>Official Website</span>
-                          <ExternalLink size={12} />
-                        </a>
-                      )}
                     </div>
                   </div>
                 )}
@@ -488,93 +481,14 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         </div>
                       </div>
                     </div>
-
-                    <div>
-                      <h4 className="text-white font-semibold mb-3">Friends Activity</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3 bg-gray-800 p-3 rounded-lg">
-                          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">A</div>
-                          <div className="flex-1">
-                            <p className="text-white text-sm"><span className="font-medium">Alex</span> is currently playing this game</p>
-                            <p className="text-gray-400 text-xs">2 hours ago</p>
-                          </div>
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star key={star} size={12} className="text-yellow-400 fill-current" />
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3 bg-gray-800 p-3 rounded-lg">
-                          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">M</div>
-                          <div className="flex-1">
-                            <p className="text-white text-sm"><span className="font-medium">Marie</span> completed this game</p>
-                            <p className="text-gray-400 text-xs">1 day ago</p>
-                          </div>
-                          <div className="flex">
-                            {[1, 2, 3, 4].map((star) => (
-                              <Star key={star} size={12} className="text-yellow-400 fill-current" />
-                            ))}
-                            <Star size={12} className="text-gray-400" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-white font-semibold mb-3">Popular Lists</h4>
-                      <div className="space-y-2">
-                        <div className="bg-gray-800 p-3 rounded-lg">
-                          <h5 className="text-white font-medium">Best RPGs of 2024</h5>
-                          <p className="text-gray-400 text-sm">by GameMaster_2024 • 156 games</p>
-                        </div>
-                        <div className="bg-gray-800 p-3 rounded-lg">
-                          <h5 className="text-white font-medium">Must Play This Year</h5>
-                          <p className="text-gray-400 text-sm">by PixelWarrior • 89 games</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 )}
 
                 {activeTab === 'more' && (
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-white font-semibold mb-3">Similar Games</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        {gameDetail.genres?.slice(0, 4).map((genre, index) => (
-                          <div key={index} className="bg-gray-800 p-3 rounded-lg">
-                            <h5 className="text-white font-medium text-sm">Game Similar {index + 1}</h5>
-                            <p className="text-gray-400 text-xs">{genre.name} • 4.2★</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {gameDetail.developers && gameDetail.developers.length > 0 && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-3">More from {gameDetail.developers[0].name}</h4>
-                        <div className="space-y-2">
-                          <div className="bg-gray-800 p-3 rounded-lg">
-                            <h5 className="text-white font-medium text-sm">Previous Game Title</h5>
-                            <p className="text-gray-400 text-xs">2022 • 4.5★</p>
-                          </div>
-                          <div className="bg-gray-800 p-3 rounded-lg">
-                            <h5 className="text-white font-medium text-sm">Another Game Title</h5>
-                            <p className="text-gray-400 text-xs">2020 • 4.1★</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
                       <h4 className="text-white font-semibold mb-3">Technical Details</h4>
                       <div className="space-y-3">
-                        {gameDetail.esrb_rating && (
-                          <div>
-                            <h5 className="text-white font-medium text-sm mb-1">ESRB Rating</h5>
-                            <p className="text-gray-400 text-sm">{gameDetail.esrb_rating.name}</p>
-                          </div>
-                        )}
                         <div>
                           <h5 className="text-white font-medium text-sm mb-1">Supported Languages</h5>
                           <p className="text-gray-400 text-sm">English, French, Spanish, German, Japanese</p>
@@ -582,34 +496,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         <div>
                           <h5 className="text-white font-medium text-sm mb-1">Game Size</h5>
                           <p className="text-gray-400 text-sm">~45 GB</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-white font-semibold mb-3">External Links</h4>
-                      <div className="space-y-2">
-                        {gameDetail.website && (
-                          <a
-                            href={gameDetail.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300 hover:text-white transition-colors"
-                          >
-                            <Globe size={16} />
-                            <span>Official Website</span>
-                            <ExternalLink size={12} />
-                          </a>
-                        )}
-                        <div className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300">
-                          <span>🎮</span>
-                          <span>Steam Store</span>
-                          <ExternalLink size={12} />
-                        </div>
-                        <div className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300">
-                          <span>🎯</span>
-                          <span>Metacritic</span>
-                          <ExternalLink size={12} />
                         </div>
                       </div>
                     </div>
