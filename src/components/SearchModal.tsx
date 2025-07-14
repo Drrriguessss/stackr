@@ -19,9 +19,10 @@ interface SearchModalProps {
   isOpen: boolean
   onClose: () => void
   onAddToLibrary: (item: any, status: string) => void
+  onOpenGameDetail?: (gameId: string) => void
 }
 
-export default function SearchModal({ isOpen, onClose, onAddToLibrary }: SearchModalProps) {
+export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGameDetail }: SearchModalProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -269,7 +270,12 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary }: SearchM
               {results.map((result) => (
                 <div
                   key={result.id}
-                  className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-800 transition-colors"
+                  className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+                  onClick={() => {
+                    if (result.category === 'games' && onOpenGameDetail) {
+                      onOpenGameDetail(result.id)
+                    }
+                  }}
                 >
                   {/* Image */}
                   <div className="w-12 h-12 rounded-lg bg-gray-700 flex-shrink-0 overflow-hidden">
@@ -311,7 +317,8 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary }: SearchM
 
                   {/* Bouton d'ajout */}
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation() // Empêcher le clic sur la div parent
                       onAddToLibrary(result, 'want-to-watch')
                       onClose()
                     }}

@@ -81,7 +81,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-950">
-      <Header onAddToLibrary={handleAddToLibrary} />
+      <Header onAddToLibrary={handleAddToLibrary} library={library} />
       
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <CategoryTabs 

@@ -2,13 +2,21 @@
 import { useState } from 'react'
 import { Search, Camera, Bell } from 'lucide-react'
 import SearchModal from './SearchModal'
+import GameDetailModal from './GameDetailModal'
 
 interface HeaderProps {
   onAddToLibrary: (item: any, status: string) => void
+  library: any[]
 }
 
-export default function Header({ onAddToLibrary }: HeaderProps) {
+export default function Header({ onAddToLibrary, library }: HeaderProps) {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+
+  const handleOpenGameDetail = (gameId: string) => {
+    setSelectedGameId(gameId)
+    setIsSearchModalOpen(false) // Fermer la recherche
+  }
 
   return (
     <>
@@ -50,6 +58,16 @@ export default function Header({ onAddToLibrary }: HeaderProps) {
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
         onAddToLibrary={onAddToLibrary}
+        onOpenGameDetail={handleOpenGameDetail}
+      />
+
+      {/* Modal de détail jeu */}
+      <GameDetailModal
+        isOpen={!!selectedGameId}
+        onClose={() => setSelectedGameId(null)}
+        gameId={selectedGameId || ''}
+        onAddToLibrary={onAddToLibrary}
+        library={library}
       />
     </>
   )
