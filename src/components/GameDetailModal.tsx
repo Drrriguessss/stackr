@@ -947,7 +947,7 @@ export default function GameDetailModal({
 
                     <div>
                       <h4 className="text-white font-semibold mb-3">External Links</h4>
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         <div className="flex items-center gap-4">
                           <a 
                             href={`https://store.steampowered.com/search/?term=${encodeURIComponent(gameDetail.name)}`}
@@ -967,27 +967,6 @@ export default function GameDetailModal({
                             <ExternalLink className="w-4 h-4" />
                             Metacritic
                           </a>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium text-white">Developer:</span>
-                            <p className="text-gray-400">{gameDetail.developers?.[0]?.name || 'Unknown'}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium text-white">Publisher:</span>
-                            <p className="text-gray-400">{gameDetail.publishers?.[0]?.name || 'Unknown'}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium text-white">Release Date:</span>
-                            <p className="text-gray-400">{gameDetail.released || 'TBA'}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium text-white">Platforms:</span>
-                            <p className="text-gray-400">
-                              {gameDetail.platforms?.map(p => p.platform.name).join(', ') || 'Unknown'}
-                            </p>
-                          </div>
                         </div>
 
                         {gameDetail.website && (

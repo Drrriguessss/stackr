@@ -59,9 +59,9 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
 
   return (
     <div className="group cursor-pointer">
-      {/* ✅ Image Container - Plus compacte pour carrousel */}
+      {/* ✅ Image Container - Responsive selon le contexte */}
       <div 
-        className="relative w-32 h-40 bg-gray-900 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300"
+        className="relative w-full h-40 bg-gray-900 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300"
         onClick={handleCardClick}
       >
         <img
@@ -80,30 +80,26 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
           </div>
         </div>
 
-        {/* Content overlay - Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-2">
-          {/* Status indicator si en bibliothèque */}
-          {isInLibrary && (
-            <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs">
+        {/* ✅ Action Button - TOUJOURS VISIBLE maintenant */}
+        <div className="absolute top-2 right-2">
+          {isInLibrary ? (
+            <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg">
               ✓
             </div>
-          )}
-          
-          {/* Add button */}
-          {!isInLibrary && (
-            <div className="absolute top-2 right-2">
+          ) : (
+            <>
               <button
                 onClick={(e) => {
                   e.stopPropagation()
                   setShowActions(!showActions)
                 }}
-                className="w-8 h-8 bg-blue-600/80 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors backdrop-blur-sm"
+                className="w-7 h-7 bg-blue-600/90 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors backdrop-blur-sm shadow-lg"
               >
-                <Plus size={14} />
+                <Plus size={12} />
               </button>
 
               {showActions && (
-                <div className="absolute top-full right-0 mt-1 bg-gray-900/95 backdrop-blur-sm rounded-lg border border-gray-700 overflow-hidden shadow-xl z-20 whitespace-nowrap">
+                <div className="absolute top-full right-0 mt-1 bg-gray-900/95 backdrop-blur-sm rounded-lg border border-gray-700 overflow-hidden shadow-xl z-30 whitespace-nowrap">
                   {[
                     { status: 'want-to-play', label: 'Want to Play', icon: '📋' },
                     { status: 'currently-playing', label: 'Playing', icon: '🎮' },
@@ -120,7 +116,7 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
                   ))}
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>
