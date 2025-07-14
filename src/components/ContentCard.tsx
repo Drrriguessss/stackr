@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Play, Check, Plus, Eye, EyeOff, Headphones, BookOpen } from 'lucide-react'
+import { Play, Check, Plus, Eye, Headphones, BookOpen } from 'lucide-react'
 
 interface ContentItem {
   id: number
