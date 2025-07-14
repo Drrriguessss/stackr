@@ -101,7 +101,10 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary }: SearchM
         rating: game.rating || 0,
         genre: game.genres?.[0]?.name || 'Unknown',
         category: 'games' as const,
-        image: game.background_image
+        image: game.background_image,
+        // Ajouter les propriétés manquantes pour ContentCard
+        artist: undefined,
+        director: undefined
       })) || []
     } catch (error) {
       console.error('Erreur RAWG API:', error)
@@ -127,7 +130,10 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary }: SearchM
         rating: 0,
         genre: movie.Genre || 'Unknown',
         category: 'movies' as const,
-        image: movie.Poster !== 'N/A' ? movie.Poster : undefined
+        image: movie.Poster !== 'N/A' ? movie.Poster : undefined,
+        // Ajouter les propriétés manquantes pour ContentCard
+        author: undefined,
+        artist: undefined
       })) || []
     } catch (error) {
       console.error('Erreur OMDb API:', error)
@@ -151,7 +157,10 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary }: SearchM
         rating: 0,
         genre: album.primaryGenreName || 'Unknown',
         category: 'music' as const,
-        image: album.artworkUrl100
+        image: album.artworkUrl100,
+        // Ajouter les propriétés manquantes pour ContentCard
+        author: undefined,
+        director: undefined
       })) || []
     } catch (error) {
       console.error('Erreur iTunes API:', error)
@@ -175,7 +184,10 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary }: SearchM
         rating: book.volumeInfo.averageRating || 0,
         genre: book.volumeInfo.categories?.[0] || 'Unknown',
         category: 'books' as const,
-        image: book.volumeInfo.imageLinks?.thumbnail
+        image: book.volumeInfo.imageLinks?.thumbnail,
+        // Ajouter les propriétés manquantes pour ContentCard
+        artist: undefined,
+        director: undefined
       })) || []
     } catch (error) {
       console.error('Erreur Google Books API:', error)
