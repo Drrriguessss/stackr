@@ -198,43 +198,62 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
       const data = await response.json()
       setGameDetail(data)
       
-      // ✅ RECHERCHER JEUX SIMILAIRES PAR TAGS COMMUNS - VERSION AMÉLIORÉE
+      // ✅ RECHERCHER JEUX SIMILAIRES PAR TAGS (TOP JEUX) - VERSION TAGS
       try {
         if (data.tags && data.tags.length > 0) {
-          // Prendre le premier tag populaire pour une recherche plus simple
-          const popularTag = data.tags[0].name
-          const similarResponse = await fetch(
-            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(popularTag)}&page_size=12&ordering=-rating`
-          )
-          const similarData = await similarResponse.json()
-          console.log('Similar games API response:', similarData)
-          if (similarData.results) {
-            // Filtrer le jeu actuel et prendre les 6 premiers
-            const filtered = similarData.results
-              .filter((game: any) => game.id !== data.id)
-              .slice(0, 6)
-            setSimilarGames(filtered)
-            console.log('Similar games loaded:', filtered.length, filtered)
+          // Prendre les 2 premiers tags les plus pertinents (exclure les tags génériques)
+          const relevantTags = data.tags
+            .filter((tag: any) => 
+              !tag.name.toLowerCase().includes('singleplayer') &&
+              !tag.name.toLowerCase().includes('multiplayer') &&
+              !tag.name.toLowerCase().includes('steam') &&
+              !tag.name.toLowerCase().includes('controller')
+            )
+            .slice(0, 2)
+          
+          if (relevantTags.length > 0) {
+            const mainTag = relevantTags[0].name
+            console.log('Searching similar games by tag:', mainTag, 'from available tags:', data.tags.slice(0, 5).map((t: any) => t.name))
+            
+            const similarResponse = await fetch(
+              `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&tags=${encodeURIComponent(mainTag)}&page_size=12&ordering=-rating,-rating_count&metacritic=70,100`
+            )
+            const similarData = await similarResponse.json()
+            console.log('Similar games API response for tag:', mainTag, similarData)
+            
+            if (similarData.results && similarData.results.length > 0) {
+              // Filtrer le jeu actuel et prendre les 6 meilleurs
+              const filtered = similarData.results
+                .filter((game: any) => game.id !== data.id && game.rating >= 3.5)
+                .slice(0, 6)
+              setSimilarGames(filtered)
+              console.log('Top similar games by tag loaded:', filtered.length, filtered.map((g: any) => g.name))
+              return // Success, pas besoin du fallback
+            }
           }
         }
         
-        // Fallback: recherche par genre si pas de tags
-        if ((!data.tags || data.tags.length === 0) && data.genres && data.genres.length > 0) {
-          const genreName = data.genres[0].name
-          const fallbackResponse = await fetch(
-            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(genreName)}&page_size=8&ordering=-rating`
+        // Fallback par genre si pas de tags pertinents ou pas de résultats
+        if (data.genres && data.genres.length > 0) {
+          const mainGenre = data.genres[0].name
+          console.log('Fallback: Searching by genre:', mainGenre)
+          
+          const genreResponse = await fetch(
+            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${encodeURIComponent(mainGenre)}&page_size=10&ordering=-rating,-rating_count&metacritic=70,100`
           )
-          const fallbackData = await fallbackResponse.json()
-          if (fallbackData.results) {
-            const filtered = fallbackData.results
-              .filter((game: any) => game.id !== data.id)
+          const genreData = await genreResponse.json()
+          
+          if (genreData.results) {
+            const filtered = genreData.results
+              .filter((game: any) => game.id !== data.id && game.rating >= 3.5)
               .slice(0, 6)
             setSimilarGames(filtered)
-            console.log('Similar games (genre fallback):', filtered.length)
+            console.log('Similar games by genre (fallback):', filtered.length)
           }
         }
       } catch (error) {
         console.error('Error loading similar games:', error)
+        setSimilarGames([])
       }
       
       // ✅ RECHERCHER JEUX DU DÉVELOPPEUR PAR ID DÉVELOPPEUR
@@ -667,11 +686,11 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                   <div className="space-y-6">
                     <div id="more-similar-games">
                       <h4 className="text-white font-semibold mb-4">Similar Games</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {similarGames.length > 0 ? (
                           similarGames.map((game) => (
-                            <div key={game.id} className="group relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl overflow-hidden hover:from-gray-700 hover:to-gray-800 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-xl">
-                              <div className="relative h-32 bg-gray-700">
+                            <div key={game.id} className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden hover:from-gray-700 hover:to-gray-800 transition-all duration-300 cursor-pointer transform hover:scale-102 hover:shadow-lg">
+                              <div className="relative w-24 h-20 bg-gray-700 flex-shrink-0">
                                 {game.background_image ? (
                                   <img
                                     src={game.background_image}
@@ -680,48 +699,63 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                                   />
                                 ) : (
                                   <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                                    <span className="text-white text-2xl">🎮</span>
+                                    <span className="text-white text-lg">🎮</span>
                                   </div>
                                 )}
                                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-                                <div className="absolute top-2 right-2 bg-black/60 rounded-full px-2 py-1">
+                              </div>
+                              <div className="flex-1 p-3 flex flex-col justify-center">
+                                <h5 className="text-white font-medium text-sm truncate group-hover:text-blue-300 transition-colors">
+                                  {game.name}
+                                </h5>
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-gray-400 text-xs">
+                                    {game.released ? new Date(game.released).getFullYear() : 'TBA'}
+                                  </span>
                                   <div className="flex items-center space-x-1">
                                     <Star size={10} className="text-yellow-400 fill-current" />
-                                    <span className="text-white text-xs font-medium">
+                                    <span className="text-gray-300 text-xs">
                                       {game.rating ? game.rating.toFixed(1) : 'N/A'}
                                     </span>
                                   </div>
                                 </div>
                               </div>
-                              <div className="p-3">
-                                <h5 className="text-white font-medium text-sm truncate group-hover:text-blue-300 transition-colors">
-                                  {game.name}
-                                </h5>
-                                <p className="text-gray-400 text-xs mt-1">
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs font-medium">
-                                    {game.genres?.[0]?.name || 'Game'}
-                                  </span>
-                                </p>
-                              </div>
                             </div>
                           ))
                         ) : (
                           // Fallback si pas de résultats API
-                          gameDetail.genres?.slice(0, 6).map((genre, index) => (
-                            <div key={index} className="group relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl overflow-hidden">
-                              <div className="relative h-32 bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                                <span className="text-white text-2xl">🎮</span>
+                          <>
+                            <div className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden">
+                              <div className="relative w-24 h-20 bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                <span className="text-white text-lg">🎮</span>
                               </div>
-                              <div className="p-3">
-                                <h5 className="text-white font-medium text-sm">Similar Game {index + 1}</h5>
-                                <p className="text-gray-400 text-xs mt-1">
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs font-medium">
-                                    {genre.name}
-                                  </span>
-                                </p>
+                              <div className="flex-1 p-3 flex flex-col justify-center">
+                                <h5 className="text-white font-medium text-sm">Similar Game 1</h5>
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-gray-400 text-xs">2022</span>
+                                  <div className="flex items-center space-x-1">
+                                    <Star size={10} className="text-yellow-400 fill-current" />
+                                    <span className="text-gray-300 text-xs">4.2</span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                          ))
+                            <div className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden">
+                              <div className="relative w-24 h-20 bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                <span className="text-white text-lg">🎮</span>
+                              </div>
+                              <div className="flex-1 p-3 flex flex-col justify-center">
+                                <h5 className="text-white font-medium text-sm">Similar Game 2</h5>
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-gray-400 text-xs">2021</span>
+                                  <div className="flex items-center space-x-1">
+                                    <Star size={10} className="text-yellow-400 fill-current" />
+                                    <span className="text-gray-300 text-xs">4.5</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>

@@ -19,7 +19,7 @@ interface GameCardHorizontalProps {
 export default function GameCardHorizontal({ 
   game, 
   onCardClick, 
-  onAddToLibrary,
+  onAddToLibrary = () => {},
   library = [] 
 }: GameCardHorizontalProps) {
   const libraryItem = library.find(item => item.id === game.id)
