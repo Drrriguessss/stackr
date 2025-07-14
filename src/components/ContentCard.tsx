@@ -1,243 +1,158 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Play, Check, Plus, Eye, Headphones, BookOpen } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, Play, Check, ChevronDown } from 'lucide-react'
 
 interface ContentCardProps {
-  item: any
-  onAddToLibrary: (item: any, status: string) => void
+  item: {
+    id: string
+    title: string
+    image: string
+    year: number
+    rating: number
+    category?: string
+  }
   category: string
-  library?: any[] // Nouvelle prop pour connaître l'état de la bibliothèque
-  onOpenGameDetail?: (gameId: string) => void // Nouvelle prop pour ouvrir la fiche produit
+  onAddToLibrary: (item: any, status: string) => void
+  library: any[]
+  onOpenGameDetail?: (gameId: string) => void // ✅ Rendre optionnel
 }
 
-export default function ContentCard({ item, onAddToLibrary, category, library = [], onOpenGameDetail }: ContentCardProps) {
-  const [showButtons, setShowButtons] = useState(false)
-  const [clickedButton, setClickedButton] = useState<string | null>(null)
-  const [currentStatus, setCurrentStatus] = useState<string | null>(null)
+export default function ContentCard({ item, category, onAddToLibrary, library, onOpenGameDetail }: ContentCardProps) {
+  const [showActions, setShowActions] = useState(false)
+  
+  const isInLibrary = library.some((libItem: any) => libItem.id === item.id)
+  const libraryItem = library.find((libItem: any) => libItem.id === item.id)
 
-  // Vérifier si l'item est déjà dans la bibliothèque au chargement
-  useEffect(() => {
-    const libraryItem = library.find((libItem: any) => libItem.id === item.id)
-    if (libraryItem) {
-      setCurrentStatus(libraryItem.status)
-    } else {
-      setCurrentStatus(null)
-    }
-  }, [library, item.id])
-
-  // Configuration des boutons selon la catégorie avec icônes
-  const getActionButtons = () => {
-    // Utiliser item.category en priorité (pour items de recherche et library)
-    // Sinon utiliser category prop (pour items de discover)
-    const itemCategory = item.category || category
-    
-    switch (itemCategory) {
-      case 'games':
-        return [
-          { status: 'want-to-play', label: 'Want to Play', shortLabel: 'Want', icon: Plus },
-          { status: 'playing', label: 'Currently Playing', shortLabel: 'Playing', icon: Play },
-          { status: 'completed', label: 'Completed', shortLabel: 'Done', icon: Check }
-        ]
-      case 'movies':
-        const isMovie = !item.title.toLowerCase().includes('season') && 
-                       !item.title.toLowerCase().includes('series') &&
-                       !item.title.toLowerCase().includes('show')
-        return isMovie 
-          ? [
-              { status: 'want-to-watch', label: 'Want to Watch', shortLabel: 'Want', icon: Plus },
-              { status: 'watched', label: 'Watched', shortLabel: 'Watched', icon: Check }
-            ]
-          : [
-              { status: 'want-to-watch', label: 'Want to Watch', shortLabel: 'Want', icon: Plus },
-              { status: 'watching', label: 'Currently Watching', shortLabel: 'Watching', icon: Eye },
-              { status: 'watched', label: 'Watched', shortLabel: 'Done', icon: Check }
-            ]
-      case 'music':
-        return [
-          { status: 'want-to-listen', label: 'Want to Listen', shortLabel: 'Want', icon: Plus },
-          { status: 'listened', label: 'Listened to', shortLabel: 'Heard', icon: Headphones }
-        ]
-      case 'books':
-        return [
-          { status: 'want-to-read', label: 'Want to Read', shortLabel: 'Want', icon: Plus },
-          { status: 'reading', label: 'Currently Reading', shortLabel: 'Reading', icon: BookOpen },
-          { status: 'read', label: 'Read', shortLabel: 'Done', icon: Check }
-        ]
-      default:
-        return []
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'want-to-play': return 'text-blue-400'
+      case 'currently-playing': return 'text-green-400'
+      case 'completed': return 'text-purple-400'
+      default: return 'text-gray-400'
     }
   }
 
-  const actionButtons = getActionButtons()
-
-  // Obtenir l'auteur/artiste/réalisateur selon le type
-  const getCreator = () => {
-    return item.author || item.artist || item.director || 'Unknown'
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'want-to-play': return '📋'
+      case 'currently-playing': return '🎮'
+      case 'completed': return '✅'
+      default: return '+'
+    }
   }
 
-  const handleButtonClick = (status: string) => {
-    setClickedButton(status)
-    setCurrentStatus(status)
+  const handleStatusSelect = (status: string, e: React.MouseEvent) => {
+    e.stopPropagation()
     onAddToLibrary(item, status)
-    
-    // Feedback visuel temporaire
-    setTimeout(() => setClickedButton(null), 1000)
+    setShowActions(false)
   }
 
-  // ✅ NOUVELLE FONCTION - Gérer le clic sur la carte principale
   const handleCardClick = () => {
-    // Ouvrir la fiche produit seulement pour les jeux pour l'instant
-    const itemCategory = item.category || category
-    if (itemCategory === 'games' && onOpenGameDetail) {
-      // ✅ PASSER LE TITRE DU JEU POUR LA RECHERCHE API
-      onOpenGameDetail(item.title)
+    if (onOpenGameDetail) {
+      onOpenGameDetail(item.id)
     }
   }
 
-  // Déterminer le style d'un bouton
-  const getButtonStyle = (buttonStatus: string) => {
-    const isCurrentStatus = currentStatus === buttonStatus
-    const isClicked = clickedButton === buttonStatus
-
-    if (isClicked) {
-      return 'bg-green-600 text-white scale-95 shadow-lg ring-2 ring-green-400'
-    }
-    
-    if (isCurrentStatus) {
-      return 'bg-blue-600 text-white shadow-md' // Bleu pour status persistant
-    }
-
-    return 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white hover:scale-105'
+  const truncateTitle = (title: string, maxLength: number = 20) => {
+    return title.length > maxLength ? title.substring(0, maxLength) + '...' : title
   }
 
   return (
     <div 
-      className="relative group cursor-pointer"
-      onMouseEnter={() => setShowButtons(true)}
-      onMouseLeave={() => setShowButtons(false)}
+      className="group relative bg-gray-900/60 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-gray-800/70 transition-all duration-300 cursor-pointer border border-gray-700/50 hover:border-gray-600/50"
+      onClick={handleCardClick}
     >
-      {/* Carte principale - ✅ AJOUT DU CLIC */}
-      <div 
-        className="relative h-32 sm:h-40 md:h-48 lg:h-56 rounded-xl overflow-hidden transition-transform duration-200 group-hover:scale-105 cursor-pointer"
-        onClick={handleCardClick}
-      >
-        {/* ✅ IMAGE PRINCIPALE EN BACKGROUND */}
-        {item.image ? (
-          <div 
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${item.image})` }}
-          />
-        ) : (
-          /* Fallback gradient si pas d'image */
-          <div className={`absolute inset-0 ${
-            (item.category || category) === 'games' ? 'bg-gradient-to-br from-green-500 to-emerald-700' :
-            (item.category || category) === 'movies' ? 'bg-gradient-to-br from-blue-500 to-indigo-700' :
-            (item.category || category) === 'music' ? 'bg-gradient-to-br from-purple-500 to-pink-700' :
-            'bg-gradient-to-br from-orange-500 to-red-700'
-          }`} />
-        )}
+      {/* Image Container - Aspect ratio fixe */}
+      <div className="aspect-[4/5] relative overflow-hidden">
+        <img
+          src={item.image}
+          alt={item.title}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
         
-        {/* Overlay gradient pour lisibilité du texte */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        {/* Gradient overlay pour le texte */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
         
-        {/* Contenu de la carte */}
-        <div className="relative z-10 h-full flex flex-col justify-between p-4 sm:p-6 text-white">
-          <div className="flex-1">
-            <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2 line-clamp-2">{item.title}</h3>
-            <p className="text-sm sm:text-base text-white/80 mb-2 sm:mb-4">{getCreator()}</p>
+        {/* Play button overlay */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+            <Play size={20} className="text-white ml-1" />
           </div>
-          
-          <div className="flex items-center justify-between">
+        </div>
+      </div>
+
+      {/* Content overlay */}
+      <div className="absolute bottom-0 left-0 right-0 p-3">
+        {/* Title and Info */}
+        <div className="mb-2">
+          <h3 className="text-white font-semibold text-sm leading-tight mb-1" title={item.title}>
+            {truncateTitle(item.title, 25)}
+          </h3>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-300">{item.year}</span>
             <div className="flex items-center space-x-1">
-              <span className="text-yellow-300 text-lg sm:text-xl">⭐</span>
-              <span className="text-sm sm:text-base font-semibold">{item.rating}</span>
+              <span className="text-yellow-400">★</span>
+              <span className="text-gray-300">{item.rating.toFixed(1)}</span>
             </div>
-            <span className="text-xs sm:text-sm text-white/70">{item.year}</span>
           </div>
         </div>
 
-        {/* Boutons au hover sur desktop */}
-        <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-all duration-200 flex items-center justify-center ${
-          showButtons ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`} style={{ zIndex: 20 }}>
-          <div className={`grid gap-2 ${
-            actionButtons.length === 2 
-              ? 'grid-cols-2' 
-              : 'grid-cols-3'
-          }`}>
-            {actionButtons.map((button) => {
-              const IconComponent = button.icon
-              
-              return (
-                <button
-                  key={button.status}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation() // ✅ EMPÊCHER PROPAGATION VERS handleCardClick
-                    handleButtonClick(button.status)
-                  }}
-                  className={`p-3 rounded-lg font-medium transition-all duration-200 text-center text-sm transform ${getButtonStyle(button.status)}`}
-                >
-                  <div className="flex flex-col items-center space-y-1">
-                    <IconComponent size={16} />
-                    <span className="text-xs">{button.shortLabel}</span>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Boutons permanents en bas sur mobile ET desktop */}
-      <div className="mt-3">
-        <div className={`grid gap-2 ${
-          actionButtons.length === 2 
-            ? 'grid-cols-2' 
-            : 'grid-cols-3'
-        }`}>
-          {actionButtons.map((button) => {
-            const IconComponent = button.icon
-            
-            return (
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between">
+          {isInLibrary ? (
+            <div className="flex items-center space-x-2 text-xs">
+              <span className="text-lg">{getStatusIcon(libraryItem?.status)}</span>
+              <span className={`font-medium ${getStatusColor(libraryItem?.status)}`}>
+                {libraryItem?.status === 'want-to-play' ? 'Want to Play' : 
+                 libraryItem?.status === 'currently-playing' ? 'Playing' : 'Completed'}
+              </span>
+            </div>
+          ) : (
+            <div className="relative">
               <button
-                key={`permanent-${button.status}`}
                 onClick={(e) => {
-                  e.stopPropagation() // ✅ EMPÊCHER PROPAGATION
-                  handleButtonClick(button.status)
+                  e.stopPropagation()
+                  setShowActions(!showActions)
                 }}
-                className={`p-2 sm:p-3 rounded-lg font-medium transition-all duration-200 text-center transform ${getButtonStyle(button.status)}`}
-                title={button.label}
+                className="flex items-center space-x-1 bg-blue-600/80 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors backdrop-blur-sm"
               >
-                <div className="flex flex-col items-center space-y-1">
-                  <IconComponent size={14} className="sm:w-4 sm:h-4" />
-                  <span className="text-xs truncate">{button.shortLabel}</span>
-                </div>
+                <Plus size={14} />
+                <span>Add</span>
+                <ChevronDown size={12} className={`transition-transform ${showActions ? 'rotate-180' : ''}`} />
               </button>
-            )
-          })}
+
+              {showActions && (
+                <div className="absolute bottom-full left-0 mb-1 bg-gray-900/95 backdrop-blur-sm rounded-lg border border-gray-700 overflow-hidden shadow-xl z-10">
+                  {[
+                    { status: 'want-to-play', label: 'Want to Play', icon: '📋' },
+                    { status: 'currently-playing', label: 'Playing', icon: '🎮' },
+                    { status: 'completed', label: 'Completed', icon: '✅' }
+                  ].map(({ status, label, icon }) => (
+                    <button
+                      key={status}
+                      onClick={(e) => handleStatusSelect(status, e)}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-xs text-gray-300 hover:text-white hover:bg-gray-800/80 transition-colors whitespace-nowrap"
+                    >
+                      <span>{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Badge de statut persistant */}
-      {currentStatus && !clickedButton && (
-        <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-          In Library
-        </div>
-      )}
-
-      {/* Feedback visuel temporaire */}
-      {clickedButton && (
-        <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full font-medium animate-pulse">
-          Added!
-        </div>
-      )}
-
-      {/* ✅ INDICATEUR VISUEL pour les jeux cliquables */}
-      {(item.category || category) === 'games' && (
-        <div className="absolute top-2 left-2 bg-black/30 text-white text-xs px-2 py-1 rounded-full font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-          Click for details
-        </div>
+      {/* Click overlay to close actions */}
+      {showActions && (
+        <div 
+          className="fixed inset-0 z-0" 
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowActions(false)
+          }}
+        />
       )}
     </div>
   )

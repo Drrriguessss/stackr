@@ -4,7 +4,7 @@ import Header from '@/components/Header'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
-import GameDetailModal from '@/components/GameDetailModal' // ✅ IMPORT DIRECT
+import GameDetailModal from '@/components/GameDetailModal'
 import { sampleContent } from '@/data/sampleContent'
 
 export default function Home() {
