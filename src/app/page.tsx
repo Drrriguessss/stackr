@@ -18,6 +18,9 @@ export default function Home() {
       category: item.category || activeTab
     }
     
+    console.log('Adding to library:', newItem)
+    console.log('Current library:', library)
+    
     setLibrary(prev => {
       const exists = prev.find((libItem: any) => libItem.id === item.id)
       if (exists) {
@@ -27,7 +30,9 @@ export default function Home() {
             : libItem
         )
       }
-      return [...prev, newItem]
+      const newLibrary = [...prev, newItem]
+      console.log('New library:', newLibrary)
+      return newLibrary
     })
   }
 
