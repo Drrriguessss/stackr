@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Star, ChevronLeft, ChevronRight, ExternalLink, Users, Tag, Globe } from 'lucide-react'
 
 interface GameDetailModalProps {
@@ -54,20 +54,8 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   const [userReview, setUserReview] = useState('')
   const [showFullReview, setShowFullReview] = useState<{ [key: string]: boolean }>({})
 
-  // Bloquer le scroll de l'arrière-plan
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen])
+  const scrollableRef = useRef<HTMLDivElement>(null)
 
-  // Reviews réalistes
   const realReviews: Review[] = [
     {
       id: '1',
@@ -102,6 +90,26 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   }
 
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+
+  // Fonction pour changer d'onglet et remettre scroll à zéro
+  const changeTab = (newTab: 'info' | 'social' | 'more') => {
+    setActiveTab(newTab)
+    if (scrollableRef.current) {
+      scrollableRef.current.scrollTop = 0
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen && gameId) {
@@ -274,7 +282,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
             </div>
 
             {/* Zone scrollable */}
-            <div className="flex-1 overflow-y-auto scrollbar-hide">
+            <div ref={scrollableRef} className="flex-1 overflow-y-auto scrollbar-hide">
               {/* Boutons d'action */}
               <div className="p-4 border-b border-gray-700">
                 <div className="flex space-x-2 mb-3">
@@ -409,7 +417,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                   {(['info', 'social', 'more'] as const).map((tab) => (
                     <button
                       key={tab}
-                      onClick={() => setActiveTab(tab)}
+                      onClick={() => changeTab(tab)}
                       className={`flex-1 py-3 px-4 font-medium transition-colors ${
                         activeTab === tab
                           ? 'text-white border-b-2 border-blue-500'
@@ -619,7 +627,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
         )}
       </div>
       
-      {/* CSS pour masquer scrollbar */}
       <style jsx>{`
         .scrollbar-hide {
           -ms-overflow-style: none;

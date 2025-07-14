@@ -91,7 +91,7 @@ export default function Home() {
       <Header 
         onAddToLibrary={handleAddToLibrary} 
         library={library}
-        onOpenGameDetail={handleOpenGameDetail} // ✅ PASSER LA FONCTION AU HEADER
+        onOpenGameDetail={handleOpenGameDetail} // ✅ PROP MANQUANTE AJOUTÉE
       />
       
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
