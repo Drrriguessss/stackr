@@ -26,8 +26,9 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
 
   // Configuration des boutons selon la catégorie avec icônes
   const getActionButtons = () => {
-    // Utiliser item.category si disponible, sinon category prop
-    const itemCategory = item.category || category
+    // Pour les items de la bibliothèque, utiliser leur category stockée
+    // Pour les items de discover, utiliser la category prop (activeTab)
+    const itemCategory = item.status ? item.category : category
     
     switch (itemCategory) {
       case 'games':
@@ -106,10 +107,10 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
     >
       {/* Carte principale */}
       <div className={`relative h-48 sm:h-64 rounded-xl p-4 sm:p-6 text-white overflow-hidden transition-transform duration-200 group-hover:scale-105 ${
-        // Gradient basé sur la catégorie de l'item
-        (item.category || category) === 'games' ? 'bg-gradient-to-br from-green-500 to-emerald-700' :
-        (item.category || category) === 'movies' ? 'bg-gradient-to-br from-blue-500 to-indigo-700' :
-        (item.category || category) === 'music' ? 'bg-gradient-to-br from-purple-500 to-pink-700' :
+        // Gradient basé sur la catégorie appropriée
+        (item.status ? item.category : category) === 'games' ? 'bg-gradient-to-br from-green-500 to-emerald-700' :
+        (item.status ? item.category : category) === 'movies' ? 'bg-gradient-to-br from-blue-500 to-indigo-700' :
+        (item.status ? item.category : category) === 'music' ? 'bg-gradient-to-br from-purple-500 to-pink-700' :
         'bg-gradient-to-br from-orange-500 to-red-700'
       }`}>
         
