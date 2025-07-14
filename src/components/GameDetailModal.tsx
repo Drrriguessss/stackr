@@ -8,6 +8,9 @@ interface GameDetailModalProps {
   gameId: string
   onAddToLibrary: (item: any, status: string) => void
   library: any[]
+  userReviews: any[]
+  googleReviews: any[]
+  onReviewSubmit: (reviewData: any) => void
 }
 
 interface GameDetail {
@@ -31,16 +34,16 @@ interface GameDetail {
   parent_platforms: { platform: { name: string } }[]
 }
 
-interface Review {
-  id: string
-  username: string
-  avatar: string
-  rating: number
-  text: string
-  date: string
-}
-
-export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrary, library }: GameDetailModalProps) {
+export default function GameDetailModal({ 
+  isOpen, 
+  onClose, 
+  gameId, 
+  onAddToLibrary, 
+  library, 
+  userReviews, 
+  googleReviews, 
+  onReviewSubmit 
+}: GameDetailModalProps) {
   const [gameDetail, setGameDetail] = useState<GameDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info') // ✅ Par défaut sur 'info'
@@ -57,33 +60,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   const [developerGames, setDeveloperGames] = useState<any[]>([])
 
   const scrollableRef = useRef<HTMLDivElement>(null)
-
-  const realReviews: Review[] = [
-    {
-      id: '1',
-      username: 'Michael Chen',
-      avatar: '👨‍💻',
-      rating: 5.0,
-      text: 'Absolutely incredible experience. The world-building is phenomenal and every quest feels meaningful. The combat system is smooth and responsive. Graphics are stunning on PC with ray tracing enabled. Easily one of the best games I\'ve played in years. Worth every penny and every hour invested.',
-      date: '2024-01-15'
-    },
-    {
-      id: '2', 
-      username: 'Sarah Rodriguez',
-      avatar: '👩‍🎮',
-      rating: 4.5,
-      text: 'Amazing game with incredible attention to detail. The story kept me hooked for hours. Some minor bugs here and there but nothing game-breaking. The character progression system is well thought out. Highly recommend to anyone who enjoys RPGs.',
-      date: '2024-01-10'
-    },
-    {
-      id: '3',
-      username: 'David Park',
-      avatar: '🎮',
-      rating: 4.0,
-      text: 'Great game overall but has a steep learning curve. Once you get the hang of it, it\'s really rewarding. The multiplayer aspect adds a lot of replay value.',
-      date: '2024-01-08'
-    }
-  ]
 
   const gameStats = {
     'want-to-play': 1247,
@@ -198,58 +174,40 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
       const data = await response.json()
       setGameDetail(data)
       
-      // ✅ RECHERCHER JEUX SIMILAIRES PAR TAGS (TOP JEUX) - VERSION TAGS
+      // ✅ RECHERCHER JEUX SIMILAIRES - APPROCHE SIMPLIFIÉE PAR GENRE
       try {
-        if (data.tags && data.tags.length > 0) {
-          // Prendre les 2 premiers tags les plus pertinents (exclure les tags génériques)
-          const relevantTags = data.tags
-            .filter((tag: any) => 
-              !tag.name.toLowerCase().includes('singleplayer') &&
-              !tag.name.toLowerCase().includes('multiplayer') &&
-              !tag.name.toLowerCase().includes('steam') &&
-              !tag.name.toLowerCase().includes('controller')
-            )
-            .slice(0, 2)
+        if (data.genres && data.genres.length > 0) {
+          const mainGenre = data.genres[0].name
+          console.log('Searching top games by genre:', mainGenre, 'for game:', data.name)
           
-          if (relevantTags.length > 0) {
-            const mainTag = relevantTags[0].name
-            console.log('Searching similar games by tag:', mainTag, 'from available tags:', data.tags.slice(0, 5).map((t: any) => t.name))
-            
-            const similarResponse = await fetch(
-              `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&tags=${encodeURIComponent(mainTag)}&page_size=12&ordering=-rating,-rating_count&metacritic=70,100`
-            )
+          // Recherche simple par genre avec les meilleurs jeux
+          const similarResponse = await fetch(
+            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${mainGenre}&ordering=-rating&page_size=10`
+          )
+          
+          if (similarResponse.ok) {
             const similarData = await similarResponse.json()
-            console.log('Similar games API response for tag:', mainTag, similarData)
+            console.log('Genre search results:', similarData.results?.length || 0)
             
             if (similarData.results && similarData.results.length > 0) {
               // Filtrer le jeu actuel et prendre les 6 meilleurs
               const filtered = similarData.results
-                .filter((game: any) => game.id !== data.id && game.rating >= 3.5)
+                .filter((game: any) => game.id !== data.id)
                 .slice(0, 6)
+              
+              console.log('Similar games found:', filtered.map((g: any) => g.name))
               setSimilarGames(filtered)
-              console.log('Top similar games by tag loaded:', filtered.length, filtered.map((g: any) => g.name))
-              return // Success, pas besoin du fallback
+            } else {
+              console.log('No results from genre search, using fallback')
+              setSimilarGames([]) // Pas de résultats
             }
+          } else {
+            console.error('API error:', similarResponse.status)
+            setSimilarGames([])
           }
-        }
-        
-        // Fallback par genre si pas de tags pertinents ou pas de résultats
-        if (data.genres && data.genres.length > 0) {
-          const mainGenre = data.genres[0].name
-          console.log('Fallback: Searching by genre:', mainGenre)
-          
-          const genreResponse = await fetch(
-            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${encodeURIComponent(mainGenre)}&page_size=10&ordering=-rating,-rating_count&metacritic=70,100`
-          )
-          const genreData = await genreResponse.json()
-          
-          if (genreData.results) {
-            const filtered = genreData.results
-              .filter((game: any) => game.id !== data.id && game.rating >= 3.5)
-              .slice(0, 6)
-            setSimilarGames(filtered)
-            console.log('Similar games by genre (fallback):', filtered.length)
-          }
+        } else {
+          console.log('No genres found for this game')
+          setSimilarGames([])
         }
       } catch (error) {
         console.error('Error loading similar games:', error)
@@ -343,6 +301,20 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
     }
   }
 
+  // ✅ Handle review submission
+  const handleSubmitReview = () => {
+    if (userRating > 0 && userReview.trim()) {
+      onReviewSubmit({
+        rating: userRating,
+        review: userReview.trim()
+      });
+      
+      setShowReviewBox(false);
+      setUserReview('');
+      setUserRating(0);
+    }
+  };
+
   if (!isOpen) return null
 
   return (
@@ -400,7 +372,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         ))}
                       </div>
                       <span className="text-sm">
-                        {gameDetail.rating.toFixed(1)} ({gameDetail.rating_count.toLocaleString()} votes, {realReviews.length} reviews)
+                        {gameDetail.rating.toFixed(1)} ({gameDetail.rating_count.toLocaleString()} votes, {userReviews.length + googleReviews.length} reviews)
                       </span>
                     </div>
                   )}
@@ -477,7 +449,10 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         className="w-full h-20 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <div className="flex space-x-2 mt-2">
-                        <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">
+                        <button 
+                          onClick={handleSubmitReview}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500"
+                        >
                           Submit
                         </button>
                         <button 
@@ -499,11 +474,13 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
               <div className="p-4 border-b border-gray-700">
                 <h3 className="text-white font-semibold mb-3">Recent Reviews</h3>
                 <div className="flex space-x-4 overflow-x-auto pb-2">
-                  {realReviews.map((review) => (
-                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-800 rounded-lg p-3">
+                  {/* ✅ Display user reviews first, then Google reviews */}
+                  {userReviews.map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-800 rounded-lg p-3 border-l-2 border-blue-500">
                       <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-lg">{review.avatar}</span>
+                        <span className="text-lg">👤</span>
                         <span className="text-white text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded">You</span>
                       </div>
                       <div className="flex items-center space-x-1 mb-2">
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -517,22 +494,33 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                         ))}
                         <span className="text-xs text-gray-400 ml-1">{review.rating}</span>
                       </div>
-                      <p className={`text-gray-300 text-sm leading-relaxed ${
-                        showFullReview[review.id] ? '' : 'line-clamp-3'
-                      }`}>
+                      <p className="text-gray-300 text-sm leading-relaxed">
+                        {review.review}
+                      </p>
+                    </div>
+                  ))}
+                  
+                  {googleReviews.slice(0, 5).map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-800 rounded-lg p-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-lg">👨‍💻</span>
+                        <span className="text-white text-sm font-medium">{review.author}</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-400'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-400 ml-1">{review.rating}</span>
+                      </div>
+                      <p className="text-gray-300 text-sm leading-relaxed">
                         {review.text}
                       </p>
-                      {review.text.length > 100 && (
-                        <button 
-                          onClick={() => setShowFullReview((prev) => ({
-                            ...prev,
-                            [review.id]: !prev[review.id]
-                          }))}
-                          className="text-blue-400 text-xs mt-1 hover:text-blue-300"
-                        >
-                          {showFullReview[review.id] ? 'See less' : 'See more'}
-                        </button>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -723,7 +711,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                             </div>
                           ))
                         ) : (
-                          // ✅ AFFICHER MESSAGE DE CHARGEMENT PENDANT QUE L'API CHARGE
                           <div className="col-span-2 text-center py-8">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-3"></div>
                             <p className="text-gray-400 text-sm">Loading similar games...</p>
@@ -772,7 +759,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                               </div>
                             ))
                           ) : (
-                            // Fallback si pas de résultats API
                             <>
                               <div className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden">
                                 <div className="relative w-24 h-20 bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
@@ -832,7 +818,49 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
 
                     <div>
                       <h4 className="text-white font-semibold mb-3">External Links</h4>
-                      <div className="space-y-2">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4">
+                          <a 
+                            href={`https://store.steampowered.com/search/?term=${encodeURIComponent(gameDetail.name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Steam Store
+                          </a>
+                          <a 
+                            href={`https://www.metacritic.com/search/game/${encodeURIComponent(gameDetail.name)}/results`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Metacritic
+                          </a>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium">Developer:</span>
+                            <p className="text-gray-600 dark:text-gray-400">{gameDetail.developers?.[0]?.name || 'Unknown'}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">Publisher:</span>
+                            <p className="text-gray-600 dark:text-gray-400">{gameDetail.publishers?.[0]?.name || 'Unknown'}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">Release Date:</span>
+                            <p className="text-gray-600 dark:text-gray-400">{gameDetail.released || 'TBA'}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">Platforms:</span>
+                            <p className="text-gray-600 dark:text-gray-400">
+                              {gameDetail.platforms?.map(p => p.platform.name).join(', ') || 'Unknown'}
+                            </p>
+                          </div>
+                        </div>
+
                         {gameDetail.website && (
                           <a
                             href={gameDetail.website}
@@ -845,16 +873,6 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                             <ExternalLink size={12} />
                           </a>
                         )}
-                        <div className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300">
-                          <span>🎮</span>
-                          <span>Steam Store</span>
-                          <ExternalLink size={12} />
-                        </div>
-                        <div className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300">
-                          <span>🎯</span>
-                          <span>Metacritic</span>
-                          <ExternalLink size={12} />
-                        </div>
                       </div>
                     </div>
                   </div>

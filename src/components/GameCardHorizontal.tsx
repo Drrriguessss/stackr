@@ -102,9 +102,9 @@ export default function GameCardHorizontal({
           )}
         </div>
 
-        {/* Boutons d'action */}
+        {/* Boutons d'action - Version verticale */}
         {onAddToLibrary && (
-          <div className="flex space-x-2 ml-4">
+          <div className="flex flex-col space-y-2 ml-4">
             {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
               <button
                 key={status}
@@ -112,7 +112,7 @@ export default function GameCardHorizontal({
                   e.stopPropagation()
                   onAddToLibrary(game.id, status)
                 }}
-                className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-colors ${
+                className={`flex items-center justify-center w-8 h-8 rounded-lg text-white text-xs font-medium transition-colors ${
                   currentStatus === status
                     ? getStatusColor(status).replace('hover:', '')
                     : 'bg-gray-700 hover:bg-gray-600'
@@ -120,9 +120,6 @@ export default function GameCardHorizontal({
                 title={getStatusLabel(status)}
               >
                 {getStatusIcon(status)}
-                <span className="hidden sm:inline">
-                  {getStatusLabel(status).split(' ')[0]}
-                </span>
               </button>
             ))}
           </div>
