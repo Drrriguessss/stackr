@@ -125,8 +125,18 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
           (item.category || category) === 'music' ? 'bg-gradient-to-br from-purple-500 to-pink-700' :
           'bg-gradient-to-br from-orange-500 to-red-700'
         }`}
-        onClick={handleCardClick} // ✅ CLIC SUR LA CARTE
+        onClick={handleCardClick}
       >
+        {/* ✅ IMAGE DE FOND SI DISPONIBLE */}
+        {item.image && (
+          <div 
+            className="absolute inset-0 bg-cover bg-center opacity-30"
+            style={{ backgroundImage: `url(${item.image})` }}
+          />
+        )}
+        
+        {/* Overlay gradient pour lisibilité du texte */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         
         {/* Contenu de la carte */}
         <div className="relative z-10 h-full flex flex-col justify-between">

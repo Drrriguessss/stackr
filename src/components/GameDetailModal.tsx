@@ -214,7 +214,8 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
           </div>
         ) : gameDetail ? (
-          <div className="flex flex-col h-full overflow-hidden">
+          <>
+            {/* Header avec image de fond - TOUJOURS FIXE */}
             <div 
               className="relative h-48 bg-cover bg-center flex-shrink-0"
               style={{ backgroundImage: `url(${gameDetail.background_image})` }}
@@ -258,99 +259,106 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
               </div>
             </div>
 
-            <div className="p-4 border-b border-gray-700 flex-shrink-0">
-              <div className="flex space-x-2 mb-3">
-                {['want-to-play', 'currently-playing', 'completed'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => handleStatusSelect(status)}
-                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-                      selectedStatus === status
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    <div className="text-sm">{getStatusLabel(status)}</div>
-                    <div className="text-xs opacity-75">
-                      {gameStats[status as keyof typeof gameStats].toLocaleString()}
-                    </div>
-                  </button>
-                ))}
-              </div>
-              
-              <button
-                onClick={() => setShowCustomTag(!showCustomTag)}
-                className="text-sm text-blue-400 hover:text-blue-300"
-              >
-                + New tag
-              </button>
-              
-              {showCustomTag && (
-                <div className="mt-2 flex space-x-2">
-                  <input
-                    type="text"
-                    value={customTag}
-                    onChange={(e) => setCustomTag(e.target.value)}
-                    placeholder="Enter custom tag..."
-                    className="flex-1 px-3 py-2 bg-gray-800 text-white rounded"
-                  />
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded">Add</button>
+            {/* Zone scrollable - TOUT LE RESTE */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Boutons d'action avec stats */}
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex space-x-2 mb-3">
+                  {['want-to-play', 'currently-playing', 'completed'].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusSelect(status)}
+                      className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
+                        selectedStatus === status
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      <div className="text-sm">{getStatusLabel(status)}</div>
+                      <div className="text-xs opacity-75">
+                        {gameStats[status as keyof typeof gameStats].toLocaleString()}
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              )}
-              
-              {selectedStatus && (
-                <div className="mt-3 text-sm text-gray-400">
-                  Added to your library on {new Date().toLocaleDateString()}
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-b border-gray-700 flex-shrink-0">
-              <h3 className="text-white font-semibold mb-3">Recent Reviews</h3>
-              <div className="flex space-x-4 overflow-x-auto pb-2">
-                {mockReviews.map((review) => (
-                  <div key={review.id} className="flex-shrink-0 w-64 bg-gray-800 rounded-lg p-3">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className="text-lg">{review.avatar}</span>
-                      <span className="text-white text-sm font-medium">{review.username}</span>
-                    </div>
-                    <div className="flex items-center space-x-1 mb-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={12}
-                          className={`${
-                            star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-400'
-                          }`}
-                        />
-                      ))}
-                      <span className="text-xs text-gray-400 ml-1">{review.rating}</span>
-                    </div>
-                    <p className="text-gray-300 text-sm line-clamp-3">{review.text}</p>
-                    <button className="text-blue-400 text-xs mt-1 hover:text-blue-300">See more</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex border-b border-gray-700 flex-shrink-0">
-              {(['info', 'social', 'more'] as const).map((tab) => (
+                
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-3 px-4 font-medium transition-colors ${
-                    activeTab === tab
-                      ? 'text-white border-b-2 border-blue-500'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
+                  onClick={() => setShowCustomTag(!showCustomTag)}
+                  className="text-sm text-blue-400 hover:text-blue-300"
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  + New tag
                 </button>
-              ))}
-            </div>
+                
+                {showCustomTag && (
+                  <div className="mt-2 flex space-x-2">
+                    <input
+                      type="text"
+                      value={customTag}
+                      onChange={(e) => setCustomTag(e.target.value)}
+                      placeholder="Enter custom tag..."
+                      className="flex-1 px-3 py-2 bg-gray-800 text-white rounded"
+                    />
+                    <button className="px-4 py-2 bg-blue-600 text-white rounded">Add</button>
+                  </div>
+                )}
+                
+                {selectedStatus && (
+                  <div className="mt-3 text-sm text-gray-400">
+                    Added to your library on {new Date().toLocaleDateString()}
+                  </div>
+                )}
+              </div>
 
-            <div className="flex-1 overflow-y-auto bg-gray-900">
-              <div className="p-4">
+              {/* Carrousel de reviews */}
+              <div className="p-4 border-b border-gray-700">
+                <h3 className="text-white font-semibold mb-3">Recent Reviews</h3>
+                <div className="flex space-x-4 overflow-x-auto pb-2">
+                  {mockReviews.map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-800 rounded-lg p-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-lg">{review.avatar}</span>
+                        <span className="text-white text-sm font-medium">{review.username}</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-400'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-400 ml-1">{review.rating}</span>
+                      </div>
+                      <p className="text-gray-300 text-sm line-clamp-3">{review.text}</p>
+                      <button className="text-blue-400 text-xs mt-1 hover:text-blue-300">See more</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Onglets STICKY */}
+              <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700">
+                <div className="flex">
+                  {(['info', 'social', 'more'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 py-3 px-4 font-medium transition-colors ${
+                        activeTab === tab
+                          ? 'text-white border-b-2 border-blue-500'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contenu des onglets */}
+              <div className="p-4 bg-gray-900">
                 {activeTab === 'info' && (
                   <div className="space-y-6">
                     <div>
@@ -609,7 +617,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                 )}
               </div>
             </div>
-          </div>
+          </>
         ) : (
           <div className="p-8 text-center text-gray-400">
             <p>Game not found</p>
