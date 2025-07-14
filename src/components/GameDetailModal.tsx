@@ -43,7 +43,7 @@ interface Review {
 export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrary, library }: GameDetailModalProps) {
   const [gameDetail, setGameDetail] = useState<GameDetail | null>(null)
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info') // ✅ Par défaut sur 'info'
   const [currentScreenshot, setCurrentScreenshot] = useState(0)
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
   const [showCustomTag, setShowCustomTag] = useState(false)
@@ -92,6 +92,16 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   }
 
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+
+  // ✅ Reset activeTab à 'info' quand on ouvre une nouvelle fiche
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('info')
+      setCurrentScreenshot(0)
+      setSimilarGames([])
+      setDeveloperGames([])
+    }
+  }, [isOpen, gameId])
 
   // Fonction pour changer d'onglet et scroll jusqu'à la première section
   const changeTab = (newTab: 'info' | 'social' | 'more') => {
@@ -188,37 +198,66 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
       const data = await response.json()
       setGameDetail(data)
       
-      // ✅ RECHERCHER JEUX SIMILAIRES - VERSION SIMPLIFIÉE
+      // ✅ RECHERCHER JEUX SIMILAIRES PAR TAGS COMMUNS - VERSION AMÉLIORÉE
       try {
-        // Recherche par tags populaires du jeu actuel
         if (data.tags && data.tags.length > 0) {
-          const popularTag = data.tags[0].name
+          // Prendre les 3 premiers tags les plus populaires
+          const topTags = data.tags.slice(0, 3).map((tag: any) => tag.name).join(',')
           const similarResponse = await fetch(
-            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(popularTag)}&page_size=6&ordering=-rating`
+            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&tags=${encodeURIComponent(topTags)}&page_size=12&ordering=-rating`
           )
           const similarData = await similarResponse.json()
           if (similarData.results) {
-            // Filtrer le jeu actuel et prendre les 4 premiers
-            const filtered = similarData.results.filter((game: any) => game.id !== data.id).slice(0, 4)
+            // Filtrer le jeu actuel et prendre les 6 premiers
+            const filtered = similarData.results
+              .filter((game: any) => game.id !== data.id)
+              .slice(0, 6)
             setSimilarGames(filtered)
             console.log('Similar games loaded:', filtered.length)
           }
         }
       } catch (error) {
         console.error('Error loading similar games:', error)
+        // Fallback: recherche par genre si tags échouent
+        if (data.genres && data.genres.length > 0) {
+          const genreName = data.genres[0].name
+          const fallbackResponse = await fetch(
+            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${encodeURIComponent(genreName)}&page_size=8&ordering=-rating`
+          )
+          const fallbackData = await fallbackResponse.json()
+          if (fallbackData.results) {
+            const filtered = fallbackData.results
+              .filter((game: any) => game.id !== data.id)
+              .slice(0, 6)
+            setSimilarGames(filtered)
+          }
+        }
       }
       
-      // ✅ RECHERCHER JEUX DU DÉVELOPPEUR - VERSION SIMPLIFIÉE
+      // ✅ RECHERCHER JEUX DU DÉVELOPPEUR PAR ID DÉVELOPPEUR
       try {
         if (data.developers && data.developers.length > 0) {
-          const devName = data.developers[0].name
-          const devResponse = await fetch(
-            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(devName)}&page_size=5&ordering=-rating`
-          )
+          const developerId = data.developers[0].id || data.developers[0].name
+          let devResponse
+          
+          // Essayer d'abord avec l'ID du développeur
+          if (typeof developerId === 'number') {
+            devResponse = await fetch(
+              `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&developers=${developerId}&page_size=8&ordering=-rating`
+            )
+          } else {
+            // Fallback avec le nom du développeur
+            devResponse = await fetch(
+              `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(developerId)}&page_size=8&ordering=-rating`
+            )
+          }
+          
           const devData = await devResponse.json()
           if (devData.results) {
-            // Filtrer le jeu actuel et prendre les 2 premiers
-            const filtered = devData.results.filter((game: any) => game.id !== data.id).slice(0, 2)
+            // Filtrer le jeu actuel et prendre les 4 premiers
+            const filtered = devData.results
+              .filter((game: any) => game.id !== data.id)
+              .slice(0, 4)
             setDeveloperGames(filtered)
             console.log('Developer games loaded:', filtered.length)
           }
@@ -507,6 +546,24 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                       </p>
                     </div>
 
+                    {/* ✅ NOUVELLE SECTION TAGS */}
+                    {gameDetail.tags && gameDetail.tags.length > 0 && (
+                      <div id="info-tags">
+                        <h4 className="text-white font-semibold mb-3">Tags</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {gameDetail.tags.slice(0, 12).map((tag, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-300 border border-blue-500/30 hover:border-blue-400/50 transition-colors cursor-pointer"
+                            >
+                              <Tag size={12} className="mr-1" />
+                              {tag.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <h5 className="text-white font-medium mb-1">Platforms</h5>
@@ -606,23 +663,60 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
                 {activeTab === 'more' && (
                   <div className="space-y-6">
                     <div id="more-similar-games">
-                      <h4 className="text-white font-semibold mb-3">Similar Games</h4>
-                      <div className="grid grid-cols-2 gap-3">
+                      <h4 className="text-white font-semibold mb-4">Similar Games</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {similarGames.length > 0 ? (
-                          similarGames.slice(0, 4).map((game) => (
-                            <div key={game.id} className="bg-gray-800 p-3 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors">
-                              <h5 className="text-white font-medium text-sm truncate">{game.name}</h5>
-                              <p className="text-gray-400 text-xs">
-                                {game.genres?.[0]?.name || 'Game'} • {game.rating ? `${game.rating.toFixed(1)}★` : 'N/A'}
-                              </p>
+                          similarGames.map((game) => (
+                            <div key={game.id} className="group relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl overflow-hidden hover:from-gray-700 hover:to-gray-800 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-xl">
+                              <div className="relative h-32 bg-gray-700">
+                                {game.background_image ? (
+                                  <img
+                                    src={game.background_image}
+                                    alt={game.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                                    <span className="text-white text-2xl">🎮</span>
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+                                <div className="absolute top-2 right-2 bg-black/60 rounded-full px-2 py-1">
+                                  <div className="flex items-center space-x-1">
+                                    <Star size={10} className="text-yellow-400 fill-current" />
+                                    <span className="text-white text-xs font-medium">
+                                      {game.rating ? game.rating.toFixed(1) : 'N/A'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="p-3">
+                                <h5 className="text-white font-medium text-sm truncate group-hover:text-blue-300 transition-colors">
+                                  {game.name}
+                                </h5>
+                                <p className="text-gray-400 text-xs mt-1">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs font-medium">
+                                    {game.genres?.[0]?.name || 'Game'}
+                                  </span>
+                                </p>
+                              </div>
                             </div>
                           ))
                         ) : (
                           // Fallback si pas de résultats API
-                          gameDetail.genres?.slice(0, 4).map((genre, index) => (
-                            <div key={index} className="bg-gray-800 p-3 rounded-lg">
-                              <h5 className="text-white font-medium text-sm">Game Similar {index + 1}</h5>
-                              <p className="text-gray-400 text-xs">{genre.name} • 4.2★</p>
+                          gameDetail.genres?.slice(0, 6).map((genre, index) => (
+                            <div key={index} className="group relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl overflow-hidden">
+                              <div className="relative h-32 bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                                <span className="text-white text-2xl">🎮</span>
+                              </div>
+                              <div className="p-3">
+                                <h5 className="text-white font-medium text-sm">Similar Game {index + 1}</h5>
+                                <p className="text-gray-400 text-xs mt-1">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs font-medium">
+                                    {genre.name}
+                                  </span>
+                                </p>
+                              </div>
                             </div>
                           ))
                         )}
@@ -631,27 +725,75 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
 
                     {gameDetail.developers && gameDetail.developers.length > 0 && (
                       <div>
-                        <h4 className="text-white font-semibold mb-3">More from {gameDetail.developers[0].name}</h4>
-                        <div className="space-y-2">
+                        <h4 className="text-white font-semibold mb-4">More from {gameDetail.developers[0].name}</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {developerGames.length > 0 ? (
                             developerGames.map((game) => (
-                              <div key={game.id} className="bg-gray-800 p-3 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors">
-                                <h5 className="text-white font-medium text-sm">{game.name}</h5>
-                                <p className="text-gray-400 text-xs">
-                                  {game.released ? new Date(game.released).getFullYear() : 'TBA'} • {game.rating ? `${game.rating.toFixed(1)}★` : 'N/A'}
-                                </p>
+                              <div key={game.id} className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden hover:from-gray-700 hover:to-gray-800 transition-all duration-300 cursor-pointer transform hover:scale-102 hover:shadow-lg">
+                                <div className="relative w-24 h-20 bg-gray-700 flex-shrink-0">
+                                  {game.background_image ? (
+                                    <img
+                                      src={game.background_image}
+                                      alt={game.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                                      <span className="text-white text-lg">🎮</span>
+                                    </div>
+                                  )}
+                                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+                                </div>
+                                <div className="flex-1 p-3 flex flex-col justify-center">
+                                  <h5 className="text-white font-medium text-sm truncate group-hover:text-purple-300 transition-colors">
+                                    {game.name}
+                                  </h5>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <span className="text-gray-400 text-xs">
+                                      {game.released ? new Date(game.released).getFullYear() : 'TBA'}
+                                    </span>
+                                    <div className="flex items-center space-x-1">
+                                      <Star size={10} className="text-yellow-400 fill-current" />
+                                      <span className="text-gray-300 text-xs">
+                                        {game.rating ? game.rating.toFixed(1) : 'N/A'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             ))
                           ) : (
                             // Fallback si pas de résultats API
                             <>
-                              <div className="bg-gray-800 p-3 rounded-lg">
-                                <h5 className="text-white font-medium text-sm">Previous Game Title</h5>
-                                <p className="text-gray-400 text-xs">2022 • 4.5★</p>
+                              <div className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden">
+                                <div className="relative w-24 h-20 bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white text-lg">🎮</span>
+                                </div>
+                                <div className="flex-1 p-3 flex flex-col justify-center">
+                                  <h5 className="text-white font-medium text-sm">Previous Game Title</h5>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <span className="text-gray-400 text-xs">2022</span>
+                                    <div className="flex items-center space-x-1">
+                                      <Star size={10} className="text-yellow-400 fill-current" />
+                                      <span className="text-gray-300 text-xs">4.5</span>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="bg-gray-800 p-3 rounded-lg">
-                                <h5 className="text-white font-medium text-sm">Another Game Title</h5>
-                                <p className="text-gray-400 text-xs">2020 • 4.1★</p>
+                              <div className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden">
+                                <div className="relative w-24 h-20 bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white text-lg">🎮</span>
+                                </div>
+                                <div className="flex-1 p-3 flex flex-col justify-center">
+                                  <h5 className="text-white font-medium text-sm">Another Game Title</h5>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <span className="text-gray-400 text-xs">2020</span>
+                                    <div className="flex items-center space-x-1">
+                                      <Star size={10} className="text-yellow-400 fill-current" />
+                                      <span className="text-gray-300 text-xs">4.1</span>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             </>
                           )}
