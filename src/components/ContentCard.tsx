@@ -1,10 +1,28 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Play, Check, Plus, Eye, Headphones, BookOpen } from 'lucide-react'
 
-export default function ContentCard({ item, onAddToLibrary, category }: any) {
+interface ContentCardProps {
+  item: any
+  onAddToLibrary: (item: any, status: string) => void
+  category: string
+  library?: any[] // Nouvelle prop pour connaître l'état de la bibliothèque
+}
+
+export default function ContentCard({ item, onAddToLibrary, category, library = [] }: ContentCardProps) {
   const [showButtons, setShowButtons] = useState(false)
   const [clickedButton, setClickedButton] = useState<string | null>(null)
+  const [currentStatus, setCurrentStatus] = useState<string | null>(null)
+
+  // Vérifier si l'item est déjà dans la bibliothèque au chargement
+  useEffect(() => {
+    const libraryItem = library.find((libItem: any) => libItem.id === item.id)
+    if (libraryItem) {
+      setCurrentStatus(libraryItem.status)
+    } else {
+      setCurrentStatus(null)
+    }
+  }, [library, item.id])
 
   // Configuration des boutons selon la catégorie avec icônes
   const getActionButtons = () => {
@@ -54,10 +72,27 @@ export default function ContentCard({ item, onAddToLibrary, category }: any) {
 
   const handleButtonClick = (status: string) => {
     setClickedButton(status)
+    setCurrentStatus(status)
     onAddToLibrary(item, status)
     
     // Feedback visuel temporaire
     setTimeout(() => setClickedButton(null), 1000)
+  }
+
+  // Déterminer le style d'un bouton
+  const getButtonStyle = (buttonStatus: string) => {
+    const isCurrentStatus = currentStatus === buttonStatus
+    const isClicked = clickedButton === buttonStatus
+
+    if (isClicked) {
+      return 'bg-green-600 text-white scale-95 shadow-lg ring-2 ring-green-400'
+    }
+    
+    if (isCurrentStatus) {
+      return 'bg-blue-600 text-white shadow-md' // Bleu pour status persistant
+    }
+
+    return 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white hover:scale-105'
   }
 
   return (
@@ -92,7 +127,7 @@ export default function ContentCard({ item, onAddToLibrary, category }: any) {
         </div>
 
         {/* Boutons au hover sur desktop */}
-        <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-200 hidden sm:flex items-center justify-center ${
+        <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-200 flex items-center justify-center ${
           showButtons ? 'opacity-100' : 'opacity-0'
         }`}>
           <div className={`grid gap-2 ${
@@ -102,17 +137,12 @@ export default function ContentCard({ item, onAddToLibrary, category }: any) {
           }`}>
             {actionButtons.map((button) => {
               const IconComponent = button.icon
-              const isClicked = clickedButton === button.status
               
               return (
                 <button
                   key={button.status}
                   onClick={() => handleButtonClick(button.status)}
-                  className={`p-3 rounded-lg font-medium transition-all duration-200 text-center text-sm transform ${
-                    isClicked 
-                      ? 'bg-green-600 text-white scale-95 shadow-lg' 
-                      : 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white hover:scale-105'
-                  }`}
+                  className={`p-3 rounded-lg font-medium transition-all duration-200 text-center text-sm transform ${getButtonStyle(button.status)}`}
                 >
                   <div className="flex flex-col items-center space-y-1">
                     <IconComponent size={16} />
@@ -134,17 +164,12 @@ export default function ContentCard({ item, onAddToLibrary, category }: any) {
         }`}>
           {actionButtons.map((button) => {
             const IconComponent = button.icon
-            const isClicked = clickedButton === button.status
             
             return (
               <button
                 key={`permanent-${button.status}`}
                 onClick={() => handleButtonClick(button.status)}
-                className={`p-2 sm:p-3 rounded-lg font-medium transition-all duration-200 text-center transform ${
-                  isClicked 
-                    ? 'bg-green-600 text-white scale-95 shadow-lg' 
-                    : 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white hover:scale-105'
-                }`}
+                className={`p-2 sm:p-3 rounded-lg font-medium transition-all duration-200 text-center transform ${getButtonStyle(button.status)}`}
                 title={button.label}
               >
                 <div className="flex flex-col items-center space-y-1">
@@ -157,7 +182,14 @@ export default function ContentCard({ item, onAddToLibrary, category }: any) {
         </div>
       </div>
 
-      {/* Feedback visuel global */}
+      {/* Badge de statut persistant */}
+      {currentStatus && !clickedButton && (
+        <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+          In Library
+        </div>
+      )}
+
+      {/* Feedback visuel temporaire */}
       {clickedButton && (
         <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full font-medium animate-pulse">
           Added!

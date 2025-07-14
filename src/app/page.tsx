@@ -96,6 +96,7 @@ export default function Home() {
               items={section.items}
               category={activeTab}
               onAddToLibrary={handleAddToLibrary}
+              library={library}
             />
           ))}
         </div>
