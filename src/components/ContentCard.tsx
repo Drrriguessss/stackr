@@ -7,9 +7,10 @@ interface ContentCardProps {
   onAddToLibrary: (item: any, status: string) => void
   category: string
   library?: any[] // Nouvelle prop pour connaître l'état de la bibliothèque
+  onOpenGameDetail?: (gameId: string) => void // Nouvelle prop pour ouvrir la fiche produit
 }
 
-export default function ContentCard({ item, onAddToLibrary, category, library = [] }: ContentCardProps) {
+export default function ContentCard({ item, onAddToLibrary, category, library = [], onOpenGameDetail }: ContentCardProps) {
   const [showButtons, setShowButtons] = useState(false)
   const [clickedButton, setClickedButton] = useState<string | null>(null)
   const [currentStatus, setCurrentStatus] = useState<string | null>(null)
@@ -83,6 +84,15 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
     setTimeout(() => setClickedButton(null), 1000)
   }
 
+  // ✅ NOUVELLE FONCTION - Gérer le clic sur la carte principale
+  const handleCardClick = () => {
+    // Ouvrir la fiche produit seulement pour les jeux pour l'instant
+    const itemCategory = item.category || category
+    if (itemCategory === 'games' && onOpenGameDetail) {
+      onOpenGameDetail(item.id)
+    }
+  }
+
   // Déterminer le style d'un bouton
   const getButtonStyle = (buttonStatus: string) => {
     const isCurrentStatus = currentStatus === buttonStatus
@@ -105,14 +115,17 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
       onMouseEnter={() => setShowButtons(true)}
       onMouseLeave={() => setShowButtons(false)}
     >
-      {/* Carte principale */}
-      <div className={`relative h-48 sm:h-64 rounded-xl p-4 sm:p-6 text-white overflow-hidden transition-transform duration-200 group-hover:scale-105 ${
-        // Gradient basé sur la vraie catégorie
-        (item.category || category) === 'games' ? 'bg-gradient-to-br from-green-500 to-emerald-700' :
-        (item.category || category) === 'movies' ? 'bg-gradient-to-br from-blue-500 to-indigo-700' :
-        (item.category || category) === 'music' ? 'bg-gradient-to-br from-purple-500 to-pink-700' :
-        'bg-gradient-to-br from-orange-500 to-red-700'
-      }`}>
+      {/* Carte principale - ✅ AJOUT DU CLIC */}
+      <div 
+        className={`relative h-48 sm:h-64 rounded-xl p-4 sm:p-6 text-white overflow-hidden transition-transform duration-200 group-hover:scale-105 ${
+          // Gradient basé sur la vraie catégorie
+          (item.category || category) === 'games' ? 'bg-gradient-to-br from-green-500 to-emerald-700' :
+          (item.category || category) === 'movies' ? 'bg-gradient-to-br from-blue-500 to-indigo-700' :
+          (item.category || category) === 'music' ? 'bg-gradient-to-br from-purple-500 to-pink-700' :
+          'bg-gradient-to-br from-orange-500 to-red-700'
+        }`}
+        onClick={handleCardClick} // ✅ CLIC SUR LA CARTE
+      >
         
         {/* Contenu de la carte */}
         <div className="relative z-10 h-full flex flex-col justify-between">
@@ -147,7 +160,7 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
                   key={button.status}
                   onClick={(e) => {
                     e.preventDefault()
-                    e.stopPropagation()
+                    e.stopPropagation() // ✅ EMPÊCHER PROPAGATION VERS handleCardClick
                     handleButtonClick(button.status)
                   }}
                   className={`p-3 rounded-lg font-medium transition-all duration-200 text-center text-sm transform ${getButtonStyle(button.status)}`}
@@ -176,7 +189,10 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
             return (
               <button
                 key={`permanent-${button.status}`}
-                onClick={() => handleButtonClick(button.status)}
+                onClick={(e) => {
+                  e.stopPropagation() // ✅ EMPÊCHER PROPAGATION
+                  handleButtonClick(button.status)
+                }}
                 className={`p-2 sm:p-3 rounded-lg font-medium transition-all duration-200 text-center transform ${getButtonStyle(button.status)}`}
                 title={button.label}
               >
@@ -201,6 +217,13 @@ export default function ContentCard({ item, onAddToLibrary, category, library = 
       {clickedButton && (
         <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full font-medium animate-pulse">
           Added!
+        </div>
+      )}
+
+      {/* ✅ INDICATEUR VISUEL pour les jeux cliquables */}
+      {(item.category || category) === 'games' && (
+        <div className="absolute top-2 left-2 bg-black/30 text-white text-xs px-2 py-1 rounded-full font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+          Click for details
         </div>
       )}
     </div>

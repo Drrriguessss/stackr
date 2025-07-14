@@ -178,7 +178,7 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-hidden">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-gray-900 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {loading ? (
           <div className="flex items-center justify-center py-20">

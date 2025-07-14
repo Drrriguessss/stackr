@@ -9,9 +9,10 @@ interface ContentSectionProps {
   category: string
   onAddToLibrary: (item: any, status: string) => void
   library?: any[]
+  onOpenGameDetail?: (gameId: string) => void // ✅ NOUVELLE PROP
 }
 
-export default function ContentSection({ title, items, category, onAddToLibrary, library = [] }: ContentSectionProps) {
+export default function ContentSection({ title, items, category, onAddToLibrary, library = [], onOpenGameDetail }: ContentSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(true)
@@ -83,6 +84,7 @@ export default function ContentSection({ title, items, category, onAddToLibrary,
                 onAddToLibrary={onAddToLibrary}
                 category={category}
                 library={library}
+                onOpenGameDetail={onOpenGameDetail} // ✅ PASSER LA FONCTION
               />
             </div>
           ))}

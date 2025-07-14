@@ -4,11 +4,13 @@ import Header from '@/components/Header'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
+import GameDetailModal from '@/components/GameDetailModal' // ✅ IMPORT DIRECT
 import { sampleContent } from '@/data/sampleContent'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('games')
   const [library, setLibrary] = useState<any[]>([])
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null) // ✅ STATE POUR FICHE PRODUIT
 
   const handleAddToLibrary = (item: any, status: string) => {
     const newItem = {
@@ -30,6 +32,11 @@ export default function Home() {
       }
       return [...prev, newItem]
     })
+  }
+
+  // ✅ FONCTION POUR OUVRIR FICHE PRODUIT
+  const handleOpenGameDetail = (gameId: string) => {
+    setSelectedGameId(gameId)
   }
 
   // Configuration des sections par catégorie
@@ -81,7 +88,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-950">
-      <Header onAddToLibrary={handleAddToLibrary} library={library} />
+      <Header 
+        onAddToLibrary={handleAddToLibrary} 
+        library={library}
+        onOpenGameDetail={handleOpenGameDetail} // ✅ PASSER LA FONCTION AU HEADER
+      />
       
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <CategoryTabs 
@@ -99,6 +110,7 @@ export default function Home() {
               category={activeTab}
               onAddToLibrary={handleAddToLibrary}
               library={library}
+              onOpenGameDetail={handleOpenGameDetail} // ✅ PASSER LA FONCTION
             />
           ))}
         </div>
@@ -107,8 +119,18 @@ export default function Home() {
         <LibrarySection 
           library={library}
           onAddToLibrary={handleAddToLibrary}
+          onOpenGameDetail={handleOpenGameDetail} // ✅ PASSER LA FONCTION
         />
       </div>
+
+      {/* ✅ MODAL FICHE PRODUIT DIRECTE */}
+      <GameDetailModal
+        isOpen={!!selectedGameId}
+        onClose={() => setSelectedGameId(null)}
+        gameId={selectedGameId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+      />
     </div>
   )
 }

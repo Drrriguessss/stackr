@@ -1,73 +1,89 @@
 'use client'
 import { useState } from 'react'
-import ContentSection from './ContentSection'
+import ContentCard from './ContentCard'
 
 interface LibrarySectionProps {
   library: any[]
   onAddToLibrary: (item: any, status: string) => void
+  onOpenGameDetail?: (gameId: string) => void // ✅ AJOUTER CETTE PROP
 }
 
-export default function LibrarySection({ library, onAddToLibrary }: LibrarySectionProps) {
-  const [libraryFilter, setLibraryFilter] = useState('all')
+export default function LibrarySection({ library, onAddToLibrary, onOpenGameDetail }: LibrarySectionProps) {
+  const [activeFilter, setActiveFilter] = useState('all')
 
-  // Filtrer la bibliothèque selon le filtre sélectionné
-  const getFilteredLibrary = () => {
-    if (libraryFilter === 'all') {
-      return library
+  // Calculer les compteurs par catégorie
+  const getCounts = () => {
+    return {
+      all: library.length,
+      games: library.filter(item => item.category === 'games').length,
+      movies: library.filter(item => item.category === 'movies').length,
+      music: library.filter(item => item.category === 'music').length,
+      books: library.filter(item => item.category === 'books').length
     }
-    return library.filter((item: any) => item.category === libraryFilter)
   }
 
-  const filteredLibrary = getFilteredLibrary()
+  // Filtrer les items selon le filtre actif
+  const getFilteredItems = () => {
+    if (activeFilter === 'all') return library
+    return library.filter(item => item.category === activeFilter)
+  }
 
+  const counts = getCounts()
+  const filteredItems = getFilteredItems()
+
+  // Ne pas afficher la section si la library est vide
   if (library.length === 0) return null
 
   return (
-    <div className="mt-8 sm:mt-12">
-      {/* Header avec filtres */}
-      <div className="mb-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Your Library</h2>
+    <section className="mt-12">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-0">Your Library</h2>
         
-        {/* Filtres de catégorie */}
+        {/* Filtres avec compteurs */}
         <div className="flex flex-wrap gap-2">
           {[
-            { id: 'all', name: 'All', count: library.length },
-            { id: 'games', name: 'Games', count: library.filter(item => item.category === 'games').length },
-            { id: 'movies', name: 'Movies', count: library.filter(item => item.category === 'movies').length },
-            { id: 'music', name: 'Music', count: library.filter(item => item.category === 'music').length },
-            { id: 'books', name: 'Books', count: library.filter(item => item.category === 'books').length }
-          ].map((filter) => (
-            filter.count > 0 && (
-              <button
-                key={filter.id}
-                onClick={() => setLibraryFilter(filter.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  libraryFilter === filter.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
-                }`}
-              >
-                {filter.name} ({filter.count})
-              </button>
-            )
+            { key: 'all', label: 'All', count: counts.all },
+            { key: 'games', label: 'Games', count: counts.games },
+            { key: 'movies', label: 'Movies', count: counts.movies },
+            { key: 'music', label: 'Music', count: counts.music },
+            { key: 'books', label: 'Books', count: counts.books }
+          ].map(filter => (
+            <button
+              key={filter.key}
+              onClick={() => setActiveFilter(filter.key)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeFilter === filter.key
+                  ? 'bg-white text-gray-900'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+              disabled={filter.count === 0}
+            >
+              {filter.label} ({filter.count})
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Contenu de la bibliothèque */}
-      {filteredLibrary.length > 0 ? (
-        <ContentSection
-          title="" // Pas de titre car on a déjà "Your Library" au-dessus
-          items={filteredLibrary}
-          category={libraryFilter === 'all' ? 'mixed' : libraryFilter}
-          onAddToLibrary={onAddToLibrary}
-          library={library}
-        />
+      {/* Grille des items */}
+      {filteredItems.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-6">
+          {filteredItems.map((item) => (
+            <ContentCard
+              key={`library-${item.id}`}
+              item={item}
+              onAddToLibrary={onAddToLibrary}
+              category={item.category}
+              library={library}
+              onOpenGameDetail={onOpenGameDetail} // ✅ PASSER LA FONCTION
+            />
+          ))}
+        </div>
       ) : (
         <div className="text-center py-8 text-gray-400">
-          No {libraryFilter === 'all' ? 'items' : libraryFilter} in your library yet.
+          <p>No {activeFilter === 'all' ? 'items' : activeFilter} in your library yet.</p>
+          <p className="text-sm mt-2">Start adding content to see it here!</p>
         </div>
       )}
-    </div>
+    </section>
   )
 }
