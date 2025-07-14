@@ -30,6 +30,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [error, setError] = useState<string | null>(null)
   const [searchCache] = useState<Map<string, SearchResult[]>>(new Map())
+  const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
   
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -43,7 +44,52 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     if (isOpen && inputRef.current) {
       inputRef.current.focus()
     }
+
+  // Get status options based on category
+  const getStatusOptions = (category: string) => {
+    const baseOptions = [
+      { value: 'want-to-play', label: 'Want to Add', icon: '❤️' },
+    ]
+
+    switch (category) {
+      case 'games':
+        return [
+          ...baseOptions,
+          { value: 'currently-playing', label: 'Currently Playing', icon: '🎮' },
+          { value: 'completed', label: 'Played', icon: '✅' }
+        ]
+      case 'movies':
+        return [
+          ...baseOptions,
+          { value: 'currently-playing', label: 'Currently Watching', icon: '🎬' },
+          { value: 'completed', label: 'Watched', icon: '✅' }
+        ]
+      case 'music':
+        return [
+          ...baseOptions,
+          { value: 'currently-playing', label: 'Currently Listening', icon: '🎵' },
+          { value: 'completed', label: 'Listened', icon: '✅' }
+        ]
+      case 'books':
+        return [
+          ...baseOptions,
+          { value: 'currently-playing', label: 'Currently Reading', icon: '📚' },
+          { value: 'completed', label: 'Read', icon: '✅' }
+        ]
+      default:
+        return baseOptions
+    }
+  }
   }, [isOpen])
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowStatusPopup(null)
+    if (showStatusPopup) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showStatusPopup])
 
   // Reset state when modal closes
   useEffect(() => {
@@ -52,6 +98,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
       setResults([])
       setSelectedIndex(-1)
       setError(null)
+      setShowStatusPopup(null)
     }
   }, [isOpen])
 
@@ -321,8 +368,44 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
       onOpenGameDetail(result.id.replace('game-', ''))
       onClose()
     } else {
-      onAddToLibrary(result, 'want-to-watch')
+      onAddToLibrary(result, 'want-to-play')
       onClose()
+    }
+  }
+
+  // Get status options based on category
+  const getStatusOptions = (category: string) => {
+    const baseOptions = [
+      { value: 'want-to-play', label: 'Want to Add', icon: '❤️' },
+    ]
+
+    switch (category) {
+      case 'games':
+        return [
+          ...baseOptions,
+          { value: 'currently-playing', label: 'Currently Playing', icon: '🎮' },
+          { value: 'completed', label: 'Played', icon: '✅' }
+        ]
+      case 'movies':
+        return [
+          ...baseOptions,
+          { value: 'currently-playing', label: 'Currently Watching', icon: '🎬' },
+          { value: 'completed', label: 'Watched', icon: '✅' }
+        ]
+      case 'music':
+        return [
+          ...baseOptions,
+          { value: 'currently-playing', label: 'Currently Listening', icon: '🎵' },
+          { value: 'completed', label: 'Listened', icon: '✅' }
+        ]
+      case 'books':
+        return [
+          ...baseOptions,
+          { value: 'currently-playing', label: 'Currently Reading', icon: '📚' },
+          { value: 'completed', label: 'Read', icon: '✅' }
+        ]
+      default:
+        return baseOptions
     }
   }
 
@@ -369,23 +452,22 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
         {/* Category filters */}
         <div className="flex space-x-2 p-4 border-b border-gray-700 overflow-x-auto">
           {[
-            { key: 'all', label: 'All', icon: '🔍' },
-            { key: 'games', label: 'Games', icon: '🎮' },
-            { key: 'movies', label: 'Movies', icon: '🎬' },
-            { key: 'music', label: 'Music', icon: '🎵' },
-            { key: 'books', label: 'Books', icon: '📚' }
-          ].map(({ key, label, icon }) => (
+            { key: 'all', label: 'All' },
+            { key: 'games', label: 'Games' },
+            { key: 'movies', label: 'Movies' },
+            { key: 'music', label: 'Music' },
+            { key: 'books', label: 'Books' }
+          ].map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setActiveCategory(key)}
-              className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                 activeCategory === key
                   ? 'bg-white text-gray-900 shadow-lg'
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              <span>{icon}</span>
-              <span>{label}</span>
+              {label}
             </button>
           ))}
         </div>
@@ -491,17 +573,39 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Add button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onAddToLibrary(result, 'want-to-watch')
-                        onClose()
-                      }}
-                      className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0"
-                    >
-                      Add
-                    </button>
+                    {/* Status selection popup */}
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowStatusPopup(result.id)
+                        }}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0"
+                      >
+                        Add
+                      </button>
+
+                      {/* Status selection popup */}
+                      {showStatusPopup === result.id && (
+                        <div className="absolute right-0 bottom-full mb-2 bg-gray-800 rounded-lg shadow-xl border border-gray-600 py-2 min-w-40 z-10">
+                          {getStatusOptions(result.category).map((status) => (
+                            <button
+                              key={status.value}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onAddToLibrary(result, status.value)
+                                setShowStatusPopup(null)
+                                onClose()
+                              }}
+                              className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors flex items-center space-x-2"
+                            >
+                              <span>{status.icon}</span>
+                              <span>{status.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )
               })}

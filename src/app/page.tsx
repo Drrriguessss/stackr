@@ -3,16 +3,18 @@ import { useState } from 'react'
 import Header from '@/components/Header'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
-import LibrarySection from '@/components/LibrarySection'
+import ShelvesSection from '@/components/ShelvesSection'
 import GameDetailModal from '@/components/GameDetailModal'
+import SearchModal from '@/components/SearchModal'
 import { sampleContent } from '@/data/sampleContent'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('games')
   const [library, setLibrary] = useState<any[]>([])
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(null) // ✅ STATE POUR FICHE PRODUIT
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   
-  // ✅ User reviews state - now per game
+  // User reviews state - now per game
   const [userReviews, setUserReviews] = useState<{[gameId: number]: any[]}>({})
 
   const handleAddToLibrary = (item: any, status: string) => {
@@ -37,12 +39,33 @@ export default function Home() {
     })
   }
 
-  // ✅ FONCTION POUR OUVRIR FICHE PRODUIT
+  // Fonction pour mettre à jour un item dans la library
+  const handleUpdateItem = (id: string, updates: any) => {
+    setLibrary(prev => 
+      prev.map(item => 
+        item.id === id 
+          ? { ...item, ...updates }
+          : item
+      )
+    )
+  }
+
+  // Fonction pour supprimer un item de la library
+  const handleDeleteItem = (id: string) => {
+    setLibrary(prev => prev.filter(item => item.id !== id))
+  }
+
+  // Fonction pour ouvrir fiche produit
   const handleOpenGameDetail = (gameId: string) => {
     setSelectedGameId(gameId)
   }
 
-  // ✅ Handle review submission - now saves per game
+  // Fonction pour ouvrir la recherche
+  const handleOpenSearch = () => {
+    setIsSearchOpen(true)
+  }
+
+  // Handle review submission - now saves per game
   const handleReviewSubmit = (reviewData: any) => {
     if (!selectedGameId) return;
     
@@ -60,7 +83,7 @@ export default function Home() {
     }));
   };
 
-  // ✅ Generate unique Google reviews for each game
+  // Generate unique Google reviews for each game
   const generateGoogleReviews = (gameId: number) => {
     const reviewTemplates = [
       { rating: 5, text: "Amazing game! Hours of entertainment.", author: "John D." },
@@ -95,7 +118,7 @@ export default function Home() {
   const getSections = () => {
     const allContent = getCurrentContent()
     
-    // ✅ DIVISER EN 3 SECTIONS DE 4 ITEMS CHACUNE (au lieu de 2)
+    // Diviser en 3 sections de 4 items chacune
     const popularItems = allContent.slice(0, 4)
     const topRatedItems = allContent.slice(4, 8) 
     const editorPicksItems = allContent.slice(0, 4) // Réutiliser les premiers pour variety
@@ -143,7 +166,7 @@ export default function Home() {
       <Header 
         onAddToLibrary={handleAddToLibrary} 
         library={library}
-        onOpenGameDetail={handleOpenGameDetail} // ✅ PROP MANQUANTE AJOUTÉE
+        onOpenGameDetail={handleOpenGameDetail}
       />
       
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -162,20 +185,23 @@ export default function Home() {
               category={activeTab}
               onAddToLibrary={handleAddToLibrary}
               library={library}
-              onOpenGameDetail={handleOpenGameDetail} // ✅ PASSER LA FONCTION
+              onOpenGameDetail={handleOpenGameDetail}
             />
           ))}
         </div>
 
-        {/* Section Your Library avec filtres */}
-        <LibrarySection 
+        {/* Section Your Shelves avec filtres */}
+        <ShelvesSection 
           library={library}
           onAddToLibrary={handleAddToLibrary}
-          onOpenGameDetail={handleOpenGameDetail} // ✅ PASSER LA FONCTION
+          onUpdateItem={handleUpdateItem}
+          onDeleteItem={handleDeleteItem}
+          onOpenGameDetail={handleOpenGameDetail}
+          onOpenSearch={handleOpenSearch}
         />
       </div>
 
-      {/* ✅ MODAL FICHE PRODUIT DIRECTE */}
+      {/* Modal fiche produit */}
       <GameDetailModal
         isOpen={!!selectedGameId}
         onClose={() => setSelectedGameId(null)}
@@ -185,6 +211,14 @@ export default function Home() {
         userReviews={selectedGameId ? userReviews[parseInt(selectedGameId)] || [] : []}
         googleReviews={selectedGameId ? generateGoogleReviews(parseInt(selectedGameId)) : []}
         onReviewSubmit={handleReviewSubmit}
+      />
+
+      {/* Modal de recherche */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenGameDetail={handleOpenGameDetail}
       />
     </div>
   )
