@@ -201,28 +201,28 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
       // ✅ RECHERCHER JEUX SIMILAIRES PAR TAGS COMMUNS - VERSION AMÉLIORÉE
       try {
         if (data.tags && data.tags.length > 0) {
-          // Prendre les 3 premiers tags les plus populaires
-          const topTags = data.tags.slice(0, 3).map((tag: any) => tag.name).join(',')
+          // Prendre le premier tag populaire pour une recherche plus simple
+          const popularTag = data.tags[0].name
           const similarResponse = await fetch(
-            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&tags=${encodeURIComponent(topTags)}&page_size=12&ordering=-rating`
+            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(popularTag)}&page_size=12&ordering=-rating`
           )
           const similarData = await similarResponse.json()
+          console.log('Similar games API response:', similarData)
           if (similarData.results) {
             // Filtrer le jeu actuel et prendre les 6 premiers
             const filtered = similarData.results
               .filter((game: any) => game.id !== data.id)
               .slice(0, 6)
             setSimilarGames(filtered)
-            console.log('Similar games loaded:', filtered.length)
+            console.log('Similar games loaded:', filtered.length, filtered)
           }
         }
-      } catch (error) {
-        console.error('Error loading similar games:', error)
-        // Fallback: recherche par genre si tags échouent
-        if (data.genres && data.genres.length > 0) {
+        
+        // Fallback: recherche par genre si pas de tags
+        if ((!data.tags || data.tags.length === 0) && data.genres && data.genres.length > 0) {
           const genreName = data.genres[0].name
           const fallbackResponse = await fetch(
-            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${encodeURIComponent(genreName)}&page_size=8&ordering=-rating`
+            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(genreName)}&page_size=8&ordering=-rating`
           )
           const fallbackData = await fallbackResponse.json()
           if (fallbackData.results) {
@@ -230,8 +230,11 @@ export default function GameDetailModal({ isOpen, onClose, gameId, onAddToLibrar
               .filter((game: any) => game.id !== data.id)
               .slice(0, 6)
             setSimilarGames(filtered)
+            console.log('Similar games (genre fallback):', filtered.length)
           }
         }
+      } catch (error) {
+        console.error('Error loading similar games:', error)
       }
       
       // ✅ RECHERCHER JEUX DU DÉVELOPPEUR PAR ID DÉVELOPPEUR
