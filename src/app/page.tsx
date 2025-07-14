@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Header from '@/components/Header'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
+import LibrarySection from '@/components/LibrarySection'
 import { sampleContent } from '@/data/sampleContent'
 
 export default function Home() {
@@ -18,9 +19,6 @@ export default function Home() {
       category: item.category || activeTab
     }
     
-    console.log('Adding to library:', newItem)
-    console.log('Current library:', library)
-    
     setLibrary(prev => {
       const exists = prev.find((libItem: any) => libItem.id === item.id)
       if (exists) {
@@ -30,9 +28,7 @@ export default function Home() {
             : libItem
         )
       }
-      const newLibrary = [...prev, newItem]
-      console.log('New library:', newLibrary)
-      return newLibrary
+      return [...prev, newItem]
     })
   }
 
@@ -107,18 +103,11 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Section Your Library */}
-        {library.length > 0 && (
-          <div className="mt-8 sm:mt-12">
-            <ContentSection
-              title="Your Library"
-              items={library.filter((item: any) => item.category === activeTab)}
-              category={activeTab}
-              onAddToLibrary={handleAddToLibrary}
-              library={library}
-            />
-          </div>
-        )}
+        {/* Section Your Library avec filtres */}
+        <LibrarySection 
+          library={library}
+          onAddToLibrary={handleAddToLibrary}
+        />
       </div>
     </div>
   )
