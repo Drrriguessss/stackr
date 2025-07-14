@@ -2,25 +2,9 @@
 import { useState } from 'react'
 import { Play, Check, Plus, Eye, Headphones, BookOpen } from 'lucide-react'
 
-interface ContentItem {
-  id: number
-  title: string
-  author?: string
-  artist?: string
-  director?: string
-  year: number
-  rating: number
-  genre: string
-}
-
-interface ContentCardProps {
-  item: ContentItem
-  onAddToLibrary: (item: ContentItem, status: string) => void
-  category: string
-}
-
-export default function ContentCard({ item, onAddToLibrary, category }: ContentCardProps) {
+export default function ContentCard({ item, onAddToLibrary, category }: any) {
   const [showButtons, setShowButtons] = useState(false)
+  const [clickedButton, setClickedButton] = useState<string | null>(null)
 
   // Configuration des boutons selon la catégorie avec icônes
   const getActionButtons = () => {
@@ -68,6 +52,14 @@ export default function ContentCard({ item, onAddToLibrary, category }: ContentC
     return item.author || item.artist || item.director || 'Unknown'
   }
 
+  const handleButtonClick = (status: string) => {
+    setClickedButton(status)
+    onAddToLibrary(item, status)
+    
+    // Feedback visuel temporaire
+    setTimeout(() => setClickedButton(null), 1000)
+  }
+
   return (
     <div 
       className="relative group cursor-pointer"
@@ -110,11 +102,17 @@ export default function ContentCard({ item, onAddToLibrary, category }: ContentC
           }`}>
             {actionButtons.map((button) => {
               const IconComponent = button.icon
+              const isClicked = clickedButton === button.status
+              
               return (
                 <button
                   key={button.status}
-                  onClick={() => onAddToLibrary(item, button.status)}
-                  className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white p-2 rounded-lg font-medium transition-all duration-200 text-center text-sm"
+                  onClick={() => handleButtonClick(button.status)}
+                  className={`p-3 rounded-lg font-medium transition-all duration-200 text-center text-sm transform ${
+                    isClicked 
+                      ? 'bg-green-600 text-white scale-95 shadow-lg' 
+                      : 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white hover:scale-105'
+                  }`}
                 >
                   <div className="flex flex-col items-center space-y-1">
                     <IconComponent size={16} />
@@ -127,24 +125,30 @@ export default function ContentCard({ item, onAddToLibrary, category }: ContentC
         </div>
       </div>
 
-      {/* Boutons permanents en bas sur mobile */}
-      <div className="sm:hidden mt-2">
-        <div className={`grid gap-1 ${
+      {/* Boutons permanents en bas sur mobile ET desktop */}
+      <div className="mt-3">
+        <div className={`grid gap-2 ${
           actionButtons.length === 2 
             ? 'grid-cols-2' 
             : 'grid-cols-3'
         }`}>
           {actionButtons.map((button) => {
             const IconComponent = button.icon
+            const isClicked = clickedButton === button.status
+            
             return (
               <button
                 key={`permanent-${button.status}`}
-                onClick={() => onAddToLibrary(item, button.status)}
-                className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white p-2 rounded-lg font-medium transition-all duration-200 text-center"
+                onClick={() => handleButtonClick(button.status)}
+                className={`p-2 sm:p-3 rounded-lg font-medium transition-all duration-200 text-center transform ${
+                  isClicked 
+                    ? 'bg-green-600 text-white scale-95 shadow-lg' 
+                    : 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white hover:scale-105'
+                }`}
                 title={button.label}
               >
                 <div className="flex flex-col items-center space-y-1">
-                  <IconComponent size={14} />
+                  <IconComponent size={14} className="sm:w-4 sm:h-4" />
                   <span className="text-xs truncate">{button.shortLabel}</span>
                 </div>
               </button>
@@ -152,6 +156,13 @@ export default function ContentCard({ item, onAddToLibrary, category }: ContentC
           })}
         </div>
       </div>
+
+      {/* Feedback visuel global */}
+      {clickedButton && (
+        <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full font-medium animate-pulse">
+          Added!
+        </div>
+      )}
     </div>
   )
 }
