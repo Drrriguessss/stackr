@@ -71,6 +71,22 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }, [isOpen])
 
+  // ✅ CORRECTION : Reset addingItem quand library change
+  useEffect(() => {
+    if (addingItem) {
+      // Vérifier si l'item a été ajouté à la library
+      const normalizedId = addingItem.replace(/^(game-|movie-|music-|book-)/, '')
+      const isInLibrary = library.some((item: any) => item.id === normalizedId)
+      
+      if (isInLibrary) {
+        // Item ajouté avec succès, reset le state
+        setTimeout(() => {
+          setAddingItem(null)
+        }, 100)
+      }
+    }
+  }, [library, addingItem])
+
   // Get status options based on category - VERSION COMPACTE
   const getStatusOptions = (category: string) => {
     switch (category) {
@@ -107,14 +123,20 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }
 
-  // Check if item is in library - UTILISE UNIQUEMENT LA LIBRARY GLOBALE AVEC ID NORMALISÉ
+  // ✅ CORRECTION MAJEURE : Check if item is in library avec ID normalisé
   const getLibraryItem = (resultId: string) => {
-    // ✅ SÉCURITÉ : Vérifier que library existe avant de chercher
+    // Vérifier que library existe avant de chercher
     if (!library || !Array.isArray(library)) return undefined
     
-    // ✅ CORRECTION : Normaliser l'ID avant de chercher dans la library
-    const normalizedId = resultId.replace(/^(game-|movie-|music-|book-)/, '')
-    return library.find((libItem: any) => libItem.id === normalizedId)
+    // Normaliser l'ID de recherche (supprimer préfixes API)
+    const normalizedSearchId = resultId.replace(/^(game-|movie-|music-|book-)/, '')
+    
+    // Chercher dans la library avec l'ID normalisé
+    return library.find((libItem: any) => {
+      // Normaliser aussi l'ID de la library au cas où
+      const normalizedLibId = libItem.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
+      return normalizedLibId === normalizedSearchId
+    })
   }
 
   // Get status display label
@@ -349,7 +371,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }))
   }
 
-  // Handle status selection with feedback - SYNCHRONISATION GLOBALE CORRIGÉE
+  // ✅ CORRECTION : Handle status selection avec feedback amélioré
   const handleStatusSelect = async (result: SearchResult, status: string) => {
     setAddingItem(result.id)
     setFadeOutPopup(result.id)
@@ -357,12 +379,13 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     // Appeler la fonction parent pour ajouter à la library globale
     onAddToLibrary(result, status)
     
-    // Fermer le popup après animation
+    // Fermer le popup après animation plus courte
     setTimeout(() => {
       setShowStatusPopup(null)
       setFadeOutPopup(null)
-      setAddingItem(null) // ✅ CORRECTION : Reset adding state ici aussi
-    }, 600)
+    }, 400)
+    
+    // Note: addingItem sera reset automatiquement par l'useEffect qui surveille library
   }
 
   // Keyboard navigation
@@ -578,16 +601,16 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Action Button avec feedback visuel ROLLBACK */}
+                    {/* ✅ CORRECTION : Action Button avec feedback visuel amélioré */}
                     <div className="relative">
                       {isInLibrary && !isAdding ? (
-                        // Affichage du statut si dans la library GLOBALE
+                        // Affichage du statut si dans la library GLOBALE - synchronisé
                         <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
                           <Check size={14} />
                           <span>{getStatusDisplayLabel(libraryItem.status, result.category)}</span>
                         </div>
                       ) : isAdding ? (
-                        // Animation de chargement pendant l'ajout
+                        // Animation de chargement pendant l'ajout - durée réduite
                         <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
                           <Loader2 className="animate-spin" size={14} />
                           <span>Adding...</span>
@@ -605,7 +628,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                             Add
                           </button>
 
-                          {/* Status selection popup avec feedback */}
+                          {/* Status selection popup avec feedback amélioré */}
                           {showStatusPopup === result.id && (
                             <>
                               {/* Overlay pour fermer le popup */}
