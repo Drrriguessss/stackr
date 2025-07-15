@@ -107,13 +107,9 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }
 
-  // Check if item is in library - CORRIGÉ : Normalise l'ID avant recherche + sécurité
+  // Check if item is in library - UTILISE UNIQUEMENT LA LIBRARY GLOBALE AVEC ID NORMALISÉ
   const getLibraryItem = (resultId: string) => {
-    // Vérifier que library est défini et est un tableau
-    if (!library || !Array.isArray(library)) {
-      return undefined
-    }
-    // Normaliser l'ID comme dans handleAddToLibrary (supprimer préfixes API)
+    // ✅ CORRECTION : Normaliser l'ID avant de chercher dans la library
     const normalizedId = resultId.replace(/^(game-|movie-|music-|book-)/, '')
     return library.find((libItem: any) => libItem.id === normalizedId)
   }
