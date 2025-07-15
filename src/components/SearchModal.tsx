@@ -66,38 +66,38 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }, [isOpen])
 
-  // Get status options based on category - VERSION ÉLÉGANTE
+  // Get status options based on category - VERSION COMPACTE
   const getStatusOptions = (category: string) => {
     switch (category) {
       case 'games':
         return [
-          { value: 'want-to-play', label: 'Want to Play', description: 'Add to wishlist' },
-          { value: 'currently-playing', label: 'Currently Playing', description: 'Mark as in progress' },
-          { value: 'completed', label: 'Completed', description: 'Mark as finished' }
+          { value: 'want-to-play', label: 'Want to Play' },
+          { value: 'currently-playing', label: 'Playing' },
+          { value: 'completed', label: 'Completed' }
         ]
       case 'movies':
         return [
-          { value: 'want-to-play', label: 'Want to Watch', description: 'Add to watchlist' },
-          { value: 'currently-playing', label: 'Currently Watching', description: 'Mark as watching' },
-          { value: 'completed', label: 'Watched', description: 'Mark as watched' }
+          { value: 'want-to-play', label: 'Want to Watch' },
+          { value: 'currently-playing', label: 'Watching' },
+          { value: 'completed', label: 'Completed' }
         ]
       case 'music':
         return [
-          { value: 'want-to-play', label: 'Want to Listen', description: 'Add to playlist' },
-          { value: 'currently-playing', label: 'Currently Listening', description: 'Mark as listening' },
-          { value: 'completed', label: 'Listened', description: 'Mark as heard' }
+          { value: 'want-to-play', label: 'Want to Listen' },
+          { value: 'currently-playing', label: 'Listening' },
+          { value: 'completed', label: 'Completed' }
         ]
       case 'books':
         return [
-          { value: 'want-to-play', label: 'Want to Read', description: 'Add to reading list' },
-          { value: 'currently-playing', label: 'Currently Reading', description: 'Mark as reading' },
-          { value: 'completed', label: 'Read', description: 'Mark as finished' }
+          { value: 'want-to-play', label: 'Want to Read' },
+          { value: 'currently-playing', label: 'Reading' },
+          { value: 'completed', label: 'Completed' }
         ]
       default:
         return [
-          { value: 'want-to-play', label: 'Want to Add', description: 'Add to collection' },
-          { value: 'currently-playing', label: 'In Progress', description: 'Mark as active' },
-          { value: 'completed', label: 'Completed', description: 'Mark as finished' }
+          { value: 'want-to-play', label: 'Want to Play' },
+          { value: 'currently-playing', label: 'Playing' },
+          { value: 'completed', label: 'Completed' }
         ]
     }
   }
@@ -537,7 +537,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Status selection popup - VERSION ÉLÉGANTE SANS ICÔNES */}
+                    {/* Status selection popup - VERSION COMPACTE */}
                     <div className="relative">
                       <button
                         onClick={(e) => {
@@ -561,41 +561,28 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                             }}
                           />
                           
-                          {/* Popup content élégant */}
+                          {/* Popup content compact */}
                           <div 
-                            className="absolute right-0 top-full mt-2 bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-600/50 py-3 min-w-64 z-[99999] overflow-hidden"
+                            className="absolute right-0 top-full mt-2 bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-600/50 py-2 min-w-44 z-[99999] overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {/* Header du popup */}
-                            <div className="px-5 pb-3 border-b border-gray-700/50">
-                              <h3 className="text-sm font-semibold text-gray-200">Add to Library</h3>
-                              <p className="text-xs text-gray-400 mt-1">Choose your status</p>
-                            </div>
-                            
-                            {/* Options de statut élégantes */}
-                            <div className="py-2">
-                              {getStatusOptions(result.category).map((status, index) => (
-                                <button
-                                  key={status.value}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    onAddToLibrary(result, status.value)
-                                    setShowStatusPopup(null)
-                                    onClose()
-                                  }}
-                                  className="w-full text-left px-5 py-3 text-sm transition-all duration-200 hover:bg-gray-700/50 group border-l-2 border-transparent hover:border-blue-500"
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-medium text-gray-200 group-hover:text-white transition-colors">
-                                      {status.label}
-                                    </span>
-                                    <span className="text-xs text-gray-500 group-hover:text-gray-400 transition-colors mt-0.5">
-                                      {status.description}
-                                    </span>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
+                            {/* Options de statut compactes */}
+                            {getStatusOptions(result.category).map((option) => (
+                              <button
+                                key={option.value}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onAddToLibrary(result, option.value)
+                                  setShowStatusPopup(null)
+                                  onClose()
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-700/50 group border-l-2 border-transparent hover:border-blue-500"
+                              >
+                                <span className="font-medium text-gray-200 group-hover:text-white transition-colors">
+                                  {option.label}
+                                </span>
+                              </button>
+                            ))}
                           </div>
                         </>
                       )}
