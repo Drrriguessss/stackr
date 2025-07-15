@@ -17,20 +17,25 @@ export default function Home() {
   // User reviews state - now per game
   const [userReviews, setUserReviews] = useState<{[gameId: number]: any[]}>({})
 
+  // ✅ FONCTION CORRIGÉE - Normalisation des IDs pour éviter les doublons
   const handleAddToLibrary = (item: any, status: string) => {
+    // Normaliser l'ID (supprimer préfixes API si présents)
+    const normalizedId = item.id.replace(/^(game-|movie-|music-|book-)/, '')
+    
     const newItem = {
       ...item,
+      id: normalizedId, // ✅ ID unifié
       status,
       addedAt: new Date().toISOString(),
-      // Garder la catégorie de l'item si elle existe, sinon utiliser activeTab
       category: item.category || activeTab
     }
     
     setLibrary(prev => {
-      const exists = prev.find((libItem: any) => libItem.id === item.id)
+      // Rechercher avec l'ID normalisé pour éviter les doublons
+      const exists = prev.find((libItem: any) => libItem.id === normalizedId)
       if (exists) {
         return prev.map((libItem: any) => 
-          libItem.id === item.id 
+          libItem.id === normalizedId 
             ? { ...libItem, status, addedAt: new Date().toISOString() }
             : libItem
         )
@@ -57,7 +62,9 @@ export default function Home() {
 
   // Fonction pour ouvrir fiche produit
   const handleOpenGameDetail = (gameId: string) => {
-    setSelectedGameId(gameId)
+    // Normaliser l'ID pour la modal aussi
+    const normalizedGameId = gameId.replace(/^(game-|movie-|music-|book-)/, '')
+    setSelectedGameId(normalizedGameId)
   }
 
   // Fonction pour ouvrir la recherche
@@ -241,7 +248,7 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
-      {/* Modal de recherche - ✅ AJOUT DE LA PROP LIBRARY */}
+      {/* Modal de recherche */}
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
