@@ -19,17 +19,14 @@ interface ContentCardProps {
 
 export default function ContentCard({ item, category, onAddToLibrary, library, onOpenGameDetail }: ContentCardProps) {
   const [showActions, setShowActions] = useState(false)
-  const [addingItem, setAddingItem] = useState(false)
   
-  // ✅ CORRECTION : Vérifier avec ID normalisé pour sync bidirectionnelle
+  // Check if item is in library with normalized ID
   const getLibraryItem = () => {
     if (!library || !Array.isArray(library)) return undefined
     
-    // Normaliser l'ID de l'item (supprimer préfixes si présents)
     const normalizedItemId = item.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
     
     return library.find((libItem: any) => {
-      // Normaliser aussi l'ID de la library
       const normalizedLibId = libItem.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
       return normalizedLibId === normalizedItemId
     })
@@ -37,48 +34,6 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
 
   const libraryItem = getLibraryItem()
   const isInLibrary = !!libraryItem
-
-  // Get status options based on category
-  const getStatusOptions = (category: string) => {
-    switch (category) {
-      case 'games':
-        return [
-          { value: 'want-to-play', label: 'Want to Play' },
-          { value: 'currently-playing', label: 'Playing' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'movies':
-        return [
-          { value: 'want-to-play', label: 'Want to Watch' },
-          { value: 'currently-playing', label: 'Watching' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'music':
-        return [
-          { value: 'want-to-play', label: 'Want to Listen' },
-          { value: 'currently-playing', label: 'Listening' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'books':
-        return [
-          { value: 'want-to-play', label: 'Want to Read' },
-          { value: 'currently-playing', label: 'Reading' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      default:
-        return [
-          { value: 'want-to-play', label: 'Want to Play' },
-          { value: 'currently-playing', label: 'Playing' },
-          { value: 'completed', label: 'Completed' }
-        ]
-    }
-  }
-
-  const getStatusDisplayLabel = (status: string, category: string) => {
-    const options = getStatusOptions(category)
-    const option = options.find(opt => opt.value === status)
-    return option ? option.label : 'Added'
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -89,24 +44,14 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
     }
   }
 
-  // ✅ CORRECTION : Handle status selection avec feedback visuel
   const handleStatusSelect = (status: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    setAddingItem(true)
-    
-    // Appeler la fonction parent avec l'item complet
     onAddToLibrary(item, status)
-    
-    // Fermer le popup et reset l'état
-    setTimeout(() => {
-      setShowActions(false)
-      setAddingItem(false)
-    }, 600)
+    setShowActions(false)
   }
 
   const handleCardClick = () => {
     if (onOpenGameDetail) {
-      // Passer l'ID sans préfixe pour GameDetailModal
       const gameId = item.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
       onOpenGameDetail(gameId)
     }
@@ -118,7 +63,7 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
 
   return (
     <div className="group cursor-pointer">
-      {/* Image Container - Responsive selon le contexte */}
+      {/* Image Container */}
       <div 
         className="relative w-full h-40 bg-gray-900 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300"
         onClick={handleCardClick}
@@ -139,21 +84,13 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
           </div>
         </div>
 
-        {/* ✅ CORRECTION : Action Button avec feedback synchronisé */}
+        {/* Action Button */}
         <div className="absolute top-2 right-2">
-          {isInLibrary && !addingItem ? (
-            // Badge de statut si dans la library
-            <div className="flex items-center space-x-1 bg-green-600/20 border border-green-500/50 text-green-400 px-2 py-1 rounded-lg text-xs font-medium backdrop-blur-sm">
-              <Check size={12} />
-              <span className="hidden sm:inline">{getStatusDisplayLabel(libraryItem?.status, category)}</span>
-            </div>
-          ) : addingItem ? (
-            // Animation de chargement pendant l'ajout
-            <div className="w-7 h-7 bg-green-600 rounded-full flex items-center justify-center text-white shadow-lg">
-              <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+          {isInLibrary ? (
+            <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg">
+              ✓
             </div>
           ) : (
-            // Bouton Add avec popup
             <>
               <button
                 onClick={(e) => {
@@ -165,44 +102,29 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
                 <Plus size={12} />
               </button>
 
-              {/* ✅ CORRECTION : Status popup harmonisé avec SearchModal */}
               {showActions && (
-                <>
-                  {/* Overlay pour fermer le popup */}
-                  <div 
-                    className="fixed inset-0 z-[99998]"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setShowActions(false)
-                    }}
-                  />
-                  
-                  {/* Popup content */}
-                  <div 
-                    className="absolute top-full right-0 mt-2 bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-600/50 py-2 min-w-44 z-[99999] overflow-hidden"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {getStatusOptions(category).map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={(e) => handleStatusSelect(option.value, e)}
-                        className="w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-700/50 group border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between"
-                      >
-                        <span className="font-medium text-gray-200 group-hover:text-white transition-colors">
-                          {option.label}
-                        </span>
-                        <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-400" size={14} />
-                      </button>
-                    ))}
-                  </div>
-                </>
+                <div className="absolute top-full right-0 mt-1 bg-gray-900/95 backdrop-blur-sm rounded-lg border border-gray-700 overflow-hidden shadow-xl z-30 whitespace-nowrap">
+                  {[
+                    { status: 'want-to-play', label: 'Want to Play' },
+                    { status: 'currently-playing', label: 'Playing' },
+                    { status: 'completed', label: 'Completed' }
+                  ].map(({ status, label }) => (
+                    <button
+                      key={status}
+                      onClick={(e) => handleStatusSelect(status, e)}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-xs text-gray-300 hover:text-white hover:bg-gray-800/80 transition-colors"
+                    >
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
               )}
             </>
           )}
         </div>
       </div>
 
-      {/* Info sous l'image - Plus compact */}
+      {/* Info sous l'image */}
       <div className="mt-2">
         <h3 className="text-white font-semibold text-sm leading-tight group-hover:text-blue-300 transition-colors line-clamp-2" title={item.title}>
           {truncateTitle(item.title, 18)}
@@ -216,14 +138,26 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
         </div>
         
         {/* Status sous l'image si en bibliothèque */}
-        {isInLibrary && !addingItem && (
+        {isInLibrary && (
           <div className="flex items-center space-x-1 mt-1">
             <span className={`text-xs font-medium ${getStatusColor(libraryItem?.status)}`}>
-              {getStatusDisplayLabel(libraryItem?.status, category)}
+              {libraryItem?.status === 'want-to-play' ? 'Want to Play' : 
+               libraryItem?.status === 'currently-playing' ? 'Playing' : 'Completed'}
             </span>
           </div>
         )}
       </div>
+
+      {/* Click overlay to close actions */}
+      {showActions && (
+        <div 
+          className="fixed inset-0 z-10" 
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowActions(false)
+          }}
+        />
+      )}
     </div>
   )
 }
