@@ -74,12 +74,16 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }, [isOpen])
 
-  // ✅ CORRECTION : Reset addingItem quand library change
+  // ✅ CORRECTION : Reset addingItem quand library change - LOGIQUE FIXÉE
   useEffect(() => {
     if (addingItem && safeLibrary.length > 0) {
       // Vérifier si l'item a été ajouté à la library
       const normalizedId = addingItem.replace(/^(game-|movie-|music-|book-)/, '')
-      const isInLibrary = safeLibrary.some((item: any) => item.id === normalizedId)
+      const isInLibrary = safeLibrary.some((item: any) => {
+        // Normaliser l'ID de la library aussi
+        const libId = item.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
+        return libId === normalizedId
+      })
       
       if (isInLibrary) {
         // Item ajouté avec succès, reset le state
@@ -600,7 +604,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Action Button avec feedback visuel simplifié */}
+                    {/* Action Button avec feedback visuel */}
                     <div className="relative">
                       {isInLibrary && !isAdding ? (
                         <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
