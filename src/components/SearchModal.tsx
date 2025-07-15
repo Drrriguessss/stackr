@@ -20,7 +20,7 @@ interface SearchModalProps {
   onClose: () => void
   onAddToLibrary: (item: any, status: string) => void
   onOpenGameDetail?: (gameId: string) => void
-  library?: any[]  // Optionnel pour éviter les erreurs
+  library?: any[]
 }
 
 export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGameDetail, library = [] }: SearchModalProps) {
@@ -34,6 +34,9 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
   const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState<string | null>(null)
   const [fadeOutPopup, setFadeOutPopup] = useState<string | null>(null)
+  
+  // State local pour tracker les items ajoutés dans cette session
+  const [localLibrary, setLocalLibrary] = useState<{[key: string]: {status: string, category: string}}>({})
   
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -107,8 +110,14 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }
 
-  // Check if item is in library
-  const getLibraryItem = (resultId: string) => {
+  // Check if item is in library (local + global)
+  const getLibraryItem = (resultId: string, category: string) => {
+    // Vérifier d'abord dans le state local (ajouts de cette session)
+    if (localLibrary[resultId]) {
+      return { status: localLibrary[resultId].status }
+    }
+    
+    // Puis vérifier dans la library globale
     return library.find((libItem: any) => libItem.id === resultId)
   }
 
@@ -344,24 +353,30 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }))
   }
 
-  // Handle status selection with feedback
+  // Handle status selection with feedback - VERSION CORRIGÉE
   const handleStatusSelect = async (result: SearchResult, status: string) => {
     setAddingItem(result.id)
     setFadeOutPopup(result.id)
     
-    // Add to library
+    // Ajouter immédiatement dans le state local pour feedback instantané
+    setLocalLibrary(prev => ({
+      ...prev,
+      [result.id]: { status, category: result.category }
+    }))
+    
+    // Appeler la fonction parent pour ajouter à la vraie library
     onAddToLibrary(result, status)
     
-    // Close popup after a short delay with fade effect
+    // Fermer le popup après animation
     setTimeout(() => {
       setShowStatusPopup(null)
       setFadeOutPopup(null)
-    }, 800)
+    }, 600)
     
     // Reset adding state
     setTimeout(() => {
       setAddingItem(null)
-    }, 1000)
+    }, 800)
   }
 
   // Keyboard navigation
@@ -516,7 +531,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
               {results.map((result, index) => {
                 const categoryInfo = getCategoryInfo(result.category)
                 const isSelected = index === selectedIndex
-                const libraryItem = getLibraryItem(result.id)
+                const libraryItem = getLibraryItem(result.id, result.category)
                 const isInLibrary = !!libraryItem
                 const isAdding = addingItem === result.id
                 
@@ -577,9 +592,9 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Action Button avec feedback visuel */}
+                    {/* Action Button avec feedback visuel CORRIGÉ */}
                     <div className="relative">
-                      {isInLibrary ? (
+                      {isInLibrary && !isAdding ? (
                         // Affichage du statut si dans la library
                         <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
                           <Check size={14} />
