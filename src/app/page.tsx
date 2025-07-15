@@ -83,35 +83,62 @@ export default function Home() {
     }));
   };
 
-  // Generate unique Google reviews for each game
-  const generateGoogleReviews = (gameId: number) => {
+  // ✅ MODIFIÉ : Generate unique Steam reviews for each game - AMÉLIORÉ
+  const generateSteamReviews = (gameId: number) => {
+    // Base de reviews templates plus variées et réalistes
     const reviewTemplates = [
-      { rating: 5, text: "Amazing game! Hours of entertainment.", author: "John D." },
-      { rating: 4, text: "Great graphics and smooth gameplay.", author: "Sarah M." },
-      { rating: 5, text: "Best game I've played this year!", author: "Mike R." },
-      { rating: 3, text: "Good but could use more content.", author: "Lisa K." },
-      { rating: 4, text: "Solid experience overall.", author: "Tom B." },
-      { rating: 5, text: "Addictive and well-designed.", author: "Emma W." },
-      { rating: 4, text: "Fun gameplay with minor issues.", author: "David L." },
-      { rating: 5, text: "Exceeded my expectations!", author: "Anna S." },
-      { rating: 4, text: "Worth the money, great value.", author: "Chris P." },
-      { rating: 3, text: "Decent game, nothing special.", author: "Nina T." }
+      { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
+      { rating: 4, text: "Great storyline and graphics. Minor bugs but overall excellent experience.", author: "GameReviewer", helpful: 89 },
+      { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
+      { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
+      { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 },
+      { rating: 5, text: "Addictive and well-designed. Can't stop playing! Lost track of time multiple times.", author: "GameAddict", helpful: 201 },
+      { rating: 4, text: "Fun gameplay with minor issues. Recommended for fans of the genre.", author: "FairReviewer", helpful: 67 },
+      { rating: 5, text: "Exceeded my expectations! This is a masterpiece in every sense.", author: "CriticPro", helpful: 312 },
+      { rating: 4, text: "Worth the money, great value. Some performance issues but nothing game-breaking.", author: "TechGamer", helpful: 91 },
+      { rating: 3, text: "Decent game, nothing special. Average experience, might appeal to some.", author: "NeutralPlayer", helpful: 23 },
+      { rating: 5, text: "Outstanding graphics and sound design! Immersive experience from start to finish.", author: "AudioVisual", helpful: 145 },
+      { rating: 4, text: "Engaging story, well-crafted characters. Some pacing issues but overall great.", author: "StoryLover", helpful: 98 },
+      { rating: 5, text: "Revolutionary gameplay mechanics. This game is a real game changer!", author: "InnovateFan", helpful: 267 },
+      { rating: 2, text: "Disappointing. Had high expectations based on trailers but fell short.", author: "LetDown", helpful: 34 },
+      { rating: 4, text: "Great multiplayer experience with friends. Solo play is also enjoyable.", author: "MultiPlayer", helpful: 112 },
+      { rating: 5, text: "Best graphics I've ever seen in a game. Runs smoothly on high settings.", author: "VisualFan", helpful: 189 },
+      { rating: 3, text: "Okay game, but gets repetitive after a while. Could use more variety.", author: "Gets0ld", helpful: 56 },
+      { rating: 4, text: "Challenging and rewarding. Worth the grind if you're patient.", author: "Grinder", helpful: 87 },
+      { rating: 5, text: "Emotional rollercoaster. Amazing storytelling that kept me hooked.", author: "EmotionalG", helpful: 234 },
+      { rating: 4, text: "Good optimization, runs smooth on my setup. Minor UI issues but nothing major.", author: "TechCheck", helpful: 76 }
     ];
     
-    // Use gameId as seed for consistent but unique reviews per game
+    // Utiliser gameId comme seed pour des reviews cohérentes mais uniques par jeu
     const seed = gameId;
     const selectedReviews = [];
     
-    for (let i = 0; i < 10; i++) {
-      const index = (seed + i * 17) % reviewTemplates.length;
+    // Générer 8-12 reviews par jeu selon l'ID
+    const numReviews = 8 + (seed % 5);
+    
+    for (let i = 0; i < numReviews; i++) {
+      // Algorithme de sélection pseudo-aléatoire basé sur gameId
+      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length;
+      const template = reviewTemplates[index];
+      
+      // Varier légèrement les reviews selon le jeu
+      const gameSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25), // Varie de -25 à +25
+        daysAgo: (seed * i * 3) % 180 + 1, // 1-180 jours
+      };
+      
       selectedReviews.push({
-        ...reviewTemplates[index],
-        id: i + 1,
-        date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        ...template,
+        id: `steam_${gameId}_${i}`,
+        helpful: gameSpecificVariations.helpful,
+        date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Steam'
       });
     }
     
-    return selectedReviews;
+    // Trier par nombre de "helpful" votes décroissant
+    return selectedReviews.sort((a, b) => b.helpful - a.helpful);
   };
 
   // Configuration des sections par catégorie
@@ -161,6 +188,7 @@ export default function Home() {
 
   const sections = getSections()
 
+  // ✅ LE JSX COMMENCE ICI (la partie "HTML" du composant)
   return (
     <div className="min-h-screen bg-gray-950">
       <Header 
@@ -209,7 +237,7 @@ export default function Home() {
         onAddToLibrary={handleAddToLibrary}
         library={library}
         userReviews={selectedGameId ? userReviews[parseInt(selectedGameId)] || [] : []}
-        googleReviews={selectedGameId ? generateGoogleReviews(parseInt(selectedGameId)) : []}
+        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
         onReviewSubmit={handleReviewSubmit}
       />
 

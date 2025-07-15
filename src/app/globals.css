@@ -24,3 +24,101 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer utilities {
+  /* Masquer les barres de défilement sur desktop */
+  @media (min-width: 768px) {
+    ::-webkit-scrollbar {
+      display: none;
+      width: 0px;
+      background: transparent;
+    }
+    
+    * {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    
+    .horizontal-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-behavior: smooth;
+      scroll-snap-type: x mandatory;
+    }
+    
+    .horizontal-scroll::-webkit-scrollbar {
+      display: none;
+      height: 0px;
+    }
+  }
+
+  /* Scrollbars sur mobile */
+  @media (max-width: 767px) {
+    ::-webkit-scrollbar {
+      display: block;
+      width: 2px;
+      height: 2px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background-color: rgba(156, 163, 175, 0.3);
+      border-radius: 1px;
+    }
+    
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+    }
+  }
+}
+
+@layer components {
+  /* Cards et contenu */
+  .content-card {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .content-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Sections de contenu */
+  .content-section {
+    scroll-margin-top: 2rem;
+  }
+
+  /* Modals */
+  .modal-backdrop {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Reviews Steam */
+  .steam-review {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.8), rgba(17, 24, 39, 0.9));
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .steam-review:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+    transform: translateY(-1px);
+  }
+}
+
+@layer base {
+  /* Smooth scrolling global */
+  html {
+    scroll-behavior: smooth;
+  }
+}

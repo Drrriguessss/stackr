@@ -44,6 +44,27 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     if (isOpen && inputRef.current) {
       inputRef.current.focus()
     }
+  }, [isOpen])
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowStatusPopup(null)
+    if (showStatusPopup) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showStatusPopup])
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('')
+      setResults([])
+      setSelectedIndex(-1)
+      setError(null)
+      setShowStatusPopup(null)
+    }
+  }, [isOpen])
 
   // Get status options based on category
   const getStatusOptions = (category: string) => {
@@ -80,27 +101,6 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
         return baseOptions
     }
   }
-  }, [isOpen])
-
-  // Close popup when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => setShowStatusPopup(null)
-    if (showStatusPopup) {
-      document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
-    }
-  }, [showStatusPopup])
-
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setQuery('')
-      setResults([])
-      setSelectedIndex(-1)
-      setError(null)
-      setShowStatusPopup(null)
-    }
-  }, [isOpen])
 
   // Fetch with timeout utility
   const fetchWithTimeout = async (url: string, timeout = 8000): Promise<Response> => {
@@ -373,42 +373,6 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }
 
-  // Get status options based on category
-  const getStatusOptions = (category: string) => {
-    const baseOptions = [
-      { value: 'want-to-play', label: 'Want to Add', icon: '❤️' },
-    ]
-
-    switch (category) {
-      case 'games':
-        return [
-          ...baseOptions,
-          { value: 'currently-playing', label: 'Currently Playing', icon: '🎮' },
-          { value: 'completed', label: 'Played', icon: '✅' }
-        ]
-      case 'movies':
-        return [
-          ...baseOptions,
-          { value: 'currently-playing', label: 'Currently Watching', icon: '🎬' },
-          { value: 'completed', label: 'Watched', icon: '✅' }
-        ]
-      case 'music':
-        return [
-          ...baseOptions,
-          { value: 'currently-playing', label: 'Currently Listening', icon: '🎵' },
-          { value: 'completed', label: 'Listened', icon: '✅' }
-        ]
-      case 'books':
-        return [
-          ...baseOptions,
-          { value: 'currently-playing', label: 'Currently Reading', icon: '📚' },
-          { value: 'completed', label: 'Read', icon: '✅' }
-        ]
-      default:
-        return baseOptions
-    }
-  }
-
   const getCreator = (result: SearchResult) => {
     return result.author || result.artist || result.director || 'Unknown'
   }
@@ -573,7 +537,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Status selection popup */}
+                    {/* Status selection popup - VERSION CORRIGÉE */}
                     <div className="relative">
                       <button
                         onClick={(e) => {
@@ -587,23 +551,44 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
 
                       {/* Status selection popup */}
                       {showStatusPopup === result.id && (
-                        <div className="absolute right-0 bottom-full mb-2 bg-gray-800 rounded-lg shadow-xl border border-gray-600 py-2 min-w-40 z-10">
-                          {getStatusOptions(result.category).map((status) => (
-                            <button
-                              key={status.value}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onAddToLibrary(result, status.value)
-                                setShowStatusPopup(null)
-                                onClose()
-                              }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors flex items-center space-x-2"
-                            >
-                              <span>{status.icon}</span>
-                              <span>{status.label}</span>
-                            </button>
-                          ))}
-                        </div>
+                        <>
+                          {/* Overlay pour fermer le popup */}
+                          <div 
+                            className="fixed inset-0 z-[9998]"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowStatusPopup(null)
+                            }}
+                          />
+                          
+                          {/* Popup content */}
+                          <div 
+                            className="absolute right-0 bottom-full mb-2 bg-gray-800 rounded-lg shadow-2xl border border-gray-600 py-2 min-w-48 z-[9999] backdrop-blur-lg"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* Header du popup */}
+                            <div className="px-4 py-2 border-b border-gray-600">
+                              <span className="text-xs text-gray-300 font-semibold">Add to Shelf</span>
+                            </div>
+                            
+                            {/* Options de statut */}
+                            {getStatusOptions(result.category).map((status) => (
+                              <button
+                                key={status.value}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onAddToLibrary(result, status.value)
+                                  setShowStatusPopup(null)
+                                  onClose()
+                                }}
+                                className="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-gray-700 hover:text-white transition-colors flex items-center space-x-3 group"
+                              >
+                                <span className="text-lg group-hover:scale-110 transition-transform">{status.icon}</span>
+                                <span className="font-medium">{status.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
