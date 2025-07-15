@@ -241,12 +241,13 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
-      {/* Modal de recherche */}
+      {/* Modal de recherche - ✅ AJOUT DE LA PROP LIBRARY */}
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         onAddToLibrary={handleAddToLibrary}
         onOpenGameDetail={handleOpenGameDetail}
+        library={library}
       />
     </div>
   )
