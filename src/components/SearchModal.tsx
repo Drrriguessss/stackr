@@ -23,7 +23,7 @@ interface SearchModalProps {
   library: any[]
 }
 
-export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGameDetail, library }: SearchModalProps) {
+export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGameDetail, library = [] }: SearchModalProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -41,6 +41,9 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
   // API Keys
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
   const OMDB_API_KEY = '649f9a63'
+
+  // ✅ SÉCURITÉ : Assurer que library est toujours un array
+  const safeLibrary = Array.isArray(library) ? library : []
 
   // Focus input when modal opens
   useEffect(() => {
@@ -73,10 +76,10 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
 
   // ✅ CORRECTION : Reset addingItem quand library change
   useEffect(() => {
-    if (addingItem) {
+    if (addingItem && safeLibrary.length > 0) {
       // Vérifier si l'item a été ajouté à la library
       const normalizedId = addingItem.replace(/^(game-|movie-|music-|book-)/, '')
-      const isInLibrary = library.some((item: any) => item.id === normalizedId)
+      const isInLibrary = safeLibrary.some((item: any) => item.id === normalizedId)
       
       if (isInLibrary) {
         // Item ajouté avec succès, reset le state
@@ -85,9 +88,9 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
         }, 100)
       }
     }
-  }, [library, addingItem])
+  }, [safeLibrary, addingItem])
 
-  // Get status options based on category - VERSION COMPACTE
+  // Get status options based on category
   const getStatusOptions = (category: string) => {
     switch (category) {
       case 'games':
@@ -123,16 +126,14 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }
 
-  // ✅ CORRECTION MAJEURE : Check if item is in library avec ID normalisé
+  // ✅ CORRECTION MAJEURE : Check if item is in library avec sécurité
   const getLibraryItem = (resultId: string) => {
-    // Vérifier que library existe avant de chercher
-    if (!library || !Array.isArray(library)) return undefined
-    
     // Normaliser l'ID de recherche (supprimer préfixes API)
     const normalizedSearchId = resultId.replace(/^(game-|movie-|music-|book-)/, '')
     
-    // Chercher dans la library avec l'ID normalisé
-    return library.find((libItem: any) => {
+    // Chercher dans la library sécurisée
+    return safeLibrary.find((libItem: any) => {
+      if (!libItem || !libItem.id) return false
       // Normaliser aussi l'ID de la library au cas où
       const normalizedLibId = libItem.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
       return normalizedLibId === normalizedSearchId
@@ -371,7 +372,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }))
   }
 
-  // ✅ CORRECTION : Handle status selection avec feedback amélioré
+  // Handle status selection avec feedback
   const handleStatusSelect = async (result: SearchResult, status: string) => {
     setAddingItem(result.id)
     setFadeOutPopup(result.id)
@@ -379,13 +380,11 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     // Appeler la fonction parent pour ajouter à la library globale
     onAddToLibrary(result, status)
     
-    // Fermer le popup après animation plus courte
+    // Fermer le popup après animation
     setTimeout(() => {
       setShowStatusPopup(null)
       setFadeOutPopup(null)
     }, 400)
-    
-    // Note: addingItem sera reset automatiquement par l'useEffect qui surveille library
   }
 
   // Keyboard navigation
@@ -601,22 +600,19 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* ✅ CORRECTION : Action Button avec feedback visuel amélioré */}
+                    {/* Action Button avec feedback visuel simplifié */}
                     <div className="relative">
                       {isInLibrary && !isAdding ? (
-                        // Affichage du statut si dans la library GLOBALE - synchronisé
                         <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
                           <Check size={14} />
                           <span>{getStatusDisplayLabel(libraryItem.status, result.category)}</span>
                         </div>
                       ) : isAdding ? (
-                        // Animation de chargement pendant l'ajout - durée réduite
                         <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
                           <Loader2 className="animate-spin" size={14} />
                           <span>Adding...</span>
                         </div>
                       ) : (
-                        // Bouton Add normal
                         <>
                           <button
                             onClick={(e) => {
@@ -628,10 +624,8 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                             Add
                           </button>
 
-                          {/* Status selection popup avec feedback amélioré */}
                           {showStatusPopup === result.id && (
                             <>
-                              {/* Overlay pour fermer le popup */}
                               <div 
                                 className="fixed inset-0 z-[99998]"
                                 onClick={(e) => {
@@ -640,14 +634,10 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                                 }}
                               />
                               
-                              {/* Popup content avec animation de fade */}
                               <div 
-                                className={`absolute right-0 top-full mt-2 bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-600/50 py-2 min-w-44 z-[99999] overflow-hidden transition-all duration-300 ${
-                                  fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                                }`}
+                                className="absolute right-0 top-full mt-2 bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-600/50 py-2 min-w-44 z-[99999] overflow-hidden"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                {/* Options de statut avec marqueur visuel */}
                                 {getStatusOptions(result.category).map((option) => (
                                   <button
                                     key={option.value}
@@ -655,12 +645,9 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                                       e.stopPropagation()
                                       handleStatusSelect(result, option.value)
                                     }}
-                                    className="w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-700/50 group border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between"
+                                    className="w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-700/50 text-gray-200 hover:text-white"
                                   >
-                                    <span className="font-medium text-gray-200 group-hover:text-white transition-colors">
-                                      {option.label}
-                                    </span>
-                                    <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-400" size={14} />
+                                    {option.label}
                                   </button>
                                 ))}
                               </div>
