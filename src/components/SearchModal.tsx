@@ -74,22 +74,21 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }, [isOpen])
 
-  // ✅ CORRECTION : Reset addingItem quand library change - LOGIQUE FIXÉE
+  // ✅ CORRECTION FINALE : Reset addingItem avec logic corrigée
   useEffect(() => {
     if (addingItem && safeLibrary.length > 0) {
-      // Vérifier si l'item a été ajouté à la library
-      const normalizedId = addingItem.replace(/^(game-|movie-|music-|book-)/, '')
+      // NORMALISER LES DEUX IDs POUR COMPARAISON
+      const normalizedAddingId = addingItem.replace(/^(game-|movie-|music-|book-)/, '')
+      
       const isInLibrary = safeLibrary.some((item: any) => {
-        // Normaliser l'ID de la library aussi
-        const libId = item.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
-        return libId === normalizedId
+        if (!item || !item.id) return false
+        const normalizedLibId = item.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
+        return normalizedLibId === normalizedAddingId
       })
       
       if (isInLibrary) {
         // Item ajouté avec succès, reset le state
-        setTimeout(() => {
-          setAddingItem(null)
-        }, 100)
+        setAddingItem(null)
       }
     }
   }, [safeLibrary, addingItem])
@@ -130,15 +129,12 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }
 
-  // ✅ CORRECTION MAJEURE : Check if item is in library avec sécurité
+  // Check if item is in library avec sécurité
   const getLibraryItem = (resultId: string) => {
-    // Normaliser l'ID de recherche (supprimer préfixes API)
     const normalizedSearchId = resultId.replace(/^(game-|movie-|music-|book-)/, '')
     
-    // Chercher dans la library sécurisée
     return safeLibrary.find((libItem: any) => {
       if (!libItem || !libItem.id) return false
-      // Normaliser aussi l'ID de la library au cas où
       const normalizedLibId = libItem.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
       return normalizedLibId === normalizedSearchId
     })
@@ -376,19 +372,19 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }))
   }
 
-  // Handle status selection avec feedback
-  const handleStatusSelect = async (result: SearchResult, status: string) => {
+  // ✅ CORRECTION : Handle status selection sans setTimeout inutile
+  const handleStatusSelect = (result: SearchResult, status: string) => {
     setAddingItem(result.id)
     setFadeOutPopup(result.id)
     
     // Appeler la fonction parent pour ajouter à la library globale
     onAddToLibrary(result, status)
     
-    // Fermer le popup après animation
+    // Fermer le popup immédiatement
     setTimeout(() => {
       setShowStatusPopup(null)
       setFadeOutPopup(null)
-    }, 400)
+    }, 300)
   }
 
   // Keyboard navigation
@@ -604,7 +600,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Action Button avec feedback visuel */}
+                    {/* Action Button avec feedback visuel CORRIGÉ */}
                     <div className="relative">
                       {isInLibrary && !isAdding ? (
                         <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
