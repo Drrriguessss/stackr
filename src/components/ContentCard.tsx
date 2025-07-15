@@ -1,10 +1,12 @@
 'use client'
 import { useState } from 'react'
 
-export default function ContentCard({ item, category, onAddToLibrary, library, onOpenGameDetail }: any) {
+export default function ContentCard({ item, category, onAddToLibrary, library = [], onOpenGameDetail }: any) {
   const [showActions, setShowActions] = useState(false)
   
-  const isInLibrary = library.some((libItem: any) => libItem.id === item.id)
+  // ✅ SÉCURITÉ : Vérifier que library existe et est un array
+  const safeLibrary = Array.isArray(library) ? library : []
+  const isInLibrary = safeLibrary.some((libItem: any) => libItem.id === item.id)
 
   const handleAdd = (status: string) => {
     onAddToLibrary(item, status)
@@ -24,16 +26,19 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
           ) : (
             <div className="relative">
               <button
-                onClick={() => setShowActions(!showActions)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowActions(!showActions)
+                }}
                 className="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center"
               >
                 +
               </button>
               {showActions && (
                 <div className="absolute top-8 right-0 bg-gray-800 rounded p-2 z-10">
-                  <button onClick={() => handleAdd('want-to-play')} className="block text-white text-xs p-1">Want to Play</button>
-                  <button onClick={() => handleAdd('currently-playing')} className="block text-white text-xs p-1">Playing</button>
-                  <button onClick={() => handleAdd('completed')} className="block text-white text-xs p-1">Completed</button>
+                  <button onClick={() => handleAdd('want-to-play')} className="block text-white text-xs p-1 hover:bg-gray-700 w-full text-left">Want to Play</button>
+                  <button onClick={() => handleAdd('currently-playing')} className="block text-white text-xs p-1 hover:bg-gray-700 w-full text-left">Playing</button>
+                  <button onClick={() => handleAdd('completed')} className="block text-white text-xs p-1 hover:bg-gray-700 w-full text-left">Completed</button>
                 </div>
               )}
             </div>
@@ -48,6 +53,13 @@ export default function ContentCard({ item, category, onAddToLibrary, library, o
           <span>★ {item.rating}</span>
         </div>
       </div>
+
+      {showActions && (
+        <div 
+          className="fixed inset-0 z-5" 
+          onClick={() => setShowActions(false)}
+        />
+      )}
     </div>
   )
 }
