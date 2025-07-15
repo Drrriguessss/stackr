@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { X, Search, Star, Loader2, Wifi, WifiOff } from 'lucide-react'
+import { X, Search, Star, Loader2, Wifi, WifiOff, Check } from 'lucide-react'
 
 interface SearchResult {
   id: string
@@ -20,9 +20,10 @@ interface SearchModalProps {
   onClose: () => void
   onAddToLibrary: (item: any, status: string) => void
   onOpenGameDetail?: (gameId: string) => void
+  library?: any[]  // Optionnel pour éviter les erreurs
 }
 
-export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGameDetail }: SearchModalProps) {
+export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGameDetail, library = [] }: SearchModalProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -31,6 +32,8 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
   const [error, setError] = useState<string | null>(null)
   const [searchCache] = useState<Map<string, SearchResult[]>>(new Map())
   const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
+  const [addingItem, setAddingItem] = useState<string | null>(null)
+  const [fadeOutPopup, setFadeOutPopup] = useState<string | null>(null)
   
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -63,6 +66,8 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
       setSelectedIndex(-1)
       setError(null)
       setShowStatusPopup(null)
+      setAddingItem(null)
+      setFadeOutPopup(null)
     }
   }, [isOpen])
 
@@ -100,6 +105,18 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
           { value: 'completed', label: 'Completed' }
         ]
     }
+  }
+
+  // Check if item is in library
+  const getLibraryItem = (resultId: string) => {
+    return library.find((libItem: any) => libItem.id === resultId)
+  }
+
+  // Get status display label
+  const getStatusDisplayLabel = (status: string, category: string) => {
+    const options = getStatusOptions(category)
+    const option = options.find(opt => opt.value === status)
+    return option ? option.label : 'Added'
   }
 
   // Fetch with timeout utility
@@ -327,6 +344,26 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }))
   }
 
+  // Handle status selection with feedback
+  const handleStatusSelect = async (result: SearchResult, status: string) => {
+    setAddingItem(result.id)
+    setFadeOutPopup(result.id)
+    
+    // Add to library
+    onAddToLibrary(result, status)
+    
+    // Close popup after a short delay with fade effect
+    setTimeout(() => {
+      setShowStatusPopup(null)
+      setFadeOutPopup(null)
+    }, 800)
+    
+    // Reset adding state
+    setTimeout(() => {
+      setAddingItem(null)
+    }, 1000)
+  }
+
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!results.length) return
@@ -479,6 +516,9 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
               {results.map((result, index) => {
                 const categoryInfo = getCategoryInfo(result.category)
                 const isSelected = index === selectedIndex
+                const libraryItem = getLibraryItem(result.id)
+                const isInLibrary = !!libraryItem
+                const isAdding = addingItem === result.id
                 
                 return (
                   <div
@@ -537,53 +577,71 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Status selection popup - VERSION COMPACTE */}
+                    {/* Action Button avec feedback visuel */}
                     <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setShowStatusPopup(result.id)
-                        }}
-                        className="bg-blue-600/90 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0 shadow-lg hover:shadow-xl"
-                      >
-                        Add
-                      </button>
-
-                      {/* Status selection popup */}
-                      {showStatusPopup === result.id && (
+                      {isInLibrary ? (
+                        // Affichage du statut si dans la library
+                        <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
+                          <Check size={14} />
+                          <span>{getStatusDisplayLabel(libraryItem.status, result.category)}</span>
+                        </div>
+                      ) : isAdding ? (
+                        // Animation de chargement pendant l'ajout
+                        <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
+                          <Loader2 className="animate-spin" size={14} />
+                          <span>Adding...</span>
+                        </div>
+                      ) : (
+                        // Bouton Add normal
                         <>
-                          {/* Overlay pour fermer le popup */}
-                          <div 
-                            className="fixed inset-0 z-[99998]"
+                          <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              setShowStatusPopup(null)
+                              setShowStatusPopup(result.id)
                             }}
-                          />
-                          
-                          {/* Popup content compact */}
-                          <div 
-                            className="absolute right-0 top-full mt-2 bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-600/50 py-2 min-w-44 z-[99999] overflow-hidden"
-                            onClick={(e) => e.stopPropagation()}
+                            className="bg-blue-600/90 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0 shadow-lg hover:shadow-xl"
                           >
-                            {/* Options de statut compactes */}
-                            {getStatusOptions(result.category).map((option) => (
-                              <button
-                                key={option.value}
+                            Add
+                          </button>
+
+                          {/* Status selection popup avec feedback */}
+                          {showStatusPopup === result.id && (
+                            <>
+                              {/* Overlay pour fermer le popup */}
+                              <div 
+                                className="fixed inset-0 z-[99998]"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  onAddToLibrary(result, option.value)
                                   setShowStatusPopup(null)
-                                  onClose()
                                 }}
-                                className="w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-700/50 group border-l-2 border-transparent hover:border-blue-500"
+                              />
+                              
+                              {/* Popup content avec animation de fade */}
+                              <div 
+                                className={`absolute right-0 top-full mt-2 bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-600/50 py-2 min-w-44 z-[99999] overflow-hidden transition-all duration-300 ${
+                                  fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                                }`}
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                <span className="font-medium text-gray-200 group-hover:text-white transition-colors">
-                                  {option.label}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
+                                {/* Options de statut avec marqueur visuel */}
+                                {getStatusOptions(result.category).map((option) => (
+                                  <button
+                                    key={option.value}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleStatusSelect(result, option.value)
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-700/50 group border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between"
+                                  >
+                                    <span className="font-medium text-gray-200 group-hover:text-white transition-colors">
+                                      {option.label}
+                                    </span>
+                                    <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-400" size={14} />
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
                         </>
                       )}
                     </div>
