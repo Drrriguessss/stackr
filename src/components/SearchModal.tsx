@@ -537,7 +537,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Status selection popup - VERSION CORRIGÉE */}
+                    {/* Status selection popup - VERSION CORRIGÉE Z-INDEX */}
                     <div className="relative">
                       <button
                         onClick={(e) => {
@@ -554,16 +554,16 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                         <>
                           {/* Overlay pour fermer le popup */}
                           <div 
-                            className="fixed inset-0 z-[9998]"
+                            className="fixed inset-0 z-[99998]"
                             onClick={(e) => {
                               e.stopPropagation()
                               setShowStatusPopup(null)
                             }}
                           />
                           
-                          {/* Popup content */}
+                          {/* Popup content avec z-index plus élevé et positionnement amélioré */}
                           <div 
-                            className="absolute right-0 bottom-full mb-2 bg-gray-800 rounded-lg shadow-2xl border border-gray-600 py-2 min-w-48 z-[9999] backdrop-blur-lg"
+                            className="absolute right-0 top-full mt-2 bg-gray-800 rounded-lg shadow-2xl border border-gray-600 py-2 min-w-48 z-[99999] backdrop-blur-lg"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {/* Header du popup */}
