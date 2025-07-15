@@ -20,10 +20,10 @@ interface SearchModalProps {
   onClose: () => void
   onAddToLibrary: (item: any, status: string) => void
   onOpenGameDetail?: (gameId: string) => void
-  library?: any[]
+  library: any[]
 }
 
-export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGameDetail, library = [] }: SearchModalProps) {
+export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGameDetail, library }: SearchModalProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -34,9 +34,6 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
   const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState<string | null>(null)
   const [fadeOutPopup, setFadeOutPopup] = useState<string | null>(null)
-  
-  // State local pour tracker les items ajoutés dans cette session
-  const [localLibrary, setLocalLibrary] = useState<{[key: string]: {status: string, category: string}}>({})
   
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -110,15 +107,11 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }
 
-  // Check if item is in library (local + global)
-  const getLibraryItem = (resultId: string, category: string) => {
-    // Vérifier d'abord dans le state local (ajouts de cette session)
-    if (localLibrary[resultId]) {
-      return { status: localLibrary[resultId].status }
-    }
-    
-    // Puis vérifier dans la library globale
-    return library.find((libItem: any) => libItem.id === resultId)
+  // Check if item is in library - CORRIGÉ : Normalise l'ID avant recherche
+  const getLibraryItem = (resultId: string) => {
+    // Normaliser l'ID comme dans handleAddToLibrary (supprimer préfixes API)
+    const normalizedId = resultId.replace(/^(game-|movie-|music-|book-)/, '')
+    return library.find((libItem: any) => libItem.id === normalizedId)
   }
 
   // Get status display label
@@ -353,18 +346,12 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }))
   }
 
-  // Handle status selection with feedback - VERSION CORRIGÉE
+  // Handle status selection with feedback - SYNCHRONISATION GLOBALE
   const handleStatusSelect = async (result: SearchResult, status: string) => {
     setAddingItem(result.id)
     setFadeOutPopup(result.id)
     
-    // Ajouter immédiatement dans le state local pour feedback instantané
-    setLocalLibrary(prev => ({
-      ...prev,
-      [result.id]: { status, category: result.category }
-    }))
-    
-    // Appeler la fonction parent pour ajouter à la vraie library
+    // Appeler la fonction parent pour ajouter à la library globale
     onAddToLibrary(result, status)
     
     // Fermer le popup après animation
@@ -531,7 +518,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
               {results.map((result, index) => {
                 const categoryInfo = getCategoryInfo(result.category)
                 const isSelected = index === selectedIndex
-                const libraryItem = getLibraryItem(result.id, result.category)
+                const libraryItem = getLibraryItem(result.id)
                 const isInLibrary = !!libraryItem
                 const isAdding = addingItem === result.id
                 
@@ -592,10 +579,10 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Action Button avec feedback visuel CORRIGÉ */}
+                    {/* Action Button avec feedback visuel SYNCHRONISÉ */}
                     <div className="relative">
                       {isInLibrary && !isAdding ? (
-                        // Affichage du statut si dans la library
+                        // Affichage du statut si dans la library GLOBALE
                         <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
                           <Check size={14} />
                           <span>{getStatusDisplayLabel(libraryItem.status, result.category)}</span>
