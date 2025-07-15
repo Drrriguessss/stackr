@@ -349,7 +349,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }))
   }
 
-  // Handle status selection with feedback - SYNCHRONISATION GLOBALE
+  // Handle status selection with feedback - SYNCHRONISATION GLOBALE CORRIGÉE
   const handleStatusSelect = async (result: SearchResult, status: string) => {
     setAddingItem(result.id)
     setFadeOutPopup(result.id)
@@ -361,12 +361,8 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     setTimeout(() => {
       setShowStatusPopup(null)
       setFadeOutPopup(null)
+      setAddingItem(null) // ✅ CORRECTION : Reset adding state ici aussi
     }, 600)
-    
-    // Reset adding state
-    setTimeout(() => {
-      setAddingItem(null)
-    }, 800)
   }
 
   // Keyboard navigation
