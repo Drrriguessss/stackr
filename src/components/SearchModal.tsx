@@ -578,10 +578,10 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Action Button avec feedback visuel CORRIGÉ */}
+                    {/* Action Button avec feedback visuel ROLLBACK */}
                     <div className="relative">
-                      {isInLibrary ? (
-                        // Affichage du statut si dans la library GLOBALE - TOUJOURS
+                      {isInLibrary && !isAdding ? (
+                        // Affichage du statut si dans la library GLOBALE
                         <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
                           <Check size={14} />
                           <span>{getStatusDisplayLabel(libraryItem.status, result.category)}</span>
