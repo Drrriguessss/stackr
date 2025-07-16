@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { X, Star, ExternalLink, Calendar, Music, Award, Users, Globe, Play, HeadphonesIcon } from 'lucide-react'
+import { X, Star, ExternalLink, Calendar, Music, Award, Users, Globe, Play, HeadphonesIcon, Clock } from 'lucide-react'
 import { musicService, formatTrackCount, formatPrice, formatDuration } from '@/services/musicService'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
@@ -285,12 +285,386 @@ export default function MusicDetailModal({
               </div>
             </div>
 
-            {/* Rest of the modal content would continue here... */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="text-center text-gray-500">
-                <Music size={48} className="mx-auto mb-4 text-gray-300" />
-                <p>Album detail content would go here...</p>
-                <p className="text-sm mt-2">Similar to BookDetailModal structure</p>
+            {/* Content */}
+            <div ref={scrollableRef} className="flex-1 overflow-y-auto">
+              {/* Action buttons */}
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex space-x-3 mb-4">
+                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusSelect(status)}
+                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all text-white shadow-sm ${
+                        selectedStatus === status
+                          ? getStatusColor(status)
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      <div className="text-sm font-semibold">{getStatusLabel(status)}</div>
+                      <div className="text-xs opacity-80">
+                        {albumStats[status].toLocaleString()} listeners
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                
+                {selectedStatus && (
+                  <div className="text-sm text-gray-600 bg-green-50 border border-green-200 rounded-lg p-3">
+                    ✅ Added to your library on {new Date().toLocaleDateString()}
+                  </div>
+                )}
+
+                {/* User rating */}
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h4 className="text-gray-900 font-semibold mb-3">Rate this album</h4>
+                  <div className="flex items-center space-x-2 mb-3">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        onClick={() => {
+                          setUserRating(rating)
+                          setShowReviewBox(true)
+                        }}
+                        onMouseEnter={() => setHoverRating(rating)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className="p-1 hover:scale-110 transition-transform"
+                      >
+                        <Star
+                          size={24}
+                          className={`transition-colors ${
+                            (hoverRating || userRating) >= rating
+                              ? 'text-yellow-500 fill-current'
+                              : 'text-gray-300 hover:text-yellow-400'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    {userRating > 0 && (
+                      <span className="text-gray-900 ml-2 font-medium">{userRating}/5</span>
+                    )}
+                  </div>
+                  
+                  {showReviewBox && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <label className="text-sm text-gray-700 mb-2 block font-medium">Share your thoughts</label>
+                      <textarea
+                        value={userReview}
+                        onChange={(e) => setUserReview(e.target.value)}
+                        placeholder="What did you think about this album?"
+                        className="w-full h-20 px-3 py-2 bg-white text-gray-900 text-sm rounded-lg resize-none border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <div className="flex space-x-2 mt-3">
+                        <button 
+                          onClick={handleSubmitReview}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Submit Review
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setShowReviewBox(false)
+                            setUserReview('')
+                          }}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reviews Section */}
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
+                <div className="flex space-x-4 overflow-x-auto pb-2">
+                  {/* User reviews first */}
+                  {userReviews.map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-blue-50 rounded-xl p-4 border border-blue-100">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 text-sm">👤</span>
+                        </div>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-blue-600 bg-blue-200 px-2 py-1 rounded-full font-medium">You</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {review.review || review.text}
+                      </p>
+                    </div>
+                  ))}
+                  
+                  {/* Spotify reviews */}
+                  {spotifyReviews.slice(0, 5).map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-gray-600 text-sm">🎵</span>
+                        </div>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded-full font-medium">Music Community</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {review.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+                <div className="flex px-6">
+                  {(['info', 'social', 'more'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 py-4 px-4 font-medium transition-colors relative ${
+                        activeTab === tab
+                          ? 'text-gray-900'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      {activeTab === tab && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tab content */}
+              <div className="p-6">
+                {activeTab === 'info' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Artist</h5>
+                        <p className="text-gray-600 text-sm">
+                          {albumDetail.artistName}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Release Date</h5>
+                        <p className="text-gray-600 text-sm">
+                          {albumDetail.releaseDate ? new Date(albumDetail.releaseDate).toLocaleDateString() : 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Genre</h5>
+                        <p className="text-gray-600 text-sm">
+                          {albumDetail.primaryGenreName || 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Tracks</h5>
+                        <p className="text-gray-600 text-sm">
+                          {albumDetail.trackCount ? formatTrackCount(albumDetail.trackCount) : 'Unknown'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {albumDetail.copyright && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-3">Copyright</h4>
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                          <p className="text-gray-700 text-sm">
+                            {albumDetail.copyright}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'social' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Listening Stats</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-orange-600">{albumStats['want-to-play'].toLocaleString()}</div>
+                          <div className="text-sm text-orange-700 font-medium">Want to Listen</div>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-green-600">{albumStats['currently-playing'].toLocaleString()}</div>
+                          <div className="text-sm text-green-700 font-medium">Listening</div>
+                        </div>
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-blue-600">{albumStats['completed'].toLocaleString()}</div>
+                          <div className="text-sm text-blue-700 font-medium">Listened</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Album Type</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                          <Music size={20} className="text-purple-600" />
+                          <span className="font-medium text-purple-900">
+                            {albumDetail.collectionType || 'Album'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'more' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">External Links</h4>
+                      <div className="space-y-3">
+                        {albumDetail.collectionViewUrl && (
+                          <a 
+                            href={albumDetail.collectionViewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            View on iTunes
+                          </a>
+                        )}
+
+                        {albumDetail.artistViewUrl && (
+                          <a
+                            href={albumDetail.artistViewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <Users size={16} />
+                            <span>Artist Page</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+
+                        <a 
+                          href={`https://open.spotify.com/search/${encodeURIComponent(albumDetail.artistName + ' ' + albumDetail.collectionName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                        >
+                          <Play className="w-4 h-4" />
+                          Search on Spotify
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* More from Artist */}
+                    {artistAlbums.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-4">
+                          More from {albumDetail.artistName}
+                        </h4>
+                        <div className="flex space-x-3 overflow-x-auto pb-2">
+                          {artistAlbums.map((album) => (
+                            <div key={album.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+                              {album.image && (
+                                <img
+                                  src={album.image}
+                                  alt={album.title}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={album.title}>
+                                {album.title}
+                              </h5>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
+                                <span className="text-xs text-gray-600">{album.rating?.toFixed(1) || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Similar Albums */}
+                    {similarAlbums.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-4">Similar Albums</h4>
+                        <div className="flex space-x-3 overflow-x-auto pb-2">
+                          {similarAlbums.map((album) => (
+                            <div key={album.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+                              {album.image && (
+                                <img
+                                  src={album.image}
+                                  alt={album.title}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={album.title}>
+                                {album.title}
+                              </h5>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
+                                <span className="text-xs text-gray-600">{album.rating?.toFixed(1) || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Additional Info */}
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Additional Information</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">Country:</span>
+                            <span className="text-gray-600">
+                              {albumDetail.country || 'Unknown'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">Duration:</span>
+                            <span className="text-gray-600">
+                              {albumDetail.trackCount ? formatDuration(albumDetail.trackCount) : 'Unknown'}
+                            </span>
+                          </div>
+                          {albumDetail.collectionPrice && (
+                            <div className="flex justify-between col-span-2">
+                              <span className="font-medium text-gray-900">Price:</span>
+                              <span className="text-gray-600 text-right">
+                                {formatPrice(albumDetail.collectionPrice, albumDetail.currency || 'USD')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </>

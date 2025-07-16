@@ -65,10 +65,12 @@ src/components/GameDetailModal.tsx
 src/components/Header.tsx
 src/components/LibrarySection.tsx
 src/components/MovieDetailModal.tsx
+src/components/MusicDetailModal.tsx
 src/components/RoadmapPage.tsx
 src/components/SearchModal.tsx
 src/data/sampleContent.ts
 src/services/googleBooksService.ts
+src/services/musicService.ts
 src/services/omdbService.ts
 src/tailwind.config.js
 src/types/index.ts
@@ -78,6 +80,132 @@ tsconfig.json
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path=".repomixignore">
+node_modules/
+.next/
+.env*
+*.log
+.git/
+.vercel/
+</file>
+
+<file path="eslint.config.mjs">
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
+
+const eslintConfig = [
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+];
+
+export default eslintConfig;
+</file>
+
+<file path="next.config.js">
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  eslint: {
+    // Désactiver ESLint pendant le build
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Ignorer les erreurs TypeScript pendant le build
+    ignoreBuildErrors: true,
+  },
+}
+
+module.exports = nextConfig
+</file>
+
+<file path="next.config.ts">
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+</file>
+
+<file path="postcss.config.mjs">
+const config = {
+  plugins: ["@tailwindcss/postcss"],
+};
+
+export default config;
+</file>
+
+<file path="public/file.svg">
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+</file>
+
+<file path="public/globe.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+</file>
+
+<file path="public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="public/vercel.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+</file>
+
+<file path="public/window.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
 
 <file path="src/components/BookDetailModal.tsx">
 'use client'
@@ -854,474 +982,6 @@ export default function BookDetailModal({
 }
 </file>
 
-<file path="src/services/googleBooksService.ts">
-// Service pour l'API Google Books
-export interface GoogleBook {
-  id: string
-  volumeInfo: {
-    title: string
-    authors?: string[]
-    publishedDate?: string
-    description?: string
-    industryIdentifiers?: { type: string, identifier: string }[]
-    pageCount?: number
-    categories?: string[]
-    averageRating?: number
-    ratingsCount?: number
-    maturityRating?: string
-    imageLinks?: {
-      smallThumbnail?: string
-      thumbnail?: string
-      small?: string
-      medium?: string
-      large?: string
-      extraLarge?: string
-    }
-    language?: string
-    previewLink?: string
-    infoLink?: string
-    canonicalVolumeLink?: string
-    publisher?: string
-    subtitle?: string
-  }
-  saleInfo?: {
-    country?: string
-    saleability?: string
-    isEbook?: boolean
-    listPrice?: { amount: number, currencyCode: string }
-    retailPrice?: { amount: number, currencyCode: string }
-    buyLink?: string
-  }
-  accessInfo?: {
-    country?: string
-    viewability?: string
-    embeddable?: boolean
-    publicDomain?: boolean
-    textToSpeechPermission?: string
-    epub?: { isAvailable: boolean, acsTokenLink?: string }
-    pdf?: { isAvailable: boolean, acsTokenLink?: string }
-    webReaderLink?: string
-    accessViewStatus?: string
-    quoteSharingAllowed?: boolean
-  }
-}
-
-export interface GoogleBooksSearchResponse {
-  kind: string
-  totalItems: number
-  items?: GoogleBook[]
-}
-
-class GoogleBooksService {
-  private readonly baseURL = 'https://www.googleapis.com/books/v1/volumes'
-  
-  // Rechercher des livres
-  async searchBooks(query: string, maxResults: number = 20): Promise<GoogleBook[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}?q=${encodeURIComponent(query)}&maxResults=${maxResults}&printType=books&orderBy=relevance`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`Google Books API Error: ${response.status}`)
-      }
-      
-      const data: GoogleBooksSearchResponse = await response.json()
-      return data.items || []
-    } catch (error) {
-      console.error('Error searching books:', error)
-      throw error
-    }
-  }
-
-  // Obtenir les détails d'un livre
-  async getBookDetails(bookId: string): Promise<GoogleBook | null> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/${bookId}`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`Google Books API Error: ${response.status}`)
-      }
-      
-      const book: GoogleBook = await response.json()
-      return book
-    } catch (error) {
-      console.error('Error fetching book details:', error)
-      return null
-    }
-  }
-
-  // Obtenir des livres populaires par catégorie
-  async getBooksByCategory(category: string, maxResults: number = 20): Promise<GoogleBook[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}?q=subject:${encodeURIComponent(category)}&maxResults=${maxResults}&printType=books&orderBy=relevance`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`Google Books API Error: ${response.status}`)
-      }
-      
-      const data: GoogleBooksSearchResponse = await response.json()
-      return data.items || []
-    } catch (error) {
-      console.error('Error fetching books by category:', error)
-      return []
-    }
-  }
-
-  // Obtenir des bestsellers (simulation avec des livres populaires)
-  async getBestsellerBooks(): Promise<GoogleBook[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}?q=bestseller&maxResults=20&printType=books&orderBy=relevance`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`Google Books API Error: ${response.status}`)
-      }
-      
-      const data: GoogleBooksSearchResponse = await response.json()
-      return data.items || []
-    } catch (error) {
-      console.error('Error fetching bestseller books:', error)
-      return []
-    }
-  }
-
-  // Obtenir des livres de fiction populaires
-  async getFictionBooks(): Promise<GoogleBook[]> {
-    return this.getBooksByCategory('fiction')
-  }
-
-  // Obtenir des livres de non-fiction populaires
-  async getNonFictionBooks(): Promise<GoogleBook[]> {
-    return this.getBooksByCategory('biography')
-  }
-
-  // Obtenir des nouveautés
-  async getNewReleases(): Promise<GoogleBook[]> {
-    try {
-      const currentYear = new Date().getFullYear()
-      const response = await fetch(
-        `${this.baseURL}?q=publishedDate:${currentYear}&maxResults=20&printType=books&orderBy=newest`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`Google Books API Error: ${response.status}`)
-      }
-      
-      const data: GoogleBooksSearchResponse = await response.json()
-      return data.items || []
-    } catch (error) {
-      console.error('Error fetching new releases:', error)
-      return []
-    }
-  }
-
-  // Obtenir la meilleure image disponible
-  getBestImageURL(book: GoogleBook, preferredSize: 'small' | 'medium' | 'large' = 'medium'): string | null {
-    const imageLinks = book.volumeInfo.imageLinks
-    if (!imageLinks) return null
-
-    // Ordre de préférence pour chaque taille
-    const sizePreferences = {
-      small: ['thumbnail', 'smallThumbnail', 'small', 'medium'],
-      medium: ['small', 'medium', 'thumbnail', 'large'],
-      large: ['large', 'extraLarge', 'medium', 'small', 'thumbnail']
-    }
-
-    const preferences = sizePreferences[preferredSize]
-    
-    for (const size of preferences) {
-      const url = imageLinks[size as keyof typeof imageLinks]
-      if (url) {
-        // Convertir en HTTPS et augmenter la qualité si possible
-        return url.replace('http://', 'https://').replace('&edge=curl', '')
-      }
-    }
-
-    return null
-  }
-
-  // Extraire l'ISBN d'un livre
-  getISBN(book: GoogleBook): string | null {
-    const identifiers = book.volumeInfo.industryIdentifiers
-    if (!identifiers) return null
-
-    // Préférer ISBN_13, puis ISBN_10
-    const isbn13 = identifiers.find(id => id.type === 'ISBN_13')
-    if (isbn13) return isbn13.identifier
-
-    const isbn10 = identifiers.find(id => id.type === 'ISBN_10')
-    if (isbn10) return isbn10.identifier
-
-    return null
-  }
-
-  // Extraire l'année de publication
-  getPublicationYear(book: GoogleBook): number {
-    const publishedDate = book.volumeInfo.publishedDate
-    if (!publishedDate) return new Date().getFullYear()
-
-    // publishedDate peut être "YYYY", "YYYY-MM", ou "YYYY-MM-DD"
-    const year = parseInt(publishedDate.split('-')[0])
-    return isNaN(year) ? new Date().getFullYear() : year
-  }
-
-  // Nettoyer la description (enlever les balises HTML)
-  cleanDescription(description: string): string {
-    if (!description) return ''
-    return description
-      .replace(/<[^>]*>/g, '') // Enlever les balises HTML
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .trim()
-  }
-
-  // Convertir un livre Google Books vers le format de l'app
-  convertToAppFormat(book: GoogleBook): any {
-    const volumeInfo = book.volumeInfo
-    
-    return {
-      id: `book-${book.id}`,
-      title: volumeInfo.title || 'Unknown Title',
-      author: volumeInfo.authors?.[0] || 'Unknown Author',
-      year: this.getPublicationYear(book),
-      rating: volumeInfo.averageRating ? Number(volumeInfo.averageRating.toFixed(1)) : 0,
-      genre: volumeInfo.categories?.[0]?.split(' / ')[0] || 'Unknown',
-      category: 'books' as const,
-      image: this.getBestImageURL(book, 'medium'),
-      
-      // Données spécifiques aux livres
-      subtitle: volumeInfo.subtitle,
-      description: this.cleanDescription(volumeInfo.description || ''),
-      publisher: volumeInfo.publisher,
-      publishedDate: volumeInfo.publishedDate,
-      pageCount: volumeInfo.pageCount,
-      isbn: this.getISBN(book),
-      language: volumeInfo.language,
-      ratingsCount: volumeInfo.ratingsCount,
-      previewLink: volumeInfo.previewLink,
-      infoLink: volumeInfo.infoLink,
-      canonicalVolumeLink: volumeInfo.canonicalVolumeLink,
-      
-      // Informations de vente
-      isEbook: book.saleInfo?.isEbook || false,
-      buyLink: book.saleInfo?.buyLink,
-      price: book.saleInfo?.listPrice ? 
-        `${book.saleInfo.listPrice.amount} ${book.saleInfo.listPrice.currencyCode}` : null,
-      
-      // Informations d'accès
-      webReaderLink: book.accessInfo?.webReaderLink,
-      epubAvailable: book.accessInfo?.epub?.isAvailable || false,
-      pdfAvailable: book.accessInfo?.pdf?.isAvailable || false
-    }
-  }
-
-  // Obtenir des livres recommandés basés sur un auteur
-  async getBooksByAuthor(author: string, maxResults: number = 10): Promise<GoogleBook[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}?q=inauthor:"${encodeURIComponent(author)}"&maxResults=${maxResults}&printType=books&orderBy=relevance`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`Google Books API Error: ${response.status}`)
-      }
-      
-      const data: GoogleBooksSearchResponse = await response.json()
-      return data.items || []
-    } catch (error) {
-      console.error('Error fetching books by author:', error)
-      return []
-    }
-  }
-
-  // Obtenir des livres similaires basés sur la catégorie
-  async getSimilarBooks(book: GoogleBook, maxResults: number = 6): Promise<GoogleBook[]> {
-    try {
-      const category = book.volumeInfo.categories?.[0] || 'fiction'
-      const books = await this.getBooksByCategory(category, maxResults + 5)
-      
-      // Filtrer le livre actuel et retourner les autres
-      return books
-        .filter(b => b.id !== book.id)
-        .slice(0, maxResults)
-    } catch (error) {
-      console.error('Error fetching similar books:', error)
-      return []
-    }
-  }
-}
-
-// Instance singleton
-export const googleBooksService = new GoogleBooksService()
-
-// Fonctions utilitaires
-export const formatPageCount = (pageCount: number): string => {
-  if (!pageCount) return 'Unknown'
-  return `${pageCount} pages`
-}
-
-export const formatPublisher = (publisher: string, publishedDate: string): string => {
-  if (!publisher && !publishedDate) return 'Unknown Publisher'
-  if (!publisher) return publishedDate
-  if (!publishedDate) return publisher
-  
-  const year = publishedDate.split('-')[0]
-  return `${publisher} (${year})`
-}
-
-export const getReadingTime = (pageCount: number): string => {
-  if (!pageCount) return 'Unknown'
-  
-  // Estimation : 250 mots par page, 200 mots par minute
-  const wordsPerPage = 250
-  const wordsPerMinute = 200
-  const totalWords = pageCount * wordsPerPage
-  const minutes = Math.round(totalWords / wordsPerMinute)
-  
-  if (minutes < 60) return `~${minutes} min read`
-  
-  const hours = Math.round(minutes / 60)
-  if (hours < 24) return `~${hours}h read`
-  
-  const days = Math.round(hours / 24)
-  return `~${days} days read`
-}
-</file>
-
-<file path=".gitignore">
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-</file>
-
-<file path=".repomixignore">
-node_modules/
-.next/
-.env*
-*.log
-.git/
-.vercel/
-</file>
-
-<file path="eslint.config.mjs">
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-];
-
-export default eslintConfig;
-</file>
-
-<file path="next.config.js">
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  eslint: {
-    // Désactiver ESLint pendant le build
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    // Ignorer les erreurs TypeScript pendant le build
-    ignoreBuildErrors: true,
-  },
-}
-
-module.exports = nextConfig
-</file>
-
-<file path="next.config.ts">
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
-</file>
-
-<file path="postcss.config.mjs">
-const config = {
-  plugins: ["@tailwindcss/postcss"],
-};
-
-export default config;
-</file>
-
-<file path="public/file.svg">
-<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
-</file>
-
-<file path="public/globe.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
-</file>
-
-<file path="public/next.svg">
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
-</file>
-
-<file path="public/vercel.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
-</file>
-
-<file path="public/window.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
-</file>
-
 <file path="src/components/MovieDetailModal.tsx">
 'use client'
 import { useState, useEffect, useRef } from 'react'
@@ -1998,6 +1658,318 @@ export default function MovieDetailModal({
 }
 </file>
 
+<file path="src/components/MusicDetailModal.tsx">
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { X, Star, ExternalLink, Calendar, Music, Award, Users, Globe, Play, HeadphonesIcon } from 'lucide-react'
+import { musicService, formatTrackCount, formatPrice, formatDuration } from '@/services/musicService'
+import type { LibraryItem, Review, MediaStatus } from '@/types'
+
+interface MusicDetailModalProps {
+  isOpen: boolean
+  onClose: () => void
+  albumId: string
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  library: LibraryItem[]
+  userReviews: Review[]
+  spotifyReviews: Review[]
+  onReviewSubmit: (reviewData: any) => void
+}
+
+interface AlbumDetail {
+  collectionId: number
+  collectionName: string
+  artistName: string
+  artworkUrl100?: string
+  releaseDate?: string
+  primaryGenreName?: string
+  trackCount?: number
+  copyright?: string
+  collectionPrice?: number
+  currency?: string
+  country?: string
+  collectionViewUrl?: string
+  artistViewUrl?: string
+  collectionType?: string
+}
+
+export default function MusicDetailModal({ 
+  isOpen, 
+  onClose, 
+  albumId, 
+  onAddToLibrary, 
+  library, 
+  userReviews, 
+  spotifyReviews, 
+  onReviewSubmit 
+}: MusicDetailModalProps) {
+  const [albumDetail, setAlbumDetail] = useState<AlbumDetail | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info')
+  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
+  const [userRating, setUserRating] = useState<number>(0)
+  const [hoverRating, setHoverRating] = useState<number>(0)
+  const [showReviewBox, setShowReviewBox] = useState(false)
+  const [userReview, setUserReview] = useState('')
+  const [similarAlbums, setSimilarAlbums] = useState<any[]>([])
+  const [artistAlbums, setArtistAlbums] = useState<any[]>([])
+
+  const scrollableRef = useRef<HTMLDivElement>(null)
+
+  const albumStats = {
+    'want-to-play': 1845,
+    'currently-playing': 623,
+    'completed': 4312
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('info')
+      setSimilarAlbums([])
+      setArtistAlbums([])
+    }
+  }, [isOpen, albumId])
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen && albumId) {
+      fetchAlbumDetail()
+    }
+  }, [isOpen, albumId])
+
+  useEffect(() => {
+    const libraryItem = library.find(item => item.id === `music-${albumId}`)
+    if (libraryItem) {
+      setSelectedStatus(libraryItem.status)
+    } else {
+      setSelectedStatus(null)
+    }
+  }, [albumId, library])
+
+  const fetchAlbumDetail = async () => {
+    if (!albumId) return
+    
+    setLoading(true)
+    try {
+      let iTunesId = albumId
+      
+      // Si l'ID commence par 'music-', le retirer
+      if (albumId.startsWith('music-')) {
+        iTunesId = albumId.replace('music-', '')
+      }
+      
+      const data = await musicService.getAlbumDetails(iTunesId)
+      setAlbumDetail(data as AlbumDetail)
+      
+      // Charger des albums similaires et de l'artiste
+      if (data) {
+        if (data.primaryGenreName) {
+          await fetchSimilarAlbums(data)
+        }
+        if (data.artistName) {
+          await fetchArtistAlbums(data.artistName, data.collectionId)
+        }
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors du chargement des détails:', error)
+      setAlbumDetail(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSimilarAlbums = async (album: AlbumDetail) => {
+    try {
+      const similarAlbumsData = await musicService.getSimilarAlbums(album as any, 6)
+      const convertedAlbums = similarAlbumsData.map(album => musicService.convertToAppFormat(album))
+      setSimilarAlbums(convertedAlbums)
+    } catch (error) {
+      console.error('Error fetching similar albums:', error)
+      setSimilarAlbums([])
+    }
+  }
+
+  const fetchArtistAlbums = async (artist: string, excludeAlbumId: number) => {
+    try {
+      const artistAlbumsData = await musicService.getAlbumsByArtist(artist, 8)
+      const filteredAlbums = artistAlbumsData
+        .filter(album => album.collectionId !== excludeAlbumId)
+        .slice(0, 6)
+        .map(album => musicService.convertToAppFormat(album))
+      
+      setArtistAlbums(filteredAlbums)
+    } catch (error) {
+      console.error('Error fetching artist albums:', error)
+      setArtistAlbums([])
+    }
+  }
+
+  const handleStatusSelect = (status: MediaStatus) => {
+    if (!albumDetail) return
+    
+    const albumItem = {
+      id: `music-${albumDetail.collectionId}`,
+      title: albumDetail.collectionName,
+      image: musicService.getBestImageURL(albumDetail as any, 'medium'),
+      category: 'music' as const,
+      year: albumDetail.releaseDate ? new Date(albumDetail.releaseDate).getFullYear() : new Date().getFullYear(),
+      rating: 0,
+      artist: albumDetail.artistName
+    }
+    
+    onAddToLibrary(albumItem, status)
+    setSelectedStatus(status)
+  }
+
+  const getStatusLabel = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'Want to Listen'
+      case 'currently-playing': return 'Listening'
+      case 'completed': return 'Listened'
+      case 'paused': return 'Paused'
+      case 'dropped': return 'Dropped'
+      default: return status
+    }
+  }
+
+  const getStatusColor = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'bg-orange-500 hover:bg-orange-600'
+      case 'currently-playing': return 'bg-green-500 hover:bg-green-600'
+      case 'completed': return 'bg-blue-500 hover:bg-blue-600'
+      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600'
+      case 'dropped': return 'bg-red-500 hover:bg-red-600'
+      default: return 'bg-gray-500 hover:bg-gray-600'
+    }
+  }
+
+  const handleSubmitReview = () => {
+    if (userRating > 0 && userReview.trim()) {
+      onReviewSubmit({
+        rating: userRating,
+        review: userReview.trim()
+      })
+      
+      setShowReviewBox(false)
+      setUserReview('')
+      setUserRating(0)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col shadow-xl border border-gray-100"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : albumDetail ? (
+          <>
+            {/* Header */}
+            <div className="relative bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-2 hover:bg-white/80 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="p-6 flex items-center space-x-4">
+                <div className="w-20 h-20 rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-gray-100 flex-shrink-0">
+                  {musicService.getBestImageURL(albumDetail as any, 'medium') ? (
+                    <img
+                      src={musicService.getBestImageURL(albumDetail as any, 'medium')!}
+                      alt={albumDetail.collectionName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl">
+                      🎵
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-1">{musicService.cleanAlbumName(albumDetail.collectionName)}</h1>
+                  <h2 className="text-lg text-gray-600 mb-2">{albumDetail.artistName}</h2>
+                  
+                  <div className="flex items-center space-x-4 mb-2">
+                    {albumDetail.releaseDate && (
+                      <span className="text-gray-600 text-sm">
+                        {new Date(albumDetail.releaseDate).getFullYear()}
+                      </span>
+                    )}
+                    {albumDetail.trackCount && (
+                      <>
+                        <span className="text-gray-600">•</span>
+                        <span className="text-gray-600 text-sm">{formatTrackCount(albumDetail.trackCount)}</span>
+                      </>
+                    )}
+                    {albumDetail.primaryGenreName && (
+                      <>
+                        <span className="text-gray-600">•</span>
+                        <span className="text-gray-600 text-sm">{albumDetail.primaryGenreName}</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {albumDetail.trackCount && (
+                    <div className="text-sm text-gray-600">
+                      {formatDuration(albumDetail.trackCount)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Rest of the modal content would continue here... */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="text-center text-gray-500">
+                <Music size={48} className="mx-auto mb-4 text-gray-300" />
+                <p>Album detail content would go here...</p>
+                <p className="text-sm mt-2">Similar to BookDetailModal structure</p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="p-8 text-center text-gray-600">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">🎵</span>
+            </div>
+            <p className="text-lg font-medium text-gray-900 mb-2">Album not found</p>
+            <p className="text-sm">Unable to load album details. Please try again.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+</file>
+
 <file path="src/components/RoadmapPage.tsx">
 'use client'
 import { ArrowLeft, Check, Clock, Zap, Users, Star, Sparkles } from 'lucide-react'
@@ -2254,6 +2226,640 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
       </div>
     </div>
   )
+}
+</file>
+
+<file path="src/services/googleBooksService.ts">
+// Service pour l'API Google Books
+export interface GoogleBook {
+  id: string
+  volumeInfo: {
+    title: string
+    authors?: string[]
+    publishedDate?: string
+    description?: string
+    industryIdentifiers?: { type: string, identifier: string }[]
+    pageCount?: number
+    categories?: string[]
+    averageRating?: number
+    ratingsCount?: number
+    maturityRating?: string
+    imageLinks?: {
+      smallThumbnail?: string
+      thumbnail?: string
+      small?: string
+      medium?: string
+      large?: string
+      extraLarge?: string
+    }
+    language?: string
+    previewLink?: string
+    infoLink?: string
+    canonicalVolumeLink?: string
+    publisher?: string
+    subtitle?: string
+  }
+  saleInfo?: {
+    country?: string
+    saleability?: string
+    isEbook?: boolean
+    listPrice?: { amount: number, currencyCode: string }
+    retailPrice?: { amount: number, currencyCode: string }
+    buyLink?: string
+  }
+  accessInfo?: {
+    country?: string
+    viewability?: string
+    embeddable?: boolean
+    publicDomain?: boolean
+    textToSpeechPermission?: string
+    epub?: { isAvailable: boolean, acsTokenLink?: string }
+    pdf?: { isAvailable: boolean, acsTokenLink?: string }
+    webReaderLink?: string
+    accessViewStatus?: string
+    quoteSharingAllowed?: boolean
+  }
+}
+
+export interface GoogleBooksSearchResponse {
+  kind: string
+  totalItems: number
+  items?: GoogleBook[]
+}
+
+class GoogleBooksService {
+  private readonly baseURL = 'https://www.googleapis.com/books/v1/volumes'
+  
+  // Rechercher des livres
+  async searchBooks(query: string, maxResults: number = 20): Promise<GoogleBook[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?q=${encodeURIComponent(query)}&maxResults=${maxResults}&printType=books&orderBy=relevance`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const data: GoogleBooksSearchResponse = await response.json()
+      return data.items || []
+    } catch (error) {
+      console.error('Error searching books:', error)
+      throw error
+    }
+  }
+
+  // Obtenir les détails d'un livre
+  async getBookDetails(bookId: string): Promise<GoogleBook | null> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/${bookId}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const book: GoogleBook = await response.json()
+      return book
+    } catch (error) {
+      console.error('Error fetching book details:', error)
+      return null
+    }
+  }
+
+  // Obtenir des livres populaires par catégorie
+  async getBooksByCategory(category: string, maxResults: number = 20): Promise<GoogleBook[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?q=subject:${encodeURIComponent(category)}&maxResults=${maxResults}&printType=books&orderBy=relevance`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const data: GoogleBooksSearchResponse = await response.json()
+      return data.items || []
+    } catch (error) {
+      console.error('Error fetching books by category:', error)
+      return []
+    }
+  }
+
+  // Obtenir des bestsellers (simulation avec des livres populaires)
+  async getBestsellerBooks(): Promise<GoogleBook[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?q=bestseller&maxResults=20&printType=books&orderBy=relevance`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const data: GoogleBooksSearchResponse = await response.json()
+      return data.items || []
+    } catch (error) {
+      console.error('Error fetching bestseller books:', error)
+      return []
+    }
+  }
+
+  // Obtenir des livres de fiction populaires
+  async getFictionBooks(): Promise<GoogleBook[]> {
+    return this.getBooksByCategory('fiction')
+  }
+
+  // Obtenir des livres de non-fiction populaires
+  async getNonFictionBooks(): Promise<GoogleBook[]> {
+    return this.getBooksByCategory('biography')
+  }
+
+  // Obtenir des nouveautés
+  async getNewReleases(): Promise<GoogleBook[]> {
+    try {
+      const currentYear = new Date().getFullYear()
+      const response = await fetch(
+        `${this.baseURL}?q=publishedDate:${currentYear}&maxResults=20&printType=books&orderBy=newest`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const data: GoogleBooksSearchResponse = await response.json()
+      return data.items || []
+    } catch (error) {
+      console.error('Error fetching new releases:', error)
+      return []
+    }
+  }
+
+  // Obtenir la meilleure image disponible
+  getBestImageURL(book: GoogleBook, preferredSize: 'small' | 'medium' | 'large' = 'medium'): string | null {
+    const imageLinks = book.volumeInfo.imageLinks
+    if (!imageLinks) return null
+
+    // Ordre de préférence pour chaque taille
+    const sizePreferences = {
+      small: ['thumbnail', 'smallThumbnail', 'small', 'medium'],
+      medium: ['small', 'medium', 'thumbnail', 'large'],
+      large: ['large', 'extraLarge', 'medium', 'small', 'thumbnail']
+    }
+
+    const preferences = sizePreferences[preferredSize]
+    
+    for (const size of preferences) {
+      const url = imageLinks[size as keyof typeof imageLinks]
+      if (url) {
+        // Convertir en HTTPS et augmenter la qualité si possible
+        return url.replace('http://', 'https://').replace('&edge=curl', '')
+      }
+    }
+
+    return null
+  }
+
+  // Extraire l'ISBN d'un livre
+  getISBN(book: GoogleBook): string | null {
+    const identifiers = book.volumeInfo.industryIdentifiers
+    if (!identifiers) return null
+
+    // Préférer ISBN_13, puis ISBN_10
+    const isbn13 = identifiers.find(id => id.type === 'ISBN_13')
+    if (isbn13) return isbn13.identifier
+
+    const isbn10 = identifiers.find(id => id.type === 'ISBN_10')
+    if (isbn10) return isbn10.identifier
+
+    return null
+  }
+
+  // Extraire l'année de publication
+  getPublicationYear(book: GoogleBook): number {
+    const publishedDate = book.volumeInfo.publishedDate
+    if (!publishedDate) return new Date().getFullYear()
+
+    // publishedDate peut être "YYYY", "YYYY-MM", ou "YYYY-MM-DD"
+    const year = parseInt(publishedDate.split('-')[0])
+    return isNaN(year) ? new Date().getFullYear() : year
+  }
+
+  // Nettoyer la description (enlever les balises HTML)
+  cleanDescription(description: string): string {
+    if (!description) return ''
+    return description
+      .replace(/<[^>]*>/g, '') // Enlever les balises HTML
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .trim()
+  }
+
+  // Convertir un livre Google Books vers le format de l'app
+  convertToAppFormat(book: GoogleBook): any {
+    const volumeInfo = book.volumeInfo
+    
+    return {
+      id: `book-${book.id}`,
+      title: volumeInfo.title || 'Unknown Title',
+      author: volumeInfo.authors?.[0] || 'Unknown Author',
+      year: this.getPublicationYear(book),
+      rating: volumeInfo.averageRating ? Number(volumeInfo.averageRating.toFixed(1)) : 0,
+      genre: volumeInfo.categories?.[0]?.split(' / ')[0] || 'Unknown',
+      category: 'books' as const,
+      image: this.getBestImageURL(book, 'medium'),
+      
+      // Données spécifiques aux livres
+      subtitle: volumeInfo.subtitle,
+      description: this.cleanDescription(volumeInfo.description || ''),
+      publisher: volumeInfo.publisher,
+      publishedDate: volumeInfo.publishedDate,
+      pageCount: volumeInfo.pageCount,
+      isbn: this.getISBN(book),
+      language: volumeInfo.language,
+      ratingsCount: volumeInfo.ratingsCount,
+      previewLink: volumeInfo.previewLink,
+      infoLink: volumeInfo.infoLink,
+      canonicalVolumeLink: volumeInfo.canonicalVolumeLink,
+      
+      // Informations de vente
+      isEbook: book.saleInfo?.isEbook || false,
+      buyLink: book.saleInfo?.buyLink,
+      price: book.saleInfo?.listPrice ? 
+        `${book.saleInfo.listPrice.amount} ${book.saleInfo.listPrice.currencyCode}` : null,
+      
+      // Informations d'accès
+      webReaderLink: book.accessInfo?.webReaderLink,
+      epubAvailable: book.accessInfo?.epub?.isAvailable || false,
+      pdfAvailable: book.accessInfo?.pdf?.isAvailable || false
+    }
+  }
+
+  // Obtenir des livres recommandés basés sur un auteur
+  async getBooksByAuthor(author: string, maxResults: number = 10): Promise<GoogleBook[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?q=inauthor:"${encodeURIComponent(author)}"&maxResults=${maxResults}&printType=books&orderBy=relevance`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const data: GoogleBooksSearchResponse = await response.json()
+      return data.items || []
+    } catch (error) {
+      console.error('Error fetching books by author:', error)
+      return []
+    }
+  }
+
+  // Obtenir des livres similaires basés sur la catégorie
+  async getSimilarBooks(book: GoogleBook, maxResults: number = 6): Promise<GoogleBook[]> {
+    try {
+      const category = book.volumeInfo.categories?.[0] || 'fiction'
+      const books = await this.getBooksByCategory(category, maxResults + 5)
+      
+      // Filtrer le livre actuel et retourner les autres
+      return books
+        .filter(b => b.id !== book.id)
+        .slice(0, maxResults)
+    } catch (error) {
+      console.error('Error fetching similar books:', error)
+      return []
+    }
+  }
+}
+
+// Instance singleton
+export const googleBooksService = new GoogleBooksService()
+
+// Fonctions utilitaires
+export const formatPageCount = (pageCount: number): string => {
+  if (!pageCount) return 'Unknown'
+  return `${pageCount} pages`
+}
+
+export const formatPublisher = (publisher: string, publishedDate: string): string => {
+  if (!publisher && !publishedDate) return 'Unknown Publisher'
+  if (!publisher) return publishedDate
+  if (!publishedDate) return publisher
+  
+  const year = publishedDate.split('-')[0]
+  return `${publisher} (${year})`
+}
+
+export const getReadingTime = (pageCount: number): string => {
+  if (!pageCount) return 'Unknown'
+  
+  // Estimation : 250 mots par page, 200 mots par minute
+  const wordsPerPage = 250
+  const wordsPerMinute = 200
+  const totalWords = pageCount * wordsPerPage
+  const minutes = Math.round(totalWords / wordsPerMinute)
+  
+  if (minutes < 60) return `~${minutes} min read`
+  
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `~${hours}h read`
+  
+  const days = Math.round(hours / 24)
+  return `~${days} days read`
+}
+</file>
+
+<file path="src/services/musicService.ts">
+// Service pour l'API iTunes/Apple Music
+export interface iTunesAlbum {
+  collectionId: number
+  artistId: number
+  collectionName: string
+  artistName: string
+  collectionCensoredName?: string
+  artistViewUrl?: string
+  collectionViewUrl?: string
+  artworkUrl30?: string
+  artworkUrl60?: string
+  artworkUrl100?: string
+  collectionPrice?: number
+  collectionExplicitness?: string
+  trackCount?: number
+  copyright?: string
+  country?: string
+  currency?: string
+  releaseDate?: string
+  primaryGenreName?: string
+  collectionType?: string
+  wrapperType: string
+  kind?: string
+}
+
+export interface iTunesSearchResponse {
+  resultCount: number
+  results: iTunesAlbum[]
+}
+
+class MusicService {
+  private readonly baseURL = 'https://itunes.apple.com'
+  
+  // Rechercher des albums
+  async searchAlbums(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=${limit}&country=US`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`iTunes API Error: ${response.status}`)
+      }
+      
+      const data: iTunesSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error searching albums:', error)
+      throw error
+    }
+  }
+
+  // Obtenir les détails d'un album
+  async getAlbumDetails(albumId: string): Promise<iTunesAlbum | null> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/lookup?id=${albumId}&entity=album`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`iTunes API Error: ${response.status}`)
+      }
+      
+      const data: iTunesSearchResponse = await response.json()
+      return data.results?.[0] || null
+    } catch (error) {
+      console.error('Error fetching album details:', error)
+      return null
+    }
+  }
+
+  // Obtenir des albums populaires par genre
+  async getAlbumsByGenre(genre: string, limit: number = 20): Promise<iTunesAlbum[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/search?term=${encodeURIComponent(genre)}&media=music&entity=album&limit=${limit}&country=US&attribute=genreTerm`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`iTunes API Error: ${response.status}`)
+      }
+      
+      const data: iTunesSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching albums by genre:', error)
+      return []
+    }
+  }
+
+  // Obtenir des albums populaires (simulation avec des termes populaires)
+  async getPopularAlbums(): Promise<iTunesAlbum[]> {
+    const popularTerms = ['taylor swift', 'drake', 'billie eilish', 'the weeknd']
+    
+    try {
+      const albumPromises = popularTerms.map(term => 
+        this.searchAlbums(term, 2).catch(() => [])
+      )
+      
+      const results = await Promise.all(albumPromises)
+      const allAlbums = results.flat()
+      
+      // Enlever les doublons et limiter à 8
+      const uniqueAlbums = allAlbums.filter((album, index, self) => 
+        index === self.findIndex(a => a.collectionId === album.collectionId)
+      )
+      
+      return uniqueAlbums.slice(0, 8)
+    } catch (error) {
+      console.error('Error fetching popular albums:', error)
+      return []
+    }
+  }
+
+  // Obtenir des albums bien notés (simulation)
+  async getTopRatedAlbums(): Promise<iTunesAlbum[]> {
+    const classicTerms = ['beatles', 'pink floyd', 'led zeppelin', 'queen']
+    
+    try {
+      const albumPromises = classicTerms.map(term => 
+        this.searchAlbums(term, 2).catch(() => [])
+      )
+      
+      const results = await Promise.all(albumPromises)
+      const allAlbums = results.flat()
+      
+      const uniqueAlbums = allAlbums.filter((album, index, self) => 
+        index === self.findIndex(a => a.collectionId === album.collectionId)
+      )
+      
+      return uniqueAlbums.slice(0, 8)
+    } catch (error) {
+      console.error('Error fetching top rated albums:', error)
+      return []
+    }
+  }
+
+  // Obtenir des nouveautés (simulation)
+  async getNewReleases(): Promise<iTunesAlbum[]> {
+    const currentTerms = ['new music 2024', 'latest albums', 'recent releases']
+    
+    try {
+      const albumPromises = currentTerms.map(term => 
+        this.searchAlbums(term, 3).catch(() => [])
+      )
+      
+      const results = await Promise.all(albumPromises)
+      const allAlbums = results.flat()
+      
+      const uniqueAlbums = allAlbums.filter((album, index, self) => 
+        index === self.findIndex(a => a.collectionId === album.collectionId)
+      )
+      
+      return uniqueAlbums.slice(0, 8)
+    } catch (error) {
+      console.error('Error fetching new releases:', error)
+      return []
+    }
+  }
+
+  // Obtenir la meilleure image disponible
+  getBestImageURL(album: iTunesAlbum, preferredSize: 'small' | 'medium' | 'large' = 'medium'): string | null {
+    const sizePreferences = {
+      small: ['artworkUrl60', 'artworkUrl30', 'artworkUrl100'],
+      medium: ['artworkUrl100', 'artworkUrl60', 'artworkUrl30'],
+      large: ['artworkUrl100', 'artworkUrl60', 'artworkUrl30']
+    }
+
+    const preferences = sizePreferences[preferredSize]
+    
+    for (const size of preferences) {
+      const url = album[size as keyof iTunesAlbum] as string
+      if (url) {
+        // Augmenter la résolution si possible
+        return url.replace('100x100', '300x300').replace('60x60', '300x300').replace('30x30', '300x300')
+      }
+    }
+
+    return null
+  }
+
+  // Extraire l'année de release
+  getReleasedYear(album: iTunesAlbum): number {
+    if (!album.releaseDate) return new Date().getFullYear()
+    return new Date(album.releaseDate).getFullYear()
+  }
+
+  // Nettoyer le nom de l'album
+  cleanAlbumName(name: string): string {
+    if (!name) return ''
+    return name
+      .replace(/\(Explicit\)/gi, '')
+      .replace(/\(Clean\)/gi, '')
+      .replace(/\(Deluxe\)/gi, '(Deluxe)')
+      .trim()
+  }
+
+  // Convertir un album iTunes vers le format de l'app
+  convertToAppFormat(album: iTunesAlbum): any {
+    return {
+      id: `music-${album.collectionId}`,
+      title: this.cleanAlbumName(album.collectionName || 'Unknown Album'),
+      artist: album.artistName || 'Unknown Artist',
+      year: this.getReleasedYear(album),
+      rating: 0, // iTunes ne fournit pas de ratings publics
+      genre: album.primaryGenreName || 'Unknown',
+      category: 'music' as const,
+      image: this.getBestImageURL(album, 'medium'),
+      
+      // Données spécifiques à la musique
+      trackCount: album.trackCount || 0,
+      copyright: album.copyright,
+      collectionPrice: album.collectionPrice,
+      currency: album.currency,
+      country: album.country,
+      releaseDate: album.releaseDate,
+      collectionViewUrl: album.collectionViewUrl,
+      artistViewUrl: album.artistViewUrl,
+      collectionType: album.collectionType || 'Album'
+    }
+  }
+
+  // Obtenir des albums par artiste
+  async getAlbumsByArtist(artistName: string, limit: number = 10): Promise<iTunesAlbum[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/search?term=${encodeURIComponent(artistName)}&media=music&entity=album&limit=${limit}&country=US&attribute=artistTerm`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`iTunes API Error: ${response.status}`)
+      }
+      
+      const data: iTunesSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching albums by artist:', error)
+      return []
+    }
+  }
+
+  // Obtenir des albums similaires basés sur le genre
+  async getSimilarAlbums(album: iTunesAlbum, limit: number = 6): Promise<iTunesAlbum[]> {
+    try {
+      const genre = album.primaryGenreName || 'pop'
+      const albums = await this.getAlbumsByGenre(genre, limit + 5)
+      
+      // Filtrer l'album actuel et retourner les autres
+      return albums
+        .filter(a => a.collectionId !== album.collectionId)
+        .slice(0, limit)
+    } catch (error) {
+      console.error('Error fetching similar albums:', error)
+      return []
+    }
+  }
+}
+
+// Instance singleton
+export const musicService = new MusicService()
+
+// Fonctions utilitaires
+export const formatTrackCount = (trackCount: number): string => {
+  if (!trackCount) return 'Unknown'
+  return `${trackCount} track${trackCount !== 1 ? 's' : ''}`
+}
+
+export const formatPrice = (price: number, currency: string): string => {
+  if (!price || !currency) return 'Price not available'
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency || 'USD'
+  }).format(price)
+}
+
+export const formatDuration = (trackCount: number): string => {
+  if (!trackCount) return 'Unknown duration'
+  
+  // Estimation approximative : 3.5 minutes par track en moyenne
+  const averageTrackDuration = 3.5
+  const totalMinutes = Math.round(trackCount * averageTrackDuration)
+  
+  if (totalMinutes < 60) return `~${totalMinutes} min`
+  
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  
+  return `~${hours}h ${minutes}m`
 }
 </file>
 
@@ -4123,63 +4729,6 @@ export default function LibrarySection({
 }
 </file>
 
-<file path="src/components/ContentSection.tsx">
-'use client'
-import ContentCard from './ContentCard'
-import type { ContentItem, LibraryItem, MediaCategory, MediaStatus } from '@/types'
-
-interface ContentSectionProps {
-  title: string
-  items: ContentItem[]
-  category: MediaCategory
-  onAddToLibrary: (item: ContentItem, status: MediaStatus) => void
-  library: LibraryItem[]
-  onOpenGameDetail?: (gameId: string) => void
-  onOpenMovieDetail?: (movieId: string) => void
-  onOpenBookDetail?: (bookId: string) => void
-}
-
-export default function ContentSection({ 
-  title, 
-  items, 
-  category, 
-  onAddToLibrary, 
-  library, 
-  onOpenGameDetail,
-  onOpenMovieDetail,
-  onOpenBookDetail
-}: ContentSectionProps) {
-  return (
-    <section className="mb-8">
-      {/* Section Header */}
-      <div className="flex items-center justify-between mb-4 px-1">
-        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-        <button className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors">
-          See all
-        </button>
-      </div>
-      
-      {/* Carrousel horizontal */}
-      <div className="flex space-x-4 overflow-x-auto pb-4 horizontal-scroll">
-        {items.map((item) => (
-          <div key={item.id} className="flex-shrink-0 w-32">
-            <ContentCard
-              item={item}
-              category={category}
-              onAddToLibrary={onAddToLibrary}
-              library={library}
-              onOpenGameDetail={onOpenGameDetail}
-              onOpenMovieDetail={onOpenMovieDetail}
-              onOpenBookDetail={onOpenBookDetail}
-            />
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-</file>
-
 <file path="src/components/Header.tsx">
 'use client'
 import { useState } from 'react'
@@ -4244,6 +4793,66 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
 }
 </file>
 
+<file path="src/components/ContentSection.tsx">
+'use client'
+import ContentCard from './ContentCard'
+import type { ContentItem, LibraryItem, MediaCategory, MediaStatus } from '@/types'
+
+interface ContentSectionProps {
+  title: string
+  items: ContentItem[]
+  category: MediaCategory
+  onAddToLibrary: (item: ContentItem, status: MediaStatus) => void
+  library: LibraryItem[]
+  onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void
+}
+
+export default function ContentSection({ 
+  title, 
+  items, 
+  category, 
+  onAddToLibrary, 
+  library, 
+  onOpenGameDetail,
+  onOpenMovieDetail,
+  onOpenBookDetail,
+  onOpenMusicDetail
+}: ContentSectionProps) {
+  return (
+    <section className="mb-8">
+      {/* Section Header */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+        <button className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors">
+          See all
+        </button>
+      </div>
+      
+      {/* Carrousel horizontal */}
+      <div className="flex space-x-4 overflow-x-auto pb-4 horizontal-scroll">
+        {items.map((item) => (
+          <div key={item.id} className="flex-shrink-0 w-32">
+            <ContentCard
+              item={item}
+              category={category}
+              onAddToLibrary={onAddToLibrary}
+              library={library}
+              onOpenGameDetail={onOpenGameDetail}
+              onOpenMovieDetail={onOpenMovieDetail}
+              onOpenBookDetail={onOpenBookDetail}
+              onOpenMusicDetail={onOpenMusicDetail}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+</file>
+
 <file path="src/components/ContentCard.tsx">
 'use client'
 import { useState } from 'react'
@@ -4259,6 +4868,7 @@ interface ContentCardProps {
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
   onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void
 }
 
 export default function ContentCard({
@@ -4268,7 +4878,8 @@ export default function ContentCard({
   library = [],
   onOpenGameDetail,
   onOpenMovieDetail,
-  onOpenBookDetail
+  onOpenBookDetail,
+  onOpenMusicDetail
 }: ContentCardProps) {
   const [showActions, setShowActions] = useState(false)
 
@@ -4288,6 +4899,8 @@ export default function ContentCard({
       onOpenMovieDetail(item.id)
     } else if (category === 'books' && onOpenBookDetail) {
       onOpenBookDetail(item.id)
+    } else if (category === 'music' && onOpenMusicDetail) {
+      onOpenMusicDetail(item.id)
     }
   }
 
@@ -5348,12 +5961,14 @@ import LibrarySection from '@/components/LibrarySection'
 import GameDetailModal from '@/components/GameDetailModal'
 import MovieDetailModal from '@/components/MovieDetailModal'
 import BookDetailModal from '@/components/BookDetailModal'
+import MusicDetailModal from '@/components/MusicDetailModal'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
 import { sampleContent } from '@/data/sampleContent'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
+import { musicService } from '@/services/musicService'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
@@ -5364,9 +5979,10 @@ export default function Home() {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
+  const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   
-  // State pour le contenu dynamique des films et livres
+  // State pour le contenu dynamique des films, livres et musique
   const [movieContent, setMovieContent] = useState<{
     popular: ContentItem[]
     topRated: ContentItem[]
@@ -5389,15 +6005,28 @@ export default function Home() {
   })
   const [booksLoading, setBooksLoading] = useState(false)
 
-  // User reviews state
-  const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
+  const [musicContent, setMusicContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    newReleases: []
+  })
+  const [musicLoading, setMusicLoading] = useState(false)
 
-  // Charger le contenu des films et livres
+  // User reviews state
+  const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
+
+  // Charger le contenu selon la catégorie active
   useEffect(() => {
     if (activeTab === 'movies') {
       loadMovieContent()
     } else if (activeTab === 'books') {
       loadBookContent()
+    } else if (activeTab === 'music') {
+      loadMusicContent()
     }
   }, [activeTab])
 
@@ -5471,6 +6100,41 @@ export default function Home() {
     }
   }
 
+  const loadMusicContent = async () => {
+    try {
+      setMusicLoading(true)
+
+      const [popularAlbums, topRatedAlbums, newReleaseAlbums] = await Promise.all([
+        musicService.getPopularAlbums().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        ),
+        musicService.getTopRatedAlbums().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        ),
+        musicService.getNewReleases().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        )
+      ])
+
+      setMusicContent({
+        popular: popularAlbums,
+        topRated: topRatedAlbums,
+        newReleases: newReleaseAlbums
+      })
+    } catch (error) {
+      console.error('Error loading music content:', error)
+      
+      // Fallback vers les données statiques
+      setMusicContent({
+        popular: sampleContent.music.slice(0, 4),
+        topRated: sampleContent.music.slice(4, 8),
+        newReleases: sampleContent.music.slice(0, 4)
+      })
+    } finally {
+      setMusicLoading(false)
+    }
+  }
+
   // Fonction corrigée pour ajouter à la bibliothèque
   const handleAddToLibrary = (item: any, status: MediaStatus) => {
     const normalizedId = normalizeId(item.id)
@@ -5538,12 +6202,18 @@ export default function Home() {
     setSelectedBookId(normalizedBookId)
   }
 
+  const handleOpenMusicDetail = (musicId: string) => {
+    const normalizedMusicId = normalizeId(musicId)
+    setSelectedMusicId(normalizedMusicId)
+  }
+
   const handleOpenSearch = () => {
     setIsSearchOpen(true)
   }
 
   const handleReviewSubmit = (reviewData: any) => {
-    if (!selectedGameId) return;
+    const currentItemId = selectedGameId || selectedMovieId || selectedBookId || selectedMusicId
+    if (!currentItemId) return;
     
     const newReview: Review = {
       id: Date.now(),
@@ -5555,10 +6225,11 @@ export default function Home() {
 
     setUserReviews(prev => ({
       ...prev,
-      [parseInt(selectedGameId)]: [...(prev[parseInt(selectedGameId)] || []), newReview]
+      [currentItemId]: [...(prev[currentItemId] || []), newReview]
     }));
   };
 
+  // Générer des reviews pour différentes plateformes
   const generateSteamReviews = (gameId: number): Review[] => {
     const reviewTemplates = [
       { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
@@ -5596,7 +6267,6 @@ export default function Home() {
     return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
   };
 
-  // Générer des reviews Goodreads pour les livres
   const generateGoodreadsReviews = (bookId: string): Review[] => {
     const reviewTemplates = [
       { rating: 5, text: "Absolutely loved this book! Couldn't put it down. The characters were so well developed and the plot was engaging throughout.", author: "BookLover", helpful: 156 },
@@ -5606,7 +6276,6 @@ export default function Home() {
       { rating: 4, text: "Solid storytelling and great character development. Would definitely read more from this author.", author: "LitCritic", helpful: 112 }
     ];
 
-    // Utiliser bookId comme seed pour des reviews cohérentes
     const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const selectedReviews = [];
     
@@ -5634,7 +6303,6 @@ export default function Home() {
     return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
   };
 
-  // Générer des reviews IMDb pour les films
   const generateIMDBReviews = (movieId: string): Review[] => {
     const reviewTemplates = [
       { rating: 5, text: "A masterpiece! Brilliant acting and cinematography. This film will be remembered for years.", author: "CinemaLover", helpful: 89 },
@@ -5644,7 +6312,6 @@ export default function Home() {
       { rating: 4, text: "Strong performances and great direction. A solid addition to the genre.", author: "FilmStudent", helpful: 78 }
     ];
 
-    // Utiliser movieId comme seed pour des reviews cohérentes
     const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const selectedReviews = [];
     
@@ -5672,6 +6339,42 @@ export default function Home() {
     return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
   };
 
+  const generateSpotifyReviews = (musicId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "This album is absolutely phenomenal! Every track is a masterpiece. Can't stop listening!", author: "MusicLover99", helpful: 201 },
+      { rating: 4, text: "Really solid album with great production. A few tracks could be stronger but overall fantastic.", author: "IndieHead", helpful: 134 },
+      { rating: 5, text: "Pure genius! The way they blend genres is incredible. This will be on repeat for months.", author: "VinylCollector", helpful: 187 },
+      { rating: 3, text: "Good but not groundbreaking. Some nice moments but doesn't live up to the hype.", author: "CasualListener", helpful: 67 },
+      { rating: 4, text: "Excellent songwriting and vocals. The production quality is top-notch throughout.", author: "AudioPhile", helpful: 145 }
+    ];
+
+    const seed = musicId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const selectedReviews = [];
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 7 + i * 11) % reviewTemplates.length;
+      const template = reviewTemplates[index];
+      
+      const musicSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 60) - 30),
+        daysAgo: (seed * i * 5) % 200 + 1,
+      };
+      
+      selectedReviews.push({
+        id: `spotify_${musicId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: musicSpecificVariations.helpful,
+        date: new Date(Date.now() - musicSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Music Community'
+      });
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
+  };
+
   const getSections = () => {
     if (activeTab === 'movies') {
       return [
@@ -5686,6 +6389,14 @@ export default function Home() {
         { title: 'Fiction favorites', items: bookContent.fiction },
         { title: 'Non-fiction highlights', items: bookContent.nonFiction },
         { title: 'New releases', items: bookContent.newReleases }
+      ]
+    }
+
+    if (activeTab === 'music') {
+      return [
+        { title: 'Popular albums', items: musicContent.popular },
+        { title: 'Classic masterpieces', items: musicContent.topRated },
+        { title: 'Latest releases', items: musicContent.newReleases }
       ]
     }
     
@@ -5782,26 +6493,15 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Contenu scrollable avec loading state pour films et livres */}
+        {/* Contenu scrollable avec loading state */}
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
-          {(moviesLoading && activeTab === 'movies') || (booksLoading && activeTab === 'books') ? (
+          {(moviesLoading && activeTab === 'movies') || 
+           (booksLoading && activeTab === 'books') || 
+           (musicLoading && activeTab === 'music') ? (
             <div className="space-y-6">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="mb-8">
                   <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
-                  <div className="flex space-x-4 overflow-x-auto pb-4">
-                    {[1, 2, 3, 4].map((j) => (
-                      <div key={j} className="flex-shrink-0 w-32">
-                        <div className="w-32 h-40 bg-gray-200 rounded-lg animate-pulse mb-3"></div>
-                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
-                        <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
                   <div className="flex space-x-4 overflow-x-auto pb-4">
                     {[1, 2, 3, 4].map((j) => (
                       <div key={j} className="flex-shrink-0 w-32">
@@ -5827,6 +6527,7 @@ export default function Home() {
                   onOpenGameDetail={handleOpenGameDetail}
                   onOpenMovieDetail={handleOpenMovieDetail}
                   onOpenBookDetail={handleOpenBookDetail}
+                  onOpenMusicDetail={handleOpenMusicDetail}
                 />
               ))}
             </div>
@@ -5850,6 +6551,7 @@ export default function Home() {
           onOpenGameDetail={handleOpenGameDetail}
           onOpenMovieDetail={handleOpenMovieDetail}
           onOpenBookDetail={handleOpenBookDetail}
+          onOpenMusicDetail={handleOpenMusicDetail}
           onOpenSearch={handleOpenSearch}
         />
       </div>
@@ -5869,7 +6571,7 @@ export default function Home() {
           </div>
           <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Recommended for You</h3>
-            <p className="text-gray-600">Based on your gaming preferences</p>
+            <p className="text-gray-600">Based on your preferences</p>
           </div>
         </div>
       </div>
@@ -5912,7 +6614,7 @@ export default function Home() {
         gameId={selectedGameId || ''}
         onAddToLibrary={handleAddToLibrary}
         library={library}
-        userReviews={selectedGameId ? userReviews[parseInt(selectedGameId)] || [] : []}
+        userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
         googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
         onReviewSubmit={handleReviewSubmit}
       />
@@ -5923,7 +6625,7 @@ export default function Home() {
         movieId={selectedMovieId || ''}
         onAddToLibrary={handleAddToLibrary}
         library={library}
-        userReviews={selectedMovieId ? userReviews[parseInt(selectedMovieId)] || [] : []}
+        userReviews={selectedMovieId ? userReviews[selectedMovieId] || [] : []}
         imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
         onReviewSubmit={handleReviewSubmit}
       />
@@ -5934,8 +6636,19 @@ export default function Home() {
         bookId={selectedBookId || ''}
         onAddToLibrary={handleAddToLibrary}
         library={library}
-        userReviews={selectedBookId ? userReviews[parseInt(selectedBookId)] || [] : []}
+        userReviews={selectedBookId ? userReviews[selectedBookId] || [] : []}
         goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <MusicDetailModal
+        isOpen={!!selectedMusicId}
+        onClose={() => setSelectedMusicId(null)}
+        albumId={selectedMusicId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedMusicId ? userReviews[selectedMusicId] || [] : []}
+        spotifyReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}
         onReviewSubmit={handleReviewSubmit}
       />
 
@@ -5946,6 +6659,7 @@ export default function Home() {
         onOpenGameDetail={handleOpenGameDetail}
         onOpenMovieDetail={handleOpenMovieDetail}
         onOpenBookDetail={handleOpenBookDetail}
+        onOpenMusicDetail={handleOpenMusicDetail}
         library={library}
       />
     </div>
@@ -5960,6 +6674,7 @@ import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
+import { musicService } from '@/services/musicService'
 import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
 
 interface SearchModalProps {
@@ -5969,6 +6684,7 @@ interface SearchModalProps {
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
   onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void
   library: LibraryItem[]
 }
 
@@ -5979,6 +6695,7 @@ export default function SearchModal({
   onOpenGameDetail,
   onOpenMovieDetail,
   onOpenBookDetail,
+  onOpenMusicDetail,
   library = []
 }: SearchModalProps) {
   const [query, setQuery] = useState('')
@@ -5999,7 +6716,6 @@ export default function SearchModal({
 
   // API Keys
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
-  const OMDB_API_KEY = '649f9a63' // Votre clé OMDB fonctionnelle
 
   // Sécurité : Assurer que library est toujours un array
   const safeLibrary = Array.isArray(library) ? library : []
@@ -6283,7 +6999,6 @@ export default function SearchModal({
 
   const searchMovies = async (query: string): Promise<SearchResult[]> => {
     try {
-      // Utiliser OMDB pour la recherche
       const movies = await omdbService.searchMovies(query)
       return movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
     } catch (error) {
@@ -6293,24 +7008,13 @@ export default function SearchModal({
   }
 
   const searchMusic = async (query: string): Promise<SearchResult[]> => {
-    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=8`
-    const response = await fetchWithTimeout(url)
-    const data = await response.json()
-    
-    if (!data.results) {
-      throw new Error('No music data received')
+    try {
+      const albums = await musicService.searchAlbums(query, 8)
+      return albums.map(album => musicService.convertToAppFormat(album))
+    } catch (error) {
+      console.error('iTunes search failed:', error)
+      throw error
     }
-
-    return data.results.map((album: any) => ({
-      id: `music-${album.collectionId}`,
-      title: album.collectionName || 'Unknown Album',
-      artist: album.artistName || 'Unknown Artist',
-      year: album.releaseDate ? new Date(album.releaseDate).getFullYear() : new Date().getFullYear(),
-      rating: 0,
-      genre: album.primaryGenreName || 'Unknown',
-      category: 'music' as const,
-      image: album.artworkUrl100
-    }))
   }
 
   const searchBooks = async (query: string): Promise<SearchResult[]> => {
@@ -6385,6 +7089,9 @@ export default function SearchModal({
       onClose()
     } else if (result.category === 'books' && onOpenBookDetail) {
       onOpenBookDetail(result.id.replace('book-', ''))
+      onClose()
+    } else if (result.category === 'music' && onOpenMusicDetail) {
+      onOpenMusicDetail(result.id.replace('music-', ''))
       onClose()
     } else {
       onAddToLibrary(result, 'want-to-play')
