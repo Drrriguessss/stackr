@@ -8,7 +8,7 @@ import GameDetailModal from '@/components/GameDetailModal'
 import SearchModal from '@/components/SearchModal'
 import { sampleContent } from '@/data/sampleContent'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
-import type { LibraryItem, Review, MediaCategory, MediaStatus } from '@/types'
+import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<MediaCategory>('games')
@@ -19,7 +19,7 @@ export default function Home() {
   // User reviews state - now per game
   const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
 
-  // ✅ FONCTION CORRIGÉE - Normalisation des IDs avec types stricts
+  // Fonction corrigée pour ajouter à la bibliothèque
   const handleAddToLibrary = (item: any, status: MediaStatus) => {
     // Normaliser l'ID pour éviter les doublons
     const normalizedId = normalizeId(item.id)
@@ -107,7 +107,7 @@ export default function Home() {
     }));
   };
 
-  // ✅ Generate unique Steam reviews for each game - AMÉLIORÉ
+  // Generate unique Steam reviews for each game
   const generateSteamReviews = (gameId: number): Review[] => {
     // Base de reviews templates plus variées et réalistes
     const reviewTemplates = [
@@ -164,7 +164,7 @@ export default function Home() {
     }
 
     // Trier par nombre de "helpful" votes décroissant
-    return selectedReviews.sort((a, b) => b.helpful! - a.helpful!);
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
   };
 
   // Configuration des sections par catégorie
@@ -202,7 +202,7 @@ export default function Home() {
     return sectionConfig[activeTab] || sectionConfig.games
   }
 
-  const getCurrentContent = () => {
+  const getCurrentContent = (): ContentItem[] => {
     switch (activeTab) {
       case 'games': return sampleContent.games
       case 'movies': return sampleContent.movies
@@ -215,7 +215,7 @@ export default function Home() {
   const sections = getSections()
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-white">
       <Header 
         onAddToLibrary={handleAddToLibrary} 
         library={library}

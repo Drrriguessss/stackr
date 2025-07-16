@@ -1,20 +1,4 @@
-export interface ContentItem {
-  id: string
-  title: string
-  name?: string
-  author?: string
-  artist?: string
-  director?: string
-  year: number
-  rating: number
-  genre: string
-  image?: string
-  background_image?: string
-  released?: string
-  developers?: Array<{name: string}>
-  genres?: Array<{name: string}>
-  category?: string
-}
+import type { ContentItem } from '@/types'
 
 export const sampleContent = {
   games: [
@@ -31,7 +15,7 @@ export const sampleContent = {
       released: '2022-02-25',
       developers: [{ name: 'FromSoftware' }],
       genres: [{ name: 'RPG' }, { name: 'Action' }],
-      category: 'games'
+      category: 'games' as const
     },
     {
       id: '41494',
@@ -46,7 +30,7 @@ export const sampleContent = {
       released: '2020-12-10',
       developers: [{ name: 'CD PROJEKT RED' }],
       genres: [{ name: 'RPG' }, { name: 'Adventure' }],
-      category: 'games'
+      category: 'games' as const
     },
     {
       id: '3328',
@@ -61,7 +45,7 @@ export const sampleContent = {
       released: '2015-05-18',
       developers: [{ name: 'CD PROJEKT RED' }],
       genres: [{ name: 'RPG' }, { name: 'Adventure' }],
-      category: 'games'
+      category: 'games' as const
     },
     {
       id: '58175',
@@ -76,7 +60,7 @@ export const sampleContent = {
       released: '2018-04-20',
       developers: [{ name: 'Santa Monica Studio' }],
       genres: [{ name: 'Action' }, { name: 'Adventure' }],
-      category: 'games'
+      category: 'games' as const
     },
     {
       id: '622492',
@@ -91,7 +75,7 @@ export const sampleContent = {
       released: '2023-10-20',
       developers: [{ name: 'Insomniac Games' }],
       genres: [{ name: 'Action' }, { name: 'Adventure' }],
-      category: 'games'
+      category: 'games' as const
     },
     {
       id: '422',
@@ -106,7 +90,7 @@ export const sampleContent = {
       released: '2023-08-03',
       developers: [{ name: 'Larian Studios' }],
       genres: [{ name: 'RPG' }, { name: 'Strategy' }],
-      category: 'games'
+      category: 'games' as const
     },
     {
       id: '28',
@@ -121,7 +105,7 @@ export const sampleContent = {
       released: '2018-10-26',
       developers: [{ name: 'Rockstar Studios' }],
       genres: [{ name: 'Action' }, { name: 'Adventure' }],
-      category: 'games'
+      category: 'games' as const
     },
     {
       id: '326243',
@@ -136,7 +120,7 @@ export const sampleContent = {
       released: '2023-05-12',
       developers: [{ name: 'Nintendo EPD' }],
       genres: [{ name: 'Adventure' }, { name: 'Puzzle' }],
-      category: 'games'
+      category: 'games' as const
     }
   ],
   
@@ -149,7 +133,7 @@ export const sampleContent = {
       rating: 4.2,
       genre: 'Sci-Fi',
       image: 'https://image.tmdb.org/t/p/w500/d5NuKzxEfgLAE6twC18pSnWnOzw.jpg',
-      category: 'movies'
+      category: 'movies' as const
     },
     {
       id: 'inception',
@@ -159,7 +143,7 @@ export const sampleContent = {
       rating: 4.8,
       genre: 'Sci-Fi',
       image: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
-      category: 'movies'
+      category: 'movies' as const
     },
     {
       id: 'interstellar',
@@ -169,7 +153,7 @@ export const sampleContent = {
       rating: 4.7,
       genre: 'Sci-Fi Drama',
       image: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-      category: 'movies'
+      category: 'movies' as const
     },
     {
       id: 'the-batman',
@@ -179,7 +163,7 @@ export const sampleContent = {
       rating: 4.3,
       genre: 'Action',
       image: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
-      category: 'movies'
+      category: 'movies' as const
     },
     {
       id: 'top-gun-maverick',
@@ -189,7 +173,7 @@ export const sampleContent = {
       rating: 4.5,
       genre: 'Action',
       image: 'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
-      category: 'movies'
+      category: 'movies' as const
     },
     {
       id: 'everything-everywhere',
@@ -199,7 +183,7 @@ export const sampleContent = {
       rating: 4.6,
       genre: 'Sci-Fi Comedy',
       image: 'https://image.tmdb.org/t/p/w500/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg',
-      category: 'movies'
+      category: 'movies' as const
     },
     {
       id: 'avatar-2',
@@ -209,7 +193,7 @@ export const sampleContent = {
       rating: 4.4,
       genre: 'Sci-Fi',
       image: 'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
-      category: 'movies'
+      category: 'movies' as const
     },
     {
       id: 'oppenheimer',
@@ -219,7 +203,7 @@ export const sampleContent = {
       rating: 4.7,
       genre: 'Drama',
       image: 'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
-      category: 'movies'
+      category: 'movies' as const
     }
   ],
 
@@ -232,7 +216,7 @@ export const sampleContent = {
       rating: 4.5,
       genre: 'Electronic',
       image: 'https://images.genius.com/2b3eafa25e5fb5bb0ab8f73ab9d09634.1000x1000x1.jpg',
-      category: 'music'
+      category: 'music' as const
     },
     {
       id: 'after-hours',
@@ -242,7 +226,7 @@ export const sampleContent = {
       rating: 4.3,
       genre: 'R&B',
       image: 'https://images.genius.com/a9922ad23c21e6a2b6f97e65c5c2ea2b.1000x1000x1.jpg',
-      category: 'music'
+      category: 'music' as const
     },
     {
       id: 'abbey-road',
@@ -252,7 +236,7 @@ export const sampleContent = {
       rating: 4.9,
       genre: 'Rock',
       image: 'https://images.genius.com/aeeef7f8b02c67a7f27a8f5e7e2fc439.1000x1000x1.jpg',
-      category: 'music'
+      category: 'music' as const
     },
     {
       id: 'good-kid-maad-city',
@@ -262,7 +246,7 @@ export const sampleContent = {
       rating: 4.8,
       genre: 'Hip Hop',
       image: 'https://images.genius.com/abd8db8081e5daed5d833bdece4a6e0e.1000x1000x1.jpg',
-      category: 'music'
+      category: 'music' as const
     },
     {
       id: 'blond',
@@ -272,7 +256,7 @@ export const sampleContent = {
       rating: 4.4,
       genre: 'R&B',
       image: 'https://images.genius.com/76e4c6b6cc6c81ac6fe45eae25ddc1a6.1000x1000x1.jpg',
-      category: 'music'
+      category: 'music' as const
     },
     {
       id: 'folklore',
@@ -282,7 +266,7 @@ export const sampleContent = {
       rating: 4.2,
       genre: 'Indie Folk',
       image: 'https://images.genius.com/fb9e8d5997d6df7794ae60fc1df2b3a5.1000x1000x1.jpg',
-      category: 'music'
+      category: 'music' as const
     },
     {
       id: 'astroworld',
@@ -292,7 +276,7 @@ export const sampleContent = {
       rating: 4.3,
       genre: 'Hip Hop',
       image: 'https://images.genius.com/d842b9a63b5d30b5ce7bb85f6be86e19.1000x1000x1.jpg',
-      category: 'music'
+      category: 'music' as const
     },
     {
       id: 'sour',
@@ -302,7 +286,7 @@ export const sampleContent = {
       rating: 4.1,
       genre: 'Pop',
       image: 'https://images.genius.com/53b8d0c0df2e45c6ce8b23fa5e8e8fce.1000x1000x1.jpg',
-      category: 'music'
+      category: 'music' as const
     }
   ],
 
@@ -315,7 +299,7 @@ export const sampleContent = {
       rating: 4.2,
       genre: 'Thriller',
       image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582398159i/40097951.jpg',
-      category: 'books'
+      category: 'books' as const
     },
     {
       id: 'dune-book',
@@ -325,7 +309,7 @@ export const sampleContent = {
       rating: 4.6,
       genre: 'Sci-Fi',
       image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1555447414i/44767458.jpg',
-      category: 'books'
+      category: 'books' as const
     },
     {
       id: '1984',
@@ -335,7 +319,7 @@ export const sampleContent = {
       rating: 4.8,
       genre: 'Dystopian',
       image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1532714506i/40961427.jpg',
-      category: 'books'
+      category: 'books' as const
     },
     {
       id: 'it-starts-with-us',
@@ -345,7 +329,7 @@ export const sampleContent = {
       rating: 4.1,
       genre: 'Romance',
       image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1628449804i/58784475.jpg',
-      category: 'books'
+      category: 'books' as const
     },
     {
       id: 'the-love-hypothesis',
@@ -355,7 +339,7 @@ export const sampleContent = {
       rating: 4.0,
       genre: 'Romance',
       image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1611937942i/56732449.jpg',
-      category: 'books'
+      category: 'books' as const
     },
     {
       id: 'project-hail-mary',
@@ -365,7 +349,7 @@ export const sampleContent = {
       rating: 4.7,
       genre: 'Sci-Fi',
       image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1597695864i/54493401.jpg',
-      category: 'books'
+      category: 'books' as const
     },
     {
       id: 'where-crawdads-sing',
@@ -375,7 +359,7 @@ export const sampleContent = {
       rating: 4.5,
       genre: 'Fiction',
       image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582135294i/36809135.jpg',
-      category: 'books'
+      category: 'books' as const
     },
     {
       id: 'atomic-habits',
@@ -385,7 +369,7 @@ export const sampleContent = {
       rating: 4.6,
       genre: 'Self-Help',
       image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1655988385i/40121378.jpg',
-      category: 'books'
+      category: 'books' as const
     }
   ]
 }

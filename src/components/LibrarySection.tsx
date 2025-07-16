@@ -54,24 +54,24 @@ export default function LibrarySection({
   }
 
   // Get status display info
-const getStatusInfo = (status: string) => {
-  switch (status) {
-    case 'want-to-play': return { label: 'Wishlist', color: 'bg-purple-500', icon: 'Heart' }
-    case 'currently-playing': return { label: 'Playing', color: 'bg-blue-500', icon: 'Clock' }
-    case 'completed': return { label: 'Completed', color: 'bg-green-500', icon: 'CheckCircle' }
-    case 'dropped': return { label: 'Dropped', color: 'bg-red-500', icon: 'Trash2' }
-    case 'paused': return { label: 'Paused', color: 'bg-yellow-500', icon: 'Clock' }
-    default: return { label: status, color: 'bg-gray-500', icon: 'Clock' }
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'want-to-play': return { label: 'Wishlist', color: 'status-want', icon: 'Heart' }
+      case 'currently-playing': return { label: 'Playing', color: 'status-playing', icon: 'Clock' }
+      case 'completed': return { label: 'Completed', color: 'status-completed', icon: 'CheckCircle' }
+      case 'dropped': return { label: 'Dropped', color: 'status-dropped', icon: 'Trash2' }
+      case 'paused': return { label: 'Paused', color: 'status-paused', icon: 'Clock' }
+      default: return { label: status, color: 'bg-gray-100 text-gray-600 border-gray-200', icon: 'Clock' }
+    }
   }
-}
 
   const getCategoryInfo = (category: string) => {
     switch (category) {
-      case 'games': return { label: 'Games', icon: '🎮', color: 'text-green-400' }
-      case 'movies': return { label: 'Movies', icon: '🎬', color: 'text-blue-400' }
-      case 'music': return { label: 'Music', icon: '🎵', color: 'text-purple-400' }
-      case 'books': return { label: 'Books', icon: '📚', color: 'text-orange-400' }
-      default: return { label: category, icon: '📄', color: 'text-gray-400' }
+      case 'games': return { label: 'Games', icon: '🎮', color: 'text-green-600' }
+      case 'movies': return { label: 'Movies', icon: '🎬', color: 'text-blue-600' }
+      case 'music': return { label: 'Music', icon: '🎵', color: 'text-purple-600' }
+      case 'books': return { label: 'Books', icon: '📚', color: 'text-orange-600' }
+      default: return { label: category, icon: '📄', color: 'text-gray-600' }
     }
   }
 
@@ -104,20 +104,20 @@ const getStatusInfo = (status: string) => {
 
   // Quick Edit Modal Component
   const QuickEditModal = ({ item }: { item: LibraryItem }) => (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-xl w-full max-w-md border border-gray-700">
-        <div className="p-4 border-b border-gray-700">
-          <h3 className="text-white font-medium">Edit {item.title}</h3>
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
+        <div className="p-4 border-b border-gray-100">
+          <h3 className="text-gray-900 font-medium">Edit {item.title}</h3>
         </div>
         
         <div className="p-4 space-y-4">
           {/* Status */}
           <div>
-            <label className="block text-gray-300 text-sm mb-2">Status</label>
+            <label className="block text-gray-700 text-sm mb-2 font-medium">Status</label>
             <select
               value={item.status}
               onChange={(e) => handleStatusChange(item.id, e.target.value as MediaStatus)}
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 border border-gray-600"
+              className="w-full bg-white text-gray-900 rounded-lg px-3 py-2 border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
             >
               <option value="want-to-play">Wishlist</option>
               <option value="currently-playing">Playing</option>
@@ -129,13 +129,13 @@ const getStatusInfo = (status: string) => {
 
           {/* Rating */}
           <div>
-            <label className="block text-gray-300 text-sm mb-2">Rating</label>
+            <label className="block text-gray-700 text-sm mb-2 font-medium">Rating</label>
             <div className="flex space-x-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
                   onClick={() => onUpdateItem?.(item.id, { userRating: star })}
-                  className={`p-1 ${(item.userRating || 0) >= star ? 'text-yellow-400' : 'text-gray-600'}`}
+                  className={`p-1 transition-colors ${(item.userRating || 0) >= star ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'}`}
                 >
                   <Star size={20} fill={(item.userRating || 0) >= star ? 'currentColor' : 'none'} />
                 </button>
@@ -146,24 +146,24 @@ const getStatusInfo = (status: string) => {
           {/* Progress */}
           {item.status === 'currently-playing' && (
             <div>
-              <label className="block text-gray-300 text-sm mb-2">Progress (%)</label>
+              <label className="block text-gray-700 text-sm mb-2 font-medium">Progress (%)</label>
               <input
                 type="range"
                 min="0"
                 max="100"
                 value={item.progress || 0}
                 onChange={(e) => onUpdateItem?.(item.id, { progress: parseInt(e.target.value) })}
-                className="w-full"
+                className="w-full accent-blue-500"
               />
-              <div className="text-center text-gray-400 text-sm mt-1">{item.progress || 0}%</div>
+              <div className="text-center text-gray-600 text-sm mt-1">{item.progress || 0}%</div>
             </div>
           )}
         </div>
 
-        <div className="p-4 border-t border-gray-700 flex justify-end space-x-2">
+        <div className="p-4 border-t border-gray-100 flex justify-end space-x-2">
           <button
             onClick={() => setEditingItem(null)}
-            className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
           >
             Close
           </button>
@@ -173,7 +173,7 @@ const getStatusInfo = (status: string) => {
                 onDeleteItem(item.id)
                 setEditingItem(null)
               }}
-              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
             >
               Delete
             </button>
@@ -187,17 +187,17 @@ const getStatusInfo = (status: string) => {
     return (
       <section className="mt-12 mb-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">Your Library</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Your Library</h2>
         </div>
         
-        <div className="text-center py-12 bg-gray-900/50 rounded-xl border-2 border-dashed border-gray-700">
+        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
           <div className="text-6xl mb-4">📚</div>
-          <h3 className="text-xl font-semibold text-white mb-2">Your library is empty</h3>
-          <p className="text-gray-400 mb-6">Start adding games, movies, music, and books to track your collection!</p>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Your library is empty</h3>
+          <p className="text-gray-600 mb-6">Start adding games, movies, music, and books to track your collection!</p>
           {onOpenSearch && (
             <button 
               onClick={onOpenSearch}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+              className="btn-primary"
             >
               Add Your First Item
             </button>
@@ -211,9 +211,9 @@ const getStatusInfo = (status: string) => {
     <section className="mt-12 mb-8">
       {/* Header with title and controls */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">
+        <h2 className="text-2xl font-bold text-gray-900">
           Your Library
-          <span className="text-lg font-normal text-gray-400 ml-2">
+          <span className="text-lg font-normal text-gray-500 ml-2">
             ({library.length} items)
           </span>
         </h2>
@@ -223,7 +223,7 @@ const getStatusInfo = (status: string) => {
           {onOpenSearch && (
             <button
               onClick={onOpenSearch}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+              className="btn-primary flex items-center space-x-2"
             >
               <Search size={16} />
               <span>Add Items</span>
@@ -231,13 +231,13 @@ const getStatusInfo = (status: string) => {
           )}
           
           {/* View Mode Toggle */}
-          <div className="flex items-center space-x-2 bg-gray-800 rounded-lg p-1">
+          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1 border border-gray-200">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded transition-colors ${
                 viewMode === 'grid' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <Grid size={16} />
@@ -246,8 +246,8 @@ const getStatusInfo = (status: string) => {
               onClick={() => setViewMode('list')}
               className={`p-2 rounded transition-colors ${
                 viewMode === 'list' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <List size={16} />
@@ -264,7 +264,7 @@ const getStatusInfo = (status: string) => {
           placeholder="Search your library..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-gray-800 text-white pl-10 pr-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 outline-none"
+          className="w-full bg-white text-gray-900 pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
         />
       </div>
 
@@ -281,15 +281,15 @@ const getStatusInfo = (status: string) => {
           <button
             key={key}
             onClick={() => setActiveFilter(key)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
               activeFilter === key
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900 border-gray-200'
             }`}
           >
             <span>{icon}</span>
             <span>{label}</span>
-            <span className="text-xs opacity-75">
+            <span className="text-xs opacity-75 bg-white/20 px-1.5 py-0.5 rounded">
               ({getStatusCount(key)})
             </span>
           </button>
@@ -298,9 +298,9 @@ const getStatusInfo = (status: string) => {
 
       {/* Content */}
       {filteredLibrary.length === 0 ? (
-        <div className="text-center py-8 bg-gray-900/30 rounded-xl">
+        <div className="text-center py-8 bg-gray-50 rounded-xl border border-gray-200">
           <div className="text-4xl mb-3">🔍</div>
-          <p className="text-gray-400">
+          <p className="text-gray-600">
             {searchQuery 
               ? `No items found for "${searchQuery}"` 
               : `No items found for "${activeFilter === 'all' ? 'all' : activeFilter.replace('-', ' ')}" filter`
@@ -342,10 +342,10 @@ const getStatusInfo = (status: string) => {
                 const categoryInfo = getCategoryInfo(item.category)
                 
                 return (
-                  <div key={item.id} className="bg-gray-900 rounded-lg p-4 border border-gray-800 hover:border-gray-700 transition-colors">
+                  <div key={item.id} className="library-card p-4">
                     <div className="flex items-center space-x-4">
                       {/* Image */}
-                      <div className="w-16 h-20 rounded-lg bg-gray-800 flex-shrink-0 overflow-hidden">
+                      <div className="w-16 h-20 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
                         {item.image ? (
                           <img
                             src={item.image}
@@ -363,16 +363,16 @@ const getStatusInfo = (status: string) => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="text-white font-medium">{item.title}</h3>
-                            <p className="text-gray-400 text-sm">{getCreator(item)}</p>
+                            <h3 className="text-gray-900 font-medium">{item.title}</h3>
+                            <p className="text-gray-600 text-sm">{getCreator(item)}</p>
                             <div className="flex items-center space-x-2 mt-1">
                               <span className={`text-xs ${categoryInfo.color}`}>
                                 {categoryInfo.icon} {categoryInfo.label}
                               </span>
                               {item.year && (
                                 <>
-                                  <span className="text-gray-500">•</span>
-                                  <span className="text-gray-400 text-xs">{item.year}</span>
+                                  <span className="text-gray-400">•</span>
+                                  <span className="text-gray-500 text-xs">{item.year}</span>
                                 </>
                               )}
                             </div>
@@ -380,7 +380,7 @@ const getStatusInfo = (status: string) => {
 
                           <button
                             onClick={() => setEditingItem(item.id)}
-                            className="text-gray-400 hover:text-white p-1"
+                            className="text-gray-400 hover:text-gray-600 p-1"
                           >
                             <MoreVertical size={16} />
                           </button>
@@ -389,30 +389,30 @@ const getStatusInfo = (status: string) => {
                         {/* Status and Progress */}
                         <div className="flex items-center justify-between mt-3">
                           <div className="flex items-center space-x-3">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${statusInfo.color} flex items-center space-x-1`}>
-                              {statusInfo.icon === 'Heart' && <Heart size={14} />}
-{statusInfo.icon === 'Clock' && <Clock size={14} />}
-{statusInfo.icon === 'CheckCircle' && <CheckCircle size={14} />}
-{statusInfo.icon === 'Trash2' && <Trash2 size={14} />}
+                            <span className={`status-badge ${statusInfo.color} flex items-center space-x-1`}>
+                              {statusInfo.icon === 'Heart' && <Heart size={12} />}
+                              {statusInfo.icon === 'Clock' && <Clock size={12} />}
+                              {statusInfo.icon === 'CheckCircle' && <CheckCircle size={12} />}
+                              {statusInfo.icon === 'Trash2' && <Trash2 size={12} />}
                               <span>{statusInfo.label}</span>
                             </span>
 
                             {item.userRating && (
                               <div className="flex items-center space-x-1">
-                                <Star size={14} className="text-yellow-400" fill="currentColor" />
-                                <span className="text-sm text-gray-300">{item.userRating}/5</span>
+                                <Star size={12} className="text-yellow-500" fill="currentColor" />
+                                <span className="text-sm text-gray-700">{item.userRating}/5</span>
                               </div>
                             )}
 
                             {item.status === 'currently-playing' && item.progress && (
                               <div className="flex items-center space-x-2">
-                                <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
                                   <div 
                                     className="h-full bg-blue-500 transition-all"
                                     style={{ width: `${item.progress}%` }}
                                   />
                                 </div>
-                                <span className="text-xs text-gray-400">{item.progress}%</span>
+                                <span className="text-xs text-gray-500">{item.progress}%</span>
                               </div>
                             )}
                           </div>
@@ -433,21 +433,21 @@ const getStatusInfo = (status: string) => {
 
       {/* Quick stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-purple-400">{getStatusCount('want-to-play')}</div>
-          <div className="text-sm text-gray-400">Wishlist</div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-orange-600">{getStatusCount('want-to-play')}</div>
+          <div className="text-sm text-gray-600">Wishlist</div>
         </div>
-        <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-blue-400">{getStatusCount('currently-playing')}</div>
-          <div className="text-sm text-gray-400">Playing</div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-green-600">{getStatusCount('currently-playing')}</div>
+          <div className="text-sm text-gray-600">Playing</div>
         </div>
-        <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-green-400">{getStatusCount('completed')}</div>
-          <div className="text-sm text-gray-400">Completed</div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-blue-600">{getStatusCount('completed')}</div>
+          <div className="text-sm text-gray-600">Completed</div>
         </div>
-        <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-yellow-400">{library.length}</div>
-          <div className="text-sm text-gray-400">Total Items</div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-gray-900">{library.length}</div>
+          <div className="text-sm text-gray-600">Total Items</div>
         </div>
       </div>
 

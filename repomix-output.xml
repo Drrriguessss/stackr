@@ -1,0 +1,3419 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+.repomixignore
+eslint.config.mjs
+next.config.js
+next.config.ts
+package.json
+postcss.config.mjs
+public/file.svg
+public/globe.svg
+public/next.svg
+public/vercel.svg
+public/window.svg
+src/app/globals.css
+src/app/layout.tsx
+src/app/page.tsx
+src/components/CategoryTabs.tsx
+src/components/ContentCard.tsx
+src/components/ContentSection.tsx
+src/components/GameCardHorizontal.tsx
+src/components/GameDetailModal.tsx
+src/components/Header.tsx
+src/components/LibrarySection.tsx
+src/components/SearchModal.tsx
+src/data/sampleContent.ts
+src/tailwind.config.js
+src/types/index.ts
+src/utils/idNormalizer.ts
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".repomixignore">
+node_modules/
+.next/
+.env*
+*.log
+.git/
+.vercel/
+</file>
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="eslint.config.mjs">
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
+
+const eslintConfig = [
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+];
+
+export default eslintConfig;
+</file>
+
+<file path="next.config.js">
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  eslint: {
+    // Désactiver ESLint pendant le build
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Ignorer les erreurs TypeScript pendant le build
+    ignoreBuildErrors: true,
+  },
+}
+
+module.exports = nextConfig
+</file>
+
+<file path="next.config.ts">
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+</file>
+
+<file path="postcss.config.mjs">
+const config = {
+  plugins: ["@tailwindcss/postcss"],
+};
+
+export default config;
+</file>
+
+<file path="public/file.svg">
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+</file>
+
+<file path="public/globe.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+</file>
+
+<file path="public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="public/vercel.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+</file>
+
+<file path="public/window.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path="src/tailwind.config.js">
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        gray: {
+          950: '#0a0a0a',
+          900: '#1a1a1a',
+          850: '#1f1f1f',
+          800: '#2a2a2a',
+          750: '#333333',
+          700: '#404040',
+        },
+        blue: {
+          600: '#667eea',
+          700: '#5a67d8',
+        }
+      },
+    },
+  },
+  plugins: [],
+}
+</file>
+
+<file path="src/types/index.ts">
+/**
+ * Types TypeScript centralisés pour toute l'application
+ * Assure la cohérence des types et évite la duplication
+ */
+
+// Types de base pour les médias
+export type MediaCategory = 'games' | 'movies' | 'music' | 'books'
+export type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
+
+// Interface pour les items de contenu (recherche, sections, etc.)
+export interface ContentItem {
+  id: string
+  title: string
+  year: number
+  rating?: number
+  genre?: string
+  category: MediaCategory
+  image?: string
+  
+  // Créateurs selon le type de média
+  author?: string      // Pour les livres
+  artist?: string      // Pour la musique
+  director?: string    // Pour les films
+  
+  // Données spécifiques aux jeux (RAWG API)
+  background_image?: string
+  developers?: Array<{ name: string }>
+  genres?: Array<{ name: string }>
+  released?: string
+  
+  // Propriété alternative pour les noms
+  name?: string
+}
+
+// Interface pour les items dans la bibliothèque utilisateur
+export interface LibraryItem extends ContentItem {
+  status: MediaStatus
+  addedAt: string
+  dateStarted?: string
+  dateCompleted?: string
+  userRating?: number    // Note utilisateur (1-5)
+  progress?: number      // Progression en % (0-100)
+  notes?: string         // Notes personnelles
+}
+
+// Interface pour les résultats de recherche
+export interface SearchResult extends ContentItem {
+  // Hérite de ContentItem, pas besoin d'ajouter de propriétés
+}
+
+// Interface pour les reviews/critiques
+export interface Review {
+  id: string | number
+  username: string
+  rating: number
+  text?: string
+  review?: string  // Alias pour text
+  date: string
+  helpful?: number
+  platform?: string
+}
+
+// Options de statut pour les popups
+export interface StatusOption {
+  value: MediaStatus
+  label: string
+}
+</file>
+
+<file path="src/utils/idNormalizer.ts">
+/**
+ * Utilitaire pour normaliser les IDs et éviter la duplication de code
+ */
+
+export const normalizeId = (id: string): string => {
+  if (!id) return ''
+  return id.toString().replace(/^(game-|movie-|music-|book-)/, '')
+}
+
+export const addCategoryPrefix = (id: string, category: string): string => {
+  const normalizedId = normalizeId(id)
+  const prefixes = {
+    games: 'game-',
+    movies: 'movie-',
+    music: 'music-',
+    books: 'book-'
+  }
+  
+  const prefix = prefixes[category as keyof typeof prefixes] || ''
+  return `${prefix}${normalizedId}`
+}
+
+export const idsMatch = (id1: string, id2: string): boolean => {
+  return normalizeId(id1) === normalizeId(id2)
+}
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "stackr",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "lucide-react": "^0.525.0",
+    "next": "15.3.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+</file>
+
+<file path="src/app/globals.css">
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  /* Masquer les barres de défilement sur desktop */
+  @media (min-width: 768px) {
+    ::-webkit-scrollbar {
+      display: none;
+      width: 0px;
+      background: transparent;
+    }
+    
+    * {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    
+    .horizontal-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-behavior: smooth;
+      scroll-snap-type: x mandatory;
+    }
+    
+    .horizontal-scroll::-webkit-scrollbar {
+      display: none;
+      height: 0px;
+    }
+  }
+
+  /* Scrollbars sur mobile */
+  @media (max-width: 767px) {
+    ::-webkit-scrollbar {
+      display: block;
+      width: 2px;
+      height: 2px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background-color: rgba(156, 163, 175, 0.3);
+      border-radius: 1px;
+    }
+    
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+    }
+  }
+}
+
+@layer components {
+  /* Cards et contenu */
+  .content-card {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .content-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Sections de contenu */
+  .content-section {
+    scroll-margin-top: 2rem;
+  }
+
+  /* Modals */
+  .modal-backdrop {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Reviews Steam */
+  .steam-review {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.8), rgba(17, 24, 39, 0.9));
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .steam-review:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+    transform: translateY(-1px);
+  }
+}
+
+@layer base {
+  /* Smooth scrolling global */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+</file>
+
+<file path="src/app/layout.tsx">
+import { Inter } from 'next/font/google'
+import './globals.css'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata = {
+  title: 'Stackr - Your Universal Library',
+  description: 'Track games, movies, music, and books all in one place',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className={`${inter.className} bg-gray-950 text-white min-h-screen`}>
+        {children}
+      </body>
+    </html>
+  )
+}
+</file>
+
+<file path="src/components/CategoryTabs.tsx">
+'use client'
+
+interface CategoryTabsProps {
+  activeTab: string
+  onTabChange: (tab: string) => void
+}
+
+export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
+  const tabs = [
+    { id: 'games', name: 'Games', shortName: 'Games' },
+    { id: 'movies', name: 'Movies/Series', shortName: 'Movies' },
+    { id: 'music', name: 'Music', shortName: 'Music' },
+    { id: 'books', name: 'Books', shortName: 'Books' },
+  ]
+
+  return (
+    <div className="flex space-x-1 bg-gray-800 p-1 rounded-xl mb-8">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex-1 py-3 px-2 sm:px-4 rounded-lg font-medium transition-all duration-200 text-center text-sm sm:text-base ${
+            activeTab === tab.id
+              ? 'bg-white text-gray-900 shadow-lg font-semibold'
+              : 'text-gray-400 hover:text-white hover:bg-gray-700'
+          }`}
+        >
+          {/* Affiche le nom court sur mobile, nom complet sur desktop */}
+          <span className="sm:hidden">{tab.shortName}</span>
+          <span className="hidden sm:inline">{tab.name}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+</file>
+
+<file path="src/components/GameCardHorizontal.tsx">
+'use client'
+import { Star, Plus, Play, Check } from 'lucide-react'
+
+interface GameCardHorizontalProps {
+  game: {
+    id: string
+    title: string
+    image: string
+    year: number
+    rating: number
+    genre?: string
+    status?: string
+  }
+  onCardClick: (gameId: string) => void
+  onAddToLibrary?: (gameId: string, status: string) => void
+  library?: any[]
+}
+
+export default function GameCardHorizontal({ 
+  game, 
+  onCardClick, 
+  onAddToLibrary = () => {},
+  library = [] 
+}: GameCardHorizontalProps) {
+  const libraryItem = library.find(item => item.id === game.id)
+  const currentStatus = libraryItem?.status
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'want-to-play': return <Plus size={14} />
+      case 'currently-playing': return <Play size={14} />
+      case 'completed': return <Check size={14} />
+      default: return <Plus size={14} />
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'want-to-play': return 'Want to Play'
+      case 'currently-playing': return 'Playing'
+      case 'completed': return 'Completed'
+      default: return 'Want to Play'
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'want-to-play': return 'bg-blue-600 hover:bg-blue-500'
+      case 'currently-playing': return 'bg-green-600 hover:bg-green-500'
+      case 'completed': return 'bg-purple-600 hover:bg-purple-500'
+      default: return 'bg-blue-600 hover:bg-blue-500'
+    }
+  }
+
+  return (
+    <div className="group flex bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl overflow-hidden hover:from-gray-700 hover:to-gray-800 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg">
+      {/* Image cliquable */}
+      <div 
+        className="relative w-32 h-24 bg-gray-700 flex-shrink-0 cursor-pointer"
+        onClick={() => onCardClick(game.id)}
+      >
+        {game.image ? (
+          <img
+            src={game.image}
+            alt={game.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+            <span className="text-white text-lg">🎮</span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+      </div>
+
+      {/* Contenu principal */}
+      <div className="flex-1 p-4 flex items-center justify-between">
+        <div className="flex-1">
+          <h3 
+            className="text-white font-semibold text-base truncate cursor-pointer group-hover:text-blue-300 transition-colors"
+            onClick={() => onCardClick(game.id)}
+          >
+            {game.title}
+          </h3>
+          
+          <div className="flex items-center space-x-3 mt-1">
+            <span className="text-gray-400 text-sm">
+              {game.year}
+            </span>
+            <div className="flex items-center space-x-1">
+              <Star size={12} className="text-yellow-400 fill-current" />
+              <span className="text-gray-300 text-sm">
+                {game.rating.toFixed(1)}
+              </span>
+            </div>
+          </div>
+
+          {game.genre && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs font-medium mt-2">
+              {game.genre}
+            </span>
+          )}
+        </div>
+
+        {/* Boutons d'action - Version verticale */}
+        {onAddToLibrary && (
+          <div className="flex flex-col space-y-2 ml-4">
+            {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
+              <button
+                key={status}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onAddToLibrary(game.id, status)
+                }}
+                className={`flex items-center justify-center w-8 h-8 rounded-lg text-white text-xs font-medium transition-colors ${
+                  currentStatus === status
+                    ? getStatusColor(status).replace('hover:', '')
+                    : 'bg-gray-700 hover:bg-gray-600'
+                }`}
+                title={getStatusLabel(status)}
+              >
+                {getStatusIcon(status)}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/data/sampleContent.ts">
+export interface ContentItem {
+  id: string
+  title: string
+  name?: string
+  author?: string
+  artist?: string
+  director?: string
+  year: number
+  rating: number
+  genre: string
+  image?: string
+  background_image?: string
+  released?: string
+  developers?: Array<{name: string}>
+  genres?: Array<{name: string}>
+  category?: string
+}
+
+export const sampleContent = {
+  games: [
+    {
+      id: '22511',
+      title: 'Elden Ring',
+      name: 'Elden Ring',
+      author: 'FromSoftware',
+      year: 2022,
+      rating: 4.8,
+      genre: 'Action RPG',
+      image: 'https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg',
+      background_image: 'https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg',
+      released: '2022-02-25',
+      developers: [{ name: 'FromSoftware' }],
+      genres: [{ name: 'RPG' }, { name: 'Action' }],
+      category: 'games'
+    },
+    {
+      id: '41494',
+      title: 'Cyberpunk 2077',
+      name: 'Cyberpunk 2077',
+      author: 'CD Projekt RED',
+      year: 2020,
+      rating: 4.1,
+      genre: 'RPG',
+      image: 'https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg',
+      background_image: 'https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg',
+      released: '2020-12-10',
+      developers: [{ name: 'CD PROJEKT RED' }],
+      genres: [{ name: 'RPG' }, { name: 'Adventure' }],
+      category: 'games'
+    },
+    {
+      id: '3328',
+      title: 'The Witcher 3: Wild Hunt',
+      name: 'The Witcher 3: Wild Hunt',
+      author: 'CD Projekt RED', 
+      year: 2015,
+      rating: 4.9,
+      genre: 'RPG',
+      image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg',
+      background_image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg',
+      released: '2015-05-18',
+      developers: [{ name: 'CD PROJEKT RED' }],
+      genres: [{ name: 'RPG' }, { name: 'Adventure' }],
+      category: 'games'
+    },
+    {
+      id: '58175',
+      title: 'God of War',
+      name: 'God of War',
+      author: 'Santa Monica Studio',
+      year: 2018,
+      rating: 4.7,
+      genre: 'Action Adventure',
+      image: 'https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg',
+      background_image: 'https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg',
+      released: '2018-04-20',
+      developers: [{ name: 'Santa Monica Studio' }],
+      genres: [{ name: 'Action' }, { name: 'Adventure' }],
+      category: 'games'
+    },
+    {
+      id: '622492',
+      title: 'Spider-Man 2',
+      name: 'Spider-Man 2',
+      author: 'Insomniac Games',
+      year: 2023,
+      rating: 4.6,
+      genre: 'Action Adventure',
+      image: 'https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg',
+      background_image: 'https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg',
+      released: '2023-10-20',
+      developers: [{ name: 'Insomniac Games' }],
+      genres: [{ name: 'Action' }, { name: 'Adventure' }],
+      category: 'games'
+    },
+    {
+      id: '422',
+      title: 'Baldurs Gate 3',
+      name: 'Baldurs Gate 3',
+      author: 'Larian Studios',
+      year: 2023,
+      rating: 4.9,
+      genre: 'RPG',
+      image: 'https://media.rawg.io/media/games/699/69993db1cfcaf895c8b22603ee1aae62.jpg',
+      background_image: 'https://media.rawg.io/media/games/699/69993db1cfcaf895c8b22603ee1aae62.jpg',
+      released: '2023-08-03',
+      developers: [{ name: 'Larian Studios' }],
+      genres: [{ name: 'RPG' }, { name: 'Strategy' }],
+      category: 'games'
+    },
+    {
+      id: '28',
+      title: 'Red Dead Redemption 2',
+      name: 'Red Dead Redemption 2',
+      author: 'Rockstar Games',
+      year: 2018,
+      rating: 4.8,
+      genre: 'Action Adventure',
+      image: 'https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg',
+      background_image: 'https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg',
+      released: '2018-10-26',
+      developers: [{ name: 'Rockstar Studios' }],
+      genres: [{ name: 'Action' }, { name: 'Adventure' }],
+      category: 'games'
+    },
+    {
+      id: '326243',
+      title: 'Zelda: Tears of the Kingdom',
+      name: 'The Legend of Zelda: Tears of the Kingdom',
+      author: 'Nintendo',
+      year: 2023,
+      rating: 4.9,
+      genre: 'Adventure',
+      image: 'https://media.rawg.io/media/games/8d9/8d92b2b6b28c5497f7a52049e6d0e95d.jpg',
+      background_image: 'https://media.rawg.io/media/games/8d9/8d92b2b6b28c5497f7a52049e6d0e95d.jpg',
+      released: '2023-05-12',
+      developers: [{ name: 'Nintendo EPD' }],
+      genres: [{ name: 'Adventure' }, { name: 'Puzzle' }],
+      category: 'games'
+    }
+  ],
+  
+  movies: [
+    {
+      id: 'dune-2021',
+      title: 'Dune',
+      director: 'Denis Villeneuve',
+      year: 2021,
+      rating: 4.2,
+      genre: 'Sci-Fi',
+      image: 'https://image.tmdb.org/t/p/w500/d5NuKzxEfgLAE6twC18pSnWnOzw.jpg',
+      category: 'movies'
+    },
+    {
+      id: 'inception',
+      title: 'Inception',
+      director: 'Christopher Nolan',
+      year: 2010,
+      rating: 4.8,
+      genre: 'Sci-Fi',
+      image: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
+      category: 'movies'
+    },
+    {
+      id: 'interstellar',
+      title: 'Interstellar',
+      director: 'Christopher Nolan',
+      year: 2014,
+      rating: 4.7,
+      genre: 'Sci-Fi Drama',
+      image: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+      category: 'movies'
+    },
+    {
+      id: 'the-batman',
+      title: 'The Batman',
+      director: 'Matt Reeves',
+      year: 2022,
+      rating: 4.3,
+      genre: 'Action',
+      image: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
+      category: 'movies'
+    },
+    {
+      id: 'top-gun-maverick',
+      title: 'Top Gun: Maverick',
+      director: 'Joseph Kosinski',
+      year: 2022,
+      rating: 4.5,
+      genre: 'Action',
+      image: 'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
+      category: 'movies'
+    },
+    {
+      id: 'everything-everywhere',
+      title: 'Everything Everywhere All at Once',
+      director: 'Daniels',
+      year: 2022,
+      rating: 4.6,
+      genre: 'Sci-Fi Comedy',
+      image: 'https://image.tmdb.org/t/p/w500/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg',
+      category: 'movies'
+    },
+    {
+      id: 'avatar-2',
+      title: 'Avatar: The Way of Water',
+      director: 'James Cameron',
+      year: 2022,
+      rating: 4.4,
+      genre: 'Sci-Fi',
+      image: 'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
+      category: 'movies'
+    },
+    {
+      id: 'oppenheimer',
+      title: 'Oppenheimer',
+      director: 'Christopher Nolan',
+      year: 2023,
+      rating: 4.7,
+      genre: 'Drama',
+      image: 'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
+      category: 'movies'
+    }
+  ],
+
+  music: [
+    {
+      id: 'random-access-memories',
+      title: 'Random Access Memories',
+      artist: 'Daft Punk',
+      year: 2013,
+      rating: 4.5,
+      genre: 'Electronic',
+      image: 'https://images.genius.com/2b3eafa25e5fb5bb0ab8f73ab9d09634.1000x1000x1.jpg',
+      category: 'music'
+    },
+    {
+      id: 'after-hours',
+      title: 'After Hours',
+      artist: 'The Weeknd',
+      year: 2020,
+      rating: 4.3,
+      genre: 'R&B',
+      image: 'https://images.genius.com/a9922ad23c21e6a2b6f97e65c5c2ea2b.1000x1000x1.jpg',
+      category: 'music'
+    },
+    {
+      id: 'abbey-road',
+      title: 'Abbey Road',
+      artist: 'The Beatles',
+      year: 1969,
+      rating: 4.9,
+      genre: 'Rock',
+      image: 'https://images.genius.com/aeeef7f8b02c67a7f27a8f5e7e2fc439.1000x1000x1.jpg',
+      category: 'music'
+    },
+    {
+      id: 'good-kid-maad-city',
+      title: 'good kid, m.A.A.d city',
+      artist: 'Kendrick Lamar',
+      year: 2012,
+      rating: 4.8,
+      genre: 'Hip Hop',
+      image: 'https://images.genius.com/abd8db8081e5daed5d833bdece4a6e0e.1000x1000x1.jpg',
+      category: 'music'
+    },
+    {
+      id: 'blond',
+      title: 'Blond',
+      artist: 'Frank Ocean',
+      year: 2016,
+      rating: 4.4,
+      genre: 'R&B',
+      image: 'https://images.genius.com/76e4c6b6cc6c81ac6fe45eae25ddc1a6.1000x1000x1.jpg',
+      category: 'music'
+    },
+    {
+      id: 'folklore',
+      title: 'Folklore',
+      artist: 'Taylor Swift',
+      year: 2020,
+      rating: 4.2,
+      genre: 'Indie Folk',
+      image: 'https://images.genius.com/fb9e8d5997d6df7794ae60fc1df2b3a5.1000x1000x1.jpg',
+      category: 'music'
+    },
+    {
+      id: 'astroworld',
+      title: 'Astroworld',
+      artist: 'Travis Scott',
+      year: 2018,
+      rating: 4.3,
+      genre: 'Hip Hop',
+      image: 'https://images.genius.com/d842b9a63b5d30b5ce7bb85f6be86e19.1000x1000x1.jpg',
+      category: 'music'
+    },
+    {
+      id: 'sour',
+      title: 'SOUR',
+      artist: 'Olivia Rodrigo',
+      year: 2021,
+      rating: 4.1,
+      genre: 'Pop',
+      image: 'https://images.genius.com/53b8d0c0df2e45c6ce8b23fa5e8e8fce.1000x1000x1.jpg',
+      category: 'music'
+    }
+  ],
+
+  books: [
+    {
+      id: 'the-silent-patient',
+      title: 'The Silent Patient',
+      author: 'Alex Michaelides',
+      year: 2019,
+      rating: 4.2,
+      genre: 'Thriller',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582398159i/40097951.jpg',
+      category: 'books'
+    },
+    {
+      id: 'dune-book',
+      title: 'Dune',
+      author: 'Frank Herbert',
+      year: 1965,
+      rating: 4.6,
+      genre: 'Sci-Fi',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1555447414i/44767458.jpg',
+      category: 'books'
+    },
+    {
+      id: '1984',
+      title: '1984',
+      author: 'George Orwell',
+      year: 1949,
+      rating: 4.8,
+      genre: 'Dystopian',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1532714506i/40961427.jpg',
+      category: 'books'
+    },
+    {
+      id: 'it-starts-with-us',
+      title: 'It Starts with Us',
+      author: 'Colleen Hoover',
+      year: 2022,
+      rating: 4.1,
+      genre: 'Romance',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1628449804i/58784475.jpg',
+      category: 'books'
+    },
+    {
+      id: 'the-love-hypothesis',
+      title: 'The Love Hypothesis',
+      author: 'Ali Hazelwood',
+      year: 2021,
+      rating: 4.0,
+      genre: 'Romance',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1611937942i/56732449.jpg',
+      category: 'books'
+    },
+    {
+      id: 'project-hail-mary',
+      title: 'Project Hail Mary',
+      author: 'Andy Weir',
+      year: 2021,
+      rating: 4.7,
+      genre: 'Sci-Fi',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1597695864i/54493401.jpg',
+      category: 'books'
+    },
+    {
+      id: 'where-crawdads-sing',
+      title: 'Where the Crawdads Sing',
+      author: 'Delia Owens',
+      year: 2018,
+      rating: 4.5,
+      genre: 'Fiction',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582135294i/36809135.jpg',
+      category: 'books'
+    },
+    {
+      id: 'atomic-habits',
+      title: 'Atomic Habits',
+      author: 'James Clear',
+      year: 2018,
+      rating: 4.6,
+      genre: 'Self-Help',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1655988385i/40121378.jpg',
+      category: 'books'
+    }
+  ]
+}
+</file>
+
+<file path="src/components/LibrarySection.tsx">
+'use client'
+import { useState } from 'react'
+import { Filter, Grid, List, Search, Star, Calendar, Clock, CheckCircle, Heart, Trash2, Edit3, MoreVertical, Plus } from 'lucide-react'
+import ContentCard from './ContentCard'
+import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import type { LibraryItem, MediaStatus } from '@/types'
+
+interface LibrarySectionProps {
+  library: LibraryItem[]
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  onUpdateItem?: (id: string, updates: Partial<LibraryItem>) => void
+  onDeleteItem?: (id: string) => void
+  onOpenGameDetail?: (gameId: string) => void
+  onOpenSearch?: () => void
+}
+
+export default function LibrarySection({
+  library,
+  onAddToLibrary,
+  onUpdateItem,
+  onDeleteItem,
+  onOpenGameDetail,
+  onOpenSearch
+}: LibrarySectionProps) {
+  const [activeFilter, setActiveFilter] = useState('all')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [editingItem, setEditingItem] = useState<string | null>(null)
+
+  // Filter library by status and search
+  const filteredLibrary = library.filter(item => {
+    // Status filter
+    if (activeFilter !== 'all' && item.status !== activeFilter) return false
+    
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      return (
+        item.title.toLowerCase().includes(query) ||
+        item.author?.toLowerCase().includes(query) ||
+        item.artist?.toLowerCase().includes(query) ||
+        item.director?.toLowerCase().includes(query) ||
+        item.genre?.toLowerCase().includes(query)
+      )
+    }
+
+    return true
+  })
+
+  // Get status count
+  const getStatusCount = (status: string) => {
+    if (status === 'all') return library.length
+    return library.filter(item => item.status === status).length
+  }
+
+  // Get status display info
+const getStatusInfo = (status: string) => {
+  switch (status) {
+    case 'want-to-play': return { label: 'Wishlist', color: 'bg-purple-500', icon: 'Heart' }
+    case 'currently-playing': return { label: 'Playing', color: 'bg-blue-500', icon: 'Clock' }
+    case 'completed': return { label: 'Completed', color: 'bg-green-500', icon: 'CheckCircle' }
+    case 'dropped': return { label: 'Dropped', color: 'bg-red-500', icon: 'Trash2' }
+    case 'paused': return { label: 'Paused', color: 'bg-yellow-500', icon: 'Clock' }
+    default: return { label: status, color: 'bg-gray-500', icon: 'Clock' }
+  }
+}
+
+  const getCategoryInfo = (category: string) => {
+    switch (category) {
+      case 'games': return { label: 'Games', icon: '🎮', color: 'text-green-400' }
+      case 'movies': return { label: 'Movies', icon: '🎬', color: 'text-blue-400' }
+      case 'music': return { label: 'Music', icon: '🎵', color: 'text-purple-400' }
+      case 'books': return { label: 'Books', icon: '📚', color: 'text-orange-400' }
+      default: return { label: category, icon: '📄', color: 'text-gray-400' }
+    }
+  }
+
+  const getCreator = (item: LibraryItem) => {
+    return item.author || item.artist || item.director || 'Unknown'
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
+  const handleStatusChange = (itemId: string, newStatus: MediaStatus) => {
+    if (!onUpdateItem) return
+    
+    const updates: Partial<LibraryItem> = { status: newStatus }
+
+    if (newStatus === 'completed' && !library.find(i => i.id === itemId)?.dateCompleted) {
+      updates.dateCompleted = new Date().toISOString()
+    }
+    if (newStatus === 'currently-playing' && !library.find(i => i.id === itemId)?.dateStarted) {
+      updates.dateStarted = new Date().toISOString()
+    }
+
+    onUpdateItem(itemId, updates)
+  }
+
+  // Quick Edit Modal Component
+  const QuickEditModal = ({ item }: { item: LibraryItem }) => (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-gray-900 rounded-xl w-full max-w-md border border-gray-700">
+        <div className="p-4 border-b border-gray-700">
+          <h3 className="text-white font-medium">Edit {item.title}</h3>
+        </div>
+        
+        <div className="p-4 space-y-4">
+          {/* Status */}
+          <div>
+            <label className="block text-gray-300 text-sm mb-2">Status</label>
+            <select
+              value={item.status}
+              onChange={(e) => handleStatusChange(item.id, e.target.value as MediaStatus)}
+              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 border border-gray-600"
+            >
+              <option value="want-to-play">Wishlist</option>
+              <option value="currently-playing">Playing</option>
+              <option value="paused">Paused</option>
+              <option value="completed">Completed</option>
+              <option value="dropped">Dropped</option>
+            </select>
+          </div>
+
+          {/* Rating */}
+          <div>
+            <label className="block text-gray-300 text-sm mb-2">Rating</label>
+            <div className="flex space-x-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => onUpdateItem?.(item.id, { userRating: star })}
+                  className={`p-1 ${(item.userRating || 0) >= star ? 'text-yellow-400' : 'text-gray-600'}`}
+                >
+                  <Star size={20} fill={(item.userRating || 0) >= star ? 'currentColor' : 'none'} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Progress */}
+          {item.status === 'currently-playing' && (
+            <div>
+              <label className="block text-gray-300 text-sm mb-2">Progress (%)</label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={item.progress || 0}
+                onChange={(e) => onUpdateItem?.(item.id, { progress: parseInt(e.target.value) })}
+                className="w-full"
+              />
+              <div className="text-center text-gray-400 text-sm mt-1">{item.progress || 0}%</div>
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 border-t border-gray-700 flex justify-end space-x-2">
+          <button
+            onClick={() => setEditingItem(null)}
+            className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+          >
+            Close
+          </button>
+          {onDeleteItem && (
+            <button
+              onClick={() => {
+                onDeleteItem(item.id)
+                setEditingItem(null)
+              }}
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  if (library.length === 0) {
+    return (
+      <section className="mt-12 mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">Your Library</h2>
+        </div>
+        
+        <div className="text-center py-12 bg-gray-900/50 rounded-xl border-2 border-dashed border-gray-700">
+          <div className="text-6xl mb-4">📚</div>
+          <h3 className="text-xl font-semibold text-white mb-2">Your library is empty</h3>
+          <p className="text-gray-400 mb-6">Start adding games, movies, music, and books to track your collection!</p>
+          {onOpenSearch && (
+            <button 
+              onClick={onOpenSearch}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+            >
+              Add Your First Item
+            </button>
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="mt-12 mb-8">
+      {/* Header with title and controls */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-white">
+          Your Library
+          <span className="text-lg font-normal text-gray-400 ml-2">
+            ({library.length} items)
+          </span>
+        </h2>
+        
+        <div className="flex items-center space-x-2">
+          {/* Search button */}
+          {onOpenSearch && (
+            <button
+              onClick={onOpenSearch}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+            >
+              <Search size={16} />
+              <span>Add Items</span>
+            </button>
+          )}
+          
+          {/* View Mode Toggle */}
+          <div className="flex items-center space-x-2 bg-gray-800 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded transition-colors ${
+                viewMode === 'grid' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Grid size={16} />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded transition-colors ${
+                viewMode === 'list' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <List size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+        <input
+          type="text"
+          placeholder="Search your library..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-gray-800 text-white pl-10 pr-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 outline-none"
+        />
+      </div>
+
+      {/* Status filters */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {[
+          { key: 'all', label: 'All', icon: '📚' },
+          { key: 'want-to-play', label: 'Wishlist', icon: '❤️' },
+          { key: 'currently-playing', label: 'Playing', icon: '🎮' },
+          { key: 'completed', label: 'Completed', icon: '✅' },
+          { key: 'paused', label: 'Paused', icon: '⏸️' },
+          { key: 'dropped', label: 'Dropped', icon: '🗑️' }
+        ].map(({ key, label, icon }) => (
+          <button
+            key={key}
+            onClick={() => setActiveFilter(key)}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeFilter === key
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
+            }`}
+          >
+            <span>{icon}</span>
+            <span>{label}</span>
+            <span className="text-xs opacity-75">
+              ({getStatusCount(key)})
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {filteredLibrary.length === 0 ? (
+        <div className="text-center py-8 bg-gray-900/30 rounded-xl">
+          <div className="text-4xl mb-3">🔍</div>
+          <p className="text-gray-400">
+            {searchQuery 
+              ? `No items found for "${searchQuery}"` 
+              : `No items found for "${activeFilter === 'all' ? 'all' : activeFilter.replace('-', ' ')}" filter`
+            }
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Grid View */}
+          {viewMode === 'grid' && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 mb-8">
+              {filteredLibrary.map((item) => (
+                <div key={item.id} className="group relative">
+                  <ContentCard
+                    item={item}
+                    category={item.category}
+                    onAddToLibrary={onAddToLibrary}
+                    library={library}
+                    onOpenGameDetail={onOpenGameDetail}
+                  />
+                  
+                  {/* Edit button overlay */}
+                  <button
+                    onClick={() => setEditingItem(item.id)}
+                    className="absolute bottom-2 right-2 bg-black/70 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10"
+                  >
+                    <Edit3 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* List View */}
+          {viewMode === 'list' && (
+            <div className="space-y-3 mb-8">
+              {filteredLibrary.map((item) => {
+                const statusInfo = getStatusInfo(item.status)
+                const categoryInfo = getCategoryInfo(item.category)
+                
+                return (
+                  <div key={item.id} className="bg-gray-900 rounded-lg p-4 border border-gray-800 hover:border-gray-700 transition-colors">
+                    <div className="flex items-center space-x-4">
+                      {/* Image */}
+                      <div className="w-16 h-20 rounded-lg bg-gray-800 flex-shrink-0 overflow-hidden">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-lg">
+                            {categoryInfo.icon}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-white font-medium">{item.title}</h3>
+                            <p className="text-gray-400 text-sm">{getCreator(item)}</p>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className={`text-xs ${categoryInfo.color}`}>
+                                {categoryInfo.icon} {categoryInfo.label}
+                              </span>
+                              {item.year && (
+                                <>
+                                  <span className="text-gray-500">•</span>
+                                  <span className="text-gray-400 text-xs">{item.year}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => setEditingItem(item.id)}
+                            className="text-gray-400 hover:text-white p-1"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        </div>
+
+                        {/* Status and Progress */}
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="flex items-center space-x-3">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${statusInfo.color} flex items-center space-x-1`}>
+                              {statusInfo.icon === 'Heart' && <Heart size={14} />}
+{statusInfo.icon === 'Clock' && <Clock size={14} />}
+{statusInfo.icon === 'CheckCircle' && <CheckCircle size={14} />}
+{statusInfo.icon === 'Trash2' && <Trash2 size={14} />}
+                              <span>{statusInfo.label}</span>
+                            </span>
+
+                            {item.userRating && (
+                              <div className="flex items-center space-x-1">
+                                <Star size={14} className="text-yellow-400" fill="currentColor" />
+                                <span className="text-sm text-gray-300">{item.userRating}/5</span>
+                              </div>
+                            )}
+
+                            {item.status === 'currently-playing' && item.progress && (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-blue-500 transition-all"
+                                    style={{ width: `${item.progress}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-gray-400">{item.progress}%</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="text-xs text-gray-500">
+                            Added {formatDate(item.addedAt)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-purple-400">{getStatusCount('want-to-play')}</div>
+          <div className="text-sm text-gray-400">Wishlist</div>
+        </div>
+        <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-blue-400">{getStatusCount('currently-playing')}</div>
+          <div className="text-sm text-gray-400">Playing</div>
+        </div>
+        <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-green-400">{getStatusCount('completed')}</div>
+          <div className="text-sm text-gray-400">Completed</div>
+        </div>
+        <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-yellow-400">{library.length}</div>
+          <div className="text-sm text-gray-400">Total Items</div>
+        </div>
+      </div>
+
+      {/* Edit Modal */}
+      {editingItem && (
+        <QuickEditModal item={filteredLibrary.find(i => i.id === editingItem)!} />
+      )}
+    </section>
+  )
+}
+</file>
+
+<file path="src/components/ContentSection.tsx">
+'use client'
+import ContentCard from './ContentCard'
+import type { ContentItem, LibraryItem, MediaCategory, MediaStatus } from '@/types'
+
+interface ContentSectionProps {
+  title: string
+  items: ContentItem[]
+  category: MediaCategory
+  onAddToLibrary: (item: ContentItem, status: MediaStatus) => void
+  library: LibraryItem[]
+  onOpenGameDetail?: (gameId: string) => void
+}
+
+export default function ContentSection({ 
+  title, 
+  items, 
+  category, 
+  onAddToLibrary, 
+  library, 
+  onOpenGameDetail 
+}: ContentSectionProps) {
+  return (
+    <section className="mb-8">
+      {/* Section Header */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <h2 className="text-xl font-bold text-white">{title}</h2>
+        <button className="text-blue-400 text-sm font-medium hover:text-blue-300 transition-colors">
+          See all
+        </button>
+      </div>
+      
+      {/* ✅ Carrousel horizontal au lieu de grid */}
+      <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
+        {items.map((item) => (
+          <div key={item.id} className="flex-shrink-0 w-32">
+            <ContentCard
+              item={item}
+              category={category}
+              onAddToLibrary={onAddToLibrary}
+              library={library}
+              onOpenGameDetail={onOpenGameDetail}
+            />
+          </div>
+        ))}
+      </div>
+            
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </section>
+  )
+}
+</file>
+
+<file path="src/components/Header.tsx">
+'use client'
+import { useState } from 'react'
+import { Search, Camera, Bell, User } from 'lucide-react'
+import SearchModal from './SearchModal'
+import type { LibraryItem, MediaStatus } from '@/types'
+
+interface HeaderProps {
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  library: LibraryItem[]
+  onOpenGameDetail?: (gameId: string) => void
+}
+
+export default function Header({ onAddToLibrary, library, onOpenGameDetail }: HeaderProps) {
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
+  
+  return (
+    <>
+      <header className="flex items-center justify-between p-6 bg-gray-900">
+        {/* Logo */}
+        <div className="flex items-center">
+          <h1 className="text-2xl font-bold text-white">Stackr</h1>
+        </div>
+        
+        {/* Barre de recherche cliquable */}
+        <div className="flex-1 max-w-md mx-8">
+          <div 
+            className="relative cursor-pointer"
+            onClick={() => setIsSearchModalOpen(true)}
+          >
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <div className="w-full pl-10 pr-4 py-3 bg-gray-800 rounded-xl text-gray-400 hover:bg-gray-700 transition-colors">
+              <span className="hidden md:inline">Search games, movies, music, books...</span>
+              <span className="md:hidden">Search...</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Actions */}
+        <div className="flex items-center space-x-4">
+          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+            <Camera className="text-gray-400 hover:text-white" size={24} />
+          </button>
+          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+            <Bell className="text-gray-400 hover:text-white" size={24} />
+          </button>
+          {/* ✅ ICÔNE UTILISATEUR AU LIEU DU BOUTON */}
+          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+            <User className="text-gray-400 hover:text-white" size={24} />
+          </button>
+        </div>
+      </header>
+      
+      {/* Modal de recherche - ✅ AJOUT DE LA PROP LIBRARY */}
+      <SearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onAddToLibrary={onAddToLibrary}
+        onOpenGameDetail={(gameId) => {
+          setIsSearchModalOpen(false)
+          onOpenGameDetail?.(gameId)
+        }}
+        library={library}
+      />
+    </>
+  )
+}
+</file>
+
+<file path="src/components/ContentCard.tsx">
+'use client'
+import { useState } from 'react'
+import { idsMatch } from '@/utils/idNormalizer'
+import type { ContentItem, LibraryItem, MediaCategory, MediaStatus } from '@/types'
+
+interface ContentCardProps {
+  item: ContentItem
+  category: MediaCategory
+  onAddToLibrary: (item: ContentItem, status: MediaStatus) => void
+  library: LibraryItem[]
+  onOpenGameDetail?: (gameId: string) => void
+}
+
+export default function ContentCard({
+  item,
+  category,
+  onAddToLibrary,
+  library = [],
+  onOpenGameDetail
+}: ContentCardProps) {
+  const [showActions, setShowActions] = useState(false)
+
+  // ✅ SÉCURITÉ : Vérifier que library existe et utiliser normalisation d'ID
+  const safeLibrary = Array.isArray(library) ? library : []
+  const isInLibrary = safeLibrary.some((libItem: LibraryItem) => idsMatch(libItem.id, item.id))
+
+  const handleAdd = (status: MediaStatus) => {
+    onAddToLibrary(item, status)
+    setShowActions(false)
+  }
+
+  const handleCardClick = () => {
+    if (category === 'games' && onOpenGameDetail) {
+      onOpenGameDetail(item.id)
+    }
+  }
+
+  return (
+    <div className="group cursor-pointer">
+      <div 
+        className="relative w-full h-40 bg-gray-900 rounded-lg overflow-hidden"
+        onClick={handleCardClick}
+      >
+        {item.image ? (
+          <img 
+            src={item.image} 
+            alt={item.title} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+            <span className="text-white text-2xl">
+              {category === 'games' && '🎮'}
+              {category === 'movies' && '🎬'}
+              {category === 'music' && '🎵'}
+              {category === 'books' && '📚'}
+            </span>
+          </div>
+        )}
+        
+        <div className="absolute top-2 right-2">
+          {isInLibrary ? (
+            <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">
+              ✓
+            </div>
+          ) : (
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowActions(!showActions)
+                }}
+                className="w-7 h-7 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center transition-colors"
+              >
+                +
+              </button>
+              {showActions && (
+                <div className="absolute top-8 right-0 bg-gray-800/95 backdrop-blur-sm rounded-lg p-2 z-20 min-w-32 border border-gray-700">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdd('want-to-play')
+                    }} 
+                    className="block text-white text-xs p-2 hover:bg-gray-700 w-full text-left rounded transition-colors"
+                  >
+                    Want to {category === 'games' ? 'Play' : category === 'movies' ? 'Watch' : category === 'music' ? 'Listen' : 'Read'}
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdd('currently-playing')
+                    }} 
+                    className="block text-white text-xs p-2 hover:bg-gray-700 w-full text-left rounded transition-colors"
+                  >
+                    {category === 'games' ? 'Playing' : category === 'movies' ? 'Watching' : category === 'music' ? 'Listening' : 'Reading'}
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdd('completed')
+                    }} 
+                    className="block text-white text-xs p-2 hover:bg-gray-700 w-full text-left rounded transition-colors"
+                  >
+                    Completed
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-2">
+        <h3 className="text-white text-sm font-semibold truncate">{item.title}</h3>
+        <div className="flex justify-between text-xs text-gray-400 mt-1">
+          <span>{item.year}</span>
+          {item.rating && item.rating > 0 && (
+            <span className="flex items-center">
+              <span className="text-yellow-400 mr-1">★</span>
+              {item.rating.toFixed(1)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {showActions && (
+        <div 
+          className="fixed inset-0 z-10" 
+          onClick={() => setShowActions(false)}
+        />
+      )}
+    </div>
+  )
+}
+</file>
+
+<file path="src/components/GameDetailModal.tsx">
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { X, Star, ExternalLink, Tag, Globe } from 'lucide-react'
+import type { LibraryItem, Review, MediaStatus } from '@/types'
+
+interface GameDetailModalProps {
+  isOpen: boolean
+  onClose: () => void
+  gameId: string
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  library: LibraryItem[]
+  userReviews: Review[]
+  googleReviews: Review[]
+  onReviewSubmit: (reviewData: any) => void
+}
+
+interface GameDetail {
+  id: number
+  name: string
+  background_image: string
+  description_raw: string
+  rating: number
+  rating_count: number
+  released: string
+  platforms: { platform: { name: string } }[]
+  developers: { name: string }[]
+  publishers: { name: string }[]
+  genres: { name: string }[]
+  tags: { name: string }[]
+  website: string
+  stores: { store: { name: string }, url: string }[]
+  screenshots: { image: string }[]
+  metacritic: number
+  esrb_rating: { name: string }
+  parent_platforms: { platform: { name: string } }[]
+}
+
+export default function GameDetailModal({ 
+  isOpen, 
+  onClose, 
+  gameId, 
+  onAddToLibrary, 
+  library, 
+  userReviews, 
+  googleReviews, 
+  onReviewSubmit 
+}: GameDetailModalProps) {
+  const [gameDetail, setGameDetail] = useState<GameDetail | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info')
+  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
+  const [userRating, setUserRating] = useState<number>(0)
+  const [hoverRating, setHoverRating] = useState<number>(0)
+  const [showReviewBox, setShowReviewBox] = useState(false)
+  const [userReview, setUserReview] = useState('')
+  const [similarGames, setSimilarGames] = useState<any[]>([])
+  const [developerGames, setDeveloperGames] = useState<any[]>([])
+  const [similarGamesLoading, setSimilarGamesLoading] = useState(true)
+
+  const scrollableRef = useRef<HTMLDivElement>(null)
+
+  const gameStats = {
+    'want-to-play': 1247,
+    'currently-playing': 856,
+    'completed': 3421
+  }
+
+  const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+
+  // Steam Reviews
+  const steamReviews = [
+    { id: 1, username: 'SteamMaster', rating: 5, text: 'Absolutely incredible! Best game I\'ve played this year.', date: '2024-01-15' },
+    { id: 2, username: 'GameReviewer', rating: 4, text: 'Great storyline and graphics. Minor bugs but overall excellent.', date: '2024-01-12' },
+    { id: 3, username: 'RPGLover', rating: 5, text: 'Perfect RPG experience. Hours of entertainment guaranteed.', date: '2024-01-10' },
+    { id: 4, username: 'CasualGamer', rating: 4, text: 'Fun and engaging. Worth the money spent.', date: '2024-01-08' },
+    { id: 5, username: 'ProPlayer', rating: 5, text: 'Masterpiece! Revolutionary gameplay mechanics.', date: '2024-01-05' }
+  ]
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('info')
+      setSimilarGames([])
+      setDeveloperGames([])
+      setSimilarGamesLoading(true)
+    }
+  }, [isOpen, gameId])
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen && gameId) {
+      fetchGameDetail()
+    }
+  }, [isOpen, gameId])
+
+  useEffect(() => {
+    const libraryItem = library.find(item => item.id === gameId)
+    if (libraryItem) {
+      setSelectedStatus(libraryItem.status)
+    } else {
+      setSelectedStatus(null)
+    }
+  }, [gameId, library])
+
+  const fetchGameDetail = async () => {
+    if (!gameId) return
+    
+    setLoading(true)
+    try {
+      let rawgId = gameId
+      
+      if (gameId.startsWith('game-')) {
+        rawgId = gameId.replace('game-', '')
+      }
+      
+      if (isNaN(Number(rawgId))) {
+        const searchResponse = await fetch(
+          `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(rawgId)}&page_size=1`
+        )
+        const searchData = await searchResponse.json()
+        
+        if (searchData.results && searchData.results.length > 0) {
+          rawgId = searchData.results[0].id.toString()
+        } else {
+          throw new Error('Game not found in search')
+        }
+      }
+      
+      const response = await fetch(
+        `https://api.rawg.io/api/games/${rawgId}?key=${RAWG_API_KEY}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      setGameDetail(data)
+      setSimilarGamesLoading(false)
+      
+    } catch (error) {
+      console.error('Erreur lors du chargement des détails:', error)
+      setGameDetail(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleStatusSelect = (status: MediaStatus) => {
+    if (!gameDetail) return
+    
+    const gameItem = {
+      id: gameId,
+      title: gameDetail.name,
+      image: gameDetail.background_image,
+      category: 'games' as const,
+      year: gameDetail.released ? new Date(gameDetail.released).getFullYear() : 2024,
+      rating: gameDetail.rating
+    }
+    
+    onAddToLibrary(gameItem, status)
+    setSelectedStatus(status)
+  }
+
+  const getStatusLabel = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'Want to Play'
+      case 'currently-playing': return 'Playing'
+      case 'completed': return 'Completed'
+      case 'paused': return 'Paused'
+      case 'dropped': return 'Dropped'
+      default: return status
+    }
+  }
+
+  const handleSubmitReview = () => {
+    if (userRating > 0 && userReview.trim()) {
+      onReviewSubmit({
+        rating: userRating,
+        review: userReview.trim()
+      })
+      
+      setShowReviewBox(false)
+      setUserReview('')
+      setUserRating(0)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div 
+        className="bg-gray-900 rounded-xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          </div>
+        ) : gameDetail ? (
+          <>
+            {/* Header */}
+            <div 
+              className="relative h-48 bg-cover bg-center flex-shrink-0"
+              style={{ backgroundImage: `url(${gameDetail.background_image})` }}
+            >
+              <div className="absolute inset-0 bg-black/60"></div>
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+              >
+                <X size={24} />
+              </button>
+              
+              <div className="absolute bottom-4 left-4 right-4 flex items-end space-x-4">
+                <img
+                  src={gameDetail.background_image}
+                  alt={gameDetail.name}
+                  className="w-24 h-32 object-cover rounded-lg border-2 border-white/20"
+                />
+                <div className="flex-1 text-white">
+                  <h1 className="text-2xl font-bold mb-2">{gameDetail.name}</h1>
+                  
+                  {gameDetail.rating_count >= 10 && (
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={16}
+                            className={`${
+                              star <= gameDetail.rating ? 'text-yellow-400 fill-current' : 'text-gray-400'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm">
+                        {gameDetail.rating.toFixed(1)} ({gameDetail.rating_count.toLocaleString()} votes)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div ref={scrollableRef} className="flex-1 overflow-y-auto">
+              {/* Action buttons */}
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex space-x-2 mb-3">
+                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusSelect(status)}
+                      className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
+                        selectedStatus === status
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      <div className="text-sm">{getStatusLabel(status)}</div>
+                      <div className="text-xs opacity-75">
+                        {gameStats[status].toLocaleString()}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                
+                {selectedStatus && (
+                  <div className="mt-3 text-sm text-gray-400">
+                    Added to your library on {new Date().toLocaleDateString()}
+                  </div>
+                )}
+
+                {/* User rating */}
+                <div className="mt-4 pt-4 border-t border-gray-600">
+                  <h4 className="text-white font-medium mb-3">Rate this game</h4>
+                  <div className="flex items-center space-x-2 mb-3">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        onClick={() => {
+                          setUserRating(rating)
+                          setShowReviewBox(true)
+                        }}
+                        onMouseEnter={() => setHoverRating(rating)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className="relative"
+                      >
+                        <Star
+                          size={24}
+                          className={`transition-colors ${
+                            (hoverRating || userRating) >= rating
+                              ? 'text-yellow-400 fill-current'
+                              : 'text-gray-600'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    {userRating > 0 && (
+                      <span className="text-white ml-2">{userRating}/5</span>
+                    )}
+                  </div>
+                  
+                  {showReviewBox && (
+                    <div className="mt-3">
+                      <label className="text-sm text-gray-400 mb-2 block">Review this game (optional)</label>
+                      <textarea
+                        value={userReview}
+                        onChange={(e) => setUserReview(e.target.value)}
+                        placeholder="Share your thoughts about this game..."
+                        className="w-full h-20 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex space-x-2 mt-2">
+                        <button 
+                          onClick={handleSubmitReview}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500"
+                        >
+                          Submit
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setShowReviewBox(false)
+                            setUserReview('')
+                          }}
+                          className="px-4 py-2 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reviews Section */}
+              <div className="p-4 border-b border-gray-700">
+                <h3 className="text-white font-semibold mb-3">Recent Reviews</h3>
+                <div className="flex space-x-4 overflow-x-auto pb-2">
+                  {/* User reviews first */}
+                  {userReviews.map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-800 rounded-lg p-3 border-l-2 border-blue-500">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-lg">👤</span>
+                        <span className="text-white text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded">You</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-400'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-400 ml-1">{review.rating}</span>
+                      </div>
+                      <p className="text-gray-300 text-sm leading-relaxed">
+                        {review.review || review.text}
+                      </p>
+                    </div>
+                  ))}
+                  
+                  {/* Steam reviews */}
+                  {steamReviews.slice(0, 5).map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-800 rounded-lg p-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-lg">🎮</span>
+                        <span className="text-white text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded">Steam</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-400'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-400 ml-1">{review.rating}</span>
+                      </div>
+                      <p className="text-gray-300 text-sm leading-relaxed">
+                        {review.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700">
+                <div className="flex">
+                  {(['info', 'social', 'more'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 py-3 px-4 font-medium transition-colors ${
+                        activeTab === tab
+                          ? 'text-white border-b-2 border-blue-500'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tab content */}
+              <div className="p-4 bg-gray-900">
+                {activeTab === 'info' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-white font-semibold mb-2">About</h4>
+                      <p className="text-gray-300 text-sm leading-relaxed">
+                        {gameDetail.description_raw || 'No description available.'}
+                      </p>
+                    </div>
+
+                    {gameDetail.tags && gameDetail.tags.length > 0 && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-3">Tags</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {gameDetail.tags.slice(0, 12).map((tag, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-300 border border-blue-500/30 hover:border-blue-400/50 transition-colors cursor-pointer"
+                            >
+                              <Tag size={12} className="mr-1" />
+                              {tag.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <h5 className="text-white font-medium mb-1">Platforms</h5>
+                        <p className="text-gray-400">
+                          {gameDetail.platforms?.map(p => p.platform.name).join(', ') || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <h5 className="text-white font-medium mb-1">Release Date</h5>
+                        <p className="text-gray-400">
+                          {gameDetail.released ? new Date(gameDetail.released).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <h5 className="text-white font-medium mb-1">Developer</h5>
+                        <p className="text-gray-400">
+                          {gameDetail.developers?.[0]?.name || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <h5 className="text-white font-medium mb-1">Publisher</h5>
+                        <p className="text-gray-400">
+                          {gameDetail.publishers?.[0]?.name || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'social' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-white font-semibold mb-4">Community Stats</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-gray-800 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-blue-400">{gameStats['want-to-play'].toLocaleString()}</div>
+                          <div className="text-sm text-gray-400">Want to Play</div>
+                        </div>
+                        <div className="bg-gray-800 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-green-400">{gameStats['currently-playing'].toLocaleString()}</div>
+                          <div className="text-sm text-gray-400">Currently Playing</div>
+                        </div>
+                        <div className="bg-gray-800 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-purple-400">{gameStats['completed'].toLocaleString()}</div>
+                          <div className="text-sm text-gray-400">Completed</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'more' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-white font-semibold mb-3">External Links</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-4">
+                          <a 
+                            href={`https://store.steampowered.com/search/?term=${encodeURIComponent(gameDetail.name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Steam Store
+                          </a>
+                          <a 
+                            href={`https://www.metacritic.com/search/game/${encodeURIComponent(gameDetail.name)}/results`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Metacritic
+                          </a>
+                        </div>
+
+                        {gameDetail.website && (
+                          <a
+                            href={gameDetail.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg text-gray-300 hover:text-white transition-colors"
+                          >
+                            <Globe size={16} />
+                            <span>Official Website</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="p-8 text-center text-gray-400">
+            <p>Game not found</p>
+            <p className="text-sm mt-2">Unable to load game details. Please try again.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/page.tsx">
+'use client'
+import { useState } from 'react'
+import Header from '@/components/Header'
+import CategoryTabs from '@/components/CategoryTabs'
+import ContentSection from '@/components/ContentSection'
+import LibrarySection from '@/components/LibrarySection'
+import GameDetailModal from '@/components/GameDetailModal'
+import SearchModal from '@/components/SearchModal'
+import { sampleContent } from '@/data/sampleContent'
+import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import type { LibraryItem, Review, MediaCategory, MediaStatus } from '@/types'
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<MediaCategory>('games')
+  const [library, setLibrary] = useState<LibraryItem[]>([])
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  // User reviews state - now per game
+  const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
+
+  // ✅ FONCTION CORRIGÉE - Normalisation des IDs avec types stricts
+  const handleAddToLibrary = (item: any, status: MediaStatus) => {
+    // Normaliser l'ID pour éviter les doublons
+    const normalizedId = normalizeId(item.id)
+    
+    const newItem: LibraryItem = {
+      id: normalizedId,
+      title: item.title,
+      category: item.category || activeTab,
+      status,
+      addedAt: new Date().toISOString(),
+      year: item.year || new Date().getFullYear(),
+      rating: item.rating || 0,
+      image: item.image || item.background_image,
+      author: item.author,
+      artist: item.artist,
+      director: item.director,
+      genre: item.genre
+    }
+
+    setLibrary(prev => {
+      // Rechercher avec l'ID normalisé pour éviter les doublons
+      const existingIndex = prev.findIndex((libItem: LibraryItem) => 
+        idsMatch(libItem.id, normalizedId)
+      )
+      
+      if (existingIndex !== -1) {
+        // Mettre à jour l'item existant
+        const updated = [...prev]
+        updated[existingIndex] = { 
+          ...updated[existingIndex], 
+          status, 
+          addedAt: new Date().toISOString() 
+        }
+        return updated
+      }
+      
+      // Ajouter nouvel item
+      return [...prev, newItem]
+    })
+  }
+
+  // Fonction pour mettre à jour un item dans la library
+  const handleUpdateItem = (id: string, updates: Partial<LibraryItem>) => {
+    setLibrary(prev =>
+      prev.map(item =>
+        idsMatch(item.id, id)
+          ? { ...item, ...updates }
+          : item
+      )
+    )
+  }
+
+  // Fonction pour supprimer un item de la library
+  const handleDeleteItem = (id: string) => {
+    setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
+  }
+
+  // Fonction pour ouvrir fiche produit
+  const handleOpenGameDetail = (gameId: string) => {
+    // Normaliser l'ID pour la modal aussi
+    const normalizedGameId = normalizeId(gameId)
+    setSelectedGameId(normalizedGameId)
+  }
+
+  // Fonction pour ouvrir la recherche
+  const handleOpenSearch = () => {
+    setIsSearchOpen(true)
+  }
+
+  // Handle review submission - now saves per game
+  const handleReviewSubmit = (reviewData: any) => {
+    if (!selectedGameId) return;
+    
+    const newReview: Review = {
+      id: Date.now(),
+      username: "CurrentUser", // In real app, get from auth
+      rating: reviewData.rating,
+      review: reviewData.review,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    setUserReviews(prev => ({
+      ...prev,
+      [parseInt(selectedGameId)]: [...(prev[parseInt(selectedGameId)] || []), newReview]
+    }));
+  };
+
+  // ✅ Generate unique Steam reviews for each game - AMÉLIORÉ
+  const generateSteamReviews = (gameId: number): Review[] => {
+    // Base de reviews templates plus variées et réalistes
+    const reviewTemplates = [
+      { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
+      { rating: 4, text: "Great storyline and graphics. Minor bugs but overall excellent experience.", author: "GameReviewer", helpful: 89 },
+      { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
+      { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
+      { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 },
+      { rating: 5, text: "Addictive and well-designed. Can't stop playing! Lost track of time multiple times.", author: "GameAddict", helpful: 201 },
+      { rating: 4, text: "Fun gameplay with minor issues. Recommended for fans of the genre.", author: "FairReviewer", helpful: 67 },
+      { rating: 5, text: "Exceeded my expectations! This is a masterpiece in every sense.", author: "CriticPro", helpful: 312 },
+      { rating: 4, text: "Worth the money, great value. Some performance issues but nothing game-breaking.", author: "TechGamer", helpful: 91 },
+      { rating: 3, text: "Decent game, nothing special. Average experience, might appeal to some.", author: "NeutralPlayer", helpful: 23 },
+      { rating: 5, text: "Outstanding graphics and sound design! Immersive experience from start to finish.", author: "AudioVisual", helpful: 145 },
+      { rating: 4, text: "Engaging story, well-crafted characters. Some pacing issues but overall great.", author: "StoryLover", helpful: 98 },
+      { rating: 5, text: "Revolutionary gameplay mechanics. This game is a real game changer!", author: "InnovateFan", helpful: 267 },
+      { rating: 2, text: "Disappointing. Had high expectations based on trailers but fell short.", author: "LetDown", helpful: 34 },
+      { rating: 4, text: "Great multiplayer experience with friends. Solo play is also enjoyable.", author: "MultiPlayer", helpful: 112 },
+      { rating: 5, text: "Best graphics I've ever seen in a game. Runs smoothly on high settings.", author: "VisualFan", helpful: 189 },
+      { rating: 3, text: "Okay game, but gets repetitive after a while. Could use more variety.", author: "Gets0ld", helpful: 56 },
+      { rating: 4, text: "Challenging and rewarding. Worth the grind if you're patient.", author: "Grinder", helpful: 87 },
+      { rating: 5, text: "Emotional rollercoaster. Amazing storytelling that kept me hooked.", author: "EmotionalG", helpful: 234 },
+      { rating: 4, text: "Good optimization, runs smooth on my setup. Minor UI issues but nothing major.", author: "TechCheck", helpful: 76 }
+    ];
+
+    // Utiliser gameId comme seed pour des reviews cohérentes mais uniques par jeu
+    const seed = gameId;
+    const selectedReviews = [];
+    
+    // Générer 8-12 reviews par jeu selon l'ID
+    const numReviews = 8 + (seed % 5);
+
+    for (let i = 0; i < numReviews; i++) {
+      // Algorithme de sélection pseudo-aléatoire basé sur gameId
+      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length;
+      const template = reviewTemplates[index];
+      
+      // Varier légèrement les reviews selon le jeu
+      const gameSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25), // Varie de -25 à +25
+        daysAgo: (seed * i * 3) % 180 + 1, // 1-180 jours
+      };
+      
+      selectedReviews.push({
+        id: `steam_${gameId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: gameSpecificVariations.helpful,
+        date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Steam'
+      });
+    }
+
+    // Trier par nombre de "helpful" votes décroissant
+    return selectedReviews.sort((a, b) => b.helpful! - a.helpful!);
+  };
+
+  // Configuration des sections par catégorie
+  const getSections = () => {
+    const allContent = getCurrentContent()
+    
+    // Diviser en 3 sections de 4 items chacune
+    const popularItems = allContent.slice(0, 4)
+    const topRatedItems = allContent.slice(4, 8) 
+    const editorPicksItems = allContent.slice(0, 4) // Réutiliser les premiers pour variety
+
+    const sectionConfig = {
+      games: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Top rated of all time', items: topRatedItems },
+        { title: "Editor's Choice", items: editorPicksItems }
+      ],
+      movies: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Highly rated', items: topRatedItems },
+        { title: 'Staff picks', items: editorPicksItems }
+      ],
+      music: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Top albums', items: topRatedItems },
+        { title: 'Hidden gems', items: editorPicksItems }
+      ],
+      books: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Bestsellers', items: topRatedItems },
+        { title: 'Must reads', items: editorPicksItems }
+      ]
+    }
+
+    return sectionConfig[activeTab] || sectionConfig.games
+  }
+
+  const getCurrentContent = () => {
+    switch (activeTab) {
+      case 'games': return sampleContent.games
+      case 'movies': return sampleContent.movies
+      case 'music': return sampleContent.music
+      case 'books': return sampleContent.books
+      default: return sampleContent.games
+    }
+  }
+
+  const sections = getSections()
+
+  return (
+    <div className="min-h-screen bg-gray-950">
+      <Header 
+        onAddToLibrary={handleAddToLibrary} 
+        library={library}
+        onOpenGameDetail={handleOpenGameDetail}
+      />
+      
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <CategoryTabs 
+          activeTab={activeTab} 
+          onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
+        />
+
+        {/* Sections horizontales scrollables */}
+        <div className="space-y-6 sm:space-y-8">
+          {sections.map((section, index) => (
+            <ContentSection
+              key={`${activeTab}-${index}`}
+              title={section.title}
+              items={section.items}
+              category={activeTab}
+              onAddToLibrary={handleAddToLibrary}
+              library={library}
+              onOpenGameDetail={handleOpenGameDetail}
+            />
+          ))}
+        </div>
+
+        {/* Section Your Library avec filtres */}
+        <LibrarySection 
+          library={library}
+          onAddToLibrary={handleAddToLibrary}
+          onUpdateItem={handleUpdateItem}
+          onDeleteItem={handleDeleteItem}
+          onOpenGameDetail={handleOpenGameDetail}
+          onOpenSearch={handleOpenSearch}
+        />
+      </div>
+
+      {/* Modal fiche produit */}
+      <GameDetailModal
+        isOpen={!!selectedGameId}
+        onClose={() => setSelectedGameId(null)}
+        gameId={selectedGameId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedGameId ? userReviews[parseInt(selectedGameId)] || [] : []}
+        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      {/* Modal de recherche */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenGameDetail={handleOpenGameDetail}
+        library={library}
+      />
+    </div>
+  )
+}
+</file>
+
+<file path="src/components/SearchModal.tsx">
+'use client'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
+import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
+
+interface SearchModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  onOpenGameDetail?: (gameId: string) => void
+  library: LibraryItem[]
+}
+
+export default function SearchModal({
+  isOpen,
+  onClose,
+  onAddToLibrary,
+  onOpenGameDetail,
+  library = []
+}: SearchModalProps) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [error, setError] = useState<string | null>(null)
+  const [searchCache] = useState<Map<string, SearchResult[]>>(new Map())
+  const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
+  const [addingItem, setAddingItem] = useState<string | null>(null)
+  const [fadeOutPopup, setFadeOutPopup] = useState<string | null>(null)
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
+  const [justAddedItems, setJustAddedItems] = useState<Set<string>>(new Set())
+
+  const inputRef = useRef<HTMLInputElement>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
+
+  // API Keys
+  const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+  const OMDB_API_KEY = '649f9a63'
+
+  // Sécurité : Assurer que library est toujours un array
+  const safeLibrary = Array.isArray(library) ? library : []
+
+  // Focus input when modal opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [isOpen])
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowStatusPopup(null)
+    if (showStatusPopup) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showStatusPopup])
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('')
+      setResults([])
+      setSelectedIndex(-1)
+      setError(null)
+      setShowStatusPopup(null)
+      setAddingItem(null)
+      setFadeOutPopup(null)
+      setSelectedStatus(null)
+      setJustAddedItems(new Set())
+    }
+  }, [isOpen])
+
+  // ✅ FIX PRINCIPAL : Détection intelligente avec timeout de sécurité
+  useEffect(() => {
+    if (addingItem) {
+      const normalizedId = normalizeId(addingItem)
+      
+      // Vérifier si l'item est dans la library
+      const checkLibrary = () => {
+        const isInLibrary = safeLibrary.some((item: LibraryItem) => {
+          if (!item?.id) return false
+          return idsMatch(item.id, addingItem)
+        })
+        
+        if (isInLibrary) {
+          // Item détecté dans la library, finaliser le feedback
+          setAddingItem(null)
+          setJustAddedItems(prev => new Set([...prev, addingItem]))
+          
+          // Nettoyer après 3 secondes
+          setTimeout(() => {
+            setJustAddedItems(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(addingItem)
+              return newSet
+            })
+          }, 3000)
+        }
+      }
+      
+      // Vérifier immédiatement
+      checkLibrary()
+      
+      // ✅ TIMEOUT DE SÉCURITÉ : Si pas détecté après 5 secondes, forcer la fin
+      const timeoutId = setTimeout(() => {
+        console.warn('Adding timeout reached for:', addingItem)
+        setAddingItem(null)
+        setJustAddedItems(prev => new Set([...prev, addingItem]))
+        
+        setTimeout(() => {
+          setJustAddedItems(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(addingItem)
+            return newSet
+          })
+        }, 2000)
+      }, 5000)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [safeLibrary, addingItem])
+
+  // Get status options based on category
+  const getStatusOptions = (category: string): StatusOption[] => {
+    switch (category) {
+      case 'games':
+        return [
+          { value: 'want-to-play', label: 'Want to Play' },
+          { value: 'currently-playing', label: 'Playing' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      case 'movies':
+        return [
+          { value: 'want-to-play', label: 'Want to Watch' },
+          { value: 'currently-playing', label: 'Watching' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      case 'music':
+        return [
+          { value: 'want-to-play', label: 'Want to Listen' },
+          { value: 'currently-playing', label: 'Listening' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      case 'books':
+        return [
+          { value: 'want-to-play', label: 'Want to Read' },
+          { value: 'currently-playing', label: 'Reading' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      default:
+        return [
+          { value: 'want-to-play', label: 'Want to Play' },
+          { value: 'currently-playing', label: 'Playing' },
+          { value: 'completed', label: 'Completed' }
+        ]
+    }
+  }
+
+  // Check if item is in library avec sécurité
+  const getLibraryItem = (resultId: string): LibraryItem | undefined => {
+    return safeLibrary.find((libItem: LibraryItem) => {
+      if (!libItem?.id) return false
+      return idsMatch(libItem.id, resultId)
+    })
+  }
+
+  // Get status display label
+  const getStatusDisplayLabel = (status: MediaStatus, category: string): string => {
+    const options = getStatusOptions(category)
+    const option = options.find(opt => opt.value === status)
+    return option ? option.label : 'Added'
+  }
+
+  // Fetch with timeout utility
+  const fetchWithTimeout = async (url: string, timeout = 8000): Promise<Response> => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    
+    try {
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+      clearTimeout(timeoutId)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      return response
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout - please try again')
+      }
+      throw error
+    }
+  }
+
+  // Debounced search with caching
+  const debouncedSearch = useCallback(
+    debounce((searchQuery: string, category: string) => {
+      performSearch(searchQuery, category)
+    }, 500),
+    []
+  )
+
+  useEffect(() => {
+    if (!query.trim() || query.length < 2) {
+      setResults([])
+      setSelectedIndex(-1)
+      setError(null)
+      return
+    }
+
+    // Check cache first
+    const cacheKey = `${activeCategory}-${query.toLowerCase()}`
+    if (searchCache.has(cacheKey)) {
+      const cachedResults = searchCache.get(cacheKey)!
+      setResults(cachedResults)
+      setSelectedIndex(-1)
+      return
+    }
+
+    debouncedSearch(query, activeCategory)
+  }, [query, activeCategory, debouncedSearch, searchCache])
+
+  const performSearch = async (searchQuery: string, category: string) => {
+    if (!searchQuery.trim()) return
+    
+    setLoading(true)
+    setError(null)
+    setSelectedIndex(-1)
+
+    const allResults: SearchResult[] = []
+    const errors: string[] = []
+
+    try {
+      const searchPromises: Promise<SearchResult[]>[] = []
+
+      // Add search promises based on category
+      if (category === 'all' || category === 'games') {
+        searchPromises.push(searchGames(searchQuery).catch(err => {
+          errors.push(`Games: ${err.message}`)
+          return []
+        }))
+      }
+
+      if (category === 'all' || category === 'movies') {
+        searchPromises.push(searchMovies(searchQuery).catch(err => {
+          errors.push(`Movies: ${err.message}`)
+          return []
+        }))
+      }
+
+      if (category === 'all' || category === 'music') {
+        searchPromises.push(searchMusic(searchQuery).catch(err => {
+          errors.push(`Music: ${err.message}`)
+          return []
+        }))
+      }
+
+      if (category === 'all' || category === 'books') {
+        searchPromises.push(searchBooks(searchQuery).catch(err => {
+          errors.push(`Books: ${err.message}`)
+          return []
+        }))
+      }
+
+      const results = await Promise.all(searchPromises)
+      results.forEach(categoryResults => {
+        allResults.push(...categoryResults)
+      })
+
+      // Sort results by relevance (title match first, then by rating)
+      allResults.sort((a, b) => {
+        const aTitleMatch = a.title.toLowerCase().includes(searchQuery.toLowerCase())
+        const bTitleMatch = b.title.toLowerCase().includes(searchQuery.toLowerCase())
+        
+        if (aTitleMatch && !bTitleMatch) return -1
+        if (!aTitleMatch && bTitleMatch) return 1
+        
+        return (b.rating || 0) - (a.rating || 0)
+      })
+
+      // Cache results
+      const cacheKey = `${category}-${searchQuery.toLowerCase()}`
+      searchCache.set(cacheKey, allResults)
+
+      setResults(allResults)
+
+      if (errors.length > 0 && allResults.length === 0) {
+        setError(`Search failed: ${errors.join(', ')}`)
+      }
+
+    } catch (error) {
+      console.error('Search error:', error)
+      setError(error instanceof Error ? error.message : 'Search failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // API Search functions with better error handling
+  const searchGames = async (query: string): Promise<SearchResult[]> => {
+    const url = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=8`
+    const response = await fetchWithTimeout(url)
+    const data = await response.json()
+    
+    if (!data.results) {
+      throw new Error('No games data received')
+    }
+
+    return data.results.map((game: any) => ({
+      id: `game-${game.id}`,
+      title: game.name || 'Unknown Game',
+      author: game.developers?.[0]?.name || 'Unknown Developer',
+      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
+      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
+      genre: game.genres?.[0]?.name || 'Unknown',
+      category: 'games' as const,
+      image: game.background_image
+    }))
+  }
+
+  const searchMovies = async (query: string): Promise<SearchResult[]> => {
+    const url = `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(query)}&type=movie&page=1`
+    const response = await fetchWithTimeout(url)
+    const data = await response.json()
+    
+    if (data.Response === 'False') {
+      throw new Error(data.Error || 'No movies found')
+    }
+
+    return data.Search?.slice(0, 8).map((movie: any) => ({
+      id: `movie-${movie.imdbID}`,
+      title: movie.Title || 'Unknown Movie',
+      director: 'Unknown Director',
+      year: parseInt(movie.Year) || new Date().getFullYear(),
+      rating: 0,
+      genre: movie.Genre || 'Unknown',
+      category: 'movies' as const,
+      image: movie.Poster !== 'N/A' ? movie.Poster : undefined
+    })) || []
+  }
+
+  const searchMusic = async (query: string): Promise<SearchResult[]> => {
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=8`
+    const response = await fetchWithTimeout(url)
+    const data = await response.json()
+    
+    if (!data.results) {
+      throw new Error('No music data received')
+    }
+
+    return data.results.map((album: any) => ({
+      id: `music-${album.collectionId}`,
+      title: album.collectionName || 'Unknown Album',
+      artist: album.artistName || 'Unknown Artist',
+      year: album.releaseDate ? new Date(album.releaseDate).getFullYear() : new Date().getFullYear(),
+      rating: 0,
+      genre: album.primaryGenreName || 'Unknown',
+      category: 'music' as const,
+      image: album.artworkUrl100
+    }))
+  }
+
+  const searchBooks = async (query: string): Promise<SearchResult[]> => {
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=8&printType=books`
+    const response = await fetchWithTimeout(url)
+    const data = await response.json()
+    
+    if (!data.items) {
+      throw new Error('No books found')
+    }
+
+    return data.items.map((book: any) => ({
+      id: `book-${book.id}`,
+      title: book.volumeInfo.title || 'Unknown Book',
+      author: book.volumeInfo.authors?.[0] || 'Unknown Author',
+      year: book.volumeInfo.publishedDate ? parseInt(book.volumeInfo.publishedDate) : new Date().getFullYear(),
+      rating: book.volumeInfo.averageRating ? Number(book.volumeInfo.averageRating.toFixed(1)) : 0,
+      genre: book.volumeInfo.categories?.[0] || 'Unknown',
+      category: 'books' as const,
+      image: book.volumeInfo.imageLinks?.thumbnail
+    }))
+  }
+
+  // ✅ FEEDBACK FLOW PARFAIT : 3 étapes comme demandé
+  const handleStatusSelect = (result: SearchResult, status: MediaStatus) => {
+    // Étape 1: Highlight le choix sélectionné
+    setSelectedStatus(status)
+    
+    // Étape 2: Fade out du popup après un délai court
+    setTimeout(() => {
+      setFadeOutPopup(result.id)
+      setTimeout(() => {
+        setShowStatusPopup(null)
+        setFadeOutPopup(null)
+        setSelectedStatus(null)
+      }, 300)
+    }, 800)
+
+    // Démarrer l'état "Adding..."
+    setAddingItem(result.id)
+
+    // Appeler la fonction parent pour ajouter à la library
+    onAddToLibrary(result, status)
+  }
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!results.length) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedIndex(prev => Math.min(prev + 1, results.length - 1))
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedIndex(prev => Math.max(prev - 1, -1))
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (selectedIndex >= 0) {
+          handleSelectResult(results[selectedIndex])
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        onClose()
+        break
+    }
+  }
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (selectedIndex >= 0 && resultsRef.current) {
+      const selectedElement = resultsRef.current.children[selectedIndex] as HTMLElement
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
+    }
+  }, [selectedIndex])
+
+  const handleSelectResult = (result: SearchResult) => {
+    if (result.category === 'games' && onOpenGameDetail) {
+      onOpenGameDetail(result.id.replace('game-', ''))
+      onClose()
+    } else {
+      onAddToLibrary(result, 'want-to-play')
+      onClose()
+    }
+  }
+
+  const getCreator = (result: SearchResult) => {
+    return result.author || result.artist || result.director || 'Unknown'
+  }
+
+  const getCategoryInfo = (category: string) => {
+    switch (category) {
+      case 'games': return { color: 'bg-green-500', icon: '🎮' }
+      case 'movies': return { color: 'bg-blue-500', icon: '🎬' }
+      case 'music': return { color: 'bg-purple-500', icon: '🎵' }
+      case 'books': return { color: 'bg-orange-500', icon: '📚' }
+      default: return { color: 'bg-gray-500', icon: '📄' }
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-16 px-4">
+      <div className="bg-gray-900 rounded-xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl border border-gray-700">
+        {/* Header */}
+        <div className="flex items-center p-4 border-b border-gray-700">
+          <Search className="text-gray-400 mr-3 flex-shrink-0" size={20} />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search games, movies, music, books..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-lg"
+          />
+          {loading && <Loader2 className="animate-spin text-gray-400 mr-3" size={16} />}
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white ml-3 p-1 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Category filters */}
+        <div className="flex space-x-2 p-4 border-b border-gray-700 overflow-x-auto">
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'games', label: 'Games' },
+            { key: 'movies', label: 'Movies' },
+            { key: 'music', label: 'Music' },
+            { key: 'books', label: 'Books' }
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveCategory(key)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                activeCategory === key
+                  ? 'bg-white text-gray-900 shadow-lg'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Results */}
+        <div className="max-h-96 overflow-y-auto" ref={resultsRef}>
+          {/* Error state */}
+          {error && (
+            <div className="flex items-center justify-center py-8 px-4">
+              <div className="text-center">
+                <WifiOff className="mx-auto text-gray-400 mb-2" size={24} />
+                <p className="text-red-400 text-sm">{error}</p>
+                <button
+                  onClick={() => performSearch(query, activeCategory)}
+                  className="mt-2 text-blue-400 hover:text-blue-300 text-sm underline"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Loading state */}
+          {loading && !error && (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center space-x-2 text-gray-400">
+                <Loader2 className="animate-spin" size={20} />
+                <span>Searching...</span>
+              </div>
+            </div>
+          )}
+
+          {/* No results */}
+          {!loading && !error && query.length >= 2 && results.length === 0 && (
+            <div className="text-center py-8 text-gray-400">
+              <Search className="mx-auto mb-2" size={24} />
+              <p>No results found for "<span className="text-white">{query}</span>"</p>
+              <p className="text-sm mt-1">Try different keywords or check spelling</p>
+            </div>
+          )}
+
+          {/* Results list */}
+          {!loading && !error && results.length > 0 && (
+            <div className="p-4 space-y-2">
+              {results.map((result, index) => {
+                const categoryInfo = getCategoryInfo(result.category)
+                const isSelected = index === selectedIndex
+                const libraryItem = getLibraryItem(result.id)
+                const isInLibrary = !!libraryItem
+                const isAdding = addingItem === result.id
+                const wasJustAdded = justAddedItems.has(result.id)
+                
+                return (
+                  <div
+                    key={result.id}
+                    className={`flex items-center space-x-4 p-3 rounded-lg transition-all cursor-pointer ${
+                      isSelected 
+                        ? 'bg-blue-600/20 border border-blue-500/50' 
+                        : 'hover:bg-gray-800 border border-transparent'
+                    }`}
+                    onClick={() => handleSelectResult(result)}
+                  >
+                    {/* Image */}
+                    <div className="w-12 h-12 rounded-lg bg-gray-700 flex-shrink-0 overflow-hidden">
+                      {result.image ? (
+                        <img
+                          src={result.image}
+                          alt={result.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden')
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full flex items-center justify-center text-lg ${result.image ? 'hidden' : ''}`}>
+                        {categoryInfo.icon}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h3 className="text-white font-medium truncate">{result.title}</h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${categoryInfo.color} flex-shrink-0`}>
+                          {result.category}
+                        </span>
+                      </div>
+                      <p className="text-gray-400 text-sm truncate">{getCreator(result)}</p>
+                      <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
+                        <span>{result.year}</span>
+                        {result.genre && (
+                          <>
+                            <span>•</span>
+                            <span className="truncate">{result.genre}</span>
+                          </>
+                        )}
+                        {result.rating && result.rating > 0 && (
+                          <>
+                            <span>•</span>
+                            <div className="flex items-center">
+                              <Star size={12} className="text-yellow-400 mr-1" />
+                              <span>{result.rating}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* ✅ FEEDBACK FLOW PARFAIT */}
+                    <div className="relative">
+                      {(isInLibrary || wasJustAdded) && !isAdding ? (
+                        <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
+                          <Check size={14} />
+                          <span>{getStatusDisplayLabel(libraryItem?.status || 'completed', result.category)}</span>
+                        </div>
+                      ) : isAdding ? (
+                        <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
+                          <Loader2 className="animate-spin" size={14} />
+                          <span>Adding...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowStatusPopup(result.id)
+                            }}
+                            className="bg-blue-600/90 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0 shadow-lg hover:shadow-xl"
+                          >
+                            Add
+                          </button>
+
+                          {showStatusPopup === result.id && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-[99998]"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowStatusPopup(null)
+                                }}
+                              />
+                              
+                              <div 
+                                className={`absolute right-0 top-full mt-2 bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-600/50 py-2 min-w-44 z-[99999] overflow-hidden transition-all duration-300 ${
+                                  fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                                }`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {getStatusOptions(result.category).map((option) => (
+                                  <button
+                                    key={option.value}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleStatusSelect(result, option.value)
+                                    }}
+                                    className={`w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-700/50 border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between ${
+                                      selectedStatus === option.value 
+                                        ? 'bg-green-600/20 border-green-500 text-green-400' 
+                                        : 'text-gray-200 hover:text-white'
+                                    }`}
+                                  >
+                                    <span className="font-medium transition-colors">
+                                      {option.label}
+                                    </span>
+                                    {selectedStatus === option.value ? (
+                                      <Check className="text-green-400" size={14} />
+                                    ) : (
+                                      <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-400" size={14} />
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer hint */}
+        {results.length > 0 && (
+          <div className="px-4 py-2 border-t border-gray-700 text-xs text-gray-500 flex items-center justify-between">
+            <span>Use ↑↓ to navigate, Enter to select</span>
+            <span>{results.length} result{results.length !== 1 ? 's' : ''}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Debounce utility
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
+}
+</file>
+
+</files>

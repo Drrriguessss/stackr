@@ -2,7 +2,20 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1a1a;
+  --card-background: #ffffff;
+  --card-border: #e5e7eb;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --surface: #f9fafb;
+  --surface-elevated: #ffffff;
+  --border-color: #e5e7eb;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 @theme inline {
@@ -12,69 +25,50 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  line-height: 1.6;
 }
 
 @layer utilities {
-  /* Masquer les barres de défilement sur desktop */
-  @media (min-width: 768px) {
-    ::-webkit-scrollbar {
-      display: none;
-      width: 0px;
-      background: transparent;
-    }
-    
-    * {
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-    
-    .horizontal-scroll {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-      overflow-x: auto;
-      overflow-y: hidden;
-      scroll-behavior: smooth;
-      scroll-snap-type: x mandatory;
-    }
-    
-    .horizontal-scroll::-webkit-scrollbar {
-      display: none;
-      height: 0px;
-    }
+  /* Clean scrollbars for all devices */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.4);
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.6);
+  }
+  
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
   }
 
-  /* Scrollbars sur mobile */
-  @media (max-width: 767px) {
-    ::-webkit-scrollbar {
-      display: block;
-      width: 2px;
-      height: 2px;
-    }
-    
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background-color: rgba(156, 163, 175, 0.3);
-      border-radius: 1px;
-    }
-    
-    * {
-      scrollbar-width: thin;
-      scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
-    }
+  .horizontal-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+  }
+  
+  .horizontal-scroll::-webkit-scrollbar {
+    display: none;
+    height: 0px;
   }
 }
 
@@ -84,11 +78,16 @@ body {
     scroll-snap-align: start;
     flex-shrink: 0;
     transition: all 0.2s ease-in-out;
+    background: var(--card-background);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
   }
 
   .content-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent);
   }
 
   /* Sections de contenu */
@@ -98,21 +97,97 @@ body {
 
   /* Modals */
   .modal-backdrop {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.8);
   }
 
-  /* Reviews Steam */
-  .steam-review {
-    background: linear-gradient(135deg, rgba(31, 41, 55, 0.8), rgba(17, 24, 39, 0.9));
-    border: 1px solid rgba(75, 85, 99, 0.3);
-    backdrop-filter: blur(8px);
+  /* Cards spéciales */
+  .library-card {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
     transition: all 0.2s ease-in-out;
   }
 
-  .steam-review:hover {
-    border-color: rgba(59, 130, 246, 0.5);
+  .library-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent);
     transform: translateY(-1px);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    border: none;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-elevated);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Status badges */
+  .status-badge {
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid;
+  }
+
+  .status-want {
+    background: rgba(139, 69, 19, 0.1);
+    color: #8b4513;
+    border-color: rgba(139, 69, 19, 0.2);
+  }
+
+  .status-playing {
+    background: rgba(34, 197, 94, 0.1);
+    color: #059669;
+    border-color: rgba(34, 197, 94, 0.2);
+  }
+
+  .status-completed {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border-color: rgba(59, 130, 246, 0.2);
+  }
+
+  .status-paused {
+    background: rgba(251, 191, 36, 0.1);
+    color: #d97706;
+    border-color: rgba(251, 191, 36, 0.2);
+  }
+
+  .status-dropped {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.2);
   }
 }
 
@@ -120,5 +195,26 @@ body {
   /* Smooth scrolling global */
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Typography améliorée */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* Focus states */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 }

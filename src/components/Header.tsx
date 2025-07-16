@@ -15,10 +15,10 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
   
   return (
     <>
-      <header className="flex items-center justify-between p-6 bg-gray-900">
+      <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-white border-b border-gray-100 sticky top-0 z-40 backdrop-blur-sm">
         {/* Logo */}
         <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-white">Stackr</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Stackr</h1>
         </div>
         
         {/* Barre de recherche cliquable */}
@@ -27,30 +27,29 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
             className="relative cursor-pointer"
             onClick={() => setIsSearchModalOpen(true)}
           >
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <div className="w-full pl-10 pr-4 py-3 bg-gray-800 rounded-xl text-gray-400 hover:bg-gray-700 transition-colors">
-              <span className="hidden md:inline">Search games, movies, music, books...</span>
-              <span className="md:hidden">Search...</span>
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <div className="w-full pl-10 pr-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-500 transition-colors border border-gray-200">
+              <span className="hidden md:inline text-sm">Search games, movies, music, books...</span>
+              <span className="md:hidden text-sm">Search...</span>
             </div>
           </div>
         </div>
         
         {/* Actions */}
-        <div className="flex items-center space-x-4">
-          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
-            <Camera className="text-gray-400 hover:text-white" size={24} />
+        <div className="flex items-center space-x-2">
+          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <Camera className="text-gray-500 hover:text-gray-700" size={20} />
           </button>
-          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
-            <Bell className="text-gray-400 hover:text-white" size={24} />
+          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <Bell className="text-gray-500 hover:text-gray-700" size={20} />
           </button>
-          {/* ✅ ICÔNE UTILISATEUR AU LIEU DU BOUTON */}
-          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
-            <User className="text-gray-400 hover:text-white" size={24} />
+          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <User className="text-gray-500 hover:text-gray-700" size={20} />
           </button>
         </div>
       </header>
       
-      {/* Modal de recherche - ✅ AJOUT DE LA PROP LIBRARY */}
+      {/* Modal de recherche */}
       <SearchModal
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}

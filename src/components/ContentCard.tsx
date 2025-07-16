@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { Plus, Check, Star } from 'lucide-react'
 import { idsMatch } from '@/utils/idNormalizer'
 import type { ContentItem, LibraryItem, MediaCategory, MediaStatus } from '@/types'
 
@@ -20,7 +21,7 @@ export default function ContentCard({
 }: ContentCardProps) {
   const [showActions, setShowActions] = useState(false)
 
-  // ✅ SÉCURITÉ : Vérifier que library existe et utiliser normalisation d'ID
+  // Sécurité : Vérifier que library existe et utiliser normalisation d'ID
   const safeLibrary = Array.isArray(library) ? library : []
   const isInLibrary = safeLibrary.some((libItem: LibraryItem) => idsMatch(libItem.id, item.id))
 
@@ -35,10 +36,53 @@ export default function ContentCard({
     }
   }
 
+  const getCategoryGradient = (category: MediaCategory) => {
+    switch (category) {
+      case 'games': return 'from-green-400 to-blue-500'
+      case 'movies': return 'from-purple-400 to-pink-500'
+      case 'music': return 'from-orange-400 to-red-500'
+      case 'books': return 'from-blue-400 to-purple-500'
+      default: return 'from-gray-400 to-gray-600'
+    }
+  }
+
+  const getCategoryEmoji = (category: MediaCategory) => {
+    switch (category) {
+      case 'games': return '🎮'
+      case 'movies': return '🎬'
+      case 'music': return '🎵'
+      case 'books': return '📚'
+      default: return '📄'
+    }
+  }
+
+  const getActionLabel = (status: MediaStatus, category: MediaCategory) => {
+    switch (status) {
+      case 'want-to-play':
+        switch (category) {
+          case 'games': return 'Want to Play'
+          case 'movies': return 'Want to Watch'
+          case 'music': return 'Want to Listen'
+          case 'books': return 'Want to Read'
+          default: return 'Want to Play'
+        }
+      case 'currently-playing':
+        switch (category) {
+          case 'games': return 'Playing'
+          case 'movies': return 'Watching'
+          case 'music': return 'Listening'
+          case 'books': return 'Reading'
+          default: return 'Playing'
+        }
+      case 'completed': return 'Completed'
+      default: return 'Add'
+    }
+  }
+
   return (
     <div className="group cursor-pointer">
       <div 
-        className="relative w-full h-40 bg-gray-900 rounded-lg overflow-hidden"
+        className="relative w-full h-40 bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
         onClick={handleCardClick}
       >
         {item.image ? (
@@ -48,20 +92,17 @@ export default function ContentCard({
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+          <div className={`w-full h-full bg-gradient-to-br ${getCategoryGradient(category)} flex items-center justify-center`}>
             <span className="text-white text-2xl">
-              {category === 'games' && '🎮'}
-              {category === 'movies' && '🎬'}
-              {category === 'music' && '🎵'}
-              {category === 'books' && '📚'}
+              {getCategoryEmoji(category)}
             </span>
           </div>
         )}
         
         <div className="absolute top-2 right-2">
           {isInLibrary ? (
-            <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">
-              ✓
+            <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-xs shadow-md">
+              <Check size={14} />
             </div>
           ) : (
             <div className="relative">
@@ -70,36 +111,36 @@ export default function ContentCard({
                   e.stopPropagation()
                   setShowActions(!showActions)
                 }}
-                className="w-7 h-7 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center transition-colors"
+                className="w-7 h-7 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors shadow-md hover:shadow-lg"
               >
-                +
+                <Plus size={14} />
               </button>
               {showActions && (
-                <div className="absolute top-8 right-0 bg-gray-800/95 backdrop-blur-sm rounded-lg p-2 z-20 min-w-32 border border-gray-700">
+                <div className="absolute top-8 right-0 bg-white/95 backdrop-blur-sm rounded-lg p-2 z-20 min-w-32 border border-gray-200 shadow-lg">
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
                       handleAdd('want-to-play')
                     }} 
-                    className="block text-white text-xs p-2 hover:bg-gray-700 w-full text-left rounded transition-colors"
+                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
                   >
-                    Want to {category === 'games' ? 'Play' : category === 'movies' ? 'Watch' : category === 'music' ? 'Listen' : 'Read'}
+                    {getActionLabel('want-to-play', category)}
                   </button>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
                       handleAdd('currently-playing')
                     }} 
-                    className="block text-white text-xs p-2 hover:bg-gray-700 w-full text-left rounded transition-colors"
+                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
                   >
-                    {category === 'games' ? 'Playing' : category === 'movies' ? 'Watching' : category === 'music' ? 'Listening' : 'Reading'}
+                    {getActionLabel('currently-playing', category)}
                   </button>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
                       handleAdd('completed')
                     }} 
-                    className="block text-white text-xs p-2 hover:bg-gray-700 w-full text-left rounded transition-colors"
+                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
                   >
                     Completed
                   </button>
@@ -110,13 +151,13 @@ export default function ContentCard({
         </div>
       </div>
 
-      <div className="mt-2">
-        <h3 className="text-white text-sm font-semibold truncate">{item.title}</h3>
-        <div className="flex justify-between text-xs text-gray-400 mt-1">
+      <div className="mt-3 px-1">
+        <h3 className="text-gray-900 text-sm font-semibold truncate leading-tight">{item.title}</h3>
+        <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
           <span>{item.year}</span>
           {item.rating && item.rating > 0 && (
             <span className="flex items-center">
-              <span className="text-yellow-400 mr-1">★</span>
+              <Star size={10} className="text-yellow-500 mr-1 fill-current" />
               {item.rating.toFixed(1)}
             </span>
           )}

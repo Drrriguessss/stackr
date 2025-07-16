@@ -23,14 +23,14 @@ export default function ContentSection({
     <section className="mb-8">
       {/* Section Header */}
       <div className="flex items-center justify-between mb-4 px-1">
-        <h2 className="text-xl font-bold text-white">{title}</h2>
-        <button className="text-blue-400 text-sm font-medium hover:text-blue-300 transition-colors">
+        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+        <button className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors">
           See all
         </button>
       </div>
       
-      {/* ✅ Carrousel horizontal au lieu de grid */}
-      <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
+      {/* Carrousel horizontal */}
+      <div className="flex space-x-4 overflow-x-auto pb-4 horizontal-scroll">
         {items.map((item) => (
           <div key={item.id} className="flex-shrink-0 w-32">
             <ContentCard
@@ -43,16 +43,6 @@ export default function ContentSection({
           </div>
         ))}
       </div>
-            
-      <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </section>
   )
 }
