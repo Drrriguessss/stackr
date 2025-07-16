@@ -149,10 +149,10 @@ export default function GameDetailModal({
       
       // Fetch similar games and developer games
       if (data.genres && data.genres.length > 0) {
-        fetchSimilarGames(data.genres[0].name)
+        await fetchSimilarGames(data.genres[0].name)
       }
       if (data.developers && data.developers.length > 0) {
-        fetchDeveloperGames(data.developers[0].name)
+        await fetchDeveloperGames(data.developers[0].name)
       }
       
       setSimilarGamesLoading(false)
@@ -167,25 +167,31 @@ export default function GameDetailModal({
 
   const fetchSimilarGames = async (genre: string) => {
     try {
+      console.log('Fetching similar games for genre:', genre)
       const response = await fetch(
         `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${encodeURIComponent(genre)}&page_size=6&ordering=-rating`
       )
       const data = await response.json()
+      console.log('Similar games data:', data.results)
       setSimilarGames(data.results || [])
     } catch (error) {
       console.error('Error fetching similar games:', error)
+      setSimilarGames([])
     }
   }
 
   const fetchDeveloperGames = async (developer: string) => {
     try {
+      console.log('Fetching developer games for:', developer)
       const response = await fetch(
         `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&developers=${encodeURIComponent(developer)}&page_size=6&ordering=-rating`
       )
       const data = await response.json()
+      console.log('Developer games data:', data.results)
       setDeveloperGames(data.results || [])
     } catch (error) {
       console.error('Error fetching developer games:', error)
+      setDeveloperGames([])
     }
   }
 
@@ -628,23 +634,24 @@ export default function GameDetailModal({
                     </div>
 
                     {/* Similar Games by Genre */}
-                    {similarGames.length > 0 && (
+                    {!similarGamesLoading && similarGames.length > 0 && (
                       <div>
                         <h4 className="text-gray-900 font-semibold mb-4">
-                          Similar Games ({gameDetail.genres?.[0]?.name})
+                          Similar Games {gameDetail.genres?.[0]?.name && `(${gameDetail.genres[0].name})`}
                         </h4>
                         <div className="grid grid-cols-3 gap-4">
                           {similarGames.slice(0, 6).map((game) => (
                             <div key={game.id} className="bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
-                              <img
-                                src={game.background_image}
-                                alt={game.name}
-                                className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none'
-                                }}
-                              />
-                              <h5 className="text-sm font-medium text-gray-900 truncate">{game.name}</h5>
+                              {game.background_image && (
+                                <img
+                                  src={game.background_image}
+                                  alt={game.name}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate" title={game.name}>
+                                {game.name}
+                              </h5>
                               <div className="flex items-center mt-1">
                                 <Star size={12} className="text-yellow-500 fill-current mr-1" />
                                 <span className="text-xs text-gray-600">{game.rating?.toFixed(1) || 'N/A'}</span>
@@ -656,7 +663,7 @@ export default function GameDetailModal({
                     )}
 
                     {/* More from Developer */}
-                    {developerGames.length > 0 && gameDetail.developers?.[0] && (
+                    {!similarGamesLoading && developerGames.length > 0 && gameDetail.developers?.[0] && (
                       <div>
                         <h4 className="text-gray-900 font-semibold mb-4">
                           More from {gameDetail.developers[0].name}
@@ -664,19 +671,36 @@ export default function GameDetailModal({
                         <div className="grid grid-cols-3 gap-4">
                           {developerGames.slice(0, 6).map((game) => (
                             <div key={game.id} className="bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
-                              <img
-                                src={game.background_image}
-                                alt={game.name}
-                                className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none'
-                                }}
-                              />
-                              <h5 className="text-sm font-medium text-gray-900 truncate">{game.name}</h5>
+                              {game.background_image && (
+                                <img
+                                  src={game.background_image}
+                                  alt={game.name}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate" title={game.name}>
+                                {game.name}
+                              </h5>
                               <div className="flex items-center mt-1">
                                 <Star size={12} className="text-yellow-500 fill-current mr-1" />
                                 <span className="text-xs text-gray-600">{game.rating?.toFixed(1) || 'N/A'}</span>
                               </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Loading state pour les jeux similaires */}
+                    {similarGamesLoading && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-4">Loading similar games...</h4>
+                        <div className="grid grid-cols-3 gap-4">
+                          {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <div key={i} className="bg-gray-100 rounded-xl p-3 border border-gray-200 animate-pulse">
+                              <div className="w-full h-20 bg-gray-200 rounded-lg mb-2"></div>
+                              <div className="h-4 bg-gray-200 rounded mb-1"></div>
+                              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                             </div>
                           ))}
                         </div>
