@@ -34,6 +34,8 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
   const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState<string | null>(null)
   const [fadeOutPopup, setFadeOutPopup] = useState<string | null>(null)
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
+  const [justAddedItems, setJustAddedItems] = useState<Set<string>>(new Set())
   
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -71,31 +73,36 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
       setShowStatusPopup(null)
       setAddingItem(null)
       setFadeOutPopup(null)
+      setSelectedStatus(null)
+      setJustAddedItems(new Set())
     }
   }, [isOpen])
 
-  // ✅ AJOUT : useEffect pour détecter quand l'item est ajouté à la library
+  // ✅ DÉTECTION INTELLIGENTE : Surveiller les ajouts à la library
   useEffect(() => {
     if (addingItem) {
-      // Vérifier si l'item a été ajouté à la library avec un délai
-      const checkLibrary = () => {
-        const normalizedId = addingItem.replace(/^(game-|movie-|music-|book-)/, '')
-        const isInLibrary = safeLibrary.some((item: any) => {
-          if (!item || !item.id) return false
-          const normalizedLibId = item.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
-          return normalizedLibId === normalizedId
-        })
-        
-        if (isInLibrary) {
-          // Item trouvé dans la library, on peut arrêter le loading
-          setAddingItem(null)
-        }
-      }
+      const normalizedId = addingItem.replace(/^(game-|movie-|music-|book-)/, '')
       
-      // Vérifier plusieurs fois avec des délais croissants
-      setTimeout(checkLibrary, 100)
-      setTimeout(checkLibrary, 500)
-      setTimeout(checkLibrary, 1000)
+      const isInLibrary = safeLibrary.some((item: any) => {
+        if (!item || !item.id) return false
+        const normalizedLibId = item.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
+        return normalizedLibId === normalizedId
+      })
+      
+      if (isInLibrary) {
+        // Item détecté dans la library, finaliser le feedback
+        setAddingItem(null)
+        setJustAddedItems(prev => new Set([...prev, addingItem]))
+        
+        // Nettoyer après 3 secondes pour permettre de voir le feedback
+        setTimeout(() => {
+          setJustAddedItems(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(addingItem)
+            return newSet
+          })
+        }, 3000)
+      }
     }
   }, [safeLibrary, addingItem])
 
@@ -378,24 +385,26 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }))
   }
 
-  // ✅ SOLUTION FINALE : Handle status selection avec feedback persistant
+  // ✅ FEEDBACK FLOW PARFAIT : 3 étapes comme demandé
   const handleStatusSelect = (result: SearchResult, status: string) => {
+    // Étape 1: Highlight le choix sélectionné
+    setSelectedStatus(status)
+    
+    // Étape 2: Fade out du popup après un délai court
+    setTimeout(() => {
+      setFadeOutPopup(result.id)
+      setTimeout(() => {
+        setShowStatusPopup(null)
+        setFadeOutPopup(null)
+        setSelectedStatus(null)
+      }, 300)
+    }, 800)
+    
+    // Démarrer l'état "Adding..."
     setAddingItem(result.id)
-    setFadeOutPopup(result.id)
     
-    // Appeler la fonction parent pour ajouter à la library globale
+    // Appeler la fonction parent pour ajouter à la library
     onAddToLibrary(result, status)
-    
-    // Fermer le popup rapidement
-    setTimeout(() => {
-      setShowStatusPopup(null)
-      setFadeOutPopup(null)
-    }, 300)
-    
-    // Fallback : si après 2 secondes l'item n'est pas détecté, forcer le reset
-    setTimeout(() => {
-      setAddingItem(null)
-    }, 2000)
   }
 
   // Keyboard navigation
@@ -553,6 +562,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                 const libraryItem = getLibraryItem(result.id)
                 const isInLibrary = !!libraryItem
                 const isAdding = addingItem === result.id
+                const wasJustAdded = justAddedItems.has(result.id)
                 
                 return (
                   <div
@@ -611,12 +621,12 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* ✅ Action Button SIMPLIFIÉ */}
+                    {/* ✅ FEEDBACK FLOW PARFAIT */}
                     <div className="relative">
-                      {isInLibrary && !isAdding ? (
+                      {(isInLibrary || wasJustAdded) && !isAdding ? (
                         <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
                           <Check size={14} />
-                          <span>{getStatusDisplayLabel(libraryItem.status, result.category)}</span>
+                          <span>{getStatusDisplayLabel(libraryItem?.status || 'completed', result.category)}</span>
                         </div>
                       ) : isAdding ? (
                         <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
@@ -646,7 +656,9 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                               />
                               
                               <div 
-                                className="absolute right-0 top-full mt-2 bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-600/50 py-2 min-w-44 z-[99999] overflow-hidden"
+                                className={`absolute right-0 top-full mt-2 bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-600/50 py-2 min-w-44 z-[99999] overflow-hidden transition-all duration-300 ${
+                                  fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                                }`}
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 {getStatusOptions(result.category).map((option) => (
@@ -656,9 +668,18 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                                       e.stopPropagation()
                                       handleStatusSelect(result, option.value)
                                     }}
-                                    className="w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-700/50 text-gray-200 hover:text-white"
+                                    className={`w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-700/50 border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between ${
+                                      selectedStatus === option.value ? 'bg-green-600/20 border-green-500 text-green-400' : 'text-gray-200 hover:text-white'
+                                    }`}
                                   >
-                                    {option.label}
+                                    <span className="font-medium transition-colors">
+                                      {option.label}
+                                    </span>
+                                    {selectedStatus === option.value ? (
+                                      <Check className="text-green-400" size={14} />
+                                    ) : (
+                                      <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-400" size={14} />
+                                    )}
                                   </button>
                                 ))}
                               </div>
