@@ -11,6 +11,7 @@ interface ContentCardProps {
   library: LibraryItem[]
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
 }
 
 export default function ContentCard({
@@ -19,7 +20,8 @@ export default function ContentCard({
   onAddToLibrary,
   library = [],
   onOpenGameDetail,
-  onOpenMovieDetail
+  onOpenMovieDetail,
+  onOpenBookDetail
 }: ContentCardProps) {
   const [showActions, setShowActions] = useState(false)
 
@@ -37,6 +39,8 @@ export default function ContentCard({
       onOpenGameDetail(item.id)
     } else if (category === 'movies' && onOpenMovieDetail) {
       onOpenMovieDetail(item.id)
+    } else if (category === 'books' && onOpenBookDetail) {
+      onOpenBookDetail(item.id)
     }
   }
 

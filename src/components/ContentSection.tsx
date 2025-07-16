@@ -10,6 +10,7 @@ interface ContentSectionProps {
   library: LibraryItem[]
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
 }
 
 export default function ContentSection({ 
@@ -19,7 +20,8 @@ export default function ContentSection({
   onAddToLibrary, 
   library, 
   onOpenGameDetail,
-  onOpenMovieDetail
+  onOpenMovieDetail,
+  onOpenBookDetail
 }: ContentSectionProps) {
   return (
     <section className="mb-8">
@@ -42,6 +44,7 @@ export default function ContentSection({
               library={library}
               onOpenGameDetail={onOpenGameDetail}
               onOpenMovieDetail={onOpenMovieDetail}
+              onOpenBookDetail={onOpenBookDetail}
             />
           </div>
         ))}

@@ -6,11 +6,13 @@ import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
 import GameDetailModal from '@/components/GameDetailModal'
 import MovieDetailModal from '@/components/MovieDetailModal'
+import BookDetailModal from '@/components/BookDetailModal'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
 import { sampleContent } from '@/data/sampleContent'
 import { omdbService } from '@/services/omdbService'
+import { googleBooksService } from '@/services/googleBooksService'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
@@ -20,9 +22,10 @@ export default function Home() {
   const [library, setLibrary] = useState<LibraryItem[]>([])
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   
-  // State pour le contenu dynamique des films
+  // State pour le contenu dynamique des films et livres
   const [movieContent, setMovieContent] = useState<{
     popular: ContentItem[]
     topRated: ContentItem[]
@@ -34,13 +37,26 @@ export default function Home() {
   })
   const [moviesLoading, setMoviesLoading] = useState(false)
 
+  const [bookContent, setBookContent] = useState<{
+    fiction: ContentItem[]
+    nonFiction: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    fiction: [],
+    nonFiction: [],
+    newReleases: []
+  })
+  const [booksLoading, setBooksLoading] = useState(false)
+
   // User reviews state
   const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
 
-  // Charger le contenu des films
+  // Charger le contenu des films et livres
   useEffect(() => {
     if (activeTab === 'movies') {
       loadMovieContent()
+    } else if (activeTab === 'books') {
+      loadBookContent()
     }
   }, [activeTab])
 
@@ -76,6 +92,41 @@ export default function Home() {
       })
     } finally {
       setMoviesLoading(false)
+    }
+  }
+
+  const loadBookContent = async () => {
+    try {
+      setBooksLoading(true)
+
+      const [fictionBooks, nonFictionBooks, newReleaseBooks] = await Promise.all([
+        googleBooksService.getFictionBooks().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        ),
+        googleBooksService.getNonFictionBooks().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        ),
+        googleBooksService.getNewReleases().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        )
+      ])
+
+      setBookContent({
+        fiction: fictionBooks,
+        nonFiction: nonFictionBooks,
+        newReleases: newReleaseBooks
+      })
+    } catch (error) {
+      console.error('Error loading book content:', error)
+      
+      // Fallback vers les données statiques
+      setBookContent({
+        fiction: sampleContent.books.slice(0, 4),
+        nonFiction: sampleContent.books.slice(4, 8),
+        newReleases: sampleContent.books.slice(0, 4)
+      })
+    } finally {
+      setBooksLoading(false)
     }
   }
 
@@ -141,6 +192,11 @@ export default function Home() {
     setSelectedMovieId(normalizedMovieId)
   }
 
+  const handleOpenBookDetail = (bookId: string) => {
+    const normalizedBookId = normalizeId(bookId)
+    setSelectedBookId(normalizedBookId)
+  }
+
   const handleOpenSearch = () => {
     setIsSearchOpen(true)
   }
@@ -199,6 +255,44 @@ export default function Home() {
     return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
   };
 
+  // Générer des reviews Goodreads pour les livres
+  const generateGoodreadsReviews = (bookId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "Absolutely loved this book! Couldn't put it down. The characters were so well developed and the plot was engaging throughout.", author: "BookLover", helpful: 156 },
+      { rating: 4, text: "Really enjoyed this read. Great writing style and interesting themes. A few slow parts but overall fantastic.", author: "AvidReader", helpful: 89 },
+      { rating: 5, text: "One of my favorite books this year! Beautiful prose and such an emotional journey. Highly recommend!", author: "BookwormLife", helpful: 234 },
+      { rating: 3, text: "Good book but not amazing. The story was decent but felt a bit predictable at times.", author: "CasualReader", helpful: 45 },
+      { rating: 4, text: "Solid storytelling and great character development. Would definitely read more from this author.", author: "LitCritic", helpful: 112 }
+    ];
+
+    // Utiliser bookId comme seed pour des reviews cohérentes
+    const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const selectedReviews = [];
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 11 + i * 17) % reviewTemplates.length;
+      const template = reviewTemplates[index];
+      
+      const bookSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
+        daysAgo: (seed * i * 4) % 90 + 1,
+      };
+      
+      selectedReviews.push({
+        id: `goodreads_${bookId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: bookSpecificVariations.helpful,
+        date: new Date(Date.now() - bookSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Goodreads'
+      });
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
+  };
+
   // Générer des reviews IMDb pour les films
   const generateIMDBReviews = (movieId: string): Review[] => {
     const reviewTemplates = [
@@ -243,6 +337,14 @@ export default function Home() {
         { title: 'Popular classics', items: movieContent.popular },
         { title: 'Top rated of all time', items: movieContent.topRated },
         { title: 'Recent favorites', items: movieContent.recent }
+      ]
+    }
+    
+    if (activeTab === 'books') {
+      return [
+        { title: 'Fiction favorites', items: bookContent.fiction },
+        { title: 'Non-fiction highlights', items: bookContent.nonFiction },
+        { title: 'New releases', items: bookContent.newReleases }
       ]
     }
     
@@ -339,9 +441,9 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Contenu scrollable avec loading state pour films */}
+        {/* Contenu scrollable avec loading state pour films et livres */}
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
-          {moviesLoading && activeTab === 'movies' ? (
+          {(moviesLoading && activeTab === 'movies') || (booksLoading && activeTab === 'books') ? (
             <div className="space-y-6">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="mb-8">
@@ -370,6 +472,7 @@ export default function Home() {
                   library={library}
                   onOpenGameDetail={handleOpenGameDetail}
                   onOpenMovieDetail={handleOpenMovieDetail}
+                  onOpenBookDetail={handleOpenBookDetail}
                 />
               ))}
             </div>
@@ -392,6 +495,7 @@ export default function Home() {
           onDeleteItem={handleDeleteItem}
           onOpenGameDetail={handleOpenGameDetail}
           onOpenMovieDetail={handleOpenMovieDetail}
+          onOpenBookDetail={handleOpenBookDetail}
           onOpenSearch={handleOpenSearch}
         />
       </div>
@@ -470,12 +574,24 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
+      <BookDetailModal
+        isOpen={!!selectedBookId}
+        onClose={() => setSelectedBookId(null)}
+        bookId={selectedBookId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedBookId ? userReviews[parseInt(selectedBookId)] || [] : []}
+        goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         onAddToLibrary={handleAddToLibrary}
         onOpenGameDetail={handleOpenGameDetail}
         onOpenMovieDetail={handleOpenMovieDetail}
+        onOpenBookDetail={handleOpenBookDetail}
         library={library}
       />
     </div>

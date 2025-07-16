@@ -12,6 +12,7 @@ interface LibrarySectionProps {
   onDeleteItem?: (id: string) => void
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
   onOpenSearch?: () => void
 }
 
@@ -22,6 +23,7 @@ export default function LibrarySection({
   onDeleteItem,
   onOpenGameDetail,
   onOpenMovieDetail,
+  onOpenBookDetail,
   onOpenSearch
 }: LibrarySectionProps) {
   const [activeFilter, setActiveFilter] = useState('all')
@@ -110,8 +112,10 @@ export default function LibrarySection({
       onOpenGameDetail(item.id)
     } else if (item.category === 'movies' && onOpenMovieDetail) {
       onOpenMovieDetail(item.id)
+    } else if (item.category === 'books' && onOpenBookDetail) {
+      onOpenBookDetail(item.id)
     }
-    // TODO: Ajouter support pour music et books plus tard
+    // TODO: Ajouter support pour music plus tard
   }
 
   // Quick Edit Modal Component
@@ -333,6 +337,7 @@ export default function LibrarySection({
                     library={library}
                     onOpenGameDetail={onOpenGameDetail}
                     onOpenMovieDetail={onOpenMovieDetail}
+                    onOpenBookDetail={onOpenBookDetail}
                   />
                   
                   {/* Edit button overlay */}

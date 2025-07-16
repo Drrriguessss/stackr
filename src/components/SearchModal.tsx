@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import { omdbService } from '@/services/omdbService'
+import { googleBooksService } from '@/services/googleBooksService'
 import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
 
 interface SearchModalProps {
@@ -11,6 +12,7 @@ interface SearchModalProps {
   onAddToLibrary: (item: any, status: MediaStatus) => void
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
   library: LibraryItem[]
 }
 
@@ -20,6 +22,7 @@ export default function SearchModal({
   onAddToLibrary,
   onOpenGameDetail,
   onOpenMovieDetail,
+  onOpenBookDetail,
   library = []
 }: SearchModalProps) {
   const [query, setQuery] = useState('')
@@ -355,24 +358,13 @@ export default function SearchModal({
   }
 
   const searchBooks = async (query: string): Promise<SearchResult[]> => {
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=8&printType=books`
-    const response = await fetchWithTimeout(url)
-    const data = await response.json()
-    
-    if (!data.items) {
-      throw new Error('No books found')
+    try {
+      const books = await googleBooksService.searchBooks(query, 8)
+      return books.map(book => googleBooksService.convertToAppFormat(book))
+    } catch (error) {
+      console.error('Google Books search failed:', error)
+      throw error
     }
-
-    return data.items.map((book: any) => ({
-      id: `book-${book.id}`,
-      title: book.volumeInfo.title || 'Unknown Book',
-      author: book.volumeInfo.authors?.[0] || 'Unknown Author',
-      year: book.volumeInfo.publishedDate ? parseInt(book.volumeInfo.publishedDate) : new Date().getFullYear(),
-      rating: book.volumeInfo.averageRating ? Number(book.volumeInfo.averageRating.toFixed(1)) : 0,
-      genre: book.volumeInfo.categories?.[0] || 'Unknown',
-      category: 'books' as const,
-      image: book.volumeInfo.imageLinks?.thumbnail
-    }))
   }
 
   // Status selection with feedback flow
@@ -434,6 +426,9 @@ export default function SearchModal({
       onClose()
     } else if (result.category === 'movies' && onOpenMovieDetail) {
       onOpenMovieDetail(result.id.replace('movie-', ''))
+      onClose()
+    } else if (result.category === 'books' && onOpenBookDetail) {
+      onOpenBookDetail(result.id.replace('book-', ''))
       onClose()
     } else {
       onAddToLibrary(result, 'want-to-play')

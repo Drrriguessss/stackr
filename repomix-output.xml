@@ -55,6 +55,8 @@ public/window.svg
 src/app/globals.css
 src/app/layout.tsx
 src/app/page.tsx
+src/components/BookDetailModal.tsx
+src/components/BottomNavigation.tsx
 src/components/CategoryTabs.tsx
 src/components/ContentCard.tsx
 src/components/ContentSection.tsx
@@ -62,8 +64,12 @@ src/components/GameCardHorizontal.tsx
 src/components/GameDetailModal.tsx
 src/components/Header.tsx
 src/components/LibrarySection.tsx
+src/components/MovieDetailModal.tsx
+src/components/RoadmapPage.tsx
 src/components/SearchModal.tsx
 src/data/sampleContent.ts
+src/services/googleBooksService.ts
+src/services/omdbService.ts
 src/tailwind.config.js
 src/types/index.ts
 src/utils/idNormalizer.ts
@@ -72,6 +78,1123 @@ tsconfig.json
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="src/components/BookDetailModal.tsx">
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { X, Star, ExternalLink, Calendar, BookOpen, Award, Users, Globe, Eye } from 'lucide-react'
+import { googleBooksService, formatPageCount, formatPublisher, getReadingTime } from '@/services/googleBooksService'
+import type { LibraryItem, Review, MediaStatus } from '@/types'
+
+interface BookDetailModalProps {
+  isOpen: boolean
+  onClose: () => void
+  bookId: string
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  library: LibraryItem[]
+  userReviews: Review[]
+  goodreadsReviews: Review[]
+  onReviewSubmit: (reviewData: any) => void
+}
+
+interface BookDetail {
+  id: string
+  volumeInfo: {
+    title: string
+    subtitle?: string
+    authors?: string[]
+    publisher?: string
+    publishedDate?: string
+    description?: string
+    pageCount?: number
+    categories?: string[]
+    averageRating?: number
+    ratingsCount?: number
+    imageLinks?: {
+      thumbnail?: string
+      small?: string
+      medium?: string
+      large?: string
+    }
+    language?: string
+    previewLink?: string
+    infoLink?: string
+    canonicalVolumeLink?: string
+  }
+  saleInfo?: {
+    isEbook?: boolean
+    buyLink?: string
+    listPrice?: { amount: number, currencyCode: string }
+  }
+  accessInfo?: {
+    webReaderLink?: string
+    epub?: { isAvailable: boolean }
+    pdf?: { isAvailable: boolean }
+  }
+}
+
+export default function BookDetailModal({ 
+  isOpen, 
+  onClose, 
+  bookId, 
+  onAddToLibrary, 
+  library, 
+  userReviews, 
+  goodreadsReviews, 
+  onReviewSubmit 
+}: BookDetailModalProps) {
+  const [bookDetail, setBookDetail] = useState<BookDetail | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info')
+  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
+  const [userRating, setUserRating] = useState<number>(0)
+  const [hoverRating, setHoverRating] = useState<number>(0)
+  const [showReviewBox, setShowReviewBox] = useState(false)
+  const [userReview, setUserReview] = useState('')
+  const [similarBooks, setSimilarBooks] = useState<any[]>([])
+  const [authorBooks, setAuthorBooks] = useState<any[]>([])
+
+  const scrollableRef = useRef<HTMLDivElement>(null)
+
+  const bookStats = {
+    'want-to-play': 3241,
+    'currently-playing': 1856,
+    'completed': 12923
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('info')
+      setSimilarBooks([])
+      setAuthorBooks([])
+    }
+  }, [isOpen, bookId])
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen && bookId) {
+      fetchBookDetail()
+    }
+  }, [isOpen, bookId])
+
+  useEffect(() => {
+    const libraryItem = library.find(item => item.id === `book-${bookId}`)
+    if (libraryItem) {
+      setSelectedStatus(libraryItem.status)
+    } else {
+      setSelectedStatus(null)
+    }
+  }, [bookId, library])
+
+  const fetchBookDetail = async () => {
+    if (!bookId) return
+    
+    setLoading(true)
+    try {
+      let googleBookId = bookId
+      
+      // Si l'ID commence par 'book-', le retirer
+      if (bookId.startsWith('book-')) {
+        googleBookId = bookId.replace('book-', '')
+      }
+      
+      const data = await googleBooksService.getBookDetails(googleBookId)
+      setBookDetail(data as BookDetail)
+      
+      // Charger des livres similaires et de l'auteur
+      if (data?.volumeInfo) {
+        if (data.volumeInfo.categories?.length) {
+          await fetchSimilarBooks(data)
+        }
+        if (data.volumeInfo.authors?.length) {
+          await fetchAuthorBooks(data.volumeInfo.authors[0], data.id)
+        }
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors du chargement des détails:', error)
+      setBookDetail(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSimilarBooks = async (book: BookDetail) => {
+    try {
+      const similarBooksData = await googleBooksService.getSimilarBooks(book as any, 6)
+      const convertedBooks = similarBooksData.map(book => googleBooksService.convertToAppFormat(book))
+      setSimilarBooks(convertedBooks)
+    } catch (error) {
+      console.error('Error fetching similar books:', error)
+      setSimilarBooks([])
+    }
+  }
+
+  const fetchAuthorBooks = async (author: string, excludeBookId: string) => {
+    try {
+      const authorBooksData = await googleBooksService.getBooksByAuthor(author, 8)
+      const filteredBooks = authorBooksData
+        .filter(book => book.id !== excludeBookId)
+        .slice(0, 6)
+        .map(book => googleBooksService.convertToAppFormat(book))
+      
+      setAuthorBooks(filteredBooks)
+    } catch (error) {
+      console.error('Error fetching author books:', error)
+      setAuthorBooks([])
+    }
+  }
+
+  const handleStatusSelect = (status: MediaStatus) => {
+    if (!bookDetail) return
+    
+    const bookItem = {
+      id: `book-${bookDetail.id}`,
+      title: bookDetail.volumeInfo.title,
+      image: googleBooksService.getBestImageURL(bookDetail as any, 'medium'),
+      category: 'books' as const,
+      year: googleBooksService.getPublicationYear(bookDetail as any),
+      rating: bookDetail.volumeInfo.averageRating || 0,
+      author: bookDetail.volumeInfo.authors?.[0] || 'Unknown Author'
+    }
+    
+    onAddToLibrary(bookItem, status)
+    setSelectedStatus(status)
+  }
+
+  const getStatusLabel = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'Want to Read'
+      case 'currently-playing': return 'Reading'
+      case 'completed': return 'Read'
+      case 'paused': return 'Paused'
+      case 'dropped': return 'Dropped'
+      default: return status
+    }
+  }
+
+  const getStatusColor = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'bg-orange-500 hover:bg-orange-600'
+      case 'currently-playing': return 'bg-green-500 hover:bg-green-600'
+      case 'completed': return 'bg-blue-500 hover:bg-blue-600'
+      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600'
+      case 'dropped': return 'bg-red-500 hover:bg-red-600'
+      default: return 'bg-gray-500 hover:bg-gray-600'
+    }
+  }
+
+  const handleSubmitReview = () => {
+    if (userRating > 0 && userReview.trim()) {
+      onReviewSubmit({
+        rating: userRating,
+        review: userReview.trim()
+      })
+      
+      setShowReviewBox(false)
+      setUserReview('')
+      setUserRating(0)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col shadow-xl border border-gray-100"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : bookDetail ? (
+          <>
+            {/* Header */}
+            <div className="relative bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-2 hover:bg-white/80 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="p-6 flex items-center space-x-4">
+                <div className="w-20 h-28 rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-gray-100 flex-shrink-0">
+                  {googleBooksService.getBestImageURL(bookDetail as any, 'medium') ? (
+                    <img
+                      src={googleBooksService.getBestImageURL(bookDetail as any, 'medium')!}
+                      alt={bookDetail.volumeInfo.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl">
+                      📚
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-1">{bookDetail.volumeInfo.title}</h1>
+                  {bookDetail.volumeInfo.subtitle && (
+                    <h2 className="text-lg text-gray-600 mb-2">{bookDetail.volumeInfo.subtitle}</h2>
+                  )}
+                  
+                  <div className="flex items-center space-x-4 mb-2">
+                    <span className="text-gray-700 font-medium">
+                      {bookDetail.volumeInfo.authors?.join(', ') || 'Unknown Author'}
+                    </span>
+                    {bookDetail.volumeInfo.pageCount && (
+                      <>
+                        <span className="text-gray-600">•</span>
+                        <span className="text-gray-600">{formatPageCount(bookDetail.volumeInfo.pageCount)}</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                    {bookDetail.volumeInfo.publisher && (
+                      <span>{formatPublisher(bookDetail.volumeInfo.publisher, bookDetail.volumeInfo.publishedDate || '')}</span>
+                    )}
+                    {bookDetail.volumeInfo.pageCount && (
+                      <>
+                        <span>•</span>
+                        <span>{getReadingTime(bookDetail.volumeInfo.pageCount)}</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {bookDetail.volumeInfo.averageRating && (
+                    <div className="flex items-center space-x-2">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={16}
+                            className={`${
+                              star <= bookDetail.volumeInfo.averageRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {bookDetail.volumeInfo.averageRating?.toFixed(1)}/5
+                        {bookDetail.volumeInfo.ratingsCount && ` (${bookDetail.volumeInfo.ratingsCount.toLocaleString()} reviews)`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div ref={scrollableRef} className="flex-1 overflow-y-auto">
+              {/* Action buttons */}
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex space-x-3 mb-4">
+                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusSelect(status)}
+                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all text-white shadow-sm ${
+                        selectedStatus === status
+                          ? getStatusColor(status)
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      <div className="text-sm font-semibold">{getStatusLabel(status)}</div>
+                      <div className="text-xs opacity-80">
+                        {bookStats[status].toLocaleString()} readers
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                
+                {selectedStatus && (
+                  <div className="text-sm text-gray-600 bg-green-50 border border-green-200 rounded-lg p-3">
+                    ✅ Added to your library on {new Date().toLocaleDateString()}
+                  </div>
+                )}
+
+                {/* User rating */}
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h4 className="text-gray-900 font-semibold mb-3">Rate this book</h4>
+                  <div className="flex items-center space-x-2 mb-3">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        onClick={() => {
+                          setUserRating(rating)
+                          setShowReviewBox(true)
+                        }}
+                        onMouseEnter={() => setHoverRating(rating)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className="p-1 hover:scale-110 transition-transform"
+                      >
+                        <Star
+                          size={24}
+                          className={`transition-colors ${
+                            (hoverRating || userRating) >= rating
+                              ? 'text-yellow-500 fill-current'
+                              : 'text-gray-300 hover:text-yellow-400'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    {userRating > 0 && (
+                      <span className="text-gray-900 ml-2 font-medium">{userRating}/5</span>
+                    )}
+                  </div>
+                  
+                  {showReviewBox && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <label className="text-sm text-gray-700 mb-2 block font-medium">Share your thoughts</label>
+                      <textarea
+                        value={userReview}
+                        onChange={(e) => setUserReview(e.target.value)}
+                        placeholder="What did you think about this book?"
+                        className="w-full h-20 px-3 py-2 bg-white text-gray-900 text-sm rounded-lg resize-none border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <div className="flex space-x-2 mt-3">
+                        <button 
+                          onClick={handleSubmitReview}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Submit Review
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setShowReviewBox(false)
+                            setUserReview('')
+                          }}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reviews Section */}
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
+                <div className="flex space-x-4 overflow-x-auto pb-2">
+                  {/* User reviews first */}
+                  {userReviews.map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-blue-50 rounded-xl p-4 border border-blue-100">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 text-sm">👤</span>
+                        </div>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-blue-600 bg-blue-200 px-2 py-1 rounded-full font-medium">You</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {review.review || review.text}
+                      </p>
+                    </div>
+                  ))}
+                  
+                  {/* Goodreads reviews */}
+                  {goodreadsReviews.slice(0, 5).map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-gray-600 text-sm">📚</span>
+                        </div>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded-full font-medium">Goodreads</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {review.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+                <div className="flex px-6">
+                  {(['info', 'social', 'more'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 py-4 px-4 font-medium transition-colors relative ${
+                        activeTab === tab
+                          ? 'text-gray-900'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      {activeTab === tab && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tab content */}
+              <div className="p-6">
+                {activeTab === 'info' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-3">Description</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <p className="text-gray-700 leading-relaxed">
+                          {googleBooksService.cleanDescription(bookDetail.volumeInfo.description || '') || 'No description available.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Author(s)</h5>
+                        <p className="text-gray-600 text-sm">
+                          {bookDetail.volumeInfo.authors?.join(', ') || 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Publisher</h5>
+                        <p className="text-gray-600 text-sm">
+                          {bookDetail.volumeInfo.publisher || 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Published</h5>
+                        <p className="text-gray-600 text-sm">
+                          {bookDetail.volumeInfo.publishedDate || 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Pages</h5>
+                        <p className="text-gray-600 text-sm">
+                          {bookDetail.volumeInfo.pageCount ? formatPageCount(bookDetail.volumeInfo.pageCount) : 'Unknown'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {bookDetail.volumeInfo.categories && bookDetail.volumeInfo.categories.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-3">Categories</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {bookDetail.volumeInfo.categories.map((category, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm"
+                            >
+                              📖 {category}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'social' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Reading Stats</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-orange-600">{bookStats['want-to-play'].toLocaleString()}</div>
+                          <div className="text-sm text-orange-700 font-medium">Want to Read</div>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-green-600">{bookStats['currently-playing'].toLocaleString()}</div>
+                          <div className="text-sm text-green-700 font-medium">Reading</div>
+                        </div>
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-blue-600">{bookStats['completed'].toLocaleString()}</div>
+                          <div className="text-sm text-blue-700 font-medium">Read</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Formats Available</h4>
+                      <div className="space-y-3">
+                        {bookDetail.accessInfo?.epub?.isAvailable && (
+                          <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <BookOpen size={20} className="text-blue-600" />
+                            <span className="font-medium text-blue-900">EPUB Available</span>
+                          </div>
+                        )}
+                        {bookDetail.accessInfo?.pdf?.isAvailable && (
+                          <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                            <BookOpen size={20} className="text-red-600" />
+                            <span className="font-medium text-red-900">PDF Available</span>
+                          </div>
+                        )}
+                        {bookDetail.saleInfo?.isEbook && (
+                          <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                            <BookOpen size={20} className="text-purple-600" />
+                            <span className="font-medium text-purple-900">E-book Available</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'more' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">External Links</h4>
+                      <div className="space-y-3">
+                        {bookDetail.volumeInfo.infoLink && (
+                          <a 
+                            href={bookDetail.volumeInfo.infoLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            View on Google Books
+                          </a>
+                        )}
+
+                        {bookDetail.volumeInfo.previewLink && (
+                          <a
+                            href={bookDetail.volumeInfo.previewLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <Eye size={16} />
+                            <span>Preview Book</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+
+                        {bookDetail.accessInfo?.webReaderLink && (
+                          <a
+                            href={bookDetail.accessInfo.webReaderLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <BookOpen size={16} />
+                            <span>Read Online</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+
+                        {bookDetail.saleInfo?.buyLink && (
+                          <a
+                            href={bookDetail.saleInfo.buyLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <Globe size={16} />
+                            <span>Buy Book</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* More from Author */}
+                    {authorBooks.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-4">
+                          More from {bookDetail.volumeInfo.authors?.[0]}
+                        </h4>
+                        <div className="flex space-x-3 overflow-x-auto pb-2">
+                          {authorBooks.map((book) => (
+                            <div key={book.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+                              {book.image && (
+                                <img
+                                  src={book.image}
+                                  alt={book.title}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={book.title}>
+                                {book.title}
+                              </h5>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
+                                <span className="text-xs text-gray-600">{book.rating?.toFixed(1) || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Similar Books */}
+                    {similarBooks.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-4">Similar Books</h4>
+                        <div className="flex space-x-3 overflow-x-auto pb-2">
+                          {similarBooks.map((book) => (
+                            <div key={book.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+                              {book.image && (
+                                <img
+                                  src={book.image}
+                                  alt={book.title}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={book.title}>
+                                {book.title}
+                              </h5>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
+                                <span className="text-xs text-gray-600">{book.rating?.toFixed(1) || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Additional Info */}
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Additional Information</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">Language:</span>
+                            <span className="text-gray-600">
+                              {bookDetail.volumeInfo.language || 'Unknown'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">ISBN:</span>
+                            <span className="text-gray-600">
+                              {googleBooksService.getISBN(bookDetail as any) || 'N/A'}
+                            </span>
+                          </div>
+                          {bookDetail.volumeInfo.pageCount && (
+                            <div className="flex justify-between col-span-2">
+                              <span className="font-medium text-gray-900">Reading Time:</span>
+                              <span className="text-gray-600 text-right">
+                                {getReadingTime(bookDetail.volumeInfo.pageCount)}
+                              </span>
+                            </div>
+                          )}
+                          {bookDetail.saleInfo?.listPrice && (
+                            <div className="flex justify-between col-span-2">
+                              <span className="font-medium text-gray-900">Price:</span>
+                              <span className="text-gray-600 text-right">
+                                {bookDetail.saleInfo.listPrice.amount} {bookDetail.saleInfo.listPrice.currencyCode}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="p-8 text-center text-gray-600">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">📚</span>
+            </div>
+            <p className="text-lg font-medium text-gray-900 mb-2">Book not found</p>
+            <p className="text-sm">Unable to load book details. Please try again.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/services/googleBooksService.ts">
+// Service pour l'API Google Books
+export interface GoogleBook {
+  id: string
+  volumeInfo: {
+    title: string
+    authors?: string[]
+    publishedDate?: string
+    description?: string
+    industryIdentifiers?: { type: string, identifier: string }[]
+    pageCount?: number
+    categories?: string[]
+    averageRating?: number
+    ratingsCount?: number
+    maturityRating?: string
+    imageLinks?: {
+      smallThumbnail?: string
+      thumbnail?: string
+      small?: string
+      medium?: string
+      large?: string
+      extraLarge?: string
+    }
+    language?: string
+    previewLink?: string
+    infoLink?: string
+    canonicalVolumeLink?: string
+    publisher?: string
+    subtitle?: string
+  }
+  saleInfo?: {
+    country?: string
+    saleability?: string
+    isEbook?: boolean
+    listPrice?: { amount: number, currencyCode: string }
+    retailPrice?: { amount: number, currencyCode: string }
+    buyLink?: string
+  }
+  accessInfo?: {
+    country?: string
+    viewability?: string
+    embeddable?: boolean
+    publicDomain?: boolean
+    textToSpeechPermission?: string
+    epub?: { isAvailable: boolean, acsTokenLink?: string }
+    pdf?: { isAvailable: boolean, acsTokenLink?: string }
+    webReaderLink?: string
+    accessViewStatus?: string
+    quoteSharingAllowed?: boolean
+  }
+}
+
+export interface GoogleBooksSearchResponse {
+  kind: string
+  totalItems: number
+  items?: GoogleBook[]
+}
+
+class GoogleBooksService {
+  private readonly baseURL = 'https://www.googleapis.com/books/v1/volumes'
+  
+  // Rechercher des livres
+  async searchBooks(query: string, maxResults: number = 20): Promise<GoogleBook[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?q=${encodeURIComponent(query)}&maxResults=${maxResults}&printType=books&orderBy=relevance`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const data: GoogleBooksSearchResponse = await response.json()
+      return data.items || []
+    } catch (error) {
+      console.error('Error searching books:', error)
+      throw error
+    }
+  }
+
+  // Obtenir les détails d'un livre
+  async getBookDetails(bookId: string): Promise<GoogleBook | null> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/${bookId}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const book: GoogleBook = await response.json()
+      return book
+    } catch (error) {
+      console.error('Error fetching book details:', error)
+      return null
+    }
+  }
+
+  // Obtenir des livres populaires par catégorie
+  async getBooksByCategory(category: string, maxResults: number = 20): Promise<GoogleBook[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?q=subject:${encodeURIComponent(category)}&maxResults=${maxResults}&printType=books&orderBy=relevance`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const data: GoogleBooksSearchResponse = await response.json()
+      return data.items || []
+    } catch (error) {
+      console.error('Error fetching books by category:', error)
+      return []
+    }
+  }
+
+  // Obtenir des bestsellers (simulation avec des livres populaires)
+  async getBestsellerBooks(): Promise<GoogleBook[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?q=bestseller&maxResults=20&printType=books&orderBy=relevance`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const data: GoogleBooksSearchResponse = await response.json()
+      return data.items || []
+    } catch (error) {
+      console.error('Error fetching bestseller books:', error)
+      return []
+    }
+  }
+
+  // Obtenir des livres de fiction populaires
+  async getFictionBooks(): Promise<GoogleBook[]> {
+    return this.getBooksByCategory('fiction')
+  }
+
+  // Obtenir des livres de non-fiction populaires
+  async getNonFictionBooks(): Promise<GoogleBook[]> {
+    return this.getBooksByCategory('biography')
+  }
+
+  // Obtenir des nouveautés
+  async getNewReleases(): Promise<GoogleBook[]> {
+    try {
+      const currentYear = new Date().getFullYear()
+      const response = await fetch(
+        `${this.baseURL}?q=publishedDate:${currentYear}&maxResults=20&printType=books&orderBy=newest`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const data: GoogleBooksSearchResponse = await response.json()
+      return data.items || []
+    } catch (error) {
+      console.error('Error fetching new releases:', error)
+      return []
+    }
+  }
+
+  // Obtenir la meilleure image disponible
+  getBestImageURL(book: GoogleBook, preferredSize: 'small' | 'medium' | 'large' = 'medium'): string | null {
+    const imageLinks = book.volumeInfo.imageLinks
+    if (!imageLinks) return null
+
+    // Ordre de préférence pour chaque taille
+    const sizePreferences = {
+      small: ['thumbnail', 'smallThumbnail', 'small', 'medium'],
+      medium: ['small', 'medium', 'thumbnail', 'large'],
+      large: ['large', 'extraLarge', 'medium', 'small', 'thumbnail']
+    }
+
+    const preferences = sizePreferences[preferredSize]
+    
+    for (const size of preferences) {
+      const url = imageLinks[size as keyof typeof imageLinks]
+      if (url) {
+        // Convertir en HTTPS et augmenter la qualité si possible
+        return url.replace('http://', 'https://').replace('&edge=curl', '')
+      }
+    }
+
+    return null
+  }
+
+  // Extraire l'ISBN d'un livre
+  getISBN(book: GoogleBook): string | null {
+    const identifiers = book.volumeInfo.industryIdentifiers
+    if (!identifiers) return null
+
+    // Préférer ISBN_13, puis ISBN_10
+    const isbn13 = identifiers.find(id => id.type === 'ISBN_13')
+    if (isbn13) return isbn13.identifier
+
+    const isbn10 = identifiers.find(id => id.type === 'ISBN_10')
+    if (isbn10) return isbn10.identifier
+
+    return null
+  }
+
+  // Extraire l'année de publication
+  getPublicationYear(book: GoogleBook): number {
+    const publishedDate = book.volumeInfo.publishedDate
+    if (!publishedDate) return new Date().getFullYear()
+
+    // publishedDate peut être "YYYY", "YYYY-MM", ou "YYYY-MM-DD"
+    const year = parseInt(publishedDate.split('-')[0])
+    return isNaN(year) ? new Date().getFullYear() : year
+  }
+
+  // Nettoyer la description (enlever les balises HTML)
+  cleanDescription(description: string): string {
+    if (!description) return ''
+    return description
+      .replace(/<[^>]*>/g, '') // Enlever les balises HTML
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .trim()
+  }
+
+  // Convertir un livre Google Books vers le format de l'app
+  convertToAppFormat(book: GoogleBook): any {
+    const volumeInfo = book.volumeInfo
+    
+    return {
+      id: `book-${book.id}`,
+      title: volumeInfo.title || 'Unknown Title',
+      author: volumeInfo.authors?.[0] || 'Unknown Author',
+      year: this.getPublicationYear(book),
+      rating: volumeInfo.averageRating ? Number(volumeInfo.averageRating.toFixed(1)) : 0,
+      genre: volumeInfo.categories?.[0]?.split(' / ')[0] || 'Unknown',
+      category: 'books' as const,
+      image: this.getBestImageURL(book, 'medium'),
+      
+      // Données spécifiques aux livres
+      subtitle: volumeInfo.subtitle,
+      description: this.cleanDescription(volumeInfo.description || ''),
+      publisher: volumeInfo.publisher,
+      publishedDate: volumeInfo.publishedDate,
+      pageCount: volumeInfo.pageCount,
+      isbn: this.getISBN(book),
+      language: volumeInfo.language,
+      ratingsCount: volumeInfo.ratingsCount,
+      previewLink: volumeInfo.previewLink,
+      infoLink: volumeInfo.infoLink,
+      canonicalVolumeLink: volumeInfo.canonicalVolumeLink,
+      
+      // Informations de vente
+      isEbook: book.saleInfo?.isEbook || false,
+      buyLink: book.saleInfo?.buyLink,
+      price: book.saleInfo?.listPrice ? 
+        `${book.saleInfo.listPrice.amount} ${book.saleInfo.listPrice.currencyCode}` : null,
+      
+      // Informations d'accès
+      webReaderLink: book.accessInfo?.webReaderLink,
+      epubAvailable: book.accessInfo?.epub?.isAvailable || false,
+      pdfAvailable: book.accessInfo?.pdf?.isAvailable || false
+    }
+  }
+
+  // Obtenir des livres recommandés basés sur un auteur
+  async getBooksByAuthor(author: string, maxResults: number = 10): Promise<GoogleBook[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}?q=inauthor:"${encodeURIComponent(author)}"&maxResults=${maxResults}&printType=books&orderBy=relevance`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Google Books API Error: ${response.status}`)
+      }
+      
+      const data: GoogleBooksSearchResponse = await response.json()
+      return data.items || []
+    } catch (error) {
+      console.error('Error fetching books by author:', error)
+      return []
+    }
+  }
+
+  // Obtenir des livres similaires basés sur la catégorie
+  async getSimilarBooks(book: GoogleBook, maxResults: number = 6): Promise<GoogleBook[]> {
+    try {
+      const category = book.volumeInfo.categories?.[0] || 'fiction'
+      const books = await this.getBooksByCategory(category, maxResults + 5)
+      
+      // Filtrer le livre actuel et retourner les autres
+      return books
+        .filter(b => b.id !== book.id)
+        .slice(0, maxResults)
+    } catch (error) {
+      console.error('Error fetching similar books:', error)
+      return []
+    }
+  }
+}
+
+// Instance singleton
+export const googleBooksService = new GoogleBooksService()
+
+// Fonctions utilitaires
+export const formatPageCount = (pageCount: number): string => {
+  if (!pageCount) return 'Unknown'
+  return `${pageCount} pages`
+}
+
+export const formatPublisher = (publisher: string, publishedDate: string): string => {
+  if (!publisher && !publishedDate) return 'Unknown Publisher'
+  if (!publisher) return publishedDate
+  if (!publishedDate) return publisher
+  
+  const year = publishedDate.split('-')[0]
+  return `${publisher} (${year})`
+}
+
+export const getReadingTime = (pageCount: number): string => {
+  if (!pageCount) return 'Unknown'
+  
+  // Estimation : 250 mots par page, 200 mots par minute
+  const wordsPerPage = 250
+  const wordsPerMinute = 200
+  const totalWords = pageCount * wordsPerPage
+  const minutes = Math.round(totalWords / wordsPerMinute)
+  
+  if (minutes < 60) return `~${minutes} min read`
+  
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `~${hours}h read`
+  
+  const days = Math.round(hours / 24)
+  return `~${days} days read`
+}
+</file>
 
 <file path=".gitignore">
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
@@ -197,6 +1320,1128 @@ export default config;
 
 <file path="public/window.svg">
 <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path="src/components/MovieDetailModal.tsx">
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { X, Star, ExternalLink, Calendar, Clock, Award, Users, Globe } from 'lucide-react'
+import { omdbService } from '@/services/omdbService'
+import type { LibraryItem, Review, MediaStatus } from '@/types'
+
+interface MovieDetailModalProps {
+  isOpen: boolean
+  onClose: () => void
+  movieId: string
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  library: LibraryItem[]
+  userReviews: Review[]
+  imdbReviews: Review[]
+  onReviewSubmit: (reviewData: any) => void
+}
+
+interface MovieDetail {
+  imdbID: string
+  Title: string
+  Year: string
+  Rated: string
+  Released: string
+  Runtime: string
+  Genre: string
+  Director: string
+  Writer: string
+  Actors: string
+  Plot: string
+  Language: string
+  Country: string
+  Awards: string
+  Poster: string
+  Ratings: { Source: string, Value: string }[]
+  Metascore: string
+  imdbRating: string
+  imdbVotes: string
+  Type: string
+  DVD: string
+  BoxOffice: string
+  Production: string
+  Website: string
+}
+
+export default function MovieDetailModal({ 
+  isOpen, 
+  onClose, 
+  movieId, 
+  onAddToLibrary, 
+  library, 
+  userReviews, 
+  imdbReviews, 
+  onReviewSubmit 
+}: MovieDetailModalProps) {
+  const [movieDetail, setMovieDetail] = useState<MovieDetail | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info')
+  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
+  const [userRating, setUserRating] = useState<number>(0)
+  const [hoverRating, setHoverRating] = useState<number>(0)
+  const [showReviewBox, setShowReviewBox] = useState(false)
+  const [userReview, setUserReview] = useState('')
+  const [similarMovies, setSimilarMovies] = useState<any[]>([])
+
+  const scrollableRef = useRef<HTMLDivElement>(null)
+
+  const movieStats = {
+    'want-to-play': 2341,
+    'currently-playing': 1156,
+    'completed': 8923
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('info')
+      setSimilarMovies([])
+    }
+  }, [isOpen, movieId])
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen && movieId) {
+      fetchMovieDetail()
+    }
+  }, [isOpen, movieId])
+
+  useEffect(() => {
+    const libraryItem = library.find(item => item.id === `movie-${movieId}`)
+    if (libraryItem) {
+      setSelectedStatus(libraryItem.status)
+    } else {
+      setSelectedStatus(null)
+    }
+  }, [movieId, library])
+
+  const fetchMovieDetail = async () => {
+    if (!movieId) return
+    
+    setLoading(true)
+    try {
+      let imdbId = movieId
+      
+      // Si l'ID commence par 'movie-', le retirer
+      if (movieId.startsWith('movie-')) {
+        imdbId = movieId.replace('movie-', '')
+      }
+      
+      const data = await omdbService.getMovieDetails(imdbId)
+      setMovieDetail(data as MovieDetail)
+      
+      // Charger des films similaires (simulation basée sur le genre)
+      if (data?.Genre) {
+        await fetchSimilarMovies(data.Genre.split(',')[0].trim())
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors du chargement des détails:', error)
+      setMovieDetail(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSimilarMovies = async (genre: string) => {
+    try {
+      // Rechercher des films par genre (simulation)
+      const searchResults = await omdbService.searchMovies(genre)
+      const similarMoviesData = searchResults
+        .filter(movie => movie.imdbID !== movieId)
+        .slice(0, 6)
+        .map(movie => omdbService.convertToAppFormat(movie))
+      
+      setSimilarMovies(similarMoviesData)
+    } catch (error) {
+      console.error('Error fetching similar movies:', error)
+      setSimilarMovies([])
+    }
+  }
+
+  const handleStatusSelect = (status: MediaStatus) => {
+    if (!movieDetail) return
+    
+    const movieItem = {
+      id: `movie-${movieDetail.imdbID}`,
+      title: movieDetail.Title,
+      image: movieDetail.Poster !== 'N/A' ? movieDetail.Poster : undefined,
+      category: 'movies' as const,
+      year: parseInt(movieDetail.Year) || new Date().getFullYear(),
+      rating: movieDetail.imdbRating ? Number((parseFloat(movieDetail.imdbRating) / 2).toFixed(1)) : 0,
+      director: movieDetail.Director
+    }
+    
+    onAddToLibrary(movieItem, status)
+    setSelectedStatus(status)
+  }
+
+  const getStatusLabel = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'Want to Watch'
+      case 'currently-playing': return 'Watching'
+      case 'completed': return 'Watched'
+      case 'paused': return 'Paused'
+      case 'dropped': return 'Dropped'
+      default: return status
+    }
+  }
+
+  const getStatusColor = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'bg-orange-500 hover:bg-orange-600'
+      case 'currently-playing': return 'bg-green-500 hover:bg-green-600'
+      case 'completed': return 'bg-blue-500 hover:bg-blue-600'
+      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600'
+      case 'dropped': return 'bg-red-500 hover:bg-red-600'
+      default: return 'bg-gray-500 hover:bg-gray-600'
+    }
+  }
+
+  const handleSubmitReview = () => {
+    if (userRating > 0 && userReview.trim()) {
+      onReviewSubmit({
+        rating: userRating,
+        review: userReview.trim()
+      })
+      
+      setShowReviewBox(false)
+      setUserReview('')
+      setUserRating(0)
+    }
+  }
+
+  const getRatingFromSource = (source: string) => {
+    if (!movieDetail?.Ratings) return null
+    const rating = movieDetail.Ratings.find(r => r.Source === source)
+    return rating?.Value || null
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col shadow-xl border border-gray-100"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : movieDetail ? (
+          <>
+            {/* Header */}
+            <div className="relative bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-2 hover:bg-white/80 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="p-6 flex items-center space-x-4">
+                <div className="w-20 h-28 rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-gray-100 flex-shrink-0">
+                  {movieDetail.Poster !== 'N/A' ? (
+                    <img
+                      src={movieDetail.Poster}
+                      alt={movieDetail.Title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl">
+                      🎬
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{movieDetail.Title}</h1>
+                  
+                  <div className="flex items-center space-x-4 mb-2">
+                    <span className="text-gray-600">{movieDetail.Year}</span>
+                    <span className="text-gray-600">•</span>
+                    <span className="text-gray-600">{movieDetail.Runtime}</span>
+                    {movieDetail.Rated && (
+                      <>
+                        <span className="text-gray-600">•</span>
+                        <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-sm font-medium">
+                          {movieDetail.Rated}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {movieDetail.imdbRating && movieDetail.imdbRating !== 'N/A' && (
+                    <div className="flex items-center space-x-2">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={16}
+                            className={`${
+                              star <= (parseFloat(movieDetail.imdbRating) / 2) ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {(parseFloat(movieDetail.imdbRating) / 2).toFixed(1)}/5 • IMDb {movieDetail.imdbRating}/10
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div ref={scrollableRef} className="flex-1 overflow-y-auto">
+              {/* Action buttons */}
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex space-x-3 mb-4">
+                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusSelect(status)}
+                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all text-white shadow-sm ${
+                        selectedStatus === status
+                          ? getStatusColor(status)
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      <div className="text-sm font-semibold">{getStatusLabel(status)}</div>
+                      <div className="text-xs opacity-80">
+                        {movieStats[status].toLocaleString()} users
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                
+                {selectedStatus && (
+                  <div className="text-sm text-gray-600 bg-green-50 border border-green-200 rounded-lg p-3">
+                    ✅ Added to your library on {new Date().toLocaleDateString()}
+                  </div>
+                )}
+
+                {/* User rating */}
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h4 className="text-gray-900 font-semibold mb-3">Rate this movie</h4>
+                  <div className="flex items-center space-x-2 mb-3">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        onClick={() => {
+                          setUserRating(rating)
+                          setShowReviewBox(true)
+                        }}
+                        onMouseEnter={() => setHoverRating(rating)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className="p-1 hover:scale-110 transition-transform"
+                      >
+                        <Star
+                          size={24}
+                          className={`transition-colors ${
+                            (hoverRating || userRating) >= rating
+                              ? 'text-yellow-500 fill-current'
+                              : 'text-gray-300 hover:text-yellow-400'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    {userRating > 0 && (
+                      <span className="text-gray-900 ml-2 font-medium">{userRating}/5</span>
+                    )}
+                  </div>
+                  
+                  {showReviewBox && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <label className="text-sm text-gray-700 mb-2 block font-medium">Share your thoughts</label>
+                      <textarea
+                        value={userReview}
+                        onChange={(e) => setUserReview(e.target.value)}
+                        placeholder="What did you think about this movie?"
+                        className="w-full h-20 px-3 py-2 bg-white text-gray-900 text-sm rounded-lg resize-none border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <div className="flex space-x-2 mt-3">
+                        <button 
+                          onClick={handleSubmitReview}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Submit Review
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setShowReviewBox(false)
+                            setUserReview('')
+                          }}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reviews Section */}
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
+                <div className="flex space-x-4 overflow-x-auto pb-2">
+                  {/* User reviews first */}
+                  {userReviews.map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-blue-50 rounded-xl p-4 border border-blue-100">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 text-sm">👤</span>
+                        </div>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-blue-600 bg-blue-200 px-2 py-1 rounded-full font-medium">You</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {review.review || review.text}
+                      </p>
+                    </div>
+                  ))}
+                  
+                  {/* IMDb reviews */}
+                  {imdbReviews.slice(0, 5).map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-gray-600 text-sm">🎬</span>
+                        </div>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded-full font-medium">IMDb</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {review.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+                <div className="flex px-6">
+                  {(['info', 'social', 'more'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 py-4 px-4 font-medium transition-colors relative ${
+                        activeTab === tab
+                          ? 'text-gray-900'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      {activeTab === tab && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tab content */}
+              <div className="p-6">
+                {activeTab === 'info' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-3">Plot</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <p className="text-gray-700 leading-relaxed">
+                          {movieDetail.Plot || 'No plot available.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Director</h5>
+                        <p className="text-gray-600 text-sm">
+                          {movieDetail.Director || 'N/A'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Release Date</h5>
+                        <p className="text-gray-600 text-sm">
+                          {movieDetail.Released || 'N/A'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Genre</h5>
+                        <p className="text-gray-600 text-sm">
+                          {movieDetail.Genre || 'N/A'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Runtime</h5>
+                        <p className="text-gray-600 text-sm">
+                          {movieDetail.Runtime || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-3">Cast</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <p className="text-gray-700 text-sm">
+                          {movieDetail.Actors || 'Cast information not available.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {movieDetail.Awards && movieDetail.Awards !== 'N/A' && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-3">Awards</h4>
+                        <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                          <p className="text-yellow-800 text-sm">
+                            {movieDetail.Awards}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'social' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Community Stats</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-orange-600">{movieStats['want-to-play'].toLocaleString()}</div>
+                          <div className="text-sm text-orange-700 font-medium">Want to Watch</div>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-green-600">{movieStats['currently-playing'].toLocaleString()}</div>
+                          <div className="text-sm text-green-700 font-medium">Watching</div>
+                        </div>
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-blue-600">{movieStats['completed'].toLocaleString()}</div>
+                          <div className="text-sm text-blue-700 font-medium">Watched</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Ratings</h4>
+                      <div className="space-y-3">
+                        {movieDetail.Ratings?.map((rating, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <span className="font-medium text-gray-900">{rating.Source}</span>
+                            <span className="text-gray-600">{rating.Value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'more' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">External Links</h4>
+                      <div className="space-y-3">
+                        <a 
+                          href={`https://www.imdb.com/title/${movieDetail.imdbID}/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          View on IMDb
+                        </a>
+
+                        {movieDetail.Website && movieDetail.Website !== 'N/A' && (
+                          <a
+                            href={movieDetail.Website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-gray-50 hover:bg-gray-100 p-4 rounded-xl text-gray-700 hover:text-gray-900 transition-colors border border-gray-200"
+                          >
+                            <Globe size={16} />
+                            <span className="font-medium">Official Website</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Similar Movies */}
+                    {similarMovies.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-4">Similar Movies</h4>
+                        <div className="flex space-x-3 overflow-x-auto pb-2">
+                          {similarMovies.map((movie) => (
+                            <div key={movie.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+                              {movie.image && (
+                                <img
+                                  src={movie.image}
+                                  alt={movie.title}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={movie.title}>
+                                {movie.title}
+                              </h5>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
+                                <span className="text-xs text-gray-600">{movie.rating?.toFixed(1) || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Technical Info */}
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Additional Information</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">Language:</span>
+                            <span className="text-gray-600">
+                              {movieDetail.Language || 'N/A'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">Country:</span>
+                            <span className="text-gray-600">
+                              {movieDetail.Country || 'N/A'}
+                            </span>
+                          </div>
+                          {movieDetail.BoxOffice && movieDetail.BoxOffice !== 'N/A' && (
+                            <div className="flex justify-between col-span-2">
+                              <span className="font-medium text-gray-900">Box Office:</span>
+                              <span className="text-gray-600 text-right">
+                                {movieDetail.BoxOffice}
+                              </span>
+                            </div>
+                          )}
+                          {movieDetail.Production && movieDetail.Production !== 'N/A' && (
+                            <div className="flex justify-between col-span-2">
+                              <span className="font-medium text-gray-900">Production:</span>
+                              <span className="text-gray-600 text-right">
+                                {movieDetail.Production}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="p-8 text-center text-gray-600">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">🎬</span>
+            </div>
+            <p className="text-lg font-medium text-gray-900 mb-2">Movie not found</p>
+            <p className="text-sm">Unable to load movie details. Please try again.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/components/RoadmapPage.tsx">
+'use client'
+import { ArrowLeft, Check, Clock, Zap, Users, Star, Sparkles } from 'lucide-react'
+
+interface RoadmapPageProps {
+  onBack: () => void
+}
+
+export default function RoadmapPage({ onBack }: RoadmapPageProps) {
+  const roadmapPhases = [
+    {
+      id: 'phase1',
+      title: 'Phase 1 - Foundations',
+      status: 'in-progress',
+      description: 'Core app structure and basic features',
+      items: [
+        { text: 'BottomNavigation with Apple design', completed: true },
+        { text: 'Movies/Music/Books APIs integration', completed: false },
+        { text: 'Discover & Search pages', completed: false },
+        { text: 'Content browsing optimization', completed: false }
+      ]
+    },
+    {
+      id: 'phase2', 
+      title: 'Phase 2 - Core Features',
+      status: 'planned',
+      description: 'Essential functionality and data persistence',
+      items: [
+        { text: 'Database setup with Supabase', completed: false },
+        { text: 'User authentication (Google/Apple)', completed: false },
+        { text: 'Advanced Library features', completed: false },
+        { text: 'Basic recommendation algorithms', completed: false },
+        { text: 'User stats and analytics', completed: false }
+      ]
+    },
+    {
+      id: 'phase3',
+      title: 'Phase 3 - Social Features', 
+      status: 'planned',
+      description: 'Connect with friends and share recommendations',
+      items: [
+        { text: 'Friend system (add/remove friends)', completed: false },
+        { text: 'Friend Recommendations with personal messages', completed: false, isNew: true },
+        { text: 'Activity Feed (see friends\' activities)', completed: false },
+        { text: 'Groups & Communities', completed: false },
+        { text: 'Public profiles', completed: false }
+      ]
+    },
+    {
+      id: 'phase4',
+      title: 'Phase 4 - Advanced Social',
+      status: 'future', 
+      description: 'Rich social interactions and community features',
+      items: [
+        { text: 'Reviews & Ratings system', completed: false },
+        { text: 'Challenges between friends', completed: false },
+        { text: 'Social stats and comparisons', completed: false },
+        { text: 'Collaborative lists', completed: false },
+        { text: 'Comments & Discussions', completed: false }
+      ]
+    },
+    {
+      id: 'phase5',
+      title: 'Phase 5 - Pro Features',
+      status: 'future',
+      description: 'Advanced features and platform expansion',
+      items: [
+        { text: 'AI-powered recommendations', completed: false },
+        { text: 'Advanced analytics dashboard', completed: false },
+        { text: 'Custom themes and personalization', completed: false },
+        { text: 'Native mobile apps (iOS/Android)', completed: false },
+        { text: 'Public API for developers', completed: false }
+      ]
+    }
+  ]
+
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'in-progress':
+        return { 
+          color: 'bg-green-50 border-green-200 text-green-700',
+          icon: <Zap size={16} className="text-green-600" />,
+          label: 'In Progress'
+        }
+      case 'planned':
+        return {
+          color: 'bg-blue-50 border-blue-200 text-blue-700', 
+          icon: <Clock size={16} className="text-blue-600" />,
+          label: 'Planned'
+        }
+      case 'future':
+        return {
+          color: 'bg-gray-50 border-gray-200 text-gray-700',
+          icon: <Star size={16} className="text-gray-600" />,
+          label: 'Future'
+        }
+      default:
+        return {
+          color: 'bg-gray-50 border-gray-200 text-gray-700',
+          icon: <Clock size={16} className="text-gray-600" />,
+          label: 'Unknown'
+        }
+    }
+  }
+
+  const calculateProgress = (items: any[]) => {
+    const completed = items.filter(item => item.completed).length
+    return Math.round((completed / items.length) * 100)
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
+        <div className="flex items-center px-4 py-4">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-3"
+          >
+            <ArrowLeft size={20} className="text-gray-600" />
+          </button>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Roadmap</h1>
+            <p className="text-sm text-gray-500">Track Stackr's development progress</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="pb-24">
+        {/* Overview Stats */}
+        <div className="px-4 py-6 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-100">
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Development Overview</h2>
+              <p className="text-gray-600 text-sm">
+                Building Stackr step by step. Track our progress and see what's coming next.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl p-3 border border-gray-200">
+                <div className="text-lg font-bold text-green-600">
+                  {roadmapPhases.reduce((acc, phase) => 
+                    acc + phase.items.filter(item => item.completed).length, 0
+                  )}
+                </div>
+                <div className="text-xs text-gray-600">Completed</div>
+              </div>
+              <div className="bg-white rounded-xl p-3 border border-gray-200">
+                <div className="text-lg font-bold text-blue-600">
+                  {roadmapPhases.reduce((acc, phase) => 
+                    acc + phase.items.filter(item => !item.completed).length, 0
+                  )}
+                </div>
+                <div className="text-xs text-gray-600">Remaining</div>
+              </div>
+              <div className="bg-white rounded-xl p-3 border border-gray-200">
+                <div className="text-lg font-bold text-gray-900">5</div>
+                <div className="text-xs text-gray-600">Phases</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Roadmap Phases */}
+        <div className="px-4 py-6 space-y-6">
+          {roadmapPhases.map((phase, phaseIndex) => {
+            const statusInfo = getStatusInfo(phase.status)
+            const progress = calculateProgress(phase.items)
+            
+            return (
+              <div key={phase.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                {/* Phase Header */}
+                <div className="p-4 border-b border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      <h3 className="text-lg font-semibold text-gray-900">{phase.title}</h3>
+                      <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}>
+                        {statusInfo.icon}
+                        <span>{statusInfo.label}</span>
+                      </div>
+                    </div>
+                    {phase.status === 'in-progress' && (
+                      <div className="text-sm font-medium text-green-600">{progress}%</div>
+                    )}
+                  </div>
+                  
+                  <p className="text-gray-600 text-sm mb-3">{phase.description}</p>
+                  
+                  {/* Progress Bar */}
+                  {phase.status === 'in-progress' && (
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Phase Items */}
+                <div className="p-4">
+                  <div className="space-y-3">
+                    {phase.items.map((item, itemIndex) => (
+                      <div key={itemIndex} className="flex items-center space-x-3">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          item.completed 
+                            ? 'bg-green-500 border-green-500' 
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}>
+                          {item.completed && <Check size={12} className="text-white" />}
+                        </div>
+                        
+                        <div className="flex-1 flex items-center space-x-2">
+                          <span className={`text-sm ${
+                            item.completed 
+                              ? 'text-gray-500 line-through' 
+                              : 'text-gray-900'
+                          }`}>
+                            {item.text}
+                          </span>
+                          {item.isNew && (
+                            <div className="flex items-center space-x-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                              <Sparkles size={10} />
+                              <span>New</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Footer Note */}
+        <div className="px-4 py-6">
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <div className="flex items-start space-x-3">
+              <Users size={20} className="text-gray-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-gray-900 mb-1">Community Driven</h4>
+                <p className="text-sm text-gray-600">
+                  This roadmap evolves based on user feedback and community needs. 
+                  Got suggestions? We'd love to hear them!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/services/omdbService.ts">
+// Service pour l'API OMDB (plus simple que TMDB)
+export interface OMDBMovie {
+  imdbID: string
+  Title: string
+  Year: string
+  Type: string
+  Poster: string
+  Plot?: string
+  Director?: string
+  Genre?: string
+  imdbRating?: string
+  Runtime?: string
+  Released?: string
+  Actors?: string
+  Language?: string
+  Country?: string
+  Awards?: string
+  Response?: string  // Ajout de la propriété Response
+  Error?: string     // Ajout de la propriété Error
+}
+
+export interface OMDBSearchResponse {
+  Search: OMDBMovie[]
+  totalResults: string
+  Response: string
+  Error?: string
+}
+
+class OMDBService {
+  private readonly apiKey = '649f9a63' // Votre clé OMDB fonctionnelle
+  private readonly baseURL = 'https://www.omdbapi.com'
+  
+  // Rechercher des films
+  async searchMovies(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&type=movie&page=${page}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`OMDB API Error: ${response.status}`)
+      }
+      
+      const data: OMDBSearchResponse = await response.json()
+      
+      if (data.Response === 'False') {
+        throw new Error(data.Error || 'No movies found')
+      }
+      
+      return data.Search || []
+    } catch (error) {
+      console.error('Error searching movies:', error)
+      throw error
+    }
+  }
+
+  // Obtenir les détails d'un film
+  async getMovieDetails(imdbId: string): Promise<OMDBMovie | null> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/?apikey=${this.apiKey}&i=${imdbId}&plot=full`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`OMDB API Error: ${response.status}`)
+      }
+      
+      const movie: OMDBMovie = await response.json()
+      
+      if (movie.Response === 'False') {
+        return null
+      }
+      
+      return movie
+    } catch (error) {
+      console.error('Error fetching movie details:', error)
+      return null
+    }
+  }
+
+  // Obtenir des films populaires (simulation avec des films connus)
+  async getPopularMovies(): Promise<OMDBMovie[]> {
+    const popularMovieIds = [
+      'tt0111161', // The Shawshank Redemption
+      'tt0068646', // The Godfather
+      'tt0468569', // The Dark Knight
+      'tt0071562', // The Godfather Part II
+      'tt0050083', // 12 Angry Men
+      'tt0108052', // Schindler's List
+      'tt0167260', // The Lord of the Rings: The Return of the King
+      'tt0110912'  // Pulp Fiction
+    ]
+
+    try {
+      const moviePromises = popularMovieIds.map(id => this.getMovieDetails(id))
+      const movies = await Promise.all(moviePromises)
+      return movies.filter(movie => movie !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching popular movies:', error)
+      return []
+    }
+  }
+
+  // Obtenir les films les mieux notés
+  async getTopRatedMovies(): Promise<OMDBMovie[]> {
+    const topRatedIds = [
+      'tt0111161', // The Shawshank Redemption
+      'tt0068646', // The Godfather
+      'tt0071562', // The Godfather Part II
+      'tt0468569', // The Dark Knight
+      'tt0050083', // 12 Angry Men
+      'tt0108052', // Schindler's List
+      'tt0167260', // The Lord of the Rings: The Return of the King
+      'tt0110912'  // Pulp Fiction
+    ]
+
+    try {
+      const moviePromises = topRatedIds.map(id => this.getMovieDetails(id))
+      const movies = await Promise.all(moviePromises)
+      return movies.filter(movie => movie !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching top rated movies:', error)
+      return []
+    }
+  }
+
+  // Obtenir des films récents (simulation)
+  async getRecentMovies(): Promise<OMDBMovie[]> {
+    const recentMovieIds = [
+      'tt6751668', // Parasite
+      'tt7286456', // Joker
+      'tt8503618', // Hamilton
+      'tt1950186', // Ford v Ferrari
+      'tt0816692', // Interstellar
+      'tt4154756', // Avengers: Endgame
+      'tt4633694', // Spider-Man: Into the Spider-Verse
+      'tt2380307'  // Coco
+    ]
+
+    try {
+      const moviePromises = recentMovieIds.map(id => this.getMovieDetails(id))
+      const movies = await Promise.all(moviePromises)
+      return movies.filter(movie => movie !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching recent movies:', error)
+      return []
+    }
+  }
+
+  // Convertir un film OMDB vers le format de l'app
+  convertToAppFormat(movie: OMDBMovie): any {
+    return {
+      id: `movie-${movie.imdbID}`,
+      title: movie.Title,
+      director: movie.Director || 'Unknown Director',
+      year: parseInt(movie.Year) || new Date().getFullYear(),
+      rating: movie.imdbRating ? Number((parseFloat(movie.imdbRating) / 2).toFixed(1)) : 0, // Convertir de /10 à /5
+      genre: movie.Genre?.split(',')[0]?.trim() || 'Unknown',
+      category: 'movies' as const,
+      image: movie.Poster !== 'N/A' ? movie.Poster : undefined,
+      overview: movie.Plot,
+      runtime: movie.Runtime,
+      released: movie.Released,
+      actors: movie.Actors,
+      language: movie.Language,
+      country: movie.Country,
+      awards: movie.Awards
+    }
+  }
+}
+
+// Instance singleton
+export const omdbService = new OMDBService()
+
+// Fonctions utilitaires
+export const formatRuntime = (runtime: string): string => {
+  if (!runtime || runtime === 'N/A') return 'N/A'
+  return runtime
+}
+
+export const formatRating = (rating: string): number => {
+  if (!rating || rating === 'N/A') return 0
+  return Number((parseFloat(rating) / 2).toFixed(1))
+}
 </file>
 
 <file path="src/tailwind.config.js">
@@ -633,6 +2878,207 @@ export default function RootLayout({
         {children}
       </body>
     </html>
+  )
+}
+</file>
+
+<file path="src/components/BottomNavigation.tsx">
+'use client'
+import { useState } from 'react'
+import { Home, Library, Compass, Search, MoreHorizontal } from 'lucide-react'
+
+interface BottomNavigationProps {
+  activeTab: string
+  onTabChange: (tab: string) => void
+}
+
+export default function BottomNavigation({ activeTab, onTabChange }: BottomNavigationProps) {
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+
+  const mainTabs = [
+    { id: 'home', label: 'Home', icon: Home },
+    { id: 'library', label: 'Library', icon: Library },
+    { id: 'discover', label: 'Discover', icon: Compass },
+    { id: 'search', label: 'Search', icon: Search },
+  ]
+
+  const moreMenuItems = [
+    { id: 'profile', label: 'Profile', description: 'Manage your account settings' },
+    { id: 'friends', label: 'Friends', description: 'Connect with other users' },
+    { id: 'groups', label: 'Groups', description: 'Join communities' },
+    { id: 'lists', label: 'Lists', description: 'Create custom collections' },
+    { id: 'roadmap', label: 'Roadmap', description: 'See what\'s coming next' },
+    { id: 'contact', label: 'Contact Us', description: 'Get help and support' },
+    { id: 'signout', label: 'Sign Out', description: '', isDanger: true },
+  ]
+
+  const handleTabClick = (tabId: string) => {
+    if (tabId === 'more') {
+      setShowMoreMenu(true)
+    } else {
+      onTabChange(tabId)
+      setShowMoreMenu(false)
+    }
+  }
+
+  const handleMoreItemClick = (itemId: string) => {
+    console.log(`Clicked: ${itemId}`)
+    setShowMoreMenu(false)
+    
+    // Callback pour navigation vers les pages
+    if (onTabChange) {
+      onTabChange(itemId)
+    }
+  }
+
+  const TabButton = ({ tab, isActive, onClick }: { tab: any, isActive: boolean, onClick: () => void }) => {
+    const Icon = tab.icon
+    
+    return (
+      <button
+        onClick={onClick}
+        className={`flex flex-col items-center justify-center py-2 px-2 min-w-0 flex-1 transition-all duration-300 relative ${
+          isActive 
+            ? 'text-black' 
+            : 'text-gray-400 hover:text-gray-600'
+        }`}
+      >
+        {/* Barre active au-dessus */}
+        {isActive && (
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-black rounded-full transition-all duration-300" />
+        )}
+        
+        <div className={`transition-all duration-300 ${isActive ? 'scale-105' : 'scale-100'}`}>
+          {/* Icône */}
+          <div className="flex justify-center mb-1">
+            <Icon 
+              size={20} 
+              className={`transition-all duration-300 ${
+                isActive ? 'stroke-2' : 'stroke-1.5'
+              }`}
+            />
+          </div>
+          
+          {/* Label */}
+          <span className={`text-xs font-medium transition-all duration-300 ${
+            isActive ? 'font-semibold' : 'font-normal'
+          }`}>
+            {tab.label}
+          </span>
+        </div>
+      </button>
+    )
+  }
+
+  return (
+    <>
+      {/* Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-4 py-2 z-40">
+        <div className="flex items-center justify-center max-w-md mx-auto">
+          {mainTabs.map((tab) => (
+            <TabButton
+              key={tab.id}
+              tab={tab}
+              isActive={activeTab === tab.id}
+              onClick={() => handleTabClick(tab.id)}
+            />
+          ))}
+          
+          {/* More Button */}
+          <button
+            onClick={() => handleTabClick('more')}
+            className="flex flex-col items-center justify-center py-2 px-2 min-w-0 flex-1 text-gray-400 hover:text-gray-600 transition-all duration-300"
+          >
+            <div className="flex justify-center mb-1">
+              <MoreHorizontal 
+                size={20} 
+                className="stroke-1.5"
+              />
+            </div>
+            <span className="text-xs font-normal">More</span>
+          </button>
+        </div>
+      </div>
+
+      {/* More Menu Overlay */}
+      {showMoreMenu && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/10 backdrop-blur-sm z-50 transition-all duration-300"
+            onClick={() => setShowMoreMenu(false)}
+          />
+          
+          {/* Menu Panel */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl z-50 animate-slide-up border-t border-gray-100">
+            {/* Handle */}
+            <div className="flex justify-center pt-4 pb-2">
+              <div className="w-8 h-1 bg-gray-200 rounded-full" />
+            </div>
+            
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-50">
+              <h3 className="text-xl font-semibold text-black">More</h3>
+            </div>
+
+            {/* Menu Items */}
+            <div className="px-4 py-2 max-h-96 overflow-y-auto">
+              <div className="space-y-1">
+                {moreMenuItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleMoreItemClick(item.id)}
+                    className={`w-full flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-all duration-200 text-left group ${
+                      item.isDanger ? 'hover:bg-red-50' : ''
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <div className={`font-medium ${item.isDanger ? 'text-red-600' : 'text-black'}`}>
+                        {item.label}
+                      </div>
+                      {item.description && (
+                        <div className="text-sm text-gray-500 mt-0.5">
+                          {item.description}
+                        </div>
+                      )}
+                    </div>
+                    <div className={`transition-colors ${
+                      item.isDanger 
+                        ? 'text-red-400 group-hover:text-red-600' 
+                        : 'text-gray-300 group-hover:text-gray-500'
+                    }`}>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Safe Area for iPhone */}
+            <div className="h-6 bg-white" />
+          </div>
+        </>
+      )}
+
+      <style jsx>{`
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        
+        .animate-slide-up {
+          animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+      `}</style>
+    </>
   )
 }
 </file>
@@ -1202,6 +3648,8 @@ interface LibrarySectionProps {
   onUpdateItem?: (id: string, updates: Partial<LibraryItem>) => void
   onDeleteItem?: (id: string) => void
   onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
   onOpenSearch?: () => void
 }
 
@@ -1211,6 +3659,8 @@ export default function LibrarySection({
   onUpdateItem,
   onDeleteItem,
   onOpenGameDetail,
+  onOpenMovieDetail,
+  onOpenBookDetail,
   onOpenSearch
 }: LibrarySectionProps) {
   const [activeFilter, setActiveFilter] = useState('all')
@@ -1291,6 +3741,18 @@ export default function LibrarySection({
     }
 
     onUpdateItem(itemId, updates)
+  }
+
+  // Fonction pour ouvrir les détails selon le type d'item
+  const handleOpenItemDetail = (item: LibraryItem) => {
+    if (item.category === 'games' && onOpenGameDetail) {
+      onOpenGameDetail(item.id)
+    } else if (item.category === 'movies' && onOpenMovieDetail) {
+      onOpenMovieDetail(item.id)
+    } else if (item.category === 'books' && onOpenBookDetail) {
+      onOpenBookDetail(item.id)
+    }
+    // TODO: Ajouter support pour music plus tard
   }
 
   // Quick Edit Modal Component
@@ -1511,6 +3973,8 @@ export default function LibrarySection({
                     onAddToLibrary={onAddToLibrary}
                     library={library}
                     onOpenGameDetail={onOpenGameDetail}
+                    onOpenMovieDetail={onOpenMovieDetail}
+                    onOpenBookDetail={onOpenBookDetail}
                   />
                   
                   {/* Edit button overlay */}
@@ -1536,7 +4000,10 @@ export default function LibrarySection({
                   <div key={item.id} className="library-card p-4">
                     <div className="flex items-center space-x-4">
                       {/* Image */}
-                      <div className="w-16 h-20 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                      <div 
+                        className="w-16 h-20 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => handleOpenItemDetail(item)}
+                      >
                         {item.image ? (
                           <img
                             src={item.image}
@@ -1554,7 +4021,12 @@ export default function LibrarySection({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="text-gray-900 font-medium">{item.title}</h3>
+                            <h3 
+                              className="text-gray-900 font-medium cursor-pointer hover:text-blue-600 transition-colors"
+                              onClick={() => handleOpenItemDetail(item)}
+                            >
+                              {item.title}
+                            </h3>
                             <p className="text-gray-600 text-sm">{getCreator(item)}</p>
                             <div className="flex items-center space-x-2 mt-1">
                               <span className={`text-xs ${categoryInfo.color}`}>
@@ -1663,6 +4135,8 @@ interface ContentSectionProps {
   onAddToLibrary: (item: ContentItem, status: MediaStatus) => void
   library: LibraryItem[]
   onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
 }
 
 export default function ContentSection({ 
@@ -1671,7 +4145,9 @@ export default function ContentSection({
   category, 
   onAddToLibrary, 
   library, 
-  onOpenGameDetail 
+  onOpenGameDetail,
+  onOpenMovieDetail,
+  onOpenBookDetail
 }: ContentSectionProps) {
   return (
     <section className="mb-8">
@@ -1693,6 +4169,8 @@ export default function ContentSection({
               onAddToLibrary={onAddToLibrary}
               library={library}
               onOpenGameDetail={onOpenGameDetail}
+              onOpenMovieDetail={onOpenMovieDetail}
+              onOpenBookDetail={onOpenBookDetail}
             />
           </div>
         ))}
@@ -1779,6 +4257,8 @@ interface ContentCardProps {
   onAddToLibrary: (item: ContentItem, status: MediaStatus) => void
   library: LibraryItem[]
   onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
 }
 
 export default function ContentCard({
@@ -1786,7 +4266,9 @@ export default function ContentCard({
   category,
   onAddToLibrary,
   library = [],
-  onOpenGameDetail
+  onOpenGameDetail,
+  onOpenMovieDetail,
+  onOpenBookDetail
 }: ContentCardProps) {
   const [showActions, setShowActions] = useState(false)
 
@@ -1802,6 +4284,10 @@ export default function ContentCard({
   const handleCardClick = () => {
     if (category === 'games' && onOpenGameDetail) {
       onOpenGameDetail(item.id)
+    } else if (category === 'movies' && onOpenMovieDetail) {
+      onOpenMovieDetail(item.id)
+    } else if (category === 'books' && onOpenBookDetail) {
+      onOpenBookDetail(item.id)
     }
   }
 
@@ -1939,299 +4425,6 @@ export default function ContentCard({
           onClick={() => setShowActions(false)}
         />
       )}
-    </div>
-  )
-}
-</file>
-
-<file path="src/app/page.tsx">
-'use client'
-import { useState } from 'react'
-import { Search } from 'lucide-react'
-import CategoryTabs from '@/components/CategoryTabs'
-import ContentSection from '@/components/ContentSection'
-import LibrarySection from '@/components/LibrarySection'
-import GameDetailModal from '@/components/GameDetailModal'
-import SearchModal from '@/components/SearchModal'
-import { sampleContent } from '@/data/sampleContent'
-import { normalizeId, idsMatch } from '@/utils/idNormalizer'
-import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
-
-export default function Home() {
-  const [activeTab, setActiveTab] = useState<MediaCategory>('games') // Commencer par Games par défaut
-  const [library, setLibrary] = useState<LibraryItem[]>([])
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-
-  // User reviews state - now per game
-  const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
-
-  // Fonction corrigée pour ajouter à la bibliothèque
-  const handleAddToLibrary = (item: any, status: MediaStatus) => {
-    // Normaliser l'ID pour éviter les doublons
-    const normalizedId = normalizeId(item.id)
-    
-    const newItem: LibraryItem = {
-      id: normalizedId,
-      title: item.title,
-      category: item.category || activeTab,
-      status,
-      addedAt: new Date().toISOString(),
-      year: item.year || new Date().getFullYear(),
-      rating: item.rating || 0,
-      image: item.image || item.background_image,
-      author: item.author,
-      artist: item.artist,
-      director: item.director,
-      genre: item.genre
-    }
-
-    setLibrary(prev => {
-      // Rechercher avec l'ID normalisé pour éviter les doublons
-      const existingIndex = prev.findIndex((libItem: LibraryItem) => 
-        idsMatch(libItem.id, normalizedId)
-      )
-      
-      if (existingIndex !== -1) {
-        // Mettre à jour l'item existant
-        const updated = [...prev]
-        updated[existingIndex] = { 
-          ...updated[existingIndex], 
-          status, 
-          addedAt: new Date().toISOString() 
-        }
-        return updated
-      }
-      
-      // Ajouter nouvel item
-      return [...prev, newItem]
-    })
-  }
-
-  // Fonction pour mettre à jour un item dans la library
-  const handleUpdateItem = (id: string, updates: Partial<LibraryItem>) => {
-    setLibrary(prev =>
-      prev.map(item =>
-        idsMatch(item.id, id)
-          ? { ...item, ...updates }
-          : item
-      )
-    )
-  }
-
-  // Fonction pour supprimer un item de la library
-  const handleDeleteItem = (id: string) => {
-    setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
-  }
-
-  // Fonction pour ouvrir fiche produit
-  const handleOpenGameDetail = (gameId: string) => {
-    // Normaliser l'ID pour la modal aussi
-    const normalizedGameId = normalizeId(gameId)
-    setSelectedGameId(normalizedGameId)
-  }
-
-  // Fonction pour ouvrir la recherche
-  const handleOpenSearch = () => {
-    setIsSearchOpen(true)
-  }
-
-  // Handle review submission - now saves per game
-  const handleReviewSubmit = (reviewData: any) => {
-    if (!selectedGameId) return;
-    
-    const newReview: Review = {
-      id: Date.now(),
-      username: "CurrentUser", // In real app, get from auth
-      rating: reviewData.rating,
-      review: reviewData.review,
-      date: new Date().toISOString().split('T')[0]
-    };
-
-    setUserReviews(prev => ({
-      ...prev,
-      [parseInt(selectedGameId)]: [...(prev[parseInt(selectedGameId)] || []), newReview]
-    }));
-  };
-
-  // Generate unique Steam reviews for each game
-  const generateSteamReviews = (gameId: number): Review[] => {
-    // Base de reviews templates plus variées et réalistes
-    const reviewTemplates = [
-      { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
-      { rating: 4, text: "Great storyline and graphics. Minor bugs but overall excellent experience.", author: "GameReviewer", helpful: 89 },
-      { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
-      { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
-      { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 }
-    ];
-
-    // Utiliser gameId comme seed pour des reviews cohérentes mais uniques par jeu
-    const seed = gameId;
-    const selectedReviews = [];
-    
-    // Générer 5 reviews par jeu selon l'ID
-    const numReviews = 5;
-
-    for (let i = 0; i < numReviews; i++) {
-      // Algorithme de sélection pseudo-aléatoire basé sur gameId
-      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length;
-      const template = reviewTemplates[index];
-      
-      // Varier légèrement les reviews selon le jeu
-      const gameSpecificVariations = {
-        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25), // Varie de -25 à +25
-        daysAgo: (seed * i * 3) % 180 + 1, // 1-180 jours
-      };
-      
-      selectedReviews.push({
-        id: `steam_${gameId}_${i}`,
-        username: template.author,
-        rating: template.rating,
-        text: template.text,
-        helpful: gameSpecificVariations.helpful,
-        date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
-          .toISOString().split('T')[0],
-        platform: 'Steam'
-      });
-    }
-
-    // Trier par nombre de "helpful" votes décroissant
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
-  };
-
-  // Configuration des sections par catégorie
-  const getSections = () => {
-    const allContent = getCurrentContent()
-    
-    // Diviser en 3 sections de 4 items chacune
-    const popularItems = allContent.slice(0, 4)
-    const topRatedItems = allContent.slice(4, 8) 
-    const editorPicksItems = allContent.slice(0, 4) // Réutiliser les premiers pour variety
-
-    const sectionConfig = {
-      games: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Top rated of all time', items: topRatedItems },
-        { title: "Editor's Choice", items: editorPicksItems }
-      ],
-      movies: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Highly rated', items: topRatedItems },
-        { title: 'Staff picks', items: editorPicksItems }
-      ],
-      music: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Top albums', items: topRatedItems },
-        { title: 'Hidden gems', items: editorPicksItems }
-      ],
-      books: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Bestsellers', items: topRatedItems },
-        { title: 'Must reads', items: editorPicksItems }
-      ]
-    }
-
-    return sectionConfig[activeTab] || sectionConfig.games
-  }
-
-  const getCurrentContent = (): ContentItem[] => {
-    switch (activeTab) {
-      case 'games': return sampleContent.games
-      case 'movies': return sampleContent.movies
-      case 'music': return sampleContent.music
-      case 'books': return sampleContent.books
-      default: return sampleContent.games
-    }
-  }
-
-  const sections = getSections()
-
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Header fixe avec arrière-plan gris */}
-      <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
-        {/* Barre de recherche étendue */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4">
-          <div className="flex-1 max-w-2xl mx-auto">
-            <div 
-              className="relative cursor-pointer"
-              onClick={() => setIsSearchOpen(true)}
-            >
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
-                <span>Search...</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center ml-4">
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 text-sm font-medium">👤</span>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Onglets de catégories répartis sur toute la largeur */}
-        <div className="px-4 sm:px-6">
-          <CategoryTabs 
-            activeTab={activeTab} 
-            onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
-          />
-        </div>
-      </div>
-      
-      {/* Contenu scrollable */}
-      <div className="bg-white">
-        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-          {/* Sections horizontales scrollables */}
-          <div className="space-y-6 sm:space-y-8">
-            {sections.map((section, index) => (
-              <ContentSection
-                key={`${activeTab}-${index}`}
-                title={section.title}
-                items={section.items}
-                category={activeTab}
-                onAddToLibrary={handleAddToLibrary}
-                library={library}
-                onOpenGameDetail={handleOpenGameDetail}
-              />
-            ))}
-          </div>
-
-          {/* Section Your Library avec filtres */}
-          <LibrarySection 
-            library={library}
-            onAddToLibrary={handleAddToLibrary}
-            onUpdateItem={handleUpdateItem}
-            onDeleteItem={handleDeleteItem}
-            onOpenGameDetail={handleOpenGameDetail}
-            onOpenSearch={handleOpenSearch}
-          />
-        </div>
-      </div>
-
-      {/* Modal fiche produit */}
-      <GameDetailModal
-        isOpen={!!selectedGameId}
-        onClose={() => setSelectedGameId(null)}
-        gameId={selectedGameId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        library={library}
-        userReviews={selectedGameId ? userReviews[parseInt(selectedGameId)] || [] : []}
-        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
-
-      {/* Modal de recherche */}
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenGameDetail={handleOpenGameDetail}
-        library={library}
-      />
     </div>
   )
 }
@@ -3145,11 +5338,628 @@ export default function GameDetailModal({
 }
 </file>
 
+<file path="src/app/page.tsx">
+'use client'
+import { useState, useEffect } from 'react'
+import { Search } from 'lucide-react'
+import CategoryTabs from '@/components/CategoryTabs'
+import ContentSection from '@/components/ContentSection'
+import LibrarySection from '@/components/LibrarySection'
+import GameDetailModal from '@/components/GameDetailModal'
+import MovieDetailModal from '@/components/MovieDetailModal'
+import BookDetailModal from '@/components/BookDetailModal'
+import SearchModal from '@/components/SearchModal'
+import BottomNavigation from '@/components/BottomNavigation'
+import RoadmapPage from '@/components/RoadmapPage'
+import { sampleContent } from '@/data/sampleContent'
+import { omdbService } from '@/services/omdbService'
+import { googleBooksService } from '@/services/googleBooksService'
+import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<MediaCategory>('games')
+  const [activeMainTab, setActiveMainTab] = useState('home')
+  const [library, setLibrary] = useState<LibraryItem[]>([])
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  
+  // State pour le contenu dynamique des films et livres
+  const [movieContent, setMovieContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    recent: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    recent: []
+  })
+  const [moviesLoading, setMoviesLoading] = useState(false)
+
+  const [bookContent, setBookContent] = useState<{
+    fiction: ContentItem[]
+    nonFiction: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    fiction: [],
+    nonFiction: [],
+    newReleases: []
+  })
+  const [booksLoading, setBooksLoading] = useState(false)
+
+  // User reviews state
+  const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
+
+  // Charger le contenu des films et livres
+  useEffect(() => {
+    if (activeTab === 'movies') {
+      loadMovieContent()
+    } else if (activeTab === 'books') {
+      loadBookContent()
+    }
+  }, [activeTab])
+
+  const loadMovieContent = async () => {
+    try {
+      setMoviesLoading(true)
+
+      const [popularMovies, topRatedMovies, recentMovies] = await Promise.all([
+        omdbService.getPopularMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        ),
+        omdbService.getTopRatedMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        ),
+        omdbService.getRecentMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        )
+      ])
+
+      setMovieContent({
+        popular: popularMovies,
+        topRated: topRatedMovies,
+        recent: recentMovies
+      })
+    } catch (error) {
+      console.error('Error loading movie content:', error)
+      
+      // Fallback vers les données statiques
+      setMovieContent({
+        popular: sampleContent.movies.slice(0, 4),
+        topRated: sampleContent.movies.slice(4, 8),
+        recent: sampleContent.movies.slice(0, 4)
+      })
+    } finally {
+      setMoviesLoading(false)
+    }
+  }
+
+  const loadBookContent = async () => {
+    try {
+      setBooksLoading(true)
+
+      const [fictionBooks, nonFictionBooks, newReleaseBooks] = await Promise.all([
+        googleBooksService.getFictionBooks().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        ),
+        googleBooksService.getNonFictionBooks().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        ),
+        googleBooksService.getNewReleases().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        )
+      ])
+
+      setBookContent({
+        fiction: fictionBooks,
+        nonFiction: nonFictionBooks,
+        newReleases: newReleaseBooks
+      })
+    } catch (error) {
+      console.error('Error loading book content:', error)
+      
+      // Fallback vers les données statiques
+      setBookContent({
+        fiction: sampleContent.books.slice(0, 4),
+        nonFiction: sampleContent.books.slice(4, 8),
+        newReleases: sampleContent.books.slice(0, 4)
+      })
+    } finally {
+      setBooksLoading(false)
+    }
+  }
+
+  // Fonction corrigée pour ajouter à la bibliothèque
+  const handleAddToLibrary = (item: any, status: MediaStatus) => {
+    const normalizedId = normalizeId(item.id)
+    
+    const newItem: LibraryItem = {
+      id: normalizedId,
+      title: item.title,
+      category: item.category || activeTab,
+      status,
+      addedAt: new Date().toISOString(),
+      year: item.year || new Date().getFullYear(),
+      rating: item.rating || 0,
+      image: item.image || item.background_image,
+      author: item.author,
+      artist: item.artist,
+      director: item.director,
+      genre: item.genre
+    }
+
+    setLibrary(prev => {
+      const existingIndex = prev.findIndex((libItem: LibraryItem) => 
+        idsMatch(libItem.id, normalizedId)
+      )
+      
+      if (existingIndex !== -1) {
+        const updated = [...prev]
+        updated[existingIndex] = { 
+          ...updated[existingIndex], 
+          status, 
+          addedAt: new Date().toISOString() 
+        }
+        return updated
+      }
+      
+      return [...prev, newItem]
+    })
+  }
+
+  const handleUpdateItem = (id: string, updates: Partial<LibraryItem>) => {
+    setLibrary(prev =>
+      prev.map(item =>
+        idsMatch(item.id, id)
+          ? { ...item, ...updates }
+          : item
+      )
+    )
+  }
+
+  const handleDeleteItem = (id: string) => {
+    setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
+  }
+
+  const handleOpenGameDetail = (gameId: string) => {
+    const normalizedGameId = normalizeId(gameId)
+    setSelectedGameId(normalizedGameId)
+  }
+
+  const handleOpenMovieDetail = (movieId: string) => {
+    const normalizedMovieId = normalizeId(movieId)
+    setSelectedMovieId(normalizedMovieId)
+  }
+
+  const handleOpenBookDetail = (bookId: string) => {
+    const normalizedBookId = normalizeId(bookId)
+    setSelectedBookId(normalizedBookId)
+  }
+
+  const handleOpenSearch = () => {
+    setIsSearchOpen(true)
+  }
+
+  const handleReviewSubmit = (reviewData: any) => {
+    if (!selectedGameId) return;
+    
+    const newReview: Review = {
+      id: Date.now(),
+      username: "CurrentUser",
+      rating: reviewData.rating,
+      review: reviewData.review,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    setUserReviews(prev => ({
+      ...prev,
+      [parseInt(selectedGameId)]: [...(prev[parseInt(selectedGameId)] || []), newReview]
+    }));
+  };
+
+  const generateSteamReviews = (gameId: number): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
+      { rating: 4, text: "Great storyline and graphics. Minor bugs but overall excellent experience.", author: "GameReviewer", helpful: 89 },
+      { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
+      { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
+      { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 }
+    ];
+
+    const seed = gameId;
+    const selectedReviews = [];
+    const numReviews = 5;
+
+    for (let i = 0; i < numReviews; i++) {
+      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length;
+      const template = reviewTemplates[index];
+      
+      const gameSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
+        daysAgo: (seed * i * 3) % 180 + 1,
+      };
+      
+      selectedReviews.push({
+        id: `steam_${gameId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: gameSpecificVariations.helpful,
+        date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Steam'
+      });
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
+  };
+
+  // Générer des reviews Goodreads pour les livres
+  const generateGoodreadsReviews = (bookId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "Absolutely loved this book! Couldn't put it down. The characters were so well developed and the plot was engaging throughout.", author: "BookLover", helpful: 156 },
+      { rating: 4, text: "Really enjoyed this read. Great writing style and interesting themes. A few slow parts but overall fantastic.", author: "AvidReader", helpful: 89 },
+      { rating: 5, text: "One of my favorite books this year! Beautiful prose and such an emotional journey. Highly recommend!", author: "BookwormLife", helpful: 234 },
+      { rating: 3, text: "Good book but not amazing. The story was decent but felt a bit predictable at times.", author: "CasualReader", helpful: 45 },
+      { rating: 4, text: "Solid storytelling and great character development. Would definitely read more from this author.", author: "LitCritic", helpful: 112 }
+    ];
+
+    // Utiliser bookId comme seed pour des reviews cohérentes
+    const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const selectedReviews = [];
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 11 + i * 17) % reviewTemplates.length;
+      const template = reviewTemplates[index];
+      
+      const bookSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
+        daysAgo: (seed * i * 4) % 90 + 1,
+      };
+      
+      selectedReviews.push({
+        id: `goodreads_${bookId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: bookSpecificVariations.helpful,
+        date: new Date(Date.now() - bookSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Goodreads'
+      });
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
+  };
+
+  // Générer des reviews IMDb pour les films
+  const generateIMDBReviews = (movieId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "A masterpiece! Brilliant acting and cinematography. This film will be remembered for years.", author: "CinemaLover", helpful: 89 },
+      { rating: 4, text: "Excellent storytelling and character development. Minor pacing issues but overall fantastic.", author: "FilmCritic", helpful: 156 },
+      { rating: 5, text: "One of the best films I've seen. Perfect blend of drama and emotion. Highly recommended!", author: "MovieBuff", helpful: 234 },
+      { rating: 3, text: "Good but not great. Some brilliant moments but overall feels uneven.", author: "CasualViewer", helpful: 45 },
+      { rating: 4, text: "Strong performances and great direction. A solid addition to the genre.", author: "FilmStudent", helpful: 78 }
+    ];
+
+    // Utiliser movieId comme seed pour des reviews cohérentes
+    const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const selectedReviews = [];
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 13 + i * 19) % reviewTemplates.length;
+      const template = reviewTemplates[index];
+      
+      const movieSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 40) - 20),
+        daysAgo: (seed * i * 2) % 120 + 1,
+      };
+      
+      selectedReviews.push({
+        id: `imdb_${movieId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: movieSpecificVariations.helpful,
+        date: new Date(Date.now() - movieSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'IMDb'
+      });
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
+  };
+
+  const getSections = () => {
+    if (activeTab === 'movies') {
+      return [
+        { title: 'Popular classics', items: movieContent.popular },
+        { title: 'Top rated of all time', items: movieContent.topRated },
+        { title: 'Recent favorites', items: movieContent.recent }
+      ]
+    }
+    
+    if (activeTab === 'books') {
+      return [
+        { title: 'Fiction favorites', items: bookContent.fiction },
+        { title: 'Non-fiction highlights', items: bookContent.nonFiction },
+        { title: 'New releases', items: bookContent.newReleases }
+      ]
+    }
+    
+    const allContent = getCurrentContent()
+    const popularItems = allContent.slice(0, 4)
+    const topRatedItems = allContent.slice(4, 8) 
+    const editorPicksItems = allContent.slice(0, 4)
+
+    const sectionConfig = {
+      games: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Top rated of all time', items: topRatedItems },
+        { title: "Editor's Choice", items: editorPicksItems }
+      ],
+      music: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Top albums', items: topRatedItems },
+        { title: 'Hidden gems', items: editorPicksItems }
+      ],
+      books: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Bestsellers', items: topRatedItems },
+        { title: 'Must reads', items: editorPicksItems }
+      ]
+    }
+
+    return sectionConfig[activeTab] || sectionConfig.games
+  }
+
+  const getCurrentContent = (): ContentItem[] => {
+    switch (activeTab) {
+      case 'games': return sampleContent.games
+      case 'movies': return sampleContent.movies
+      case 'music': return sampleContent.music
+      case 'books': return sampleContent.books
+      default: return sampleContent.games
+    }
+  }
+
+  // Rendu selon l'onglet principal actif
+  const renderMainContent = () => {
+    switch (activeMainTab) {
+      case 'home':
+        return renderHomeContent()
+      case 'library':
+        return renderLibraryContent()
+      case 'discover':
+        return renderDiscoverContent()
+      case 'search':
+        return renderSearchContent()
+      case 'roadmap':
+        return <RoadmapPage onBack={() => setActiveMainTab('home')} />
+      default:
+        return renderHomeContent()
+    }
+  }
+
+  const renderHomeContent = () => {
+    const sections = getSections()
+    
+    return (
+      <div className="bg-white">
+        {/* Header fixe avec arrière-plan gris */}
+        <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
+          {/* Barre de recherche étendue */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4">
+            <div className="flex-1 max-w-2xl mx-auto">
+              <div 
+                className="relative cursor-pointer"
+                onClick={() => setIsSearchOpen(true)}
+              >
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
+                  <span>Search...</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center ml-4">
+              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 text-sm font-medium">👤</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Onglets de catégories */}
+          <div className="px-4 sm:px-6">
+            <CategoryTabs 
+              activeTab={activeTab} 
+              onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
+            />
+          </div>
+        </div>
+        
+        {/* Contenu scrollable avec loading state pour films et livres */}
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
+          {(moviesLoading && activeTab === 'movies') || (booksLoading && activeTab === 'books') ? (
+            <div className="space-y-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="mb-8">
+                  <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
+                  <div className="flex space-x-4 overflow-x-auto pb-4">
+                    {[1, 2, 3, 4].map((j) => (
+                      <div key={j} className="flex-shrink-0 w-32">
+                        <div className="w-32 h-40 bg-gray-200 rounded-lg animate-pulse mb-3"></div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
+                  <div className="flex space-x-4 overflow-x-auto pb-4">
+                    {[1, 2, 3, 4].map((j) => (
+                      <div key={j} className="flex-shrink-0 w-32">
+                        <div className="w-32 h-40 bg-gray-200 rounded-lg animate-pulse mb-3"></div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6 sm:space-y-8">
+              {sections.map((section, index) => (
+                <ContentSection
+                  key={`${activeTab}-${index}`}
+                  title={section.title}
+                  items={section.items}
+                  category={activeTab}
+                  onAddToLibrary={handleAddToLibrary}
+                  library={library}
+                  onOpenGameDetail={handleOpenGameDetail}
+                  onOpenMovieDetail={handleOpenMovieDetail}
+                  onOpenBookDetail={handleOpenBookDetail}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderLibraryContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <LibrarySection 
+          library={library}
+          onAddToLibrary={handleAddToLibrary}
+          onUpdateItem={handleUpdateItem}
+          onDeleteItem={handleDeleteItem}
+          onOpenGameDetail={handleOpenGameDetail}
+          onOpenMovieDetail={handleOpenMovieDetail}
+          onOpenBookDetail={handleOpenBookDetail}
+          onOpenSearch={handleOpenSearch}
+        />
+      </div>
+    </div>
+  )
+
+  const renderDiscoverContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Trending This Week</h3>
+            <p className="text-gray-600">Baldur's Gate 3, Spider-Man 2, Cyberpunk 2077</p>
+          </div>
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Recommended for You</h3>
+            <p className="text-gray-600">Based on your gaming preferences</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderSearchContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Search</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <div 
+          className="bg-gray-50 rounded-xl p-4 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+          onClick={() => setIsSearchOpen(true)}
+        >
+          <div className="flex items-center space-x-3">
+            <Search className="text-gray-400" size={20} />
+            <span className="text-gray-500">Search games, movies, music, books...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen bg-white">
+      {renderMainContent()}
+
+      {/* Bottom Navigation */}
+      <BottomNavigation 
+        activeTab={activeMainTab} 
+        onTabChange={setActiveMainTab} 
+      />
+
+      {/* Modals */}
+      <GameDetailModal
+        isOpen={!!selectedGameId}
+        onClose={() => setSelectedGameId(null)}
+        gameId={selectedGameId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedGameId ? userReviews[parseInt(selectedGameId)] || [] : []}
+        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <MovieDetailModal
+        isOpen={!!selectedMovieId}
+        onClose={() => setSelectedMovieId(null)}
+        movieId={selectedMovieId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedMovieId ? userReviews[parseInt(selectedMovieId)] || [] : []}
+        imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <BookDetailModal
+        isOpen={!!selectedBookId}
+        onClose={() => setSelectedBookId(null)}
+        bookId={selectedBookId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedBookId ? userReviews[parseInt(selectedBookId)] || [] : []}
+        goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenGameDetail={handleOpenGameDetail}
+        onOpenMovieDetail={handleOpenMovieDetail}
+        onOpenBookDetail={handleOpenBookDetail}
+        library={library}
+      />
+    </div>
+  )
+}
+</file>
+
 <file path="src/components/SearchModal.tsx">
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import { omdbService } from '@/services/omdbService'
+import { googleBooksService } from '@/services/googleBooksService'
 import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
 
 interface SearchModalProps {
@@ -3157,6 +5967,8 @@ interface SearchModalProps {
   onClose: () => void
   onAddToLibrary: (item: any, status: MediaStatus) => void
   onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
   library: LibraryItem[]
 }
 
@@ -3165,6 +5977,8 @@ export default function SearchModal({
   onClose,
   onAddToLibrary,
   onOpenGameDetail,
+  onOpenMovieDetail,
+  onOpenBookDetail,
   library = []
 }: SearchModalProps) {
   const [query, setQuery] = useState('')
@@ -3185,7 +5999,7 @@ export default function SearchModal({
 
   // API Keys
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
-  const OMDB_API_KEY = '649f9a63'
+  const OMDB_API_KEY = '649f9a63' // Votre clé OMDB fonctionnelle
 
   // Sécurité : Assurer que library est toujours un array
   const safeLibrary = Array.isArray(library) ? library : []
@@ -3468,24 +6282,14 @@ export default function SearchModal({
   }
 
   const searchMovies = async (query: string): Promise<SearchResult[]> => {
-    const url = `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(query)}&type=movie&page=1`
-    const response = await fetchWithTimeout(url)
-    const data = await response.json()
-    
-    if (data.Response === 'False') {
-      throw new Error(data.Error || 'No movies found')
+    try {
+      // Utiliser OMDB pour la recherche
+      const movies = await omdbService.searchMovies(query)
+      return movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+    } catch (error) {
+      console.error('OMDB search failed:', error)
+      throw error
     }
-
-    return data.Search?.slice(0, 8).map((movie: any) => ({
-      id: `movie-${movie.imdbID}`,
-      title: movie.Title || 'Unknown Movie',
-      director: 'Unknown Director',
-      year: parseInt(movie.Year) || new Date().getFullYear(),
-      rating: 0,
-      genre: movie.Genre || 'Unknown',
-      category: 'movies' as const,
-      image: movie.Poster !== 'N/A' ? movie.Poster : undefined
-    })) || []
   }
 
   const searchMusic = async (query: string): Promise<SearchResult[]> => {
@@ -3510,24 +6314,13 @@ export default function SearchModal({
   }
 
   const searchBooks = async (query: string): Promise<SearchResult[]> => {
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=8&printType=books`
-    const response = await fetchWithTimeout(url)
-    const data = await response.json()
-    
-    if (!data.items) {
-      throw new Error('No books found')
+    try {
+      const books = await googleBooksService.searchBooks(query, 8)
+      return books.map(book => googleBooksService.convertToAppFormat(book))
+    } catch (error) {
+      console.error('Google Books search failed:', error)
+      throw error
     }
-
-    return data.items.map((book: any) => ({
-      id: `book-${book.id}`,
-      title: book.volumeInfo.title || 'Unknown Book',
-      author: book.volumeInfo.authors?.[0] || 'Unknown Author',
-      year: book.volumeInfo.publishedDate ? parseInt(book.volumeInfo.publishedDate) : new Date().getFullYear(),
-      rating: book.volumeInfo.averageRating ? Number(book.volumeInfo.averageRating.toFixed(1)) : 0,
-      genre: book.volumeInfo.categories?.[0] || 'Unknown',
-      category: 'books' as const,
-      image: book.volumeInfo.imageLinks?.thumbnail
-    }))
   }
 
   // Status selection with feedback flow
@@ -3586,6 +6379,12 @@ export default function SearchModal({
   const handleSelectResult = (result: SearchResult) => {
     if (result.category === 'games' && onOpenGameDetail) {
       onOpenGameDetail(result.id.replace('game-', ''))
+      onClose()
+    } else if (result.category === 'movies' && onOpenMovieDetail) {
+      onOpenMovieDetail(result.id.replace('movie-', ''))
+      onClose()
+    } else if (result.category === 'books' && onOpenBookDetail) {
+      onOpenBookDetail(result.id.replace('book-', ''))
       onClose()
     } else {
       onAddToLibrary(result, 'want-to-play')
