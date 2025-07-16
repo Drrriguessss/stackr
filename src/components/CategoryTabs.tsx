@@ -14,12 +14,12 @@ export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsPro
   ]
 
   return (
-    <div className="flex space-x-8 mb-8 border-b border-gray-200">
+    <div className="flex w-full border-b border-gray-200 mb-0">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`pb-3 text-base font-medium transition-colors relative ${
+          className={`flex-1 pb-3 pt-2 text-base font-medium transition-colors relative text-center ${
             activeTab === tab.id
               ? 'text-gray-900'
               : 'text-gray-500 hover:text-gray-700'

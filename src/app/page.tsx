@@ -11,24 +11,13 @@ import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<MediaCategory>('books') // Commencer par Books comme dans l'image
+  const [activeTab, setActiveTab] = useState<MediaCategory>('games') // Commencer par Games par défaut
   const [library, setLibrary] = useState<LibraryItem[]>([])
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   // User reviews state - now per game
   const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
-
-  // Fonction pour obtenir le titre selon la catégorie
-  const getCategoryTitle = (category: MediaCategory) => {
-    switch (category) {
-      case 'books': return 'Books'
-      case 'games': return 'Games'
-      case 'movies': return 'Movies'
-      case 'music': return 'Music'
-      default: return 'Books'
-    }
-  }
 
   // Fonction corrigée pour ajouter à la bibliothèque
   const handleAddToLibrary = (item: any, status: MediaStatus) => {
@@ -195,7 +184,7 @@ export default function Home() {
       ]
     }
 
-    return sectionConfig[activeTab] || sectionConfig.books
+    return sectionConfig[activeTab] || sectionConfig.games
   }
 
   const getCurrentContent = (): ContentItem[] => {
@@ -204,7 +193,7 @@ export default function Home() {
       case 'movies': return sampleContent.movies
       case 'music': return sampleContent.music
       case 'books': return sampleContent.books
-      default: return sampleContent.books
+      default: return sampleContent.games
     }
   }
 
@@ -212,63 +201,68 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header avec titre dynamique */}
-      <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-white">
-        <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-gray-900">{getCategoryTitle(activeTab)}</h1>
-        </div>
-        
-        <div className="flex-1 max-w-md mx-8">
-          <div 
-            className="relative cursor-pointer"
-            onClick={() => setIsSearchOpen(true)}
-          >
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <div className="w-full pl-4 pr-10 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors text-sm">
-              <span>Search...</span>
+      {/* Header fixe avec arrière-plan gris */}
+      <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
+        {/* Barre de recherche étendue */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4">
+          <div className="flex-1 max-w-2xl mx-auto">
+            <div 
+              className="relative cursor-pointer"
+              onClick={() => setIsSearchOpen(true)}
+            >
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
+                <span>Search...</span>
+              </div>
             </div>
           </div>
+          
+          <div className="flex items-center ml-4">
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 text-sm font-medium">👤</span>
+              </div>
+            </button>
+          </div>
         </div>
-        
-        <div className="flex items-center">
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-600 text-sm font-medium">👤</span>
-            </div>
-          </button>
+
+        {/* Onglets de catégories répartis sur toute la largeur */}
+        <div className="px-4 sm:px-6">
+          <CategoryTabs 
+            activeTab={activeTab} 
+            onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
+          />
         </div>
-      </header>
+      </div>
       
-      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <CategoryTabs 
-          activeTab={activeTab} 
-          onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
-        />
+      {/* Contenu scrollable */}
+      <div className="bg-white">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          {/* Sections horizontales scrollables */}
+          <div className="space-y-6 sm:space-y-8">
+            {sections.map((section, index) => (
+              <ContentSection
+                key={`${activeTab}-${index}`}
+                title={section.title}
+                items={section.items}
+                category={activeTab}
+                onAddToLibrary={handleAddToLibrary}
+                library={library}
+                onOpenGameDetail={handleOpenGameDetail}
+              />
+            ))}
+          </div>
 
-        {/* Sections horizontales scrollables */}
-        <div className="space-y-6 sm:space-y-8">
-          {sections.map((section, index) => (
-            <ContentSection
-              key={`${activeTab}-${index}`}
-              title={section.title}
-              items={section.items}
-              category={activeTab}
-              onAddToLibrary={handleAddToLibrary}
-              library={library}
-              onOpenGameDetail={handleOpenGameDetail}
-            />
-          ))}
+          {/* Section Your Library avec filtres */}
+          <LibrarySection 
+            library={library}
+            onAddToLibrary={handleAddToLibrary}
+            onUpdateItem={handleUpdateItem}
+            onDeleteItem={handleDeleteItem}
+            onOpenGameDetail={handleOpenGameDetail}
+            onOpenSearch={handleOpenSearch}
+          />
         </div>
-
-        {/* Section Your Library avec filtres */}
-        <LibrarySection 
-          library={library}
-          onAddToLibrary={handleAddToLibrary}
-          onUpdateItem={handleUpdateItem}
-          onDeleteItem={handleDeleteItem}
-          onOpenGameDetail={handleOpenGameDetail}
-          onOpenSearch={handleOpenSearch}
-        />
       </div>
 
       {/* Modal fiche produit */}
