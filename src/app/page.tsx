@@ -6,12 +6,14 @@ import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
 import GameDetailModal from '@/components/GameDetailModal'
 import SearchModal from '@/components/SearchModal'
+import BottomNavigation from '@/components/BottomNavigation'
 import { sampleContent } from '@/data/sampleContent'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<MediaCategory>('games') // Commencer par Games par défaut
+  const [activeTab, setActiveTab] = useState<MediaCategory>('games')
+  const [activeMainTab, setActiveMainTab] = useState('home') // Navigation principale
   const [library, setLibrary] = useState<LibraryItem[]>([])
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -21,7 +23,6 @@ export default function Home() {
 
   // Fonction corrigée pour ajouter à la bibliothèque
   const handleAddToLibrary = (item: any, status: MediaStatus) => {
-    // Normaliser l'ID pour éviter les doublons
     const normalizedId = normalizeId(item.id)
     
     const newItem: LibraryItem = {
@@ -40,13 +41,11 @@ export default function Home() {
     }
 
     setLibrary(prev => {
-      // Rechercher avec l'ID normalisé pour éviter les doublons
       const existingIndex = prev.findIndex((libItem: LibraryItem) => 
         idsMatch(libItem.id, normalizedId)
       )
       
       if (existingIndex !== -1) {
-        // Mettre à jour l'item existant
         const updated = [...prev]
         updated[existingIndex] = { 
           ...updated[existingIndex], 
@@ -56,12 +55,10 @@ export default function Home() {
         return updated
       }
       
-      // Ajouter nouvel item
       return [...prev, newItem]
     })
   }
 
-  // Fonction pour mettre à jour un item dans la library
   const handleUpdateItem = (id: string, updates: Partial<LibraryItem>) => {
     setLibrary(prev =>
       prev.map(item =>
@@ -72,30 +69,25 @@ export default function Home() {
     )
   }
 
-  // Fonction pour supprimer un item de la library
   const handleDeleteItem = (id: string) => {
     setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
   }
 
-  // Fonction pour ouvrir fiche produit
   const handleOpenGameDetail = (gameId: string) => {
-    // Normaliser l'ID pour la modal aussi
     const normalizedGameId = normalizeId(gameId)
     setSelectedGameId(normalizedGameId)
   }
 
-  // Fonction pour ouvrir la recherche
   const handleOpenSearch = () => {
     setIsSearchOpen(true)
   }
 
-  // Handle review submission - now saves per game
   const handleReviewSubmit = (reviewData: any) => {
     if (!selectedGameId) return;
     
     const newReview: Review = {
       id: Date.now(),
-      username: "CurrentUser", // In real app, get from auth
+      username: "CurrentUser",
       rating: reviewData.rating,
       review: reviewData.review,
       date: new Date().toISOString().split('T')[0]
@@ -107,9 +99,7 @@ export default function Home() {
     }));
   };
 
-  // Generate unique Steam reviews for each game
   const generateSteamReviews = (gameId: number): Review[] => {
-    // Base de reviews templates plus variées et réalistes
     const reviewTemplates = [
       { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
       { rating: 4, text: "Great storyline and graphics. Minor bugs but overall excellent experience.", author: "GameReviewer", helpful: 89 },
@@ -118,22 +108,17 @@ export default function Home() {
       { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 }
     ];
 
-    // Utiliser gameId comme seed pour des reviews cohérentes mais uniques par jeu
     const seed = gameId;
     const selectedReviews = [];
-    
-    // Générer 5 reviews par jeu selon l'ID
     const numReviews = 5;
 
     for (let i = 0; i < numReviews; i++) {
-      // Algorithme de sélection pseudo-aléatoire basé sur gameId
       const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length;
       const template = reviewTemplates[index];
       
-      // Varier légèrement les reviews selon le jeu
       const gameSpecificVariations = {
-        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25), // Varie de -25 à +25
-        daysAgo: (seed * i * 3) % 180 + 1, // 1-180 jours
+        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
+        daysAgo: (seed * i * 3) % 180 + 1,
       };
       
       selectedReviews.push({
@@ -148,18 +133,15 @@ export default function Home() {
       });
     }
 
-    // Trier par nombre de "helpful" votes décroissant
     return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
   };
 
-  // Configuration des sections par catégorie
   const getSections = () => {
     const allContent = getCurrentContent()
     
-    // Diviser en 3 sections de 4 items chacune
     const popularItems = allContent.slice(0, 4)
     const topRatedItems = allContent.slice(4, 8) 
-    const editorPicksItems = allContent.slice(0, 4) // Réutiliser les premiers pour variety
+    const editorPicksItems = allContent.slice(0, 4)
 
     const sectionConfig = {
       games: [
@@ -197,48 +179,63 @@ export default function Home() {
     }
   }
 
-  const sections = getSections()
+  // Rendu selon l'onglet principal actif
+  const renderMainContent = () => {
+    switch (activeMainTab) {
+      case 'home':
+        return renderHomeContent()
+      case 'library':
+        return renderLibraryContent()
+      case 'discover':
+        return renderDiscoverContent()
+      case 'search':
+        return renderSearchContent()
+      default:
+        return renderHomeContent()
+    }
+  }
 
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Header fixe avec arrière-plan gris */}
-      <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
-        {/* Barre de recherche étendue */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4">
-          <div className="flex-1 max-w-2xl mx-auto">
-            <div 
-              className="relative cursor-pointer"
-              onClick={() => setIsSearchOpen(true)}
-            >
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
-                <span>Search...</span>
+  const renderHomeContent = () => {
+    const sections = getSections()
+    
+    return (
+      <div className="bg-white">
+        {/* Header fixe avec arrière-plan gris */}
+        <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
+          {/* Barre de recherche étendue */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4">
+            <div className="flex-1 max-w-2xl mx-auto">
+              <div 
+                className="relative cursor-pointer"
+                onClick={() => setIsSearchOpen(true)}
+              >
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
+                  <span>Search...</span>
+                </div>
               </div>
             </div>
+            
+            <div className="flex items-center ml-4">
+              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 text-sm font-medium">👤</span>
+                </div>
+              </button>
+            </div>
           </div>
-          
-          <div className="flex items-center ml-4">
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 text-sm font-medium">👤</span>
-              </div>
-            </button>
-          </div>
-        </div>
 
-        {/* Onglets de catégories répartis sur toute la largeur */}
-        <div className="px-4 sm:px-6">
-          <CategoryTabs 
-            activeTab={activeTab} 
-            onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
-          />
+          {/* Onglets de catégories */}
+          <div className="px-4 sm:px-6">
+            <CategoryTabs 
+              activeTab={activeTab} 
+              onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
+            />
+          </div>
         </div>
-      </div>
-      
-      {/* Contenu scrollable */}
-      <div className="bg-white">
-        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-          {/* Sections horizontales scrollables */}
+        
+        {/* Contenu scrollable */}
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
           <div className="space-y-6 sm:space-y-8">
             {sections.map((section, index) => (
               <ContentSection
@@ -252,20 +249,79 @@ export default function Home() {
               />
             ))}
           </div>
-
-          {/* Section Your Library avec filtres */}
-          <LibrarySection 
-            library={library}
-            onAddToLibrary={handleAddToLibrary}
-            onUpdateItem={handleUpdateItem}
-            onDeleteItem={handleDeleteItem}
-            onOpenGameDetail={handleOpenGameDetail}
-            onOpenSearch={handleOpenSearch}
-          />
         </div>
       </div>
+    )
+  }
 
-      {/* Modal fiche produit */}
+  const renderLibraryContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <LibrarySection 
+          library={library}
+          onAddToLibrary={handleAddToLibrary}
+          onUpdateItem={handleUpdateItem}
+          onDeleteItem={handleDeleteItem}
+          onOpenGameDetail={handleOpenGameDetail}
+          onOpenSearch={handleOpenSearch}
+        />
+      </div>
+    </div>
+  )
+
+  const renderDiscoverContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Trending This Week</h3>
+            <p className="text-gray-600">Baldur's Gate 3, Spider-Man 2, Cyberpunk 2077</p>
+          </div>
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Recommended for You</h3>
+            <p className="text-gray-600">Based on your gaming preferences</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderSearchContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Search</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <div 
+          className="bg-gray-50 rounded-xl p-4 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+          onClick={() => setIsSearchOpen(true)}
+        >
+          <div className="flex items-center space-x-3">
+            <Search className="text-gray-400" size={20} />
+            <span className="text-gray-500">Search games, movies, music, books...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen bg-white">
+      {renderMainContent()}
+
+      {/* Bottom Navigation */}
+      <BottomNavigation 
+        activeTab={activeMainTab} 
+        onTabChange={setActiveMainTab} 
+      />
+
+      {/* Modals */}
       <GameDetailModal
         isOpen={!!selectedGameId}
         onClose={() => setSelectedGameId(null)}
@@ -277,7 +333,6 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
-      {/* Modal de recherche */}
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
