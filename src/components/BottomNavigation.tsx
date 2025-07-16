@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { Home, Library, Compass, Search, MoreHorizontal } from 'lucide-react'
 
 interface BottomNavigationProps {
   activeTab: string
@@ -10,10 +11,10 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
   const [showMoreMenu, setShowMoreMenu] = useState(false)
 
   const mainTabs = [
-    { id: 'home', label: 'Home' },
-    { id: 'library', label: 'Library' },
-    { id: 'discover', label: 'Discover' },
-    { id: 'search', label: 'Search' },
+    { id: 'home', label: 'Home', icon: Home },
+    { id: 'library', label: 'Library', icon: Library },
+    { id: 'discover', label: 'Discover', icon: Compass },
+    { id: 'search', label: 'Search', icon: Search },
   ]
 
   const moreMenuItems = [
@@ -42,24 +43,39 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
   }
 
   const TabButton = ({ tab, isActive, onClick }: { tab: any, isActive: boolean, onClick: () => void }) => {
+    const Icon = tab.icon
+    
     return (
       <button
         onClick={onClick}
-        className={`flex flex-col items-center justify-center py-3 px-2 min-w-0 flex-1 transition-all duration-300 ${
+        className={`flex flex-col items-center justify-center py-2 px-2 min-w-0 flex-1 transition-all duration-300 relative ${
           isActive 
             ? 'text-black' 
             : 'text-gray-400 hover:text-gray-600'
         }`}
       >
-        <div className={`relative transition-all duration-300 ${isActive ? 'scale-105' : 'scale-100'}`}>
-          <span className={`text-sm font-medium transition-all duration-300 ${
+        {/* Barre active au-dessus */}
+        {isActive && (
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-black rounded-full transition-all duration-300" />
+        )}
+        
+        <div className={`transition-all duration-300 ${isActive ? 'scale-105' : 'scale-100'}`}>
+          {/* Icône */}
+          <div className="flex justify-center mb-1">
+            <Icon 
+              size={20} 
+              className={`transition-all duration-300 ${
+                isActive ? 'stroke-2' : 'stroke-1.5'
+              }`}
+            />
+          </div>
+          
+          {/* Label */}
+          <span className={`text-xs font-medium transition-all duration-300 ${
             isActive ? 'font-semibold' : 'font-normal'
           }`}>
             {tab.label}
           </span>
-          {isActive && (
-            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-black rounded-full transition-all duration-300" />
-          )}
         </div>
       </button>
     )
@@ -82,9 +98,15 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
           {/* More Button */}
           <button
             onClick={() => handleTabClick('more')}
-            className="flex flex-col items-center justify-center py-3 px-2 min-w-0 flex-1 text-gray-400 hover:text-gray-600 transition-all duration-300"
+            className="flex flex-col items-center justify-center py-2 px-2 min-w-0 flex-1 text-gray-400 hover:text-gray-600 transition-all duration-300"
           >
-            <span className="text-sm font-normal">More</span>
+            <div className="flex justify-center mb-1">
+              <MoreHorizontal 
+                size={20} 
+                className="stroke-1.5"
+              />
+            </div>
+            <span className="text-xs font-normal">More</span>
           </button>
         </div>
       </div>
