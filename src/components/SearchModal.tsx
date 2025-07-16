@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import { omdbService } from '@/services/omdbService'
 import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
 
 interface SearchModalProps {
@@ -37,7 +38,7 @@ export default function SearchModal({
 
   // API Keys
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
-  const OMDB_API_KEY = '649f9a63'
+  const OMDB_API_KEY = '649f9a63' // Votre clé OMDB fonctionnelle
 
   // Sécurité : Assurer que library est toujours un array
   const safeLibrary = Array.isArray(library) ? library : []
@@ -320,24 +321,14 @@ export default function SearchModal({
   }
 
   const searchMovies = async (query: string): Promise<SearchResult[]> => {
-    const url = `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(query)}&type=movie&page=1`
-    const response = await fetchWithTimeout(url)
-    const data = await response.json()
-    
-    if (data.Response === 'False') {
-      throw new Error(data.Error || 'No movies found')
+    try {
+      // Utiliser OMDB pour la recherche
+      const movies = await omdbService.searchMovies(query)
+      return movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+    } catch (error) {
+      console.error('OMDB search failed:', error)
+      throw error
     }
-
-    return data.Search?.slice(0, 8).map((movie: any) => ({
-      id: `movie-${movie.imdbID}`,
-      title: movie.Title || 'Unknown Movie',
-      director: 'Unknown Director',
-      year: parseInt(movie.Year) || new Date().getFullYear(),
-      rating: 0,
-      genre: movie.Genre || 'Unknown',
-      category: 'movies' as const,
-      image: movie.Poster !== 'N/A' ? movie.Poster : undefined
-    })) || []
   }
 
   const searchMusic = async (query: string): Promise<SearchResult[]> => {

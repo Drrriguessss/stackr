@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search } from 'lucide-react'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
@@ -9,18 +9,73 @@ import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
 import { sampleContent } from '@/data/sampleContent'
+import { omdbService } from '@/services/omdbService'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<MediaCategory>('games')
-  const [activeMainTab, setActiveMainTab] = useState('home') // Navigation principale
+  const [activeMainTab, setActiveMainTab] = useState('home')
   const [library, setLibrary] = useState<LibraryItem[]>([])
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  
+  // State pour le contenu dynamique des films
+  const [movieContent, setMovieContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    recent: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    recent: []
+  })
+  const [moviesLoading, setMoviesLoading] = useState(false)
 
-  // User reviews state - now per game
+  // User reviews state
   const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
+
+  // Charger le contenu des films
+  useEffect(() => {
+    if (activeTab === 'movies') {
+      loadMovieContent()
+    }
+  }, [activeTab])
+
+  const loadMovieContent = async () => {
+    try {
+      setMoviesLoading(true)
+
+      const [popularMovies, topRatedMovies, recentMovies] = await Promise.all([
+        omdbService.getPopularMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        ),
+        omdbService.getTopRatedMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        ),
+        omdbService.getRecentMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        )
+      ])
+
+      setMovieContent({
+        popular: popularMovies,
+        topRated: topRatedMovies,
+        recent: recentMovies
+      })
+    } catch (error) {
+      console.error('Error loading movie content:', error)
+      
+      // Fallback vers les données statiques
+      setMovieContent({
+        popular: sampleContent.movies.slice(0, 4),
+        topRated: sampleContent.movies.slice(4, 8),
+        recent: sampleContent.movies.slice(0, 4)
+      })
+    } finally {
+      setMoviesLoading(false)
+    }
+  }
 
   // Fonction corrigée pour ajouter à la bibliothèque
   const handleAddToLibrary = (item: any, status: MediaStatus) => {
@@ -138,8 +193,15 @@ export default function Home() {
   };
 
   const getSections = () => {
-    const allContent = getCurrentContent()
+    if (activeTab === 'movies') {
+      return [
+        { title: 'Popular classics', items: movieContent.popular },
+        { title: 'Top rated of all time', items: movieContent.topRated },
+        { title: 'Recent favorites', items: movieContent.recent }
+      ]
+    }
     
+    const allContent = getCurrentContent()
     const popularItems = allContent.slice(0, 4)
     const topRatedItems = allContent.slice(4, 8) 
     const editorPicksItems = allContent.slice(0, 4)
@@ -149,11 +211,6 @@ export default function Home() {
         { title: 'Popular this week', items: popularItems },
         { title: 'Top rated of all time', items: topRatedItems },
         { title: "Editor's Choice", items: editorPicksItems }
-      ],
-      movies: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Highly rated', items: topRatedItems },
-        { title: 'Staff picks', items: editorPicksItems }
       ],
       music: [
         { title: 'Popular this week', items: popularItems },
@@ -237,21 +294,40 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Contenu scrollable */}
+        {/* Contenu scrollable avec loading state pour films */}
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
-          <div className="space-y-6 sm:space-y-8">
-            {sections.map((section, index) => (
-              <ContentSection
-                key={`${activeTab}-${index}`}
-                title={section.title}
-                items={section.items}
-                category={activeTab}
-                onAddToLibrary={handleAddToLibrary}
-                library={library}
-                onOpenGameDetail={handleOpenGameDetail}
-              />
-            ))}
-          </div>
+          {moviesLoading && activeTab === 'movies' ? (
+            <div className="space-y-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="mb-8">
+                  <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
+                  <div className="flex space-x-4 overflow-x-auto pb-4">
+                    {[1, 2, 3, 4].map((j) => (
+                      <div key={j} className="flex-shrink-0 w-32">
+                        <div className="w-32 h-40 bg-gray-200 rounded-lg animate-pulse mb-3"></div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6 sm:space-y-8">
+              {sections.map((section, index) => (
+                <ContentSection
+                  key={`${activeTab}-${index}`}
+                  title={section.title}
+                  items={section.items}
+                  category={activeTab}
+                  onAddToLibrary={handleAddToLibrary}
+                  library={library}
+                  onOpenGameDetail={handleOpenGameDetail}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     )
