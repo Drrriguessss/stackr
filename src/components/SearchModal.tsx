@@ -74,25 +74,6 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }, [isOpen])
 
-  // ✅ CORRECTION FINALE : Reset addingItem avec logic corrigée
-  useEffect(() => {
-    if (addingItem && safeLibrary.length > 0) {
-      // NORMALISER LES DEUX IDs POUR COMPARAISON
-      const normalizedAddingId = addingItem.replace(/^(game-|movie-|music-|book-)/, '')
-      
-      const isInLibrary = safeLibrary.some((item: any) => {
-        if (!item || !item.id) return false
-        const normalizedLibId = item.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
-        return normalizedLibId === normalizedAddingId
-      })
-      
-      if (isInLibrary) {
-        // Item ajouté avec succès, reset le state
-        setAddingItem(null)
-      }
-    }
-  }, [safeLibrary, addingItem])
-
   // Get status options based on category
   const getStatusOptions = (category: string) => {
     switch (category) {
@@ -372,7 +353,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }))
   }
 
-  // ✅ CORRECTION : Handle status selection sans setTimeout inutile
+  // ✅ SOLUTION SIMPLIFIÉE : Handle status selection sans useEffect complexe
   const handleStatusSelect = (result: SearchResult, status: string) => {
     setAddingItem(result.id)
     setFadeOutPopup(result.id)
@@ -380,11 +361,12 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     // Appeler la fonction parent pour ajouter à la library globale
     onAddToLibrary(result, status)
     
-    // Fermer le popup immédiatement
+    // ✅ SOLUTION : Reset direct après 1 seconde (temps pour voir l'animation)
     setTimeout(() => {
+      setAddingItem(null)
       setShowStatusPopup(null)
       setFadeOutPopup(null)
-    }, 300)
+    }, 1000)
   }
 
   // Keyboard navigation
@@ -600,7 +582,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                       </div>
                     </div>
 
-                    {/* Action Button avec feedback visuel CORRIGÉ */}
+                    {/* ✅ Action Button SIMPLIFIÉ */}
                     <div className="relative">
                       {isInLibrary && !isAdding ? (
                         <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
