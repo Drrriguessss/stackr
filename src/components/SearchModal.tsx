@@ -1,29 +1,24 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { X, Search, Star, Loader2, Wifi, WifiOff, Check } from 'lucide-react'
-
-interface SearchResult {
-  id: string
-  title: string
-  author?: string
-  artist?: string
-  director?: string
-  year: number
-  rating?: number
-  genre?: string
-  category: 'games' | 'movies' | 'music' | 'books'
-  image?: string
-}
+import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
+import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
 
 interface SearchModalProps {
   isOpen: boolean
   onClose: () => void
-  onAddToLibrary: (item: any, status: string) => void
+  onAddToLibrary: (item: any, status: MediaStatus) => void
   onOpenGameDetail?: (gameId: string) => void
-  library: any[]
+  library: LibraryItem[]
 }
 
-export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGameDetail, library = [] }: SearchModalProps) {
+export default function SearchModal({
+  isOpen,
+  onClose,
+  onAddToLibrary,
+  onOpenGameDetail,
+  library = []
+}: SearchModalProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -36,7 +31,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
   const [fadeOutPopup, setFadeOutPopup] = useState<string | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
   const [justAddedItems, setJustAddedItems] = useState<Set<string>>(new Set())
-  
+
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
 
@@ -44,7 +39,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
   const OMDB_API_KEY = '649f9a63'
 
-  // ✅ SÉCURITÉ : Assurer que library est toujours un array
+  // Sécurité : Assurer que library est toujours un array
   const safeLibrary = Array.isArray(library) ? library : []
 
   // Focus input when modal opens
@@ -78,36 +73,58 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }, [isOpen])
 
-  // ✅ DÉTECTION INTELLIGENTE : Surveiller les ajouts à la library
+  // ✅ FIX PRINCIPAL : Détection intelligente avec timeout de sécurité
   useEffect(() => {
     if (addingItem) {
-      const normalizedId = addingItem.replace(/^(game-|movie-|music-|book-)/, '')
+      const normalizedId = normalizeId(addingItem)
       
-      const isInLibrary = safeLibrary.some((item: any) => {
-        if (!item || !item.id) return false
-        const normalizedLibId = item.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
-        return normalizedLibId === normalizedId
-      })
+      // Vérifier si l'item est dans la library
+      const checkLibrary = () => {
+        const isInLibrary = safeLibrary.some((item: LibraryItem) => {
+          if (!item?.id) return false
+          return idsMatch(item.id, addingItem)
+        })
+        
+        if (isInLibrary) {
+          // Item détecté dans la library, finaliser le feedback
+          setAddingItem(null)
+          setJustAddedItems(prev => new Set([...prev, addingItem]))
+          
+          // Nettoyer après 3 secondes
+          setTimeout(() => {
+            setJustAddedItems(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(addingItem)
+              return newSet
+            })
+          }, 3000)
+        }
+      }
       
-      if (isInLibrary) {
-        // Item détecté dans la library, finaliser le feedback
+      // Vérifier immédiatement
+      checkLibrary()
+      
+      // ✅ TIMEOUT DE SÉCURITÉ : Si pas détecté après 5 secondes, forcer la fin
+      const timeoutId = setTimeout(() => {
+        console.warn('Adding timeout reached for:', addingItem)
         setAddingItem(null)
         setJustAddedItems(prev => new Set([...prev, addingItem]))
         
-        // Nettoyer après 3 secondes pour permettre de voir le feedback
         setTimeout(() => {
           setJustAddedItems(prev => {
             const newSet = new Set(prev)
             newSet.delete(addingItem)
             return newSet
           })
-        }, 3000)
-      }
+        }, 2000)
+      }, 5000)
+      
+      return () => clearTimeout(timeoutId)
     }
   }, [safeLibrary, addingItem])
 
   // Get status options based on category
-  const getStatusOptions = (category: string) => {
+  const getStatusOptions = (category: string): StatusOption[] => {
     switch (category) {
       case 'games':
         return [
@@ -143,18 +160,15 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
   }
 
   // Check if item is in library avec sécurité
-  const getLibraryItem = (resultId: string) => {
-    const normalizedSearchId = resultId.replace(/^(game-|movie-|music-|book-)/, '')
-    
-    return safeLibrary.find((libItem: any) => {
-      if (!libItem || !libItem.id) return false
-      const normalizedLibId = libItem.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
-      return normalizedLibId === normalizedSearchId
+  const getLibraryItem = (resultId: string): LibraryItem | undefined => {
+    return safeLibrary.find((libItem: LibraryItem) => {
+      if (!libItem?.id) return false
+      return idsMatch(libItem.id, resultId)
     })
   }
 
   // Get status display label
-  const getStatusDisplayLabel = (status: string, category: string) => {
+  const getStatusDisplayLabel = (status: MediaStatus, category: string): string => {
     const options = getStatusOptions(category)
     const option = options.find(opt => opt.value === status)
     return option ? option.label : 'Added'
@@ -222,7 +236,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     setLoading(true)
     setError(null)
     setSelectedIndex(-1)
-    
+
     const allResults: SearchResult[] = []
     const errors: string[] = []
 
@@ -301,7 +315,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     if (!data.results) {
       throw new Error('No games data received')
     }
-    
+
     return data.results.map((game: any) => ({
       id: `game-${game.id}`,
       title: game.name || 'Unknown Game',
@@ -310,9 +324,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
       rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
       genre: game.genres?.[0]?.name || 'Unknown',
       category: 'games' as const,
-      image: game.background_image,
-      artist: undefined,
-      director: undefined
+      image: game.background_image
     }))
   }
 
@@ -324,7 +336,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     if (data.Response === 'False') {
       throw new Error(data.Error || 'No movies found')
     }
-    
+
     return data.Search?.slice(0, 8).map((movie: any) => ({
       id: `movie-${movie.imdbID}`,
       title: movie.Title || 'Unknown Movie',
@@ -333,9 +345,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
       rating: 0,
       genre: movie.Genre || 'Unknown',
       category: 'movies' as const,
-      image: movie.Poster !== 'N/A' ? movie.Poster : undefined,
-      author: undefined,
-      artist: undefined
+      image: movie.Poster !== 'N/A' ? movie.Poster : undefined
     })) || []
   }
 
@@ -347,7 +357,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     if (!data.results) {
       throw new Error('No music data received')
     }
-    
+
     return data.results.map((album: any) => ({
       id: `music-${album.collectionId}`,
       title: album.collectionName || 'Unknown Album',
@@ -356,9 +366,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
       rating: 0,
       genre: album.primaryGenreName || 'Unknown',
       category: 'music' as const,
-      image: album.artworkUrl100,
-      author: undefined,
-      director: undefined
+      image: album.artworkUrl100
     }))
   }
 
@@ -370,7 +378,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     if (!data.items) {
       throw new Error('No books found')
     }
-    
+
     return data.items.map((book: any) => ({
       id: `book-${book.id}`,
       title: book.volumeInfo.title || 'Unknown Book',
@@ -379,14 +387,12 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
       rating: book.volumeInfo.averageRating ? Number(book.volumeInfo.averageRating.toFixed(1)) : 0,
       genre: book.volumeInfo.categories?.[0] || 'Unknown',
       category: 'books' as const,
-      image: book.volumeInfo.imageLinks?.thumbnail,
-      artist: undefined,
-      director: undefined
+      image: book.volumeInfo.imageLinks?.thumbnail
     }))
   }
 
   // ✅ FEEDBACK FLOW PARFAIT : 3 étapes comme demandé
-  const handleStatusSelect = (result: SearchResult, status: string) => {
+  const handleStatusSelect = (result: SearchResult, status: MediaStatus) => {
     // Étape 1: Highlight le choix sélectionné
     setSelectedStatus(status)
     
@@ -399,10 +405,10 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
         setSelectedStatus(null)
       }, 300)
     }, 800)
-    
+
     // Démarrer l'état "Adding..."
     setAddingItem(result.id)
-    
+
     // Appeler la fonction parent pour ajouter à la library
     onAddToLibrary(result, status)
   }
@@ -669,7 +675,9 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
                                       handleStatusSelect(result, option.value)
                                     }}
                                     className={`w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-700/50 border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between ${
-                                      selectedStatus === option.value ? 'bg-green-600/20 border-green-500 text-green-400' : 'text-gray-200 hover:text-white'
+                                      selectedStatus === option.value 
+                                        ? 'bg-green-600/20 border-green-500 text-green-400' 
+                                        : 'text-gray-200 hover:text-white'
                                     }`}
                                   >
                                     <span className="font-medium transition-colors">
@@ -713,7 +721,6 @@ function debounce<T extends (...args: any[]) => any>(
   wait: number
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null
-  
   return (...args: Parameters<T>) => {
     if (timeout) clearTimeout(timeout)
     timeout = setTimeout(() => func(...args), wait)

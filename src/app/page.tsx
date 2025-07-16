@@ -3,52 +3,69 @@ import { useState } from 'react'
 import Header from '@/components/Header'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
-import ShelvesSection from '@/components/ShelvesSection'
+import LibrarySection from '@/components/LibrarySection'
 import GameDetailModal from '@/components/GameDetailModal'
 import SearchModal from '@/components/SearchModal'
 import { sampleContent } from '@/data/sampleContent'
+import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import type { LibraryItem, Review, MediaCategory, MediaStatus } from '@/types'
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('games')
-  const [library, setLibrary] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<MediaCategory>('games')
+  const [library, setLibrary] = useState<LibraryItem[]>([])
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  
-  // User reviews state - now per game
-  const [userReviews, setUserReviews] = useState<{[gameId: number]: any[]}>({})
 
-  // ✅ FONCTION CORRIGÉE - Normalisation des IDs pour éviter les doublons
-  const handleAddToLibrary = (item: any, status: string) => {
-    // Normaliser l'ID (supprimer préfixes API si présents)
-    const normalizedId = item.id.replace(/^(game-|movie-|music-|book-)/, '')
+  // User reviews state - now per game
+  const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
+
+  // ✅ FONCTION CORRIGÉE - Normalisation des IDs avec types stricts
+  const handleAddToLibrary = (item: any, status: MediaStatus) => {
+    // Normaliser l'ID pour éviter les doublons
+    const normalizedId = normalizeId(item.id)
     
-    const newItem = {
-      ...item,
-      id: normalizedId, // ✅ ID unifié
+    const newItem: LibraryItem = {
+      id: normalizedId,
+      title: item.title,
+      category: item.category || activeTab,
       status,
       addedAt: new Date().toISOString(),
-      category: item.category || activeTab
+      year: item.year || new Date().getFullYear(),
+      rating: item.rating || 0,
+      image: item.image || item.background_image,
+      author: item.author,
+      artist: item.artist,
+      director: item.director,
+      genre: item.genre
     }
-    
+
     setLibrary(prev => {
       // Rechercher avec l'ID normalisé pour éviter les doublons
-      const exists = prev.find((libItem: any) => libItem.id === normalizedId)
-      if (exists) {
-        return prev.map((libItem: any) => 
-          libItem.id === normalizedId 
-            ? { ...libItem, status, addedAt: new Date().toISOString() }
-            : libItem
-        )
+      const existingIndex = prev.findIndex((libItem: LibraryItem) => 
+        idsMatch(libItem.id, normalizedId)
+      )
+      
+      if (existingIndex !== -1) {
+        // Mettre à jour l'item existant
+        const updated = [...prev]
+        updated[existingIndex] = { 
+          ...updated[existingIndex], 
+          status, 
+          addedAt: new Date().toISOString() 
+        }
+        return updated
       }
+      
+      // Ajouter nouvel item
       return [...prev, newItem]
     })
   }
 
   // Fonction pour mettre à jour un item dans la library
-  const handleUpdateItem = (id: string, updates: any) => {
-    setLibrary(prev => 
-      prev.map(item => 
-        item.id === id 
+  const handleUpdateItem = (id: string, updates: Partial<LibraryItem>) => {
+    setLibrary(prev =>
+      prev.map(item =>
+        idsMatch(item.id, id)
           ? { ...item, ...updates }
           : item
       )
@@ -57,13 +74,13 @@ export default function Home() {
 
   // Fonction pour supprimer un item de la library
   const handleDeleteItem = (id: string) => {
-    setLibrary(prev => prev.filter(item => item.id !== id))
+    setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
   }
 
   // Fonction pour ouvrir fiche produit
   const handleOpenGameDetail = (gameId: string) => {
     // Normaliser l'ID pour la modal aussi
-    const normalizedGameId = gameId.replace(/^(game-|movie-|music-|book-)/, '')
+    const normalizedGameId = normalizeId(gameId)
     setSelectedGameId(normalizedGameId)
   }
 
@@ -76,22 +93,22 @@ export default function Home() {
   const handleReviewSubmit = (reviewData: any) => {
     if (!selectedGameId) return;
     
-    const newReview = {
+    const newReview: Review = {
       id: Date.now(),
       username: "CurrentUser", // In real app, get from auth
       rating: reviewData.rating,
       review: reviewData.review,
       date: new Date().toISOString().split('T')[0]
     };
-    
+
     setUserReviews(prev => ({
       ...prev,
       [parseInt(selectedGameId)]: [...(prev[parseInt(selectedGameId)] || []), newReview]
     }));
   };
 
-  // ✅ MODIFIÉ : Generate unique Steam reviews for each game - AMÉLIORÉ
-  const generateSteamReviews = (gameId: number) => {
+  // ✅ Generate unique Steam reviews for each game - AMÉLIORÉ
+  const generateSteamReviews = (gameId: number): Review[] => {
     // Base de reviews templates plus variées et réalistes
     const reviewTemplates = [
       { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
@@ -115,14 +132,14 @@ export default function Home() {
       { rating: 5, text: "Emotional rollercoaster. Amazing storytelling that kept me hooked.", author: "EmotionalG", helpful: 234 },
       { rating: 4, text: "Good optimization, runs smooth on my setup. Minor UI issues but nothing major.", author: "TechCheck", helpful: 76 }
     ];
-    
+
     // Utiliser gameId comme seed pour des reviews cohérentes mais uniques par jeu
     const seed = gameId;
     const selectedReviews = [];
     
     // Générer 8-12 reviews par jeu selon l'ID
     const numReviews = 8 + (seed % 5);
-    
+
     for (let i = 0; i < numReviews; i++) {
       // Algorithme de sélection pseudo-aléatoire basé sur gameId
       const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length;
@@ -135,17 +152,19 @@ export default function Home() {
       };
       
       selectedReviews.push({
-        ...template,
         id: `steam_${gameId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
         helpful: gameSpecificVariations.helpful,
         date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
           .toISOString().split('T')[0],
         platform: 'Steam'
       });
     }
-    
+
     // Trier par nombre de "helpful" votes décroissant
-    return selectedReviews.sort((a, b) => b.helpful - a.helpful);
+    return selectedReviews.sort((a, b) => b.helpful! - a.helpful!);
   };
 
   // Configuration des sections par catégorie
@@ -180,7 +199,7 @@ export default function Home() {
       ]
     }
 
-    return sectionConfig[activeTab as keyof typeof sectionConfig] || sectionConfig.games
+    return sectionConfig[activeTab] || sectionConfig.games
   }
 
   const getCurrentContent = () => {
@@ -195,7 +214,6 @@ export default function Home() {
 
   const sections = getSections()
 
-  // ✅ LE JSX COMMENCE ICI (la partie "HTML" du composant)
   return (
     <div className="min-h-screen bg-gray-950">
       <Header 
@@ -207,7 +225,7 @@ export default function Home() {
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <CategoryTabs 
           activeTab={activeTab} 
-          onTabChange={setActiveTab} 
+          onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
         />
 
         {/* Sections horizontales scrollables */}
@@ -225,8 +243,8 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Section Your Shelves avec filtres */}
-        <ShelvesSection 
+        {/* Section Your Library avec filtres */}
+        <LibrarySection 
           library={library}
           onAddToLibrary={handleAddToLibrary}
           onUpdateItem={handleUpdateItem}

@@ -1,12 +1,13 @@
 'use client'
 import ContentCard from './ContentCard'
+import type { ContentItem, LibraryItem, MediaCategory, MediaStatus } from '@/types'
 
 interface ContentSectionProps {
   title: string
-  items: any[]
-  category: string
-  onAddToLibrary: (item: any, status: string) => void
-  library: any[]
+  items: ContentItem[]
+  category: MediaCategory
+  onAddToLibrary: (item: ContentItem, status: MediaStatus) => void
+  library: LibraryItem[]
   onOpenGameDetail?: (gameId: string) => void
 }
 
@@ -27,7 +28,7 @@ export default function ContentSection({
           See all
         </button>
       </div>
-
+      
       {/* ✅ Carrousel horizontal au lieu de grid */}
       <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
         {items.map((item) => (
@@ -42,7 +43,7 @@ export default function ContentSection({
           </div>
         ))}
       </div>
-      
+            
       <style jsx>{`
         .scrollbar-hide {
           -ms-overflow-style: none;

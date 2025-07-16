@@ -1,15 +1,16 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { X, Star, ChevronLeft, ChevronRight, ExternalLink, Users, Tag, Globe } from 'lucide-react'
+import { X, Star, ExternalLink, Tag, Globe } from 'lucide-react'
+import type { LibraryItem, Review, MediaStatus } from '@/types'
 
 interface GameDetailModalProps {
   isOpen: boolean
   onClose: () => void
   gameId: string
-  onAddToLibrary: (item: any, status: string) => void
-  library: any[]
-  userReviews: any[]
-  googleReviews: any[]
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  library: LibraryItem[]
+  userReviews: Review[]
+  googleReviews: Review[]
   onReviewSubmit: (reviewData: any) => void
 }
 
@@ -47,13 +48,11 @@ export default function GameDetailModal({
   const [gameDetail, setGameDetail] = useState<GameDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info')
-  const [currentScreenshot, setCurrentScreenshot] = useState(0)
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
+  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
   const [userRating, setUserRating] = useState<number>(0)
   const [hoverRating, setHoverRating] = useState<number>(0)
   const [showReviewBox, setShowReviewBox] = useState(false)
   const [userReview, setUserReview] = useState('')
-  const [showFullReview, setShowFullReview] = useState<{ [key: string]: boolean }>({})
   const [similarGames, setSimilarGames] = useState<any[]>([])
   const [developerGames, setDeveloperGames] = useState<any[]>([])
   const [similarGamesLoading, setSimilarGamesLoading] = useState(true)
@@ -68,7 +67,7 @@ export default function GameDetailModal({
 
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
 
-  // ✅ Steam Reviews au lieu de Google (plus fiables)
+  // Steam Reviews
   const steamReviews = [
     { id: 1, username: 'SteamMaster', rating: 5, text: 'Absolutely incredible! Best game I\'ve played this year.', date: '2024-01-15' },
     { id: 2, username: 'GameReviewer', rating: 4, text: 'Great storyline and graphics. Minor bugs but overall excellent.', date: '2024-01-12' },
@@ -80,39 +79,11 @@ export default function GameDetailModal({
   useEffect(() => {
     if (isOpen) {
       setActiveTab('info')
-      setCurrentScreenshot(0)
       setSimilarGames([])
       setDeveloperGames([])
       setSimilarGamesLoading(true)
     }
   }, [isOpen, gameId])
-
-  const changeTab = (newTab: 'info' | 'social' | 'more') => {
-    setActiveTab(newTab)
-    
-    setTimeout(() => {
-      if (scrollableRef.current) {
-        let scrollPosition = 0
-        
-        switch (newTab) {
-          case 'info':
-            scrollPosition = 400
-            break
-          case 'social':
-            scrollPosition = 380
-            break
-          case 'more':
-            scrollPosition = 380
-            break
-        }
-        
-        scrollableRef.current.scrollTo({
-          top: scrollPosition,
-          behavior: 'smooth'
-        })
-      }
-    }, 100)
-  }
 
   useEffect(() => {
     if (isOpen) {
@@ -140,156 +111,6 @@ export default function GameDetailModal({
       setSelectedStatus(null)
     }
   }, [gameId, library])
-
-  // ✅ Fix Similar Games avec timeout et fallback
-  const fetchSimilarGames = async (gameData: any) => {
-    try {
-      setSimilarGamesLoading(true)
-      
-      // ✅ STRATÉGIE AMÉLIORÉE : Essayer plusieurs approches
-      let similarResponse;
-      let similarData;
-      
-      // Approche 1: Par genre principal avec ID
-      if (gameData.genres && gameData.genres.length > 0) {
-        const genreId = gameData.genres[0].id || gameData.genres[0].name;
-        console.log('Trying genre:', genreId, 'for game:', gameData.name);
-        
-        try {
-          similarResponse = await fetch(
-            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${genreId}&ordering=-rating&page_size=12&metacritic=75,100`,
-            { signal: AbortSignal.timeout(5000) }
-          );
-          
-          if (similarResponse.ok) {
-            similarData = await similarResponse.json();
-            if (similarData.results && similarData.results.length > 2) {
-              const filtered = similarData.results
-                .filter((game: any) => game.id !== gameData.id && game.background_image)
-                .slice(0, 8);
-              
-              if (filtered.length >= 4) {
-                console.log('✅ Genre search successful:', filtered.length, 'games');
-                setSimilarGames(filtered);
-                setSimilarGamesLoading(false);
-                return;
-              }
-            }
-          }
-        } catch (error) {
-          console.log('Genre search failed, trying tags...');
-        }
-      }
-      
-      // Approche 2: Par tags populaires
-      if (gameData.tags && gameData.tags.length > 0) {
-        const popularTag = gameData.tags[0].id || gameData.tags[0].name;
-        console.log('Trying tag:', popularTag);
-        
-        try {
-          similarResponse = await fetch(
-            `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&tags=${popularTag}&ordering=-added&page_size=12`,
-            { signal: AbortSignal.timeout(5000) }
-          );
-          
-          if (similarResponse.ok) {
-            similarData = await similarResponse.json();
-            if (similarData.results && similarData.results.length > 2) {
-              const filtered = similarData.results
-                .filter((game: any) => game.id !== gameData.id && game.background_image)
-                .slice(0, 8);
-              
-              if (filtered.length >= 4) {
-                console.log('✅ Tags search successful:', filtered.length, 'games');
-                setSimilarGames(filtered);
-                setSimilarGamesLoading(false);
-                return;
-              }
-            }
-          }
-        } catch (error) {
-          console.log('Tags search failed, using popular games...');
-        }
-      }
-      
-      // Approche 3: Jeux populaires récents comme fallback
-      try {
-        similarResponse = await fetch(
-          `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&dates=2023-01-01,2024-12-31&ordering=-rating&page_size=12`,
-          { signal: AbortSignal.timeout(5000) }
-        );
-        
-        if (similarResponse.ok) {
-          similarData = await similarResponse.json();
-          if (similarData.results && similarData.results.length > 0) {
-            const filtered = similarData.results
-              .filter((game: any) => game.id !== gameData.id && game.background_image)
-              .slice(0, 8);
-            
-            console.log('✅ Popular games fallback:', filtered.length, 'games');
-            setSimilarGames(filtered);
-            setSimilarGamesLoading(false);
-            return;
-          }
-        }
-      } catch (error) {
-        console.log('All API attempts failed');
-      }
-      
-      // Fallback final avec jeux statiques mais réalistes
-      console.log('Using static fallback games');
-      setSimilarGames([
-        { 
-          id: 3498, 
-          name: 'Grand Theft Auto V', 
-          rating: 4.47, 
-          released: '2013-09-17', 
-          background_image: 'https://media.rawg.io/media/games/20a/20aa03a10cda45239fe22d035c0ebe64.jpg'
-        },
-        { 
-          id: 3328, 
-          name: 'The Witcher 3: Wild Hunt', 
-          rating: 4.66, 
-          released: '2015-05-18', 
-          background_image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg'
-        },
-        { 
-          id: 4200, 
-          name: 'Portal 2', 
-          rating: 4.61, 
-          released: '2011-04-18', 
-          background_image: 'https://media.rawg.io/media/games/328/3283617cb7d75d67257fc58339188742.jpg'
-        },
-        { 
-          id: 5286, 
-          name: 'Tomb Raider', 
-          rating: 4.05, 
-          released: '2013-03-05', 
-          background_image: 'https://media.rawg.io/media/games/021/021c4e21a1824d2526f925eff6324653.jpg'
-        },
-        { 
-          id: 13536, 
-          name: 'Portal', 
-          rating: 4.51, 
-          released: '2007-10-09', 
-          background_image: 'https://media.rawg.io/media/games/7fa/7fa0b586293c5861ee32490e953a4996.jpg'
-        },
-        { 
-          id: 12020, 
-          name: 'Left 4 Dead 2', 
-          rating: 4.09, 
-          released: '2009-11-16', 
-          background_image: 'https://media.rawg.io/media/games/d58/d588947d4286e7b5e0e12e1bea7d9844.jpg'
-        }
-      ]);
-      
-    } catch (error) {
-      console.error('Complete similar games failure:', error);
-      setSimilarGames([]);
-    } finally {
-      setSimilarGamesLoading(false);
-    }
-  }
 
   const fetchGameDetail = async () => {
     if (!gameId) return
@@ -325,49 +146,7 @@ export default function GameDetailModal({
       
       const data = await response.json()
       setGameDetail(data)
-      
-      // ✅ Fetch similar games avec nouveau système
-      await fetchSimilarGames(data)
-      
-      // Developer games (gardé simple)
-      try {
-        if (data.developers && data.developers.length > 0) {
-          const developerId = data.developers[0].id || data.developers[0].name
-          let devResponse
-          
-          if (typeof developerId === 'number') {
-            devResponse = await fetch(
-              `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&developers=${developerId}&page_size=4&ordering=-rating`
-            )
-          } else {
-            devResponse = await fetch(
-              `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(developerId)}&page_size=4&ordering=-rating`
-            )
-          }
-          
-          const devData = await devResponse.json()
-          if (devData.results) {
-            const filtered = devData.results
-              .filter((game: any) => game.id !== data.id)
-              .slice(0, 4)
-            setDeveloperGames(filtered)
-          }
-        }
-      } catch (error) {
-        console.error('Error loading developer games:', error)
-        // Fallback pour developer games
-        setDeveloperGames([
-          { id: 888881, name: 'Previous Title', rating: 4.2, released: '2022-01-01', background_image: null },
-          { id: 888882, name: 'Earlier Game', rating: 4.0, released: '2021-01-01', background_image: null }
-        ])
-      }
-      
-      // Screenshots
-      const screenshotsResponse = await fetch(
-        `https://api.rawg.io/api/games/${rawgId}/screenshots?key=${RAWG_API_KEY}`
-      )
-      const screenshotsData = await screenshotsResponse.json()
-      setGameDetail(prev => prev ? { ...prev, screenshots: screenshotsData.results || [] } : null)
+      setSimilarGamesLoading(false)
       
     } catch (error) {
       console.error('Erreur lors du chargement des détails:', error)
@@ -377,14 +156,14 @@ export default function GameDetailModal({
     }
   }
 
-  const handleStatusSelect = (status: string) => {
+  const handleStatusSelect = (status: MediaStatus) => {
     if (!gameDetail) return
     
     const gameItem = {
       id: gameId,
       title: gameDetail.name,
       image: gameDetail.background_image,
-      category: 'games',
+      category: 'games' as const,
       year: gameDetail.released ? new Date(gameDetail.released).getFullYear() : 2024,
       rating: gameDetail.rating
     }
@@ -393,11 +172,13 @@ export default function GameDetailModal({
     setSelectedStatus(status)
   }
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: MediaStatus) => {
     switch (status) {
       case 'want-to-play': return 'Want to Play'
       case 'currently-playing': return 'Playing'
       case 'completed': return 'Completed'
+      case 'paused': return 'Paused'
+      case 'dropped': return 'Dropped'
       default: return status
     }
   }
@@ -436,7 +217,7 @@ export default function GameDetailModal({
           </div>
         ) : gameDetail ? (
           <>
-            {/* Header fixe */}
+            {/* Header */}
             <div 
               className="relative h-48 bg-cover bg-center flex-shrink-0"
               style={{ backgroundImage: `url(${gameDetail.background_image})` }}
@@ -472,7 +253,7 @@ export default function GameDetailModal({
                         ))}
                       </div>
                       <span className="text-sm">
-                        {gameDetail.rating.toFixed(1)} ({gameDetail.rating_count.toLocaleString()} votes, {userReviews.length + steamReviews.length} reviews)
+                        {gameDetail.rating.toFixed(1)} ({gameDetail.rating_count.toLocaleString()} votes)
                       </span>
                     </div>
                   )}
@@ -480,12 +261,12 @@ export default function GameDetailModal({
               </div>
             </div>
 
-            {/* Zone scrollable */}
-            <div ref={scrollableRef} className="flex-1 overflow-y-auto scrollbar-hide">
-              {/* Boutons d'action */}
+            {/* Content */}
+            <div ref={scrollableRef} className="flex-1 overflow-y-auto">
+              {/* Action buttons */}
               <div className="p-4 border-b border-gray-700">
                 <div className="flex space-x-2 mb-3">
-                  {['want-to-play', 'currently-playing', 'completed'].map((status) => (
+                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
                       onClick={() => handleStatusSelect(status)}
@@ -497,7 +278,7 @@ export default function GameDetailModal({
                     >
                       <div className="text-sm">{getStatusLabel(status)}</div>
                       <div className="text-xs opacity-75">
-                        {gameStats[status as keyof typeof gameStats].toLocaleString()}
+                        {gameStats[status].toLocaleString()}
                       </div>
                     </button>
                   ))}
@@ -509,7 +290,7 @@ export default function GameDetailModal({
                   </div>
                 )}
 
-                {/* Rating utilisateur */}
+                {/* User rating */}
                 <div className="mt-4 pt-4 border-t border-gray-600">
                   <h4 className="text-white font-medium mb-3">Rate this game</h4>
                   <div className="flex items-center space-x-2 mb-3">
@@ -570,7 +351,7 @@ export default function GameDetailModal({
                 </div>
               </div>
 
-              {/* ✅ Reviews Section - Fixed avec Steam Reviews */}
+              {/* Reviews Section */}
               <div className="p-4 border-b border-gray-700">
                 <h3 className="text-white font-semibold mb-3">Recent Reviews</h3>
                 <div className="flex space-x-4 overflow-x-auto pb-2">
@@ -595,12 +376,12 @@ export default function GameDetailModal({
                         <span className="text-xs text-gray-400 ml-1">{review.rating}</span>
                       </div>
                       <p className="text-gray-300 text-sm leading-relaxed">
-                        {review.review}
+                        {review.review || review.text}
                       </p>
                     </div>
                   ))}
                   
-                  {/* ✅ Steam reviews au lieu de Google */}
+                  {/* Steam reviews */}
                   {steamReviews.slice(0, 5).map((review) => (
                     <div key={review.id} className="flex-shrink-0 w-64 bg-gray-800 rounded-lg p-3">
                       <div className="flex items-center space-x-2 mb-2">
@@ -628,13 +409,13 @@ export default function GameDetailModal({
                 </div>
               </div>
 
-              {/* Onglets sticky */}
+              {/* Tabs */}
               <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700">
                 <div className="flex">
                   {(['info', 'social', 'more'] as const).map((tab) => (
                     <button
                       key={tab}
-                      onClick={() => changeTab(tab)}
+                      onClick={() => setActiveTab(tab)}
                       className={`flex-1 py-3 px-4 font-medium transition-colors ${
                         activeTab === tab
                           ? 'text-white border-b-2 border-blue-500'
@@ -647,11 +428,11 @@ export default function GameDetailModal({
                 </div>
               </div>
 
-              {/* Contenu onglets */}
+              {/* Tab content */}
               <div className="p-4 bg-gray-900">
                 {activeTab === 'info' && (
                   <div className="space-y-6">
-                    <div id="info-about">
+                    <div>
                       <h4 className="text-white font-semibold mb-2">About</h4>
                       <p className="text-gray-300 text-sm leading-relaxed">
                         {gameDetail.description_raw || 'No description available.'}
@@ -659,7 +440,7 @@ export default function GameDetailModal({
                     </div>
 
                     {gameDetail.tags && gameDetail.tags.length > 0 && (
-                      <div id="info-tags">
+                      <div>
                         <h4 className="text-white font-semibold mb-3">Tags</h4>
                         <div className="flex flex-wrap gap-2">
                           {gameDetail.tags.slice(0, 12).map((tag, index) => (
@@ -706,7 +487,7 @@ export default function GameDetailModal({
 
                 {activeTab === 'social' && (
                   <div className="space-y-6">
-                    <div id="social-community-stats">
+                    <div>
                       <h4 className="text-white font-semibold mb-4">Community Stats</h4>
                       <div className="grid grid-cols-3 gap-4">
                         <div className="bg-gray-800 p-4 rounded-lg text-center">
@@ -723,228 +504,11 @@ export default function GameDetailModal({
                         </div>
                       </div>
                     </div>
-
-                    <div>
-                      <h4 className="text-white font-semibold mb-3">Friends Activity</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3 bg-gray-800 p-3 rounded-lg">
-                          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">A</div>
-                          <div className="flex-1">
-                            <p className="text-white text-sm"><span className="font-medium">Alex</span> is currently playing this game</p>
-                            <p className="text-gray-400 text-xs">2 hours ago</p>
-                          </div>
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star key={star} size={12} className="text-yellow-400 fill-current" />
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3 bg-gray-800 p-3 rounded-lg">
-                          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">M</div>
-                          <div className="flex-1">
-                            <p className="text-white text-sm"><span className="font-medium">Marie</span> completed this game</p>
-                            <p className="text-gray-400 text-xs">1 day ago</p>
-                          </div>
-                          <div className="flex">
-                            {[1, 2, 3, 4].map((star) => (
-                              <Star key={star} size={12} className="text-yellow-400 fill-current" />
-                            ))}
-                            <Star size={12} className="text-gray-400" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-white font-semibold mb-3">Popular Lists</h4>
-                      <div className="space-y-2">
-                        <div className="bg-gray-800 p-3 rounded-lg">
-                          <h5 className="text-white font-medium">Best RPGs of 2024</h5>
-                          <p className="text-gray-400 text-sm">by GameMaster_2024 • 156 games</p>
-                        </div>
-                        <div className="bg-gray-800 p-3 rounded-lg">
-                          <h5 className="text-white font-medium">Must Play This Year</h5>
-                          <p className="text-gray-400 text-sm">by PixelWarrior • 89 games</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 )}
 
                 {activeTab === 'more' && (
                   <div className="space-y-6">
-                    <div id="more-similar-games">
-                      <h4 className="text-white font-semibold mb-4">Similar Games</h4>
-                      {similarGamesLoading ? (
-                        <div className="text-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-3"></div>
-                          <p className="text-gray-400 text-sm">Loading similar games...</p>
-                        </div>
-                      ) : similarGames.length > 0 ? (
-                        <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
-                          {similarGames.map((game) => (
-                            <div key={game.id} className="flex-shrink-0 w-32">
-                              <div className="group cursor-pointer">
-                                <div className="relative w-32 h-40 bg-gray-700 rounded-lg overflow-hidden">
-                                  {game.background_image ? (
-                                    <img
-                                      src={game.background_image}
-                                      alt={game.name}
-                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                                      <span className="text-white text-2xl">🎮</span>
-                                    </div>
-                                  )}
-                                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-                                  
-                                  {/* Play button overlay */}
-                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                                      <span className="text-white text-lg">▶</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <div className="mt-2">
-                                  <h5 className="text-white font-medium text-sm leading-tight group-hover:text-blue-300 transition-colors line-clamp-2">
-                                    {game.name}
-                                  </h5>
-                                  <div className="flex items-center justify-between mt-1">
-                                    <span className="text-gray-400 text-xs">
-                                      {game.released ? new Date(game.released).getFullYear() : 'TBA'}
-                                    </span>
-                                    <div className="flex items-center space-x-1">
-                                      <span className="text-yellow-400 text-xs">★</span>
-                                      <span className="text-gray-300 text-xs">
-                                        {game.rating ? game.rating.toFixed(1) : 'N/A'}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <p className="text-gray-400 text-sm">No similar games found</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {gameDetail.developers && gameDetail.developers.length > 0 && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-4">More from {gameDetail.developers[0].name}</h4>
-                        <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
-                          {developerGames.length > 0 ? (
-                            developerGames.map((game) => (
-                              <div key={game.id} className="flex-shrink-0 w-32">
-                                <div className="group cursor-pointer">
-                                  <div className="relative w-32 h-40 bg-gray-700 rounded-lg overflow-hidden">
-                                    {game.background_image ? (
-                                      <img
-                                        src={game.background_image}
-                                        alt={game.name}
-                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                                        <span className="text-white text-2xl">🎮</span>
-                                      </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-                                    
-                                    {/* Play button overlay */}
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                                        <span className="text-white text-lg">▶</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="mt-2">
-                                    <h5 className="text-white font-medium text-sm leading-tight group-hover:text-purple-300 transition-colors line-clamp-2">
-                                      {game.name}
-                                    </h5>
-                                    <div className="flex items-center justify-between mt-1">
-                                      <span className="text-gray-400 text-xs">
-                                        {game.released ? new Date(game.released).getFullYear() : 'TBA'}
-                                      </span>
-                                      <div className="flex items-center space-x-1">
-                                        <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-gray-300 text-xs">
-                                          {game.rating ? game.rating.toFixed(1) : 'N/A'}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <>
-                              <div className="flex-shrink-0 w-32">
-                                <div className="group cursor-pointer">
-                                  <div className="relative w-32 h-40 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                                    <span className="text-white text-2xl">🎮</span>
-                                  </div>
-                                  <div className="mt-2">
-                                    <h5 className="text-white font-medium text-sm">Previous Game</h5>
-                                    <div className="flex items-center justify-between mt-1">
-                                      <span className="text-gray-400 text-xs">2022</span>
-                                      <div className="flex items-center space-x-1">
-                                        <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-gray-300 text-xs">4.5</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex-shrink-0 w-32">
-                                <div className="group cursor-pointer">
-                                  <div className="relative w-32 h-40 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                                    <span className="text-white text-2xl">🎮</span>
-                                  </div>
-                                  <div className="mt-2">
-                                    <h5 className="text-white font-medium text-sm">Another Game</h5>
-                                    <div className="flex items-center justify-between mt-1">
-                                      <span className="text-gray-400 text-xs">2020</span>
-                                      <div className="flex items-center space-x-1">
-                                        <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-gray-300 text-xs">4.1</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <h4 className="text-white font-semibold mb-3">Technical Details</h4>
-                      <div className="space-y-3">
-                        {gameDetail.esrb_rating && (
-                          <div>
-                            <h5 className="text-white font-medium text-sm mb-1">ESRB Rating</h5>
-                            <p className="text-gray-400 text-sm">{gameDetail.esrb_rating.name}</p>
-                          </div>
-                        )}
-                        <div>
-                          <h5 className="text-white font-medium text-sm mb-1">Supported Languages</h5>
-                          <p className="text-gray-400 text-sm">English, French, Spanish, German, Japanese</p>
-                        </div>
-                        <div>
-                          <h5 className="text-white font-medium text-sm mb-1">Game Size</h5>
-                          <p className="text-gray-400 text-sm">~45 GB</p>
-                        </div>
-                      </div>
-                    </div>
-
                     <div>
                       <h4 className="text-white font-semibold mb-3">External Links</h4>
                       <div className="space-y-3">
@@ -995,16 +559,6 @@ export default function GameDetailModal({
           </div>
         )}
       </div>
-      
-      <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   )
 }
