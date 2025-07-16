@@ -7,30 +7,29 @@ interface CategoryTabsProps {
 
 export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
   const tabs = [
-    { id: 'games', name: 'Games', shortName: 'Games', emoji: '🎮' },
-    { id: 'movies', name: 'Movies/Series', shortName: 'Movies', emoji: '🎬' },
-    { id: 'music', name: 'Music', shortName: 'Music', emoji: '🎵' },
-    { id: 'books', name: 'Books', shortName: 'Books', emoji: '📚' },
+    { id: 'books', name: 'Books' },
+    { id: 'games', name: 'Games' },
+    { id: 'movies', name: 'Movies' },
+    { id: 'music', name: 'Music' },
   ]
 
   return (
-    <div className="flex space-x-1 bg-gray-50 p-1 rounded-xl mb-8 border border-gray-200">
+    <div className="flex space-x-8 mb-8 border-b border-gray-200">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`flex-1 py-3 px-3 sm:px-4 rounded-lg font-medium transition-all duration-200 text-center text-sm sm:text-base flex items-center justify-center space-x-2 ${
+          className={`pb-3 text-base font-medium transition-colors relative ${
             activeTab === tab.id
-              ? 'bg-white text-gray-900 shadow-sm border border-gray-200 font-semibold'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+              ? 'text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          <span className="text-base">{tab.emoji}</span>
-          <div>
-            {/* Affiche le nom court sur mobile, nom complet sur desktop */}
-            <span className="sm:hidden">{tab.shortName}</span>
-            <span className="hidden sm:inline">{tab.name}</span>
-          </div>
+          {tab.name}
+          {/* Soulignement pour l'onglet actif */}
+          {activeTab === tab.id && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+          )}
         </button>
       ))}
     </div>

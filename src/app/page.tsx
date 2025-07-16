@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import Header from '@/components/Header'
+import { Search } from 'lucide-react'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
@@ -11,13 +11,24 @@ import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<MediaCategory>('games')
+  const [activeTab, setActiveTab] = useState<MediaCategory>('books') // Commencer par Books comme dans l'image
   const [library, setLibrary] = useState<LibraryItem[]>([])
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   // User reviews state - now per game
   const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
+
+  // Fonction pour obtenir le titre selon la catégorie
+  const getCategoryTitle = (category: MediaCategory) => {
+    switch (category) {
+      case 'books': return 'Books'
+      case 'games': return 'Games'
+      case 'movies': return 'Movies'
+      case 'music': return 'Music'
+      default: return 'Books'
+    }
+  }
 
   // Fonction corrigée pour ajouter à la bibliothèque
   const handleAddToLibrary = (item: any, status: MediaStatus) => {
@@ -115,30 +126,15 @@ export default function Home() {
       { rating: 4, text: "Great storyline and graphics. Minor bugs but overall excellent experience.", author: "GameReviewer", helpful: 89 },
       { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
       { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
-      { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 },
-      { rating: 5, text: "Addictive and well-designed. Can't stop playing! Lost track of time multiple times.", author: "GameAddict", helpful: 201 },
-      { rating: 4, text: "Fun gameplay with minor issues. Recommended for fans of the genre.", author: "FairReviewer", helpful: 67 },
-      { rating: 5, text: "Exceeded my expectations! This is a masterpiece in every sense.", author: "CriticPro", helpful: 312 },
-      { rating: 4, text: "Worth the money, great value. Some performance issues but nothing game-breaking.", author: "TechGamer", helpful: 91 },
-      { rating: 3, text: "Decent game, nothing special. Average experience, might appeal to some.", author: "NeutralPlayer", helpful: 23 },
-      { rating: 5, text: "Outstanding graphics and sound design! Immersive experience from start to finish.", author: "AudioVisual", helpful: 145 },
-      { rating: 4, text: "Engaging story, well-crafted characters. Some pacing issues but overall great.", author: "StoryLover", helpful: 98 },
-      { rating: 5, text: "Revolutionary gameplay mechanics. This game is a real game changer!", author: "InnovateFan", helpful: 267 },
-      { rating: 2, text: "Disappointing. Had high expectations based on trailers but fell short.", author: "LetDown", helpful: 34 },
-      { rating: 4, text: "Great multiplayer experience with friends. Solo play is also enjoyable.", author: "MultiPlayer", helpful: 112 },
-      { rating: 5, text: "Best graphics I've ever seen in a game. Runs smoothly on high settings.", author: "VisualFan", helpful: 189 },
-      { rating: 3, text: "Okay game, but gets repetitive after a while. Could use more variety.", author: "Gets0ld", helpful: 56 },
-      { rating: 4, text: "Challenging and rewarding. Worth the grind if you're patient.", author: "Grinder", helpful: 87 },
-      { rating: 5, text: "Emotional rollercoaster. Amazing storytelling that kept me hooked.", author: "EmotionalG", helpful: 234 },
-      { rating: 4, text: "Good optimization, runs smooth on my setup. Minor UI issues but nothing major.", author: "TechCheck", helpful: 76 }
+      { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 }
     ];
 
     // Utiliser gameId comme seed pour des reviews cohérentes mais uniques par jeu
     const seed = gameId;
     const selectedReviews = [];
     
-    // Générer 8-12 reviews par jeu selon l'ID
-    const numReviews = 8 + (seed % 5);
+    // Générer 5 reviews par jeu selon l'ID
+    const numReviews = 5;
 
     for (let i = 0; i < numReviews; i++) {
       // Algorithme de sélection pseudo-aléatoire basé sur gameId
@@ -199,7 +195,7 @@ export default function Home() {
       ]
     }
 
-    return sectionConfig[activeTab] || sectionConfig.games
+    return sectionConfig[activeTab] || sectionConfig.books
   }
 
   const getCurrentContent = (): ContentItem[] => {
@@ -208,7 +204,7 @@ export default function Home() {
       case 'movies': return sampleContent.movies
       case 'music': return sampleContent.music
       case 'books': return sampleContent.books
-      default: return sampleContent.games
+      default: return sampleContent.books
     }
   }
 
@@ -216,11 +212,32 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header 
-        onAddToLibrary={handleAddToLibrary} 
-        library={library}
-        onOpenGameDetail={handleOpenGameDetail}
-      />
+      {/* Header avec titre dynamique */}
+      <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-white">
+        <div className="flex items-center">
+          <h1 className="text-2xl font-bold text-gray-900">{getCategoryTitle(activeTab)}</h1>
+        </div>
+        
+        <div className="flex-1 max-w-md mx-8">
+          <div 
+            className="relative cursor-pointer"
+            onClick={() => setIsSearchOpen(true)}
+          >
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <div className="w-full pl-4 pr-10 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors text-sm">
+              <span>Search...</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center">
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 text-sm font-medium">👤</span>
+            </div>
+          </button>
+        </div>
+      </header>
       
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <CategoryTabs 
