@@ -74,6 +74,31 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }
   }, [isOpen])
 
+  // ✅ AJOUT : useEffect pour détecter quand l'item est ajouté à la library
+  useEffect(() => {
+    if (addingItem) {
+      // Vérifier si l'item a été ajouté à la library avec un délai
+      const checkLibrary = () => {
+        const normalizedId = addingItem.replace(/^(game-|movie-|music-|book-)/, '')
+        const isInLibrary = safeLibrary.some((item: any) => {
+          if (!item || !item.id) return false
+          const normalizedLibId = item.id.toString().replace(/^(game-|movie-|music-|book-)/, '')
+          return normalizedLibId === normalizedId
+        })
+        
+        if (isInLibrary) {
+          // Item trouvé dans la library, on peut arrêter le loading
+          setAddingItem(null)
+        }
+      }
+      
+      // Vérifier plusieurs fois avec des délais croissants
+      setTimeout(checkLibrary, 100)
+      setTimeout(checkLibrary, 500)
+      setTimeout(checkLibrary, 1000)
+    }
+  }, [safeLibrary, addingItem])
+
   // Get status options based on category
   const getStatusOptions = (category: string) => {
     switch (category) {
@@ -353,7 +378,7 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     }))
   }
 
-  // ✅ SOLUTION SIMPLIFIÉE : Handle status selection sans useEffect complexe
+  // ✅ SOLUTION FINALE : Handle status selection avec feedback persistant
   const handleStatusSelect = (result: SearchResult, status: string) => {
     setAddingItem(result.id)
     setFadeOutPopup(result.id)
@@ -361,12 +386,16 @@ export default function SearchModal({ isOpen, onClose, onAddToLibrary, onOpenGam
     // Appeler la fonction parent pour ajouter à la library globale
     onAddToLibrary(result, status)
     
-    // ✅ SOLUTION : Reset direct après 1 seconde (temps pour voir l'animation)
+    // Fermer le popup rapidement
     setTimeout(() => {
-      setAddingItem(null)
       setShowStatusPopup(null)
       setFadeOutPopup(null)
-    }, 1000)
+    }, 300)
+    
+    // Fallback : si après 2 secondes l'item n'est pas détecté, forcer le reset
+    setTimeout(() => {
+      setAddingItem(null)
+    }, 2000)
   }
 
   // Keyboard navigation
