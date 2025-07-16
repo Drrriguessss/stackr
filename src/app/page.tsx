@@ -7,6 +7,7 @@ import LibrarySection from '@/components/LibrarySection'
 import GameDetailModal from '@/components/GameDetailModal'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
+import RoadmapPage from '@/components/RoadmapPage'
 import { sampleContent } from '@/data/sampleContent'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
@@ -190,6 +191,8 @@ export default function Home() {
         return renderDiscoverContent()
       case 'search':
         return renderSearchContent()
+      case 'roadmap':
+        return <RoadmapPage onBack={() => setActiveMainTab('home')} />
       default:
         return renderHomeContent()
     }

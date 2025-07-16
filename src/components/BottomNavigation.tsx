@@ -39,7 +39,11 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
   const handleMoreItemClick = (itemId: string) => {
     console.log(`Clicked: ${itemId}`)
     setShowMoreMenu(false)
-    // Ici on pourra ajouter la logique pour chaque item
+    
+    // Callback pour navigation vers les pages
+    if (onTabChange) {
+      onTabChange(itemId)
+    }
   }
 
   const TabButton = ({ tab, isActive, onClick }: { tab: any, isActive: boolean, onClick: () => void }) => {
