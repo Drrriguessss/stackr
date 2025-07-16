@@ -147,12 +147,12 @@ export default function GameDetailModal({
       const data = await response.json()
       setGameDetail(data)
       
-      // Fetch similar games and developer games
+      // Fetch similar games and developer games avec les IDs
       if (data.genres && data.genres.length > 0) {
-        await fetchSimilarGames(data.genres[0].name)
+        await fetchSimilarGames(data.genres[0].id, data.id) // Passer l'ID du genre et exclure le jeu actuel
       }
       if (data.developers && data.developers.length > 0) {
-        await fetchDeveloperGames(data.developers[0].name)
+        await fetchDeveloperGames(data.developers[0].id, data.id) // Passer l'ID du développeur et exclure le jeu actuel
       }
       
       setSimilarGamesLoading(false)
@@ -165,30 +165,48 @@ export default function GameDetailModal({
     }
   }
 
-  const fetchSimilarGames = async (genre: string) => {
+  const fetchSimilarGames = async (genreId: number, excludeGameId: number) => {
     try {
-      console.log('Fetching similar games for genre:', genre)
+      console.log('Fetching similar games for genre ID:', genreId, 'excluding game:', excludeGameId)
       const response = await fetch(
-        `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${encodeURIComponent(genre)}&page_size=6&ordering=-rating`
+        `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&genres=${genreId}&page_size=10&ordering=-rating,-added`
       )
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
+      }
+      
       const data = await response.json()
-      console.log('Similar games data:', data.results)
-      setSimilarGames(data.results || [])
+      console.log('Similar games response:', data)
+      
+      // Filtrer pour exclure le jeu actuel et prendre les 6 premiers
+      const filteredGames = (data.results || []).filter((game: any) => game.id !== excludeGameId).slice(0, 6)
+      console.log('Filtered similar games:', filteredGames)
+      setSimilarGames(filteredGames)
     } catch (error) {
       console.error('Error fetching similar games:', error)
       setSimilarGames([])
     }
   }
 
-  const fetchDeveloperGames = async (developer: string) => {
+  const fetchDeveloperGames = async (developerId: number, excludeGameId: number) => {
     try {
-      console.log('Fetching developer games for:', developer)
+      console.log('Fetching developer games for developer ID:', developerId, 'excluding game:', excludeGameId)
       const response = await fetch(
-        `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&developers=${encodeURIComponent(developer)}&page_size=6&ordering=-rating`
+        `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&developers=${developerId}&page_size=10&ordering=-rating,-added`
       )
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
+      }
+      
       const data = await response.json()
-      console.log('Developer games data:', data.results)
-      setDeveloperGames(data.results || [])
+      console.log('Developer games response:', data)
+      
+      // Filtrer pour exclure le jeu actuel et prendre les 6 premiers
+      const filteredGames = (data.results || []).filter((game: any) => game.id !== excludeGameId).slice(0, 6)
+      console.log('Filtered developer games:', filteredGames)
+      setDeveloperGames(filteredGames)
     } catch (error) {
       console.error('Error fetching developer games:', error)
       setDeveloperGames([])
