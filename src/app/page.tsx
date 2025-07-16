@@ -7,12 +7,14 @@ import LibrarySection from '@/components/LibrarySection'
 import GameDetailModal from '@/components/GameDetailModal'
 import MovieDetailModal from '@/components/MovieDetailModal'
 import BookDetailModal from '@/components/BookDetailModal'
+import MusicDetailModal from '@/components/MusicDetailModal'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
 import { sampleContent } from '@/data/sampleContent'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
+import { musicService } from '@/services/musicService'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
@@ -23,9 +25,10 @@ export default function Home() {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
+  const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   
-  // State pour le contenu dynamique des films et livres
+  // State pour le contenu dynamique des films, livres et musique
   const [movieContent, setMovieContent] = useState<{
     popular: ContentItem[]
     topRated: ContentItem[]
@@ -48,15 +51,28 @@ export default function Home() {
   })
   const [booksLoading, setBooksLoading] = useState(false)
 
-  // User reviews state
-  const [userReviews, setUserReviews] = useState<{[gameId: number]: Review[]}>({})
+  const [musicContent, setMusicContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    newReleases: []
+  })
+  const [musicLoading, setMusicLoading] = useState(false)
 
-  // Charger le contenu des films et livres
+  // User reviews state
+  const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
+
+  // Charger le contenu selon la catégorie active
   useEffect(() => {
     if (activeTab === 'movies') {
       loadMovieContent()
     } else if (activeTab === 'books') {
       loadBookContent()
+    } else if (activeTab === 'music') {
+      loadMusicContent()
     }
   }, [activeTab])
 
@@ -130,6 +146,41 @@ export default function Home() {
     }
   }
 
+  const loadMusicContent = async () => {
+    try {
+      setMusicLoading(true)
+
+      const [popularAlbums, topRatedAlbums, newReleaseAlbums] = await Promise.all([
+        musicService.getPopularAlbums().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        ),
+        musicService.getTopRatedAlbums().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        ),
+        musicService.getNewReleases().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        )
+      ])
+
+      setMusicContent({
+        popular: popularAlbums,
+        topRated: topRatedAlbums,
+        newReleases: newReleaseAlbums
+      })
+    } catch (error) {
+      console.error('Error loading music content:', error)
+      
+      // Fallback vers les données statiques
+      setMusicContent({
+        popular: sampleContent.music.slice(0, 4),
+        topRated: sampleContent.music.slice(4, 8),
+        newReleases: sampleContent.music.slice(0, 4)
+      })
+    } finally {
+      setMusicLoading(false)
+    }
+  }
+
   // Fonction corrigée pour ajouter à la bibliothèque
   const handleAddToLibrary = (item: any, status: MediaStatus) => {
     const normalizedId = normalizeId(item.id)
@@ -197,12 +248,18 @@ export default function Home() {
     setSelectedBookId(normalizedBookId)
   }
 
+  const handleOpenMusicDetail = (musicId: string) => {
+    const normalizedMusicId = normalizeId(musicId)
+    setSelectedMusicId(normalizedMusicId)
+  }
+
   const handleOpenSearch = () => {
     setIsSearchOpen(true)
   }
 
   const handleReviewSubmit = (reviewData: any) => {
-    if (!selectedGameId) return;
+    const currentItemId = selectedGameId || selectedMovieId || selectedBookId || selectedMusicId
+    if (!currentItemId) return;
     
     const newReview: Review = {
       id: Date.now(),
@@ -214,10 +271,11 @@ export default function Home() {
 
     setUserReviews(prev => ({
       ...prev,
-      [parseInt(selectedGameId)]: [...(prev[parseInt(selectedGameId)] || []), newReview]
+      [currentItemId]: [...(prev[currentItemId] || []), newReview]
     }));
   };
 
+  // Générer des reviews pour différentes plateformes
   const generateSteamReviews = (gameId: number): Review[] => {
     const reviewTemplates = [
       { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
@@ -255,7 +313,6 @@ export default function Home() {
     return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
   };
 
-  // Générer des reviews Goodreads pour les livres
   const generateGoodreadsReviews = (bookId: string): Review[] => {
     const reviewTemplates = [
       { rating: 5, text: "Absolutely loved this book! Couldn't put it down. The characters were so well developed and the plot was engaging throughout.", author: "BookLover", helpful: 156 },
@@ -265,7 +322,6 @@ export default function Home() {
       { rating: 4, text: "Solid storytelling and great character development. Would definitely read more from this author.", author: "LitCritic", helpful: 112 }
     ];
 
-    // Utiliser bookId comme seed pour des reviews cohérentes
     const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const selectedReviews = [];
     
@@ -293,7 +349,6 @@ export default function Home() {
     return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
   };
 
-  // Générer des reviews IMDb pour les films
   const generateIMDBReviews = (movieId: string): Review[] => {
     const reviewTemplates = [
       { rating: 5, text: "A masterpiece! Brilliant acting and cinematography. This film will be remembered for years.", author: "CinemaLover", helpful: 89 },
@@ -303,7 +358,6 @@ export default function Home() {
       { rating: 4, text: "Strong performances and great direction. A solid addition to the genre.", author: "FilmStudent", helpful: 78 }
     ];
 
-    // Utiliser movieId comme seed pour des reviews cohérentes
     const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const selectedReviews = [];
     
@@ -331,6 +385,42 @@ export default function Home() {
     return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
   };
 
+  const generateSpotifyReviews = (musicId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "This album is absolutely phenomenal! Every track is a masterpiece. Can't stop listening!", author: "MusicLover99", helpful: 201 },
+      { rating: 4, text: "Really solid album with great production. A few tracks could be stronger but overall fantastic.", author: "IndieHead", helpful: 134 },
+      { rating: 5, text: "Pure genius! The way they blend genres is incredible. This will be on repeat for months.", author: "VinylCollector", helpful: 187 },
+      { rating: 3, text: "Good but not groundbreaking. Some nice moments but doesn't live up to the hype.", author: "CasualListener", helpful: 67 },
+      { rating: 4, text: "Excellent songwriting and vocals. The production quality is top-notch throughout.", author: "AudioPhile", helpful: 145 }
+    ];
+
+    const seed = musicId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const selectedReviews = [];
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 7 + i * 11) % reviewTemplates.length;
+      const template = reviewTemplates[index];
+      
+      const musicSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 60) - 30),
+        daysAgo: (seed * i * 5) % 200 + 1,
+      };
+      
+      selectedReviews.push({
+        id: `spotify_${musicId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: musicSpecificVariations.helpful,
+        date: new Date(Date.now() - musicSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Music Community'
+      });
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
+  };
+
   const getSections = () => {
     if (activeTab === 'movies') {
       return [
@@ -345,6 +435,14 @@ export default function Home() {
         { title: 'Fiction favorites', items: bookContent.fiction },
         { title: 'Non-fiction highlights', items: bookContent.nonFiction },
         { title: 'New releases', items: bookContent.newReleases }
+      ]
+    }
+
+    if (activeTab === 'music') {
+      return [
+        { title: 'Popular albums', items: musicContent.popular },
+        { title: 'Classic masterpieces', items: musicContent.topRated },
+        { title: 'Latest releases', items: musicContent.newReleases }
       ]
     }
     
@@ -441,9 +539,11 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Contenu scrollable avec loading state pour films et livres */}
+        {/* Contenu scrollable avec loading state */}
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
-          {(moviesLoading && activeTab === 'movies') || (booksLoading && activeTab === 'books') ? (
+          {(moviesLoading && activeTab === 'movies') || 
+           (booksLoading && activeTab === 'books') || 
+           (musicLoading && activeTab === 'music') ? (
             <div className="space-y-6">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="mb-8">
@@ -473,6 +573,7 @@ export default function Home() {
                   onOpenGameDetail={handleOpenGameDetail}
                   onOpenMovieDetail={handleOpenMovieDetail}
                   onOpenBookDetail={handleOpenBookDetail}
+                  onOpenMusicDetail={handleOpenMusicDetail}
                 />
               ))}
             </div>
@@ -496,6 +597,7 @@ export default function Home() {
           onOpenGameDetail={handleOpenGameDetail}
           onOpenMovieDetail={handleOpenMovieDetail}
           onOpenBookDetail={handleOpenBookDetail}
+          onOpenMusicDetail={handleOpenMusicDetail}
           onOpenSearch={handleOpenSearch}
         />
       </div>
@@ -515,7 +617,7 @@ export default function Home() {
           </div>
           <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Recommended for You</h3>
-            <p className="text-gray-600">Based on your gaming preferences</p>
+            <p className="text-gray-600">Based on your preferences</p>
           </div>
         </div>
       </div>
@@ -558,7 +660,7 @@ export default function Home() {
         gameId={selectedGameId || ''}
         onAddToLibrary={handleAddToLibrary}
         library={library}
-        userReviews={selectedGameId ? userReviews[parseInt(selectedGameId)] || [] : []}
+        userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
         googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
         onReviewSubmit={handleReviewSubmit}
       />
@@ -569,7 +671,7 @@ export default function Home() {
         movieId={selectedMovieId || ''}
         onAddToLibrary={handleAddToLibrary}
         library={library}
-        userReviews={selectedMovieId ? userReviews[parseInt(selectedMovieId)] || [] : []}
+        userReviews={selectedMovieId ? userReviews[selectedMovieId] || [] : []}
         imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
         onReviewSubmit={handleReviewSubmit}
       />
@@ -580,8 +682,19 @@ export default function Home() {
         bookId={selectedBookId || ''}
         onAddToLibrary={handleAddToLibrary}
         library={library}
-        userReviews={selectedBookId ? userReviews[parseInt(selectedBookId)] || [] : []}
+        userReviews={selectedBookId ? userReviews[selectedBookId] || [] : []}
         goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <MusicDetailModal
+        isOpen={!!selectedMusicId}
+        onClose={() => setSelectedMusicId(null)}
+        albumId={selectedMusicId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedMusicId ? userReviews[selectedMusicId] || [] : []}
+        spotifyReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}
         onReviewSubmit={handleReviewSubmit}
       />
 
@@ -592,6 +705,7 @@ export default function Home() {
         onOpenGameDetail={handleOpenGameDetail}
         onOpenMovieDetail={handleOpenMovieDetail}
         onOpenBookDetail={handleOpenBookDetail}
+        onOpenMusicDetail={handleOpenMusicDetail}
         library={library}
       />
     </div>

@@ -11,6 +11,7 @@ interface ContentSectionProps {
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
   onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void
 }
 
 export default function ContentSection({ 
@@ -21,7 +22,8 @@ export default function ContentSection({
   library, 
   onOpenGameDetail,
   onOpenMovieDetail,
-  onOpenBookDetail
+  onOpenBookDetail,
+  onOpenMusicDetail
 }: ContentSectionProps) {
   return (
     <section className="mb-8">
@@ -45,6 +47,7 @@ export default function ContentSection({
               onOpenGameDetail={onOpenGameDetail}
               onOpenMovieDetail={onOpenMovieDetail}
               onOpenBookDetail={onOpenBookDetail}
+              onOpenMusicDetail={onOpenMusicDetail}
             />
           </div>
         ))}

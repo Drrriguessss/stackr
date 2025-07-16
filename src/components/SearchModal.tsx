@@ -4,6 +4,7 @@ import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
+import { musicService } from '@/services/musicService'
 import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
 
 interface SearchModalProps {
@@ -13,6 +14,7 @@ interface SearchModalProps {
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
   onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void
   library: LibraryItem[]
 }
 
@@ -23,6 +25,7 @@ export default function SearchModal({
   onOpenGameDetail,
   onOpenMovieDetail,
   onOpenBookDetail,
+  onOpenMusicDetail,
   library = []
 }: SearchModalProps) {
   const [query, setQuery] = useState('')
@@ -43,7 +46,6 @@ export default function SearchModal({
 
   // API Keys
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
-  const OMDB_API_KEY = '649f9a63' // Votre clé OMDB fonctionnelle
 
   // Sécurité : Assurer que library est toujours un array
   const safeLibrary = Array.isArray(library) ? library : []
@@ -327,7 +329,6 @@ export default function SearchModal({
 
   const searchMovies = async (query: string): Promise<SearchResult[]> => {
     try {
-      // Utiliser OMDB pour la recherche
       const movies = await omdbService.searchMovies(query)
       return movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
     } catch (error) {
@@ -337,24 +338,13 @@ export default function SearchModal({
   }
 
   const searchMusic = async (query: string): Promise<SearchResult[]> => {
-    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=8`
-    const response = await fetchWithTimeout(url)
-    const data = await response.json()
-    
-    if (!data.results) {
-      throw new Error('No music data received')
+    try {
+      const albums = await musicService.searchAlbums(query, 8)
+      return albums.map(album => musicService.convertToAppFormat(album))
+    } catch (error) {
+      console.error('iTunes search failed:', error)
+      throw error
     }
-
-    return data.results.map((album: any) => ({
-      id: `music-${album.collectionId}`,
-      title: album.collectionName || 'Unknown Album',
-      artist: album.artistName || 'Unknown Artist',
-      year: album.releaseDate ? new Date(album.releaseDate).getFullYear() : new Date().getFullYear(),
-      rating: 0,
-      genre: album.primaryGenreName || 'Unknown',
-      category: 'music' as const,
-      image: album.artworkUrl100
-    }))
   }
 
   const searchBooks = async (query: string): Promise<SearchResult[]> => {
@@ -429,6 +419,9 @@ export default function SearchModal({
       onClose()
     } else if (result.category === 'books' && onOpenBookDetail) {
       onOpenBookDetail(result.id.replace('book-', ''))
+      onClose()
+    } else if (result.category === 'music' && onOpenMusicDetail) {
+      onOpenMusicDetail(result.id.replace('music-', ''))
       onClose()
     } else {
       onAddToLibrary(result, 'want-to-play')
