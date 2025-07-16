@@ -10,6 +10,7 @@ interface ContentCardProps {
   onAddToLibrary: (item: ContentItem, status: MediaStatus) => void
   library: LibraryItem[]
   onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
 }
 
 export default function ContentCard({
@@ -17,7 +18,8 @@ export default function ContentCard({
   category,
   onAddToLibrary,
   library = [],
-  onOpenGameDetail
+  onOpenGameDetail,
+  onOpenMovieDetail
 }: ContentCardProps) {
   const [showActions, setShowActions] = useState(false)
 
@@ -33,6 +35,8 @@ export default function ContentCard({
   const handleCardClick = () => {
     if (category === 'games' && onOpenGameDetail) {
       onOpenGameDetail(item.id)
+    } else if (category === 'movies' && onOpenMovieDetail) {
+      onOpenMovieDetail(item.id)
     }
   }
 

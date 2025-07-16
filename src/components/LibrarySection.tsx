@@ -11,6 +11,7 @@ interface LibrarySectionProps {
   onUpdateItem?: (id: string, updates: Partial<LibraryItem>) => void
   onDeleteItem?: (id: string) => void
   onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
   onOpenSearch?: () => void
 }
 
@@ -20,6 +21,7 @@ export default function LibrarySection({
   onUpdateItem,
   onDeleteItem,
   onOpenGameDetail,
+  onOpenMovieDetail,
   onOpenSearch
 }: LibrarySectionProps) {
   const [activeFilter, setActiveFilter] = useState('all')
@@ -100,6 +102,16 @@ export default function LibrarySection({
     }
 
     onUpdateItem(itemId, updates)
+  }
+
+  // Fonction pour ouvrir les détails selon le type d'item
+  const handleOpenItemDetail = (item: LibraryItem) => {
+    if (item.category === 'games' && onOpenGameDetail) {
+      onOpenGameDetail(item.id)
+    } else if (item.category === 'movies' && onOpenMovieDetail) {
+      onOpenMovieDetail(item.id)
+    }
+    // TODO: Ajouter support pour music et books plus tard
   }
 
   // Quick Edit Modal Component
@@ -320,6 +332,7 @@ export default function LibrarySection({
                     onAddToLibrary={onAddToLibrary}
                     library={library}
                     onOpenGameDetail={onOpenGameDetail}
+                    onOpenMovieDetail={onOpenMovieDetail}
                   />
                   
                   {/* Edit button overlay */}
@@ -345,7 +358,10 @@ export default function LibrarySection({
                   <div key={item.id} className="library-card p-4">
                     <div className="flex items-center space-x-4">
                       {/* Image */}
-                      <div className="w-16 h-20 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                      <div 
+                        className="w-16 h-20 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => handleOpenItemDetail(item)}
+                      >
                         {item.image ? (
                           <img
                             src={item.image}
@@ -363,7 +379,12 @@ export default function LibrarySection({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="text-gray-900 font-medium">{item.title}</h3>
+                            <h3 
+                              className="text-gray-900 font-medium cursor-pointer hover:text-blue-600 transition-colors"
+                              onClick={() => handleOpenItemDetail(item)}
+                            >
+                              {item.title}
+                            </h3>
                             <p className="text-gray-600 text-sm">{getCreator(item)}</p>
                             <div className="flex items-center space-x-2 mt-1">
                               <span className={`text-xs ${categoryInfo.color}`}>

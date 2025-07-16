@@ -5,6 +5,7 @@ import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
 import GameDetailModal from '@/components/GameDetailModal'
+import MovieDetailModal from '@/components/MovieDetailModal'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
@@ -18,6 +19,7 @@ export default function Home() {
   const [activeMainTab, setActiveMainTab] = useState('home')
   const [library, setLibrary] = useState<LibraryItem[]>([])
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   
   // State pour le contenu dynamique des films
@@ -134,6 +136,11 @@ export default function Home() {
     setSelectedGameId(normalizedGameId)
   }
 
+  const handleOpenMovieDetail = (movieId: string) => {
+    const normalizedMovieId = normalizeId(movieId)
+    setSelectedMovieId(normalizedMovieId)
+  }
+
   const handleOpenSearch = () => {
     setIsSearchOpen(true)
   }
@@ -186,6 +193,44 @@ export default function Home() {
         date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
           .toISOString().split('T')[0],
         platform: 'Steam'
+      });
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
+  };
+
+  // Générer des reviews IMDb pour les films
+  const generateIMDBReviews = (movieId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "A masterpiece! Brilliant acting and cinematography. This film will be remembered for years.", author: "CinemaLover", helpful: 89 },
+      { rating: 4, text: "Excellent storytelling and character development. Minor pacing issues but overall fantastic.", author: "FilmCritic", helpful: 156 },
+      { rating: 5, text: "One of the best films I've seen. Perfect blend of drama and emotion. Highly recommended!", author: "MovieBuff", helpful: 234 },
+      { rating: 3, text: "Good but not great. Some brilliant moments but overall feels uneven.", author: "CasualViewer", helpful: 45 },
+      { rating: 4, text: "Strong performances and great direction. A solid addition to the genre.", author: "FilmStudent", helpful: 78 }
+    ];
+
+    // Utiliser movieId comme seed pour des reviews cohérentes
+    const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const selectedReviews = [];
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 13 + i * 19) % reviewTemplates.length;
+      const template = reviewTemplates[index];
+      
+      const movieSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 40) - 20),
+        daysAgo: (seed * i * 2) % 120 + 1,
+      };
+      
+      selectedReviews.push({
+        id: `imdb_${movieId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: movieSpecificVariations.helpful,
+        date: new Date(Date.now() - movieSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'IMDb'
       });
     }
 
@@ -324,6 +369,7 @@ export default function Home() {
                   onAddToLibrary={handleAddToLibrary}
                   library={library}
                   onOpenGameDetail={handleOpenGameDetail}
+                  onOpenMovieDetail={handleOpenMovieDetail}
                 />
               ))}
             </div>
@@ -345,6 +391,7 @@ export default function Home() {
           onUpdateItem={handleUpdateItem}
           onDeleteItem={handleDeleteItem}
           onOpenGameDetail={handleOpenGameDetail}
+          onOpenMovieDetail={handleOpenMovieDetail}
           onOpenSearch={handleOpenSearch}
         />
       </div>
@@ -412,11 +459,23 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
+      <MovieDetailModal
+        isOpen={!!selectedMovieId}
+        onClose={() => setSelectedMovieId(null)}
+        movieId={selectedMovieId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedMovieId ? userReviews[parseInt(selectedMovieId)] || [] : []}
+        imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         onAddToLibrary={handleAddToLibrary}
         onOpenGameDetail={handleOpenGameDetail}
+        onOpenMovieDetail={handleOpenMovieDetail}
         library={library}
       />
     </div>

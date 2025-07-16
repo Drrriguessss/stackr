@@ -10,6 +10,7 @@ interface SearchModalProps {
   onClose: () => void
   onAddToLibrary: (item: any, status: MediaStatus) => void
   onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
   library: LibraryItem[]
 }
 
@@ -18,6 +19,7 @@ export default function SearchModal({
   onClose,
   onAddToLibrary,
   onOpenGameDetail,
+  onOpenMovieDetail,
   library = []
 }: SearchModalProps) {
   const [query, setQuery] = useState('')
@@ -429,6 +431,9 @@ export default function SearchModal({
   const handleSelectResult = (result: SearchResult) => {
     if (result.category === 'games' && onOpenGameDetail) {
       onOpenGameDetail(result.id.replace('game-', ''))
+      onClose()
+    } else if (result.category === 'movies' && onOpenMovieDetail) {
+      onOpenMovieDetail(result.id.replace('movie-', ''))
       onClose()
     } else {
       onAddToLibrary(result, 'want-to-play')
