@@ -15,6 +15,7 @@ import { sampleContent } from '@/data/sampleContent'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
+import { rawgService } from '@/services/rawgService'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
@@ -28,7 +29,19 @@ export default function Home() {
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   
-  // State pour le contenu dynamique des films, livres et musique
+  // State pour le contenu dynamique des jeux
+  const [gameContent, setGameContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    newReleases: []
+  })
+  const [gamesLoading, setGamesLoading] = useState(false)
+  
+  // State pour le contenu dynamique des films
   const [movieContent, setMovieContent] = useState<{
     popular: ContentItem[]
     topRated: ContentItem[]
@@ -40,6 +53,7 @@ export default function Home() {
   })
   const [moviesLoading, setMoviesLoading] = useState(false)
 
+  // State pour le contenu dynamique des livres
   const [bookContent, setBookContent] = useState<{
     fiction: ContentItem[]
     nonFiction: ContentItem[]
@@ -51,6 +65,7 @@ export default function Home() {
   })
   const [booksLoading, setBooksLoading] = useState(false)
 
+  // State pour le contenu dynamique de la musique
   const [musicContent, setMusicContent] = useState<{
     popular: ContentItem[]
     topRated: ContentItem[]
@@ -67,7 +82,9 @@ export default function Home() {
 
   // Charger le contenu selon la catégorie active
   useEffect(() => {
-    if (activeTab === 'movies') {
+    if (activeTab === 'games') {
+      loadGameContent()
+    } else if (activeTab === 'movies') {
       loadMovieContent()
     } else if (activeTab === 'books') {
       loadBookContent()
@@ -75,6 +92,41 @@ export default function Home() {
       loadMusicContent()
     }
   }, [activeTab])
+
+  const loadGameContent = async () => {
+    try {
+      setGamesLoading(true)
+
+      const [popularGames, topRatedGames, newReleaseGames] = await Promise.all([
+        rawgService.getPopularGames().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        ),
+        rawgService.getTopRatedGames().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        ),
+        rawgService.getNewReleases().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        )
+      ])
+
+      setGameContent({
+        popular: popularGames,
+        topRated: topRatedGames,
+        newReleases: newReleaseGames
+      })
+    } catch (error) {
+      console.error('Error loading game content:', error)
+      
+      // Fallback vers les données statiques
+      setGameContent({
+        popular: sampleContent.games.slice(0, 4),
+        topRated: sampleContent.games.slice(4, 8),
+        newReleases: sampleContent.games.slice(0, 4)
+      })
+    } finally {
+      setGamesLoading(false)
+    }
+  }
 
   const loadMovieContent = async () => {
     try {
@@ -259,21 +311,21 @@ export default function Home() {
 
   const handleReviewSubmit = (reviewData: any) => {
     const currentItemId = selectedGameId || selectedMovieId || selectedBookId || selectedMusicId
-    if (!currentItemId) return;
-    
+    if (!currentItemId) return
+
     const newReview: Review = {
       id: Date.now(),
       username: "CurrentUser",
       rating: reviewData.rating,
       review: reviewData.review,
       date: new Date().toISOString().split('T')[0]
-    };
+    }
 
     setUserReviews(prev => ({
       ...prev,
       [currentItemId]: [...(prev[currentItemId] || []), newReview]
-    }));
-  };
+    }))
+  }
 
   // Générer des reviews pour différentes plateformes
   const generateSteamReviews = (gameId: number): Review[] => {
@@ -283,20 +335,20 @@ export default function Home() {
       { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
       { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
       { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 }
-    ];
+    ]
 
-    const seed = gameId;
-    const selectedReviews = [];
-    const numReviews = 5;
+    const seed = gameId
+    const selectedReviews = []
+    const numReviews = 5
 
     for (let i = 0; i < numReviews; i++) {
-      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length;
-      const template = reviewTemplates[index];
+      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length
+      const template = reviewTemplates[index]
       
       const gameSpecificVariations = {
         helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
         daysAgo: (seed * i * 3) % 180 + 1,
-      };
+      }
       
       selectedReviews.push({
         id: `steam_${gameId}_${i}`,
@@ -307,11 +359,11 @@ export default function Home() {
         date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
           .toISOString().split('T')[0],
         platform: 'Steam'
-      });
+      })
     }
 
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
-  };
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
 
   const generateGoodreadsReviews = (bookId: string): Review[] => {
     const reviewTemplates = [
@@ -320,19 +372,19 @@ export default function Home() {
       { rating: 5, text: "One of my favorite books this year! Beautiful prose and such an emotional journey. Highly recommend!", author: "BookwormLife", helpful: 234 },
       { rating: 3, text: "Good book but not amazing. The story was decent but felt a bit predictable at times.", author: "CasualReader", helpful: 45 },
       { rating: 4, text: "Solid storytelling and great character development. Would definitely read more from this author.", author: "LitCritic", helpful: 112 }
-    ];
+    ]
 
-    const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const selectedReviews = [];
+    const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
     
     for (let i = 0; i < 5; i++) {
-      const index = (seed * 11 + i * 17) % reviewTemplates.length;
-      const template = reviewTemplates[index];
+      const index = (seed * 11 + i * 17) % reviewTemplates.length
+      const template = reviewTemplates[index]
       
       const bookSpecificVariations = {
         helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
         daysAgo: (seed * i * 4) % 90 + 1,
-      };
+      }
       
       selectedReviews.push({
         id: `goodreads_${bookId}_${i}`,
@@ -343,11 +395,11 @@ export default function Home() {
         date: new Date(Date.now() - bookSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
           .toISOString().split('T')[0],
         platform: 'Goodreads'
-      });
+      })
     }
 
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
-  };
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
 
   const generateIMDBReviews = (movieId: string): Review[] => {
     const reviewTemplates = [
@@ -356,19 +408,19 @@ export default function Home() {
       { rating: 5, text: "One of the best films I've seen. Perfect blend of drama and emotion. Highly recommended!", author: "MovieBuff", helpful: 234 },
       { rating: 3, text: "Good but not great. Some brilliant moments but overall feels uneven.", author: "CasualViewer", helpful: 45 },
       { rating: 4, text: "Strong performances and great direction. A solid addition to the genre.", author: "FilmStudent", helpful: 78 }
-    ];
+    ]
 
-    const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const selectedReviews = [];
+    const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
     
     for (let i = 0; i < 5; i++) {
-      const index = (seed * 13 + i * 19) % reviewTemplates.length;
-      const template = reviewTemplates[index];
+      const index = (seed * 13 + i * 19) % reviewTemplates.length
+      const template = reviewTemplates[index]
       
       const movieSpecificVariations = {
         helpful: Math.max(1, template.helpful + (seed * i % 40) - 20),
         daysAgo: (seed * i * 2) % 120 + 1,
-      };
+      }
       
       selectedReviews.push({
         id: `imdb_${movieId}_${i}`,
@@ -379,11 +431,11 @@ export default function Home() {
         date: new Date(Date.now() - movieSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
           .toISOString().split('T')[0],
         platform: 'IMDb'
-      });
+      })
     }
 
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
-  };
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
 
   const generateSpotifyReviews = (musicId: string): Review[] => {
     const reviewTemplates = [
@@ -392,19 +444,19 @@ export default function Home() {
       { rating: 5, text: "Pure genius! The way they blend genres is incredible. This will be on repeat for months.", author: "VinylCollector", helpful: 187 },
       { rating: 3, text: "Good but not groundbreaking. Some nice moments but doesn't live up to the hype.", author: "CasualListener", helpful: 67 },
       { rating: 4, text: "Excellent songwriting and vocals. The production quality is top-notch throughout.", author: "AudioPhile", helpful: 145 }
-    ];
+    ]
 
-    const seed = musicId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const selectedReviews = [];
+    const seed = musicId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
     
     for (let i = 0; i < 5; i++) {
-      const index = (seed * 7 + i * 11) % reviewTemplates.length;
-      const template = reviewTemplates[index];
+      const index = (seed * 7 + i * 11) % reviewTemplates.length
+      const template = reviewTemplates[index]
       
       const musicSpecificVariations = {
         helpful: Math.max(1, template.helpful + (seed * i % 60) - 30),
         daysAgo: (seed * i * 5) % 200 + 1,
-      };
+      }
       
       selectedReviews.push({
         id: `spotify_${musicId}_${i}`,
@@ -415,13 +467,21 @@ export default function Home() {
         date: new Date(Date.now() - musicSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
           .toISOString().split('T')[0],
         platform: 'Music Community'
-      });
+      })
     }
 
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
-  };
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
 
   const getSections = () => {
+    if (activeTab === 'games') {
+      return [
+        { title: 'Popular this week', items: gameContent.popular },
+        { title: 'Top rated of all time', items: gameContent.topRated },
+        { title: 'New releases', items: gameContent.newReleases }
+      ]
+    }
+    
     if (activeTab === 'movies') {
       return [
         { title: 'Popular classics', items: movieContent.popular },
@@ -541,7 +601,8 @@ export default function Home() {
         
         {/* Contenu scrollable avec loading state */}
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
-          {(moviesLoading && activeTab === 'movies') || 
+          {(gamesLoading && activeTab === 'games') || 
+           (moviesLoading && activeTab === 'movies') || 
            (booksLoading && activeTab === 'books') || 
            (musicLoading && activeTab === 'music') ? (
             <div className="space-y-6">
