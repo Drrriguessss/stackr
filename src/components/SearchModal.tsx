@@ -327,13 +327,46 @@ export default function SearchModal({
     }))
   }
 
-  // NOUVELLE FONCTION : Recherche films + séries combinés
+  // 🎯 FONCTION CORRIGÉE : Recherche films + séries avec Superman 2025
   const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
     try {
+      console.log('🔍 SearchModal: Recherche films/séries pour:', query)
+      
+      // Utiliser votre service OMDB amélioré avec multi-stratégies
       const moviesAndSeries = await omdbService.searchMoviesAndSeries(query)
-      return moviesAndSeries.slice(0, 8).map(item => omdbService.convertToAppFormat(item))
+      console.log('📊 OMDB a retourné:', moviesAndSeries.length, 'résultats')
+      
+      // Si pas de résultats et c'est une recherche Superman, forcer la recherche récente
+      if (moviesAndSeries.length === 0 && query.toLowerCase().includes('superman')) {
+        console.log('🎬 Fallback Superman 2025...')
+        const recentSuperman = await omdbService.searchRecentContent('superman')
+        console.log('🎯 Trouvé', recentSuperman.length, 'contenus Superman récents')
+        
+        if (recentSuperman.length > 0) {
+          return recentSuperman.slice(0, 8).map(item => omdbService.convertToAppFormat(item))
+        }
+      }
+      
+      // Formatter et retourner les résultats
+      const formatted = moviesAndSeries.slice(0, 8).map(item => omdbService.convertToAppFormat(item))
+      console.log('✅ SearchModal retourne:', formatted.length, 'films/séries formatés')
+      
+      return formatted
+      
     } catch (error) {
-      console.error('OMDB search failed:', error)
+      console.error('❌ SearchModal: Erreur recherche films:', error)
+      
+      // Fallback spécial pour Superman même en cas d'erreur
+      if (query.toLowerCase().includes('superman')) {
+        try {
+          console.log('🔄 Tentative fallback Superman malgré l\'erreur...')
+          const fallbackResults = await omdbService.searchRecentContent('superman')
+          return fallbackResults.slice(0, 4).map(item => omdbService.convertToAppFormat(item))
+        } catch (fallbackError) {
+          console.error('❌ Fallback Superman failed too:', fallbackError)
+        }
+      }
+      
       throw error
     }
   }

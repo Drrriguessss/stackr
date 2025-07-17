@@ -84,59 +84,6 @@ tsconfig.json
 <files>
 This section contains the contents of the repository's files.
 
-<file path=".gitignore">
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-</file>
-
-<file path=".repomixignore">
-node_modules/
-.next/
-.env*
-*.log
-.git/
-.vercel/
-</file>
-
 <file path="eslint.config.mjs">
 import { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -154,22 +101,6 @@ const eslintConfig = [
 ];
 
 export default eslintConfig;
-</file>
-
-<file path="next.config.js">
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  eslint: {
-    // Désactiver ESLint pendant le build
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    // Ignorer les erreurs TypeScript pendant le build
-    ignoreBuildErrors: true,
-  },
-}
-
-module.exports = nextConfig
 </file>
 
 <file path="next.config.ts">
@@ -208,6 +139,139 @@ export default config;
 
 <file path="public/window.svg">
 <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path="src/tailwind.config.js">
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        gray: {
+          950: '#0a0a0a',
+          900: '#1a1a1a',
+          850: '#1f1f1f',
+          800: '#2a2a2a',
+          750: '#333333',
+          700: '#404040',
+        },
+        blue: {
+          600: '#667eea',
+          700: '#5a67d8',
+        }
+      },
+    },
+  },
+  plugins: [],
+}
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+</file>
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path=".repomixignore">
+node_modules/
+.next/
+.env*
+*.log
+.git/
+.vercel/
+</file>
+
+<file path="next.config.js">
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  eslint: {
+    // Désactiver ESLint pendant le build
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Ignorer les erreurs TypeScript pendant le build
+    ignoreBuildErrors: true,
+  },
+}
+
+module.exports = nextConfig
 </file>
 
 <file path="src/components/BookDetailModal.tsx">
@@ -2554,193 +2618,6 @@ export const formatDuration = (trackCount: number): string => {
 }
 </file>
 
-<file path="src/services/omdbService.ts">
-// Service pour l'API OMDB (plus simple que TMDB)
-export interface OMDBMovie {
-  imdbID: string
-  Title: string
-  Year: string
-  Type: string
-  Poster: string
-  Plot?: string
-  Director?: string
-  Genre?: string
-  imdbRating?: string
-  Runtime?: string
-  Released?: string
-  Actors?: string
-  Language?: string
-  Country?: string
-  Awards?: string
-  Response?: string  // Ajout de la propriété Response
-  Error?: string     // Ajout de la propriété Error
-}
-
-export interface OMDBSearchResponse {
-  Search: OMDBMovie[]
-  totalResults: string
-  Response: string
-  Error?: string
-}
-
-class OMDBService {
-  private readonly apiKey = '649f9a63' // Votre clé OMDB fonctionnelle
-  private readonly baseURL = 'https://www.omdbapi.com'
-  
-  // Rechercher des films
-  async searchMovies(query: string, page: number = 1): Promise<OMDBMovie[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&type=movie&page=${page}`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`OMDB API Error: ${response.status}`)
-      }
-      
-      const data: OMDBSearchResponse = await response.json()
-      
-      if (data.Response === 'False') {
-        throw new Error(data.Error || 'No movies found')
-      }
-      
-      return data.Search || []
-    } catch (error) {
-      console.error('Error searching movies:', error)
-      throw error
-    }
-  }
-
-  // Obtenir les détails d'un film
-  async getMovieDetails(imdbId: string): Promise<OMDBMovie | null> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/?apikey=${this.apiKey}&i=${imdbId}&plot=full`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`OMDB API Error: ${response.status}`)
-      }
-      
-      const movie: OMDBMovie = await response.json()
-      
-      if (movie.Response === 'False') {
-        return null
-      }
-      
-      return movie
-    } catch (error) {
-      console.error('Error fetching movie details:', error)
-      return null
-    }
-  }
-
-  // Obtenir des films populaires (simulation avec des films connus)
-  async getPopularMovies(): Promise<OMDBMovie[]> {
-    const popularMovieIds = [
-      'tt0111161', // The Shawshank Redemption
-      'tt0068646', // The Godfather
-      'tt0468569', // The Dark Knight
-      'tt0071562', // The Godfather Part II
-      'tt0050083', // 12 Angry Men
-      'tt0108052', // Schindler's List
-      'tt0167260', // The Lord of the Rings: The Return of the King
-      'tt0110912'  // Pulp Fiction
-    ]
-
-    try {
-      const moviePromises = popularMovieIds.map(id => this.getMovieDetails(id))
-      const movies = await Promise.all(moviePromises)
-      return movies.filter(movie => movie !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching popular movies:', error)
-      return []
-    }
-  }
-
-  // Obtenir les films les mieux notés
-  async getTopRatedMovies(): Promise<OMDBMovie[]> {
-    const topRatedIds = [
-      'tt0111161', // The Shawshank Redemption
-      'tt0068646', // The Godfather
-      'tt0071562', // The Godfather Part II
-      'tt0468569', // The Dark Knight
-      'tt0050083', // 12 Angry Men
-      'tt0108052', // Schindler's List
-      'tt0167260', // The Lord of the Rings: The Return of the King
-      'tt0110912'  // Pulp Fiction
-    ]
-
-    try {
-      const moviePromises = topRatedIds.map(id => this.getMovieDetails(id))
-      const movies = await Promise.all(moviePromises)
-      return movies.filter(movie => movie !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching top rated movies:', error)
-      return []
-    }
-  }
-
-  // Obtenir des films récents (simulation)
-  async getRecentMovies(): Promise<OMDBMovie[]> {
-    const recentMovieIds = [
-      'tt6751668', // Parasite
-      'tt7286456', // Joker
-      'tt8503618', // Hamilton
-      'tt1950186', // Ford v Ferrari
-      'tt0816692', // Interstellar
-      'tt4154756', // Avengers: Endgame
-      'tt4633694', // Spider-Man: Into the Spider-Verse
-      'tt2380307'  // Coco
-    ]
-
-    try {
-      const moviePromises = recentMovieIds.map(id => this.getMovieDetails(id))
-      const movies = await Promise.all(moviePromises)
-      return movies.filter(movie => movie !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching recent movies:', error)
-      return []
-    }
-  }
-
-  // Convertir un film OMDB vers le format de l'app
-  convertToAppFormat(movie: OMDBMovie): any {
-    return {
-      id: `movie-${movie.imdbID}`,
-      title: movie.Title,
-      director: movie.Director || 'Unknown Director',
-      year: parseInt(movie.Year) || new Date().getFullYear(),
-      rating: movie.imdbRating ? Number((parseFloat(movie.imdbRating) / 2).toFixed(1)) : 0, // Convertir de /10 à /5
-      genre: movie.Genre?.split(',')[0]?.trim() || 'Unknown',
-      category: 'movies' as const,
-      image: movie.Poster !== 'N/A' ? movie.Poster : undefined,
-      overview: movie.Plot,
-      runtime: movie.Runtime,
-      released: movie.Released,
-      actors: movie.Actors,
-      language: movie.Language,
-      country: movie.Country,
-      awards: movie.Awards
-    }
-  }
-}
-
-// Instance singleton
-export const omdbService = new OMDBService()
-
-// Fonctions utilitaires
-export const formatRuntime = (runtime: string): string => {
-  if (!runtime || runtime === 'N/A') return 'N/A'
-  return runtime
-}
-
-export const formatRating = (rating: string): number => {
-  if (!rating || rating === 'N/A') return 0
-  return Number((parseFloat(rating) / 2).toFixed(1))
-}
-</file>
-
 <file path="src/services/rawgService.ts">
 // Service pour l'API RAWG (jeux vidéo)
 export interface RAWGGame {
@@ -2881,106 +2758,6 @@ class RAWGService {
 export const rawgService = new RAWGService()
 </file>
 
-<file path="src/tailwind.config.js">
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    extend: {
-      colors: {
-        gray: {
-          950: '#0a0a0a',
-          900: '#1a1a1a',
-          850: '#1f1f1f',
-          800: '#2a2a2a',
-          750: '#333333',
-          700: '#404040',
-        },
-        blue: {
-          600: '#667eea',
-          700: '#5a67d8',
-        }
-      },
-    },
-  },
-  plugins: [],
-}
-</file>
-
-<file path="src/types/index.ts">
-/**
- * Types TypeScript centralisés pour toute l'application
- * Assure la cohérence des types et évite la duplication
- */
-
-// Types de base pour les médias
-export type MediaCategory = 'games' | 'movies' | 'music' | 'books'
-export type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
-
-// Interface pour les items de contenu (recherche, sections, etc.)
-export interface ContentItem {
-  id: string
-  title: string
-  year: number
-  rating?: number
-  genre?: string
-  category: MediaCategory
-  image?: string
-  
-  // Créateurs selon le type de média
-  author?: string      // Pour les livres
-  artist?: string      // Pour la musique
-  director?: string    // Pour les films
-  
-  // Données spécifiques aux jeux (RAWG API)
-  background_image?: string
-  developers?: Array<{ name: string }>
-  genres?: Array<{ name: string }>
-  released?: string
-  
-  // Propriété alternative pour les noms
-  name?: string
-}
-
-// Interface pour les items dans la bibliothèque utilisateur
-export interface LibraryItem extends ContentItem {
-  status: MediaStatus
-  addedAt: string
-  dateStarted?: string
-  dateCompleted?: string
-  userRating?: number    // Note utilisateur (1-5)
-  progress?: number      // Progression en % (0-100)
-  notes?: string         // Notes personnelles
-}
-
-// Interface pour les résultats de recherche
-export interface SearchResult extends ContentItem {
-  // Hérite de ContentItem, pas besoin d'ajouter de propriétés
-}
-
-// Interface pour les reviews/critiques
-export interface Review {
-  id: string | number
-  username: string
-  rating: number
-  text?: string
-  review?: string  // Alias pour text
-  date: string
-  helpful?: number
-  platform?: string
-}
-
-// Options de statut pour les popups
-export interface StatusOption {
-  value: MediaStatus
-  label: string
-}
-</file>
-
 <file path="src/utils/idNormalizer.ts">
 /**
  * Utilitaire pour normaliser les IDs et éviter la duplication de code
@@ -3009,33 +2786,287 @@ export const idsMatch = (id1: string, id2: string): boolean => {
 }
 </file>
 
-<file path="tsconfig.json">
+<file path="package.json">
 {
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+  "name": "stackr",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "dependencies": {
+    "@supabase/supabase-js": "^2.51.0",
+    "@vercel/analytics": "^1.5.0",
+    "lucide-react": "^0.525.0",
+    "next": "15.3.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+</file>
+
+<file path="src/app/globals.css">
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --card-background: #ffffff;
+  --card-border: #e5e7eb;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --surface: #f9fafb;
+  --surface-elevated: #ffffff;
+  --border-color: #e5e7eb;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  line-height: 1.6;
+}
+
+@layer utilities {
+  /* Clean scrollbars for all devices */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.4);
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.6);
+  }
+  
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+  }
+
+  .horizontal-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+  }
+  
+  .horizontal-scroll::-webkit-scrollbar {
+    display: none;
+    height: 0px;
+  }
+}
+
+@layer components {
+  /* Cards et contenu */
+  .content-card {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    transition: all 0.2s ease-in-out;
+    background: var(--card-background);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .content-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent);
+  }
+
+  /* Sections de contenu */
+  .content-section {
+    scroll-margin-top: 2rem;
+  }
+
+  /* Modals */
+  .modal-backdrop {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Cards spéciales */
+  .library-card {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .library-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    border: none;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-elevated);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Status badges */
+  .status-badge {
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid;
+  }
+
+  .status-want {
+    background: rgba(139, 69, 19, 0.1);
+    color: #8b4513;
+    border-color: rgba(139, 69, 19, 0.2);
+  }
+
+  .status-playing {
+    background: rgba(34, 197, 94, 0.1);
+    color: #059669;
+    border-color: rgba(34, 197, 94, 0.2);
+  }
+
+  .status-completed {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border-color: rgba(59, 130, 246, 0.2);
+  }
+
+  .status-paused {
+    background: rgba(251, 191, 36, 0.1);
+    color: #d97706;
+    border-color: rgba(251, 191, 36, 0.2);
+  }
+
+  .status-dropped {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+}
+
+@layer base {
+  /* Smooth scrolling global */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Typography améliorée */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* Focus states */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+</file>
+
+<file path="src/app/layout.tsx">
+import { Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/react'
+import './globals.css'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata = {
+  title: 'Stackr - Your Universal Library',
+  description: 'Track games, movies, music, and books all in one place',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className={`${inter.className} bg-white text-gray-900 min-h-screen antialiased`}>
+        {children}
+        <Analytics />
+      </body>
+    </html>
+  )
 }
 </file>
 
@@ -3725,318 +3756,452 @@ export default function MusicDetailModal({
 }
 </file>
 
-<file path="src/lib/supabase.ts">
-// src/lib/supabase.ts
-import { createClient } from '@supabase/supabase-js'
+<file path="src/services/omdbService.ts">
+// Service pour l'API OMDB (films + séries) - VERSION COMPLÈTE AMÉLIORÉE
+export interface OMDBMovie {
+  imdbID: string
+  Title: string
+  Year: string
+  Type: string // 'movie' ou 'series'
+  Poster: string
+  Plot?: string
+  Director?: string
+  Genre?: string
+  imdbRating?: string
+  Runtime?: string
+  Released?: string
+  Actors?: string
+  Language?: string
+  Country?: string
+  Awards?: string
+  Response?: string
+  Error?: string
+  // Champs spécifiques aux séries
+  totalSeasons?: string
+  Seasons?: string
+}
 
-// Variables en dur pour éviter les problèmes d'environnement
-const supabaseUrl = 'https://jumpxvlqnzyxifsakzit.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bXB4dmxxbnp5eGlmc2Freml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTg2NTgsImV4cCI6MjA2ODI5NDY1OH0.kYJ0g4bwaZr690Hy6KsUstv5NA5Ac5YBZZFKJeFU5CA'
+export interface OMDBSearchResponse {
+  Search: OMDBMovie[]
+  totalResults: string
+  Response: string
+  Error?: string
+}
 
-// Créer le client Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false
-  }
-})
+class OMDBService {
+  private readonly apiKey = '649f9a63'
+  private readonly baseURL = 'https://www.omdbapi.com'
+  
+  // Recherche privée avec gestion d'erreurs
+  private async performSearch(query: string, page: number = 1, type?: 'movie' | 'series'): Promise<OMDBMovie[]> {
+    try {
+      let url = `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&page=${page}`
+      if (type) {
+        url += `&type=${type}`
+      }
 
-// Test de connexion
-export const testSupabaseConnection = async () => {
-  try {
-    const { data, error } = await supabase.from('library_items').select('*').limit(1)
-    if (error && error.code !== 'PGRST116') {
-      console.error('❌ Supabase connection error:', error)
-      return false
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error(`OMDB API Error: ${response.status}`)
+      }
+      
+      const data: OMDBSearchResponse = await response.json()
+      
+      if (data.Response === 'False') {
+        return [] // Retourner un array vide au lieu d'une erreur
+      }
+      
+      return data.Search || []
+    } catch (error) {
+      console.warn(`OMDB search failed for "${query}":`, error)
+      return []
     }
-    console.log('✅ Supabase connected successfully!')
-    return true
-  } catch (error) {
-    console.error('❌ Supabase connection failed:', error)
-    return false
+  }
+
+  // Rechercher des films ET séries avec stratégies multiples
+  async searchMoviesAndSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    try {
+      const allResults: OMDBMovie[] = []
+      
+      // Stratégie 1: Recherche normale (films + séries)
+      const normalResults = await this.performSearch(query, page)
+      allResults.push(...normalResults)
+      
+      // Stratégie 2: Si peu de résultats, essayer avec des années
+      if (allResults.length < 5) {
+        const currentYear = new Date().getFullYear()
+        const nextYear = currentYear + 1
+        const lastYear = currentYear - 1
+        
+        // Essayer avec l'année courante
+        const currentYearResults = await this.performSearch(`${query} ${currentYear}`, page)
+        allResults.push(...currentYearResults)
+        
+        // Essayer avec l'année suivante (films à venir)
+        const nextYearResults = await this.performSearch(`${query} ${nextYear}`, page)
+        allResults.push(...nextYearResults)
+        
+        // Essayer avec l'année précédente
+        const lastYearResults = await this.performSearch(`${query} ${lastYear}`, page)
+        allResults.push(...lastYearResults)
+      }
+      
+      // Stratégie 3: Recherche avec variations du titre
+      if (allResults.length < 3) {
+        const variations = [
+          `${query} movie`,
+          `${query} film`,
+          `${query} series`,
+          query.replace(/\s+/g, '') // Sans espaces
+        ]
+        
+        for (const variation of variations) {
+          const variationResults = await this.performSearch(variation, page)
+          allResults.push(...variationResults)
+        }
+      }
+      
+      // Enlever les doublons basés sur imdbID
+      const uniqueResults = allResults.filter((movie, index, self) => 
+        index === self.findIndex(m => m.imdbID === movie.imdbID)
+      )
+      
+      // Trier par pertinence : titre exact en premier, puis par rating
+      return uniqueResults.sort((a, b) => {
+        const aExactMatch = a.Title.toLowerCase().includes(query.toLowerCase())
+        const bExactMatch = b.Title.toLowerCase().includes(query.toLowerCase())
+        
+        if (aExactMatch && !bExactMatch) return -1
+        if (!aExactMatch && bExactMatch) return 1
+        
+        // Trier par année (plus récent en premier)
+        const aYear = parseInt(a.Year) || 0
+        const bYear = parseInt(b.Year) || 0
+        
+        return bYear - aYear
+      })
+      
+    } catch (error) {
+      console.error('Error searching movies and series:', error)
+      throw error
+    }
+  }
+
+  // Rechercher seulement des films (garde l'ancienne méthode pour compatibilité)
+  async searchMovies(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    return this.performSearch(query, page, 'movie')
+  }
+
+  // Rechercher seulement des séries
+  async searchSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    return this.performSearch(query, page, 'series')
+  }
+
+  // Obtenir les détails d'un film ou série
+  async getMovieDetails(imdbId: string): Promise<OMDBMovie | null> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/?apikey=${this.apiKey}&i=${imdbId}&plot=full`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`OMDB API Error: ${response.status}`)
+      }
+      
+      const movie: OMDBMovie = await response.json()
+      
+      if (movie.Response === 'False') {
+        return null
+      }
+      
+      return movie
+    } catch (error) {
+      console.error('Error fetching movie/series details:', error)
+      return null
+    }
+  }
+
+  // Obtenir des films populaires
+  async getPopularMovies(): Promise<OMDBMovie[]> {
+    const popularMovieIds = [
+      'tt0111161', // The Shawshank Redemption
+      'tt0068646', // The Godfather
+      'tt0468569', // The Dark Knight
+      'tt0071562', // The Godfather Part II
+      'tt0050083', // 12 Angry Men
+      'tt0108052', // Schindler's List
+      'tt0167260', // The Lord of the Rings: The Return of the King
+      'tt0110912'  // Pulp Fiction
+    ]
+
+    try {
+      const moviePromises = popularMovieIds.map(id => this.getMovieDetails(id))
+      const movies = await Promise.all(moviePromises)
+      return movies.filter(movie => movie !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching popular movies:', error)
+      return []
+    }
+  }
+
+  // Obtenir des séries populaires
+  async getPopularSeries(): Promise<OMDBMovie[]> {
+    const popularSeriesIds = [
+      'tt0944947', // Game of Thrones
+      'tt0903747', // Breaking Bad
+      'tt2356777', // True Detective
+      'tt1475582', // Sherlock
+      'tt0141842', // The Sopranos
+      'tt2395695', // Westworld
+      'tt4574334', // Stranger Things
+      'tt0386676'  // The Office
+    ]
+
+    try {
+      const seriesPromises = popularSeriesIds.map(id => this.getMovieDetails(id))
+      const series = await Promise.all(seriesPromises)
+      return series.filter(series => series !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching popular series:', error)
+      return []
+    }
+  }
+
+  // Obtenir films + séries populaires combinés
+  async getPopularMoviesAndSeries(): Promise<OMDBMovie[]> {
+    try {
+      const [movies, series] = await Promise.all([
+        this.getPopularMovies(),
+        this.getPopularSeries()
+      ])
+      
+      // Mélanger films et séries
+      const combined = [...movies.slice(0, 4), ...series.slice(0, 4)]
+      return this.shuffleArray(combined)
+    } catch (error) {
+      console.error('Error fetching popular movies and series:', error)
+      return []
+    }
+  }
+
+  // Obtenir les mieux notés (films + quelques séries)
+  async getTopRatedMovies(): Promise<OMDBMovie[]> {
+    const topRatedIds = [
+      'tt0111161', // The Shawshank Redemption
+      'tt0068646', // The Godfather
+      'tt0071562', // The Godfather Part II
+      'tt0468569', // The Dark Knight
+      'tt0903747', // Breaking Bad (série)
+      'tt0108052', // Schindler's List
+      'tt0944947', // Game of Thrones (série)
+      'tt0110912'  // Pulp Fiction
+    ]
+
+    try {
+      const itemPromises = topRatedIds.map(id => this.getMovieDetails(id))
+      const items = await Promise.all(itemPromises)
+      return items.filter(item => item !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching top rated content:', error)
+      return []
+    }
+  }
+
+  // Obtenir du contenu récent (plus large)
+  async getRecentMovies(): Promise<OMDBMovie[]> {
+    const recentIds = [
+      'tt6751668', // Parasite
+      'tt7286456', // Joker
+      'tt1950186', // Ford v Ferrari
+      'tt4154756', // Avengers: Endgame
+      'tt4633694', // Spider-Man: Into the Spider-Verse
+      'tt4574334', // Stranger Things (série récente)
+      'tt2380307', // Coco
+      'tt8503618'  // Hamilton
+    ]
+
+    try {
+      const itemPromises = recentIds.map(id => this.getMovieDetails(id))
+      const items = await Promise.all(itemPromises)
+      return items.filter(item => item !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching recent content:', error)
+      return []
+    }
+  }
+
+  // Recherche de films récents par terme (pour Superman 2025 par exemple)
+  async searchRecentContent(query: string): Promise<OMDBMovie[]> {
+    const currentYear = new Date().getFullYear()
+    const years = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2]
+    
+    const allResults: OMDBMovie[] = []
+    
+    for (const year of years) {
+      const yearResults = await this.performSearch(`${query} ${year}`)
+      allResults.push(...yearResults)
+    }
+    
+    // Enlever doublons et trier par année
+    const uniqueResults = allResults.filter((movie, index, self) => 
+      index === self.findIndex(m => m.imdbID === movie.imdbID)
+    )
+    
+    return uniqueResults.sort((a, b) => {
+      const aYear = parseInt(a.Year) || 0
+      const bYear = parseInt(b.Year) || 0
+      return bYear - aYear // Plus récent en premier
+    })
+  }
+
+  // Convertir un film/série OMDB vers le format de l'app
+  convertToAppFormat(item: OMDBMovie): any {
+    const isMovie = item.Type === 'movie'
+    const isSeries = item.Type === 'series'
+    
+    return {
+      id: `movie-${item.imdbID}`,
+      title: item.Title,
+      director: item.Director || 'Unknown Director',
+      year: parseInt(item.Year) || new Date().getFullYear(),
+      rating: item.imdbRating ? Number((parseFloat(item.imdbRating) / 2).toFixed(1)) : 0,
+      genre: item.Genre?.split(',')[0]?.trim() || 'Unknown',
+      category: 'movies' as const,
+      image: item.Poster !== 'N/A' ? item.Poster : undefined,
+      overview: item.Plot,
+      runtime: item.Runtime,
+      released: item.Released,
+      actors: item.Actors,
+      language: item.Language,
+      country: item.Country,
+      awards: item.Awards,
+      
+      // Nouvelles propriétés pour distinguer films/séries
+      type: item.Type,
+      isMovie,
+      isSeries,
+      totalSeasons: item.totalSeasons ? parseInt(item.totalSeasons) : undefined,
+      
+      // Titre avec indication si c'est une série
+      displayTitle: isSeries ? `${item.Title} (TV Series)` : item.Title
+    }
+  }
+
+  // Fonction utilitaire pour mélanger un array
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return shuffled
+  }
+}
+
+// Instance singleton
+export const omdbService = new OMDBService()
+
+// Fonctions utilitaires
+export const formatRuntime = (runtime: string): string => {
+  if (!runtime || runtime === 'N/A') return 'N/A'
+  return runtime
+}
+
+export const formatRating = (rating: string): number => {
+  if (!rating || rating === 'N/A') return 0
+  return Number((parseFloat(rating) / 2).toFixed(1))
+}
+
+export const getContentTypeLabel = (type: string): string => {
+  switch (type) {
+    case 'movie': return 'Film'
+    case 'series': return 'Série TV'
+    default: return 'Contenu'
   }
 }
 </file>
 
-<file path="package.json">
-{
-  "name": "stackr",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.51.0",
-    "lucide-react": "^0.525.0",
-    "next": "15.3.5",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.5",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
-}
-</file>
+<file path="src/types/index.ts">
+/**
+ * Types TypeScript centralisés pour toute l'application
+ * Assure la cohérence des types et évite la duplication
+ */
 
-<file path="src/app/globals.css">
-@import "tailwindcss";
+// Types de base pour les médias
+export type MediaCategory = 'games' | 'movies' | 'music' | 'books'
+export type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
 
-:root {
-  --background: #ffffff;
-  --foreground: #1a1a1a;
-  --card-background: #ffffff;
-  --card-border: #e5e7eb;
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --surface: #f9fafb;
-  --surface-elevated: #ffffff;
-  --border-color: #e5e7eb;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-  line-height: 1.6;
-}
-
-@layer utilities {
-  /* Clean scrollbars for all devices */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+// Interface pour les items de contenu (recherche, sections, etc.)
+export interface ContentItem {
+  id: string
+  title: string
+  year: number
+  rating?: number
+  genre?: string
+  category: MediaCategory
+  image?: string
   
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  // Créateurs selon le type de média
+  author?: string      // Pour les livres
+  artist?: string      // Pour la musique
+  director?: string    // Pour les films
   
-  ::-webkit-scrollbar-thumb {
-    background-color: rgba(156, 163, 175, 0.4);
-    border-radius: 3px;
-  }
+  // Données spécifiques aux jeux (RAWG API)
+  background_image?: string
+  developers?: Array<{ name: string }>
+  genres?: Array<{ name: string }>
+  released?: string
   
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(156, 163, 175, 0.6);
-  }
+  // Propriété alternative pour les noms
+  name?: string
   
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
-  }
-
-  .horizontal-scroll {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-behavior: smooth;
-    scroll-snap-type: x mandatory;
-  }
-  
-  .horizontal-scroll::-webkit-scrollbar {
-    display: none;
-    height: 0px;
-  }
+  // NOUVELLES PROPRIÉTÉS pour films/séries
+  type?: string        // 'movie' ou 'series'
+  isMovie?: boolean    // true si c'est un film
+  isSeries?: boolean   // true si c'est une série TV
+  totalSeasons?: number // Nombre de saisons pour les séries
+  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
+  overview?: string    // Synopsis/description
+  runtime?: string     // Durée
+  actors?: string      // Acteurs principaux
+  language?: string    // Langue
+  country?: string     // Pays
+  awards?: string      // Récompenses
 }
 
-@layer components {
-  /* Cards et contenu */
-  .content-card {
-    scroll-snap-align: start;
-    flex-shrink: 0;
-    transition: all 0.2s ease-in-out;
-    background: var(--card-background);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .content-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--accent);
-  }
-
-  /* Sections de contenu */
-  .content-section {
-    scroll-margin-top: 2rem;
-  }
-
-  /* Modals */
-  .modal-backdrop {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    background: rgba(255, 255, 255, 0.8);
-  }
-
-  /* Cards spéciales */
-  .library-card {
-    background: var(--surface-elevated);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s ease-in-out;
-  }
-
-  .library-card:hover {
-    box-shadow: var(--shadow-md);
-    border-color: var(--accent);
-    transform: translateY(-1px);
-  }
-
-  /* Buttons */
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-weight: 500;
-    transition: all 0.2s ease-in-out;
-    border: none;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .btn-primary:hover {
-    background: var(--accent-hover);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-weight: 500;
-    transition: all 0.2s ease-in-out;
-  }
-
-  .btn-secondary:hover {
-    background: var(--surface-elevated);
-    border-color: var(--accent);
-    box-shadow: var(--shadow-sm);
-  }
-
-  /* Status badges */
-  .status-badge {
-    border-radius: 20px;
-    padding: 0.25rem 0.75rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    border: 1px solid;
-  }
-
-  .status-want {
-    background: rgba(139, 69, 19, 0.1);
-    color: #8b4513;
-    border-color: rgba(139, 69, 19, 0.2);
-  }
-
-  .status-playing {
-    background: rgba(34, 197, 94, 0.1);
-    color: #059669;
-    border-color: rgba(34, 197, 94, 0.2);
-  }
-
-  .status-completed {
-    background: rgba(59, 130, 246, 0.1);
-    color: #2563eb;
-    border-color: rgba(59, 130, 246, 0.2);
-  }
-
-  .status-paused {
-    background: rgba(251, 191, 36, 0.1);
-    color: #d97706;
-    border-color: rgba(251, 191, 36, 0.2);
-  }
-
-  .status-dropped {
-    background: rgba(239, 68, 68, 0.1);
-    color: #dc2626;
-    border-color: rgba(239, 68, 68, 0.2);
-  }
+// Interface pour les items dans la bibliothèque utilisateur
+export interface LibraryItem extends ContentItem {
+  status: MediaStatus
+  addedAt: string
+  dateStarted?: string
+  dateCompleted?: string
+  userRating?: number    // Note utilisateur (1-5)
+  progress?: number      // Progression en % (0-100)
+  notes?: string         // Notes personnelles
 }
 
-@layer base {
-  /* Smooth scrolling global */
-  html {
-    scroll-behavior: smooth;
-  }
-
-  /* Typography améliorée */
-  h1, h2, h3, h4, h5, h6 {
-    color: var(--text-primary);
-    font-weight: 600;
-    line-height: 1.2;
-  }
-
-  p {
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  /* Focus states */
-  button:focus-visible,
-  input:focus-visible,
-  select:focus-visible,
-  textarea:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
-</file>
-
-<file path="src/app/layout.tsx">
-import { Inter } from 'next/font/google'
-import './globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata = {
-  title: 'Stackr - Your Universal Library',
-  description: 'Track games, movies, music, and books all in one place',
+// Interface pour les résultats de recherche
+export interface SearchResult extends ContentItem {
+  // Hérite de ContentItem avec toutes les nouvelles propriétés
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en">
-      <body className={`${inter.className} bg-white text-gray-900 min-h-screen antialiased`}>
-        {children}
-      </body>
-    </html>
-  )
+// Interface pour les reviews/critiques
+export interface Review {
+  id: string | number
+  username: string
+  rating: number
+  text?: string
+  review?: string  // Alias pour text
+  date: string
+  helpful?: number
+  platform?: string
+}
+
+// Options de statut pour les popups
+export interface StatusOption {
+  value: MediaStatus
+  label: string
 }
 </file>
 
@@ -4782,43 +4947,44 @@ export class LibraryService {
 export default LibraryService
 </file>
 
-<file path="src/components/CategoryTabs.tsx">
-'use client'
+<file path="src/lib/supabase.ts">
+// src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js'
 
-interface CategoryTabsProps {
-  activeTab: string
-  onTabChange: (tab: string) => void
+// Variables d'environnement chargées de manière sécurisée
+
+// Utilisation des variables d'environnement pour la sécurité
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Vérification que les variables d'environnement sont bien définies
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
 }
 
-export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
-  const tabs = [
-    { id: 'books', name: 'Books' },
-    { id: 'games', name: 'Games' },
-    { id: 'movies', name: 'Movies' },
-    { id: 'music', name: 'Music' },
-  ]
+// Créer le client Supabase
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+})
 
-  return (
-    <div className="flex w-full border-b border-gray-200 mb-0">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onTabChange(tab.id)}
-          className={`flex-1 pb-3 pt-2 text-base font-medium transition-colors relative text-center ${
-            activeTab === tab.id
-              ? 'text-gray-900'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          {tab.name}
-          {/* Soulignement pour l'onglet actif */}
-          {activeTab === tab.id && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
-          )}
-        </button>
-      ))}
-    </div>
-  )
+// Test de connexion
+export const testSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('library_items').select('*').limit(1)
+    if (error && error.code !== 'PGRST116') {
+      console.error('❌ Supabase connection error:', error)
+      return false
+    }
+    console.log('✅ Supabase connected successfully!')
+    return true
+  } catch (error) {
+    console.error('❌ Supabase connection failed:', error)
+    return false
+  }
 }
 </file>
 
@@ -5197,6 +5363,46 @@ export const sampleContent = {
       category: 'books' as const
     }
   ]
+}
+</file>
+
+<file path="src/components/CategoryTabs.tsx">
+'use client'
+
+interface CategoryTabsProps {
+  activeTab: string
+  onTabChange: (tab: string) => void
+}
+
+export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
+  const tabs = [
+    { id: 'books', name: 'Books' },
+    { id: 'games', name: 'Games' },
+    { id: 'movies', name: 'Movies & TV' },
+    { id: 'music', name: 'Music' },
+  ]
+
+  return (
+    <div className="flex w-full border-b border-gray-200 mb-0">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex-1 pb-3 pt-2 text-base font-medium transition-colors relative text-center ${
+            activeTab === tab.id
+              ? 'text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          {tab.name}
+          {/* Soulignement pour l'onglet actif */}
+          {activeTab === tab.id && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+          )}
+        </button>
+      ))}
+    </div>
+  )
 }
 </file>
 
@@ -5980,8 +6186,19 @@ export default function ContentCard({
       </div>
 
       <div className="mt-3 px-1">
-        <h3 className="text-gray-900 text-sm font-semibold truncate leading-tight">{item.title}</h3>
-        <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-gray-900 text-sm font-semibold truncate leading-tight flex-1">
+            {item.title}
+          </h3>
+          {/* Indicateur série TV */}
+          {item.isSeries && (
+            <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium flex-shrink-0">
+              TV
+            </span>
+          )}
+        </div>
+        
+        <div className="flex justify-between items-center text-xs text-gray-500">
           <span>{item.year}</span>
           {item.rating && item.rating > 0 && (
             <span className="flex items-center">
@@ -5990,6 +6207,13 @@ export default function ContentCard({
             </span>
           )}
         </div>
+        
+        {/* Afficher le nombre de saisons pour les séries */}
+        {item.isSeries && item.totalSeasons && (
+          <div className="text-xs text-gray-500 mt-1">
+            {item.totalSeasons} season{item.totalSeasons > 1 ? 's' : ''}
+          </div>
+        )}
       </div>
 
       {showActions && (
@@ -6911,707 +7135,6 @@ export default function GameDetailModal({
 }
 </file>
 
-<file path="src/components/SearchModal.tsx">
-'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
-import { normalizeId, idsMatch } from '@/utils/idNormalizer'
-import { omdbService } from '@/services/omdbService'
-import { googleBooksService } from '@/services/googleBooksService'
-import { musicService } from '@/services/musicService'
-import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
-
-interface SearchModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onAddToLibrary: (item: any, status: MediaStatus) => void
-  onOpenGameDetail?: (gameId: string) => void
-  onOpenMovieDetail?: (movieId: string) => void
-  onOpenBookDetail?: (bookId: string) => void
-  onOpenMusicDetail?: (musicId: string) => void
-  library: LibraryItem[]
-}
-
-export default function SearchModal({
-  isOpen,
-  onClose,
-  onAddToLibrary,
-  onOpenGameDetail,
-  onOpenMovieDetail,
-  onOpenBookDetail,
-  onOpenMusicDetail,
-  library = []
-}: SearchModalProps) {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [loading, setLoading] = useState(false)
-  const [activeCategory, setActiveCategory] = useState<string>('all')
-  const [selectedIndex, setSelectedIndex] = useState(-1)
-  const [error, setError] = useState<string | null>(null)
-  const [searchCache] = useState<Map<string, SearchResult[]>>(new Map())
-  const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
-  const [addingItem, setAddingItem] = useState<string | null>(null)
-  const [fadeOutPopup, setFadeOutPopup] = useState<string | null>(null)
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
-  const [justAddedItems, setJustAddedItems] = useState<Set<string>>(new Set())
-
-  const inputRef = useRef<HTMLInputElement>(null)
-  const resultsRef = useRef<HTMLDivElement>(null)
-
-  // API Keys
-  const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
-
-  // Sécurité : Assurer que library est toujours un array
-  const safeLibrary = Array.isArray(library) ? library : []
-
-  // Focus input when modal opens
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [isOpen])
-
-  // Close popup when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => setShowStatusPopup(null)
-    if (showStatusPopup) {
-      document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
-    }
-  }, [showStatusPopup])
-
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setQuery('')
-      setResults([])
-      setSelectedIndex(-1)
-      setError(null)
-      setShowStatusPopup(null)
-      setAddingItem(null)
-      setFadeOutPopup(null)
-      setSelectedStatus(null)
-      setJustAddedItems(new Set())
-    }
-  }, [isOpen])
-
-  // Feedback flow detection
-  useEffect(() => {
-    if (addingItem) {
-      const normalizedId = normalizeId(addingItem)
-      
-      const checkLibrary = () => {
-        const isInLibrary = safeLibrary.some((item: LibraryItem) => {
-          if (!item?.id) return false
-          return idsMatch(item.id, addingItem)
-        })
-        
-        if (isInLibrary) {
-          setAddingItem(null)
-          setJustAddedItems(prev => new Set([...prev, addingItem]))
-          
-          setTimeout(() => {
-            setJustAddedItems(prev => {
-              const newSet = new Set(prev)
-              newSet.delete(addingItem)
-              return newSet
-            })
-          }, 3000)
-        }
-      }
-      
-      checkLibrary()
-      
-      const timeoutId = setTimeout(() => {
-        console.warn('Adding timeout reached for:', addingItem)
-        setAddingItem(null)
-        setJustAddedItems(prev => new Set([...prev, addingItem]))
-        
-        setTimeout(() => {
-          setJustAddedItems(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(addingItem)
-            return newSet
-          })
-        }, 2000)
-      }, 5000)
-      
-      return () => clearTimeout(timeoutId)
-    }
-  }, [safeLibrary, addingItem])
-
-  // Get status options based on category
-  const getStatusOptions = (category: string): StatusOption[] => {
-    switch (category) {
-      case 'games':
-        return [
-          { value: 'want-to-play', label: 'Want to Play' },
-          { value: 'currently-playing', label: 'Playing' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'movies':
-        return [
-          { value: 'want-to-play', label: 'Want to Watch' },
-          { value: 'currently-playing', label: 'Watching' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'music':
-        return [
-          { value: 'want-to-play', label: 'Want to Listen' },
-          { value: 'currently-playing', label: 'Listening' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'books':
-        return [
-          { value: 'want-to-play', label: 'Want to Read' },
-          { value: 'currently-playing', label: 'Reading' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      default:
-        return [
-          { value: 'want-to-play', label: 'Want to Play' },
-          { value: 'currently-playing', label: 'Playing' },
-          { value: 'completed', label: 'Completed' }
-        ]
-    }
-  }
-
-  // Check if item is in library avec sécurité
-  const getLibraryItem = (resultId: string): LibraryItem | undefined => {
-    return safeLibrary.find((libItem: LibraryItem) => {
-      if (!libItem?.id) return false
-      return idsMatch(libItem.id, resultId)
-    })
-  }
-
-  // Get status display label
-  const getStatusDisplayLabel = (status: MediaStatus, category: string): string => {
-    const options = getStatusOptions(category)
-    const option = options.find(opt => opt.value === status)
-    return option ? option.label : 'Added'
-  }
-
-  // Fetch with timeout utility
-  const fetchWithTimeout = async (url: string, timeout = 8000): Promise<Response> => {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeout)
-    
-    try {
-      const response = await fetch(url, { 
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-        }
-      })
-      clearTimeout(timeoutId)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      return response
-    } catch (error) {
-      clearTimeout(timeoutId)
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Request timeout - please try again')
-      }
-      throw error
-    }
-  }
-
-  // Debounced search with caching
-  const debouncedSearch = useCallback(
-    debounce((searchQuery: string, category: string) => {
-      performSearch(searchQuery, category)
-    }, 500),
-    []
-  )
-
-  useEffect(() => {
-    if (!query.trim() || query.length < 2) {
-      setResults([])
-      setSelectedIndex(-1)
-      setError(null)
-      return
-    }
-
-    const cacheKey = `${activeCategory}-${query.toLowerCase()}`
-    if (searchCache.has(cacheKey)) {
-      const cachedResults = searchCache.get(cacheKey)!
-      setResults(cachedResults)
-      setSelectedIndex(-1)
-      return
-    }
-
-    debouncedSearch(query, activeCategory)
-  }, [query, activeCategory, debouncedSearch, searchCache])
-
-  const performSearch = async (searchQuery: string, category: string) => {
-    if (!searchQuery.trim()) return
-    
-    setLoading(true)
-    setError(null)
-    setSelectedIndex(-1)
-
-    const allResults: SearchResult[] = []
-    const errors: string[] = []
-
-    try {
-      const searchPromises: Promise<SearchResult[]>[] = []
-
-      if (category === 'all' || category === 'games') {
-        searchPromises.push(searchGames(searchQuery).catch(err => {
-          errors.push(`Games: ${err.message}`)
-          return []
-        }))
-      }
-
-      if (category === 'all' || category === 'movies') {
-        searchPromises.push(searchMovies(searchQuery).catch(err => {
-          errors.push(`Movies: ${err.message}`)
-          return []
-        }))
-      }
-
-      if (category === 'all' || category === 'music') {
-        searchPromises.push(searchMusic(searchQuery).catch(err => {
-          errors.push(`Music: ${err.message}`)
-          return []
-        }))
-      }
-
-      if (category === 'all' || category === 'books') {
-        searchPromises.push(searchBooks(searchQuery).catch(err => {
-          errors.push(`Books: ${err.message}`)
-          return []
-        }))
-      }
-
-      const results = await Promise.all(searchPromises)
-      results.forEach(categoryResults => {
-        allResults.push(...categoryResults)
-      })
-
-      allResults.sort((a, b) => {
-        const aTitleMatch = a.title.toLowerCase().includes(searchQuery.toLowerCase())
-        const bTitleMatch = b.title.toLowerCase().includes(searchQuery.toLowerCase())
-        
-        if (aTitleMatch && !bTitleMatch) return -1
-        if (!aTitleMatch && bTitleMatch) return 1
-        
-        return (b.rating || 0) - (a.rating || 0)
-      })
-
-      const cacheKey = `${category}-${searchQuery.toLowerCase()}`
-      searchCache.set(cacheKey, allResults)
-
-      setResults(allResults)
-
-      if (errors.length > 0 && allResults.length === 0) {
-        setError(`Search failed: ${errors.join(', ')}`)
-      }
-
-    } catch (error) {
-      console.error('Search error:', error)
-      setError(error instanceof Error ? error.message : 'Search failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // API Search functions
-  const searchGames = async (query: string): Promise<SearchResult[]> => {
-    const url = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=8`
-    const response = await fetchWithTimeout(url)
-    const data = await response.json()
-    
-    if (!data.results) {
-      throw new Error('No games data received')
-    }
-
-    return data.results.map((game: any) => ({
-      id: `game-${game.id}`,
-      title: game.name || 'Unknown Game',
-      author: game.developers?.[0]?.name || 'Unknown Developer',
-      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
-      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
-      genre: game.genres?.[0]?.name || 'Unknown',
-      category: 'games' as const,
-      image: game.background_image
-    }))
-  }
-
-  const searchMovies = async (query: string): Promise<SearchResult[]> => {
-    try {
-      const movies = await omdbService.searchMovies(query)
-      return movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
-    } catch (error) {
-      console.error('OMDB search failed:', error)
-      throw error
-    }
-  }
-
-  const searchMusic = async (query: string): Promise<SearchResult[]> => {
-    try {
-      const albums = await musicService.searchAlbums(query, 8)
-      return albums.map(album => musicService.convertToAppFormat(album))
-    } catch (error) {
-      console.error('iTunes search failed:', error)
-      throw error
-    }
-  }
-
-  const searchBooks = async (query: string): Promise<SearchResult[]> => {
-    try {
-      const books = await googleBooksService.searchBooks(query, 8)
-      return books.map(book => googleBooksService.convertToAppFormat(book))
-    } catch (error) {
-      console.error('Google Books search failed:', error)
-      throw error
-    }
-  }
-
-  // Status selection with feedback flow
-  const handleStatusSelect = (result: SearchResult, status: MediaStatus) => {
-    setSelectedStatus(status)
-    
-    setTimeout(() => {
-      setFadeOutPopup(result.id)
-      setTimeout(() => {
-        setShowStatusPopup(null)
-        setFadeOutPopup(null)
-        setSelectedStatus(null)
-      }, 300)
-    }, 800)
-
-    setAddingItem(result.id)
-    onAddToLibrary(result, status)
-  }
-
-  // Keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!results.length) return
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setSelectedIndex(prev => Math.min(prev + 1, results.length - 1))
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setSelectedIndex(prev => Math.max(prev - 1, -1))
-        break
-      case 'Enter':
-        e.preventDefault()
-        if (selectedIndex >= 0) {
-          handleSelectResult(results[selectedIndex])
-        }
-        break
-      case 'Escape':
-        e.preventDefault()
-        onClose()
-        break
-    }
-  }
-
-  // Scroll selected item into view
-  useEffect(() => {
-    if (selectedIndex >= 0 && resultsRef.current) {
-      const selectedElement = resultsRef.current.children[selectedIndex] as HTMLElement
-      if (selectedElement) {
-        selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-      }
-    }
-  }, [selectedIndex])
-
-  const handleSelectResult = (result: SearchResult) => {
-    if (result.category === 'games' && onOpenGameDetail) {
-      onOpenGameDetail(result.id.replace('game-', ''))
-      onClose()
-    } else if (result.category === 'movies' && onOpenMovieDetail) {
-      onOpenMovieDetail(result.id.replace('movie-', ''))
-      onClose()
-    } else if (result.category === 'books' && onOpenBookDetail) {
-      onOpenBookDetail(result.id.replace('book-', ''))
-      onClose()
-    } else if (result.category === 'music' && onOpenMusicDetail) {
-      onOpenMusicDetail(result.id.replace('music-', ''))
-      onClose()
-    } else {
-      onAddToLibrary(result, 'want-to-play')
-      onClose()
-    }
-  }
-
-  const getCreator = (result: SearchResult) => {
-    return result.author || result.artist || result.director || 'Unknown'
-  }
-
-  const getCategoryInfo = (category: string) => {
-    switch (category) {
-      case 'games': return { color: 'bg-green-100 text-green-700 border-green-200', icon: '🎮' }
-      case 'movies': return { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: '🎬' }
-      case 'music': return { color: 'bg-purple-100 text-purple-700 border-purple-200', icon: '🎵' }
-      case 'books': return { color: 'bg-orange-100 text-orange-700 border-orange-200', icon: '📚' }
-      default: return { color: 'bg-gray-100 text-gray-700 border-gray-200', icon: '📄' }
-    }
-  }
-
-  if (!isOpen) return null
-
-  return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-start justify-center pt-16 px-4">
-      <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl border border-gray-200">
-        {/* Header */}
-        <div className="flex items-center p-4 border-b border-gray-100">
-          <Search className="text-gray-400 mr-3 flex-shrink-0" size={20} />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Search games, movies, music, books..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none text-lg"
-          />
-          {loading && <Loader2 className="animate-spin text-gray-400 mr-3" size={16} />}
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 ml-3 p-1 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Category filters */}
-        <div className="flex space-x-2 p-4 border-b border-gray-100 overflow-x-auto">
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'games', label: 'Games' },
-            { key: 'movies', label: 'Movies' },
-            { key: 'music', label: 'Music' },
-            { key: 'books', label: 'Books' }
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveCategory(key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
-                activeCategory === key
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Results */}
-        <div className="max-h-96 overflow-y-auto" ref={resultsRef}>
-          {/* Error state */}
-          {error && (
-            <div className="flex items-center justify-center py-8 px-4">
-              <div className="text-center">
-                <WifiOff className="mx-auto text-gray-400 mb-2" size={24} />
-                <p className="text-red-600 text-sm">{error}</p>
-                <button
-                  onClick={() => performSearch(query, activeCategory)}
-                  className="mt-2 text-blue-600 hover:text-blue-700 text-sm underline"
-                >
-                  Try again
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Loading state */}
-          {loading && !error && (
-            <div className="flex items-center justify-center py-8">
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Loader2 className="animate-spin" size={20} />
-                <span>Searching...</span>
-              </div>
-            </div>
-          )}
-
-          {/* No results */}
-          {!loading && !error && query.length >= 2 && results.length === 0 && (
-            <div className="text-center py-8 text-gray-600">
-              <Search className="mx-auto mb-2" size={24} />
-              <p>No results found for "<span className="text-gray-900 font-medium">{query}</span>"</p>
-              <p className="text-sm mt-1">Try different keywords or check spelling</p>
-            </div>
-          )}
-
-          {/* Results list */}
-          {!loading && !error && results.length > 0 && (
-            <div className="p-4 space-y-2">
-              {results.map((result, index) => {
-                const categoryInfo = getCategoryInfo(result.category)
-                const isSelected = index === selectedIndex
-                const libraryItem = getLibraryItem(result.id)
-                const isInLibrary = !!libraryItem
-                const isAdding = addingItem === result.id
-                const wasJustAdded = justAddedItems.has(result.id)
-                
-                return (
-                  <div
-                    key={result.id}
-                    className={`flex items-center space-x-4 p-3 rounded-lg transition-all cursor-pointer border ${
-                      isSelected 
-                        ? 'bg-blue-50 border-blue-200' 
-                        : 'hover:bg-gray-50 border-transparent'
-                    }`}
-                    onClick={() => handleSelectResult(result)}
-                  >
-                    {/* Image */}
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
-                      {result.image ? (
-                        <img
-                          src={result.image}
-                          alt={result.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden')
-                          }}
-                        />
-                      ) : null}
-                      <div className={`w-full h-full flex items-center justify-center text-lg ${result.image ? 'hidden' : ''}`}>
-                        {categoryInfo.icon}
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="text-gray-900 font-medium truncate">{result.title}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${categoryInfo.color} flex-shrink-0`}>
-                          {result.category}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 text-sm truncate">{getCreator(result)}</p>
-                      <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
-                        <span>{result.year}</span>
-                        {result.genre && (
-                          <>
-                            <span>•</span>
-                            <span className="truncate">{result.genre}</span>
-                          </>
-                        )}
-                        {result.rating && result.rating > 0 && (
-                          <>
-                            <span>•</span>
-                            <div className="flex items-center">
-                              <Star size={12} className="text-yellow-500 mr-1" />
-                              <span>{result.rating}</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Action buttons with feedback flow */}
-                    <div className="relative">
-                      {(isInLibrary || wasJustAdded) && !isAdding ? (
-                        <div className="flex items-center space-x-2 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium">
-                          <Check size={14} />
-                          <span>{getStatusDisplayLabel(libraryItem?.status || 'completed', result.category)}</span>
-                        </div>
-                      ) : isAdding ? (
-                        <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
-                          <Loader2 className="animate-spin" size={14} />
-                          <span>Adding...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowStatusPopup(result.id)
-                            }}
-                            className="bg-blue-600/90 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0 shadow-sm hover:shadow-md"
-                          >
-                            Add
-                          </button>
-
-                          {showStatusPopup === result.id && (
-                            <>
-                              <div 
-                                className="fixed inset-0 z-[99998]"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowStatusPopup(null)
-                                }}
-                              />
-                              
-                              <div 
-                                className={`absolute right-0 top-full mt-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-gray-200 py-2 min-w-44 z-[99999] overflow-hidden transition-all duration-300 ${
-                                  fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                                }`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {getStatusOptions(result.category).map((option) => (
-                                  <button
-                                    key={option.value}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleStatusSelect(result, option.value)
-                                    }}
-                                    className={`w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-50 border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between ${
-                                      selectedStatus === option.value 
-                                        ? 'bg-green-50 border-green-500 text-green-700' 
-                                        : 'text-gray-700 hover:text-gray-900'
-                                    }`}
-                                  >
-                                    <span className="font-medium transition-colors">
-                                      {option.label}
-                                    </span>
-                                    {selectedStatus === option.value ? (
-                                      <Check className="text-green-600" size={14} />
-                                    ) : (
-                                      <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-600" size={14} />
-                                    )}
-                                  </button>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Footer hint */}
-        {results.length > 0 && (
-          <div className="px-4 py-2 border-t border-gray-100 text-xs text-gray-500 flex items-center justify-between">
-            <span>Use ↑↓ to navigate, Enter to select</span>
-            <span>{results.length} result{results.length !== 1 ? 's' : ''}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Debounce utility
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null
-  return (...args: Parameters<T>) => {
-    if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => func(...args), wait)
-  }
-}
-</file>
-
 <file path="src/app/page.tsx">
 'use client'
 import { useState, useEffect } from 'react'
@@ -8417,6 +7940,721 @@ export default function Home() {
       />
     </div>
   )
+}
+</file>
+
+<file path="src/components/SearchModal.tsx">
+'use client'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
+import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import { omdbService } from '@/services/omdbService'
+import { googleBooksService } from '@/services/googleBooksService'
+import { musicService } from '@/services/musicService'
+import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
+
+interface SearchModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void
+  library: LibraryItem[]
+}
+
+export default function SearchModal({
+  isOpen,
+  onClose,
+  onAddToLibrary,
+  onOpenGameDetail,
+  onOpenMovieDetail,
+  onOpenBookDetail,
+  onOpenMusicDetail,
+  library = []
+}: SearchModalProps) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [error, setError] = useState<string | null>(null)
+  const [searchCache] = useState<Map<string, SearchResult[]>>(new Map())
+  const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
+  const [addingItem, setAddingItem] = useState<string | null>(null)
+  const [fadeOutPopup, setFadeOutPopup] = useState<string | null>(null)
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
+  const [justAddedItems, setJustAddedItems] = useState<Set<string>>(new Set())
+
+  const inputRef = useRef<HTMLInputElement>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
+
+  // API Keys
+  const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+
+  // Sécurité : Assurer que library est toujours un array
+  const safeLibrary = Array.isArray(library) ? library : []
+
+  // Focus input when modal opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [isOpen])
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowStatusPopup(null)
+    if (showStatusPopup) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showStatusPopup])
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('')
+      setResults([])
+      setSelectedIndex(-1)
+      setError(null)
+      setShowStatusPopup(null)
+      setAddingItem(null)
+      setFadeOutPopup(null)
+      setSelectedStatus(null)
+      setJustAddedItems(new Set())
+    }
+  }, [isOpen])
+
+  // Feedback flow detection
+  useEffect(() => {
+    if (addingItem) {
+      const normalizedId = normalizeId(addingItem)
+      
+      const checkLibrary = () => {
+        const isInLibrary = safeLibrary.some((item: LibraryItem) => {
+          if (!item?.id) return false
+          return idsMatch(item.id, addingItem)
+        })
+        
+        if (isInLibrary) {
+          setAddingItem(null)
+          setJustAddedItems(prev => new Set([...prev, addingItem]))
+          
+          setTimeout(() => {
+            setJustAddedItems(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(addingItem)
+              return newSet
+            })
+          }, 3000)
+        }
+      }
+      
+      checkLibrary()
+      
+      const timeoutId = setTimeout(() => {
+        console.warn('Adding timeout reached for:', addingItem)
+        setAddingItem(null)
+        setJustAddedItems(prev => new Set([...prev, addingItem]))
+        
+        setTimeout(() => {
+          setJustAddedItems(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(addingItem)
+            return newSet
+          })
+        }, 2000)
+      }, 5000)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [safeLibrary, addingItem])
+
+  // Get status options based on category
+  const getStatusOptions = (category: string): StatusOption[] => {
+    switch (category) {
+      case 'games':
+        return [
+          { value: 'want-to-play', label: 'Want to Play' },
+          { value: 'currently-playing', label: 'Playing' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      case 'movies':
+        return [
+          { value: 'want-to-play', label: 'Want to Watch' },
+          { value: 'currently-playing', label: 'Watching' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      case 'music':
+        return [
+          { value: 'want-to-play', label: 'Want to Listen' },
+          { value: 'currently-playing', label: 'Listening' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      case 'books':
+        return [
+          { value: 'want-to-play', label: 'Want to Read' },
+          { value: 'currently-playing', label: 'Reading' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      default:
+        return [
+          { value: 'want-to-play', label: 'Want to Play' },
+          { value: 'currently-playing', label: 'Playing' },
+          { value: 'completed', label: 'Completed' }
+        ]
+    }
+  }
+
+  // Check if item is in library avec sécurité
+  const getLibraryItem = (resultId: string): LibraryItem | undefined => {
+    return safeLibrary.find((libItem: LibraryItem) => {
+      if (!libItem?.id) return false
+      return idsMatch(libItem.id, resultId)
+    })
+  }
+
+  // Get status display label
+  const getStatusDisplayLabel = (status: MediaStatus, category: string): string => {
+    const options = getStatusOptions(category)
+    const option = options.find(opt => opt.value === status)
+    return option ? option.label : 'Added'
+  }
+
+  // Fetch with timeout utility
+  const fetchWithTimeout = async (url: string, timeout = 8000): Promise<Response> => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    
+    try {
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+      clearTimeout(timeoutId)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      return response
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout - please try again')
+      }
+      throw error
+    }
+  }
+
+  // Debounced search with caching
+  const debouncedSearch = useCallback(
+    debounce((searchQuery: string, category: string) => {
+      performSearch(searchQuery, category)
+    }, 500),
+    []
+  )
+
+  useEffect(() => {
+    if (!query.trim() || query.length < 2) {
+      setResults([])
+      setSelectedIndex(-1)
+      setError(null)
+      return
+    }
+
+    const cacheKey = `${activeCategory}-${query.toLowerCase()}`
+    if (searchCache.has(cacheKey)) {
+      const cachedResults = searchCache.get(cacheKey)!
+      setResults(cachedResults)
+      setSelectedIndex(-1)
+      return
+    }
+
+    debouncedSearch(query, activeCategory)
+  }, [query, activeCategory, debouncedSearch, searchCache])
+
+  const performSearch = async (searchQuery: string, category: string) => {
+    if (!searchQuery.trim()) return
+    
+    setLoading(true)
+    setError(null)
+    setSelectedIndex(-1)
+
+    const allResults: SearchResult[] = []
+    const errors: string[] = []
+
+    try {
+      const searchPromises: Promise<SearchResult[]>[] = []
+
+      if (category === 'all' || category === 'games') {
+        searchPromises.push(searchGames(searchQuery).catch(err => {
+          errors.push(`Games: ${err.message}`)
+          return []
+        }))
+      }
+
+      if (category === 'all' || category === 'movies') {
+        searchPromises.push(searchMoviesAndSeries(searchQuery).catch(err => {
+          errors.push(`Movies & TV: ${err.message}`)
+          return []
+        }))
+      }
+
+      if (category === 'all' || category === 'music') {
+        searchPromises.push(searchMusic(searchQuery).catch(err => {
+          errors.push(`Music: ${err.message}`)
+          return []
+        }))
+      }
+
+      if (category === 'all' || category === 'books') {
+        searchPromises.push(searchBooks(searchQuery).catch(err => {
+          errors.push(`Books: ${err.message}`)
+          return []
+        }))
+      }
+
+      const results = await Promise.all(searchPromises)
+      results.forEach(categoryResults => {
+        allResults.push(...categoryResults)
+      })
+
+      allResults.sort((a, b) => {
+        const aTitleMatch = a.title.toLowerCase().includes(searchQuery.toLowerCase())
+        const bTitleMatch = b.title.toLowerCase().includes(searchQuery.toLowerCase())
+        
+        if (aTitleMatch && !bTitleMatch) return -1
+        if (!aTitleMatch && bTitleMatch) return 1
+        
+        return (b.rating || 0) - (a.rating || 0)
+      })
+
+      const cacheKey = `${category}-${searchQuery.toLowerCase()}`
+      searchCache.set(cacheKey, allResults)
+
+      setResults(allResults)
+
+      if (errors.length > 0 && allResults.length === 0) {
+        setError(`Search failed: ${errors.join(', ')}`)
+      }
+
+    } catch (error) {
+      console.error('Search error:', error)
+      setError(error instanceof Error ? error.message : 'Search failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // API Search functions
+  const searchGames = async (query: string): Promise<SearchResult[]> => {
+    const url = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=8`
+    const response = await fetchWithTimeout(url)
+    const data = await response.json()
+    
+    if (!data.results) {
+      throw new Error('No games data received')
+    }
+
+    return data.results.map((game: any) => ({
+      id: `game-${game.id}`,
+      title: game.name || 'Unknown Game',
+      author: game.developers?.[0]?.name || 'Unknown Developer',
+      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
+      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
+      genre: game.genres?.[0]?.name || 'Unknown',
+      category: 'games' as const,
+      image: game.background_image
+    }))
+  }
+
+  // NOUVELLE FONCTION : Recherche films + séries combinés
+  const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
+    try {
+      const moviesAndSeries = await omdbService.searchMoviesAndSeries(query)
+      return moviesAndSeries.slice(0, 8).map(item => omdbService.convertToAppFormat(item))
+    } catch (error) {
+      console.error('OMDB search failed:', error)
+      throw error
+    }
+  }
+
+  const searchMusic = async (query: string): Promise<SearchResult[]> => {
+    try {
+      const albums = await musicService.searchAlbums(query, 8)
+      return albums.map(album => musicService.convertToAppFormat(album))
+    } catch (error) {
+      console.error('iTunes search failed:', error)
+      throw error
+    }
+  }
+
+  const searchBooks = async (query: string): Promise<SearchResult[]> => {
+    try {
+      const books = await googleBooksService.searchBooks(query, 8)
+      return books.map(book => googleBooksService.convertToAppFormat(book))
+    } catch (error) {
+      console.error('Google Books search failed:', error)
+      throw error
+    }
+  }
+
+  // Status selection with feedback flow
+  const handleStatusSelect = (result: SearchResult, status: MediaStatus) => {
+    setSelectedStatus(status)
+    
+    setTimeout(() => {
+      setFadeOutPopup(result.id)
+      setTimeout(() => {
+        setShowStatusPopup(null)
+        setFadeOutPopup(null)
+        setSelectedStatus(null)
+      }, 300)
+    }, 800)
+
+    setAddingItem(result.id)
+    onAddToLibrary(result, status)
+  }
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!results.length) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedIndex(prev => Math.min(prev + 1, results.length - 1))
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedIndex(prev => Math.max(prev - 1, -1))
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (selectedIndex >= 0) {
+          handleSelectResult(results[selectedIndex])
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        onClose()
+        break
+    }
+  }
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (selectedIndex >= 0 && resultsRef.current) {
+      const selectedElement = resultsRef.current.children[selectedIndex] as HTMLElement
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
+    }
+  }, [selectedIndex])
+
+  const handleSelectResult = (result: SearchResult) => {
+    if (result.category === 'games' && onOpenGameDetail) {
+      onOpenGameDetail(result.id.replace('game-', ''))
+      onClose()
+    } else if (result.category === 'movies' && onOpenMovieDetail) {
+      onOpenMovieDetail(result.id.replace('movie-', ''))
+      onClose()
+    } else if (result.category === 'books' && onOpenBookDetail) {
+      onOpenBookDetail(result.id.replace('book-', ''))
+      onClose()
+    } else if (result.category === 'music' && onOpenMusicDetail) {
+      onOpenMusicDetail(result.id.replace('music-', ''))
+      onClose()
+    } else {
+      onAddToLibrary(result, 'want-to-play')
+      onClose()
+    }
+  }
+
+  const getCreator = (result: SearchResult) => {
+    return result.author || result.artist || result.director || 'Unknown'
+  }
+
+  const getCategoryInfo = (category: string) => {
+    switch (category) {
+      case 'games': return { color: 'bg-green-100 text-green-700 border-green-200', icon: '🎮' }
+      case 'movies': return { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: '🎬' }
+      case 'music': return { color: 'bg-purple-100 text-purple-700 border-purple-200', icon: '🎵' }
+      case 'books': return { color: 'bg-orange-100 text-orange-700 border-orange-200', icon: '📚' }
+      default: return { color: 'bg-gray-100 text-gray-700 border-gray-200', icon: '📄' }
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-start justify-center pt-16 px-4">
+      <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl border border-gray-200">
+        {/* Header */}
+        <div className="flex items-center p-4 border-b border-gray-100">
+          <Search className="text-gray-400 mr-3 flex-shrink-0" size={20} />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search games, movies, TV shows, music, books..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none text-lg"
+          />
+          {loading && <Loader2 className="animate-spin text-gray-400 mr-3" size={16} />}
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 ml-3 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Category filters */}
+        <div className="flex space-x-2 p-4 border-b border-gray-100 overflow-x-auto">
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'games', label: 'Games' },
+            { key: 'movies', label: 'Movies & TV' },
+            { key: 'music', label: 'Music' },
+            { key: 'books', label: 'Books' }
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveCategory(key)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                activeCategory === key
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Results */}
+        <div className="max-h-96 overflow-y-auto" ref={resultsRef}>
+          {/* Error state */}
+          {error && (
+            <div className="flex items-center justify-center py-8 px-4">
+              <div className="text-center">
+                <WifiOff className="mx-auto text-gray-400 mb-2" size={24} />
+                <p className="text-red-600 text-sm">{error}</p>
+                <button
+                  onClick={() => performSearch(query, activeCategory)}
+                  className="mt-2 text-blue-600 hover:text-blue-700 text-sm underline"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Loading state */}
+          {loading && !error && (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center space-x-2 text-gray-600">
+                <Loader2 className="animate-spin" size={20} />
+                <span>Searching...</span>
+              </div>
+            </div>
+          )}
+
+          {/* No results */}
+          {!loading && !error && query.length >= 2 && results.length === 0 && (
+            <div className="text-center py-8 text-gray-600">
+              <Search className="mx-auto mb-2" size={24} />
+              <p>No results found for "<span className="text-gray-900 font-medium">{query}</span>"</p>
+              <p className="text-sm mt-1">Try different keywords or check spelling</p>
+            </div>
+          )}
+
+          {/* Results list */}
+          {!loading && !error && results.length > 0 && (
+            <div className="p-4 space-y-2">
+              {results.map((result, index) => {
+                const categoryInfo = getCategoryInfo(result.category)
+                const isSelected = index === selectedIndex
+                const libraryItem = getLibraryItem(result.id)
+                const isInLibrary = !!libraryItem
+                const isAdding = addingItem === result.id
+                const wasJustAdded = justAddedItems.has(result.id)
+                
+                return (
+                  <div
+                    key={result.id}
+                    className={`flex items-center space-x-4 p-3 rounded-lg transition-all cursor-pointer border ${
+                      isSelected 
+                        ? 'bg-blue-50 border-blue-200' 
+                        : 'hover:bg-gray-50 border-transparent'
+                    }`}
+                    onClick={() => handleSelectResult(result)}
+                  >
+                    {/* Image */}
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                      {result.image ? (
+                        <img
+                          src={result.image}
+                          alt={result.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden')
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full flex items-center justify-center text-lg ${result.image ? 'hidden' : ''}`}>
+                        {categoryInfo.icon}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h3 className="text-gray-900 font-medium truncate flex-1">
+                          {result.title}
+                          {/* Indicateur TV Series */}
+                          {result.isSeries && (
+                            <span className="ml-2 text-purple-600 text-xs"> • TV Series</span>
+                          )}
+                        </h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${categoryInfo.color} flex-shrink-0`}>
+                          {result.category === 'movies' ? (result.isSeries ? 'TV' : 'Film') : result.category}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 text-sm truncate">{getCreator(result)}</p>
+                      <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
+                        <span>{result.year}</span>
+                        {result.genre && (
+                          <>
+                            <span>•</span>
+                            <span className="truncate">{result.genre}</span>
+                          </>
+                        )}
+                        {result.rating && result.rating > 0 && (
+                          <>
+                            <span>•</span>
+                            <div className="flex items-center">
+                              <Star size={12} className="text-yellow-500 mr-1" />
+                              <span>{result.rating}</span>
+                            </div>
+                          </>
+                        )}
+                        {/* Afficher saisons pour les séries */}
+                        {result.isSeries && result.totalSeasons && (
+                          <>
+                            <span>•</span>
+                            <span>{result.totalSeasons} season{result.totalSeasons > 1 ? 's' : ''}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action buttons with feedback flow */}
+                    <div className="relative">
+                      {(isInLibrary || wasJustAdded) && !isAdding ? (
+                        <div className="flex items-center space-x-2 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium">
+                          <Check size={14} />
+                          <span>{getStatusDisplayLabel(libraryItem?.status || 'completed', result.category)}</span>
+                        </div>
+                      ) : isAdding ? (
+                        <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
+                          <Loader2 className="animate-spin" size={14} />
+                          <span>Adding...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowStatusPopup(result.id)
+                            }}
+                            className="bg-blue-600/90 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0 shadow-sm hover:shadow-md"
+                          >
+                            Add
+                          </button>
+
+                          {showStatusPopup === result.id && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-[99998]"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowStatusPopup(null)
+                                }}
+                              />
+                              
+                              <div 
+                                className={`absolute right-0 top-full mt-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-gray-200 py-2 min-w-44 z-[99999] overflow-hidden transition-all duration-300 ${
+                                  fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                                }`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {getStatusOptions(result.category).map((option) => (
+                                  <button
+                                    key={option.value}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleStatusSelect(result, option.value)
+                                    }}
+                                    className={`w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-50 border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between ${
+                                      selectedStatus === option.value 
+                                        ? 'bg-green-50 border-green-500 text-green-700' 
+                                        : 'text-gray-700 hover:text-gray-900'
+                                    }`}
+                                  >
+                                    <span className="font-medium transition-colors">
+                                      {option.label}
+                                    </span>
+                                    {selectedStatus === option.value ? (
+                                      <Check className="text-green-600" size={14} />
+                                    ) : (
+                                      <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-600" size={14} />
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer hint */}
+        {results.length > 0 && (
+          <div className="px-4 py-2 border-t border-gray-100 text-xs text-gray-500 flex items-center justify-between">
+            <span>Use ↑↓ to navigate, Enter to select</span>
+            <span>{results.length} result{results.length !== 1 ? 's' : ''}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Debounce utility
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
 }
 </file>
 
