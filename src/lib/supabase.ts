@@ -1,9 +1,14 @@
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
 
-// Variables en dur pour éviter les problèmes d'environnement
-const supabaseUrl = 'https://jumpxvlqnzyxifsakzit.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bXB4dmxxbnp5eGlmc2Freml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTg2NTgsImV4cCI6MjA2ODI5NDY1OH0.kYJ0g4bwaZr690Hy6KsUstv5NA5Ac5YBZZFKJeFU5CA'
+// Utilisation des variables d'environnement pour la sécurité
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Vérification que les variables d'environnement sont bien définies
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
+}
 
 // Créer le client Supabase
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

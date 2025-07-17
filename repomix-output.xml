@@ -84,225 +84,6 @@ tsconfig.json
 <files>
 This section contains the contents of the repository's files.
 
-<file path="src/lib/supabase.ts">
-// src/lib/supabase.ts
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-// Créer le client Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Test de connexion (optionnel)
-export const testSupabaseConnection = async () => {
-  try {
-    const { data, error } = await supabase.from('library_items').select('*').limit(1)
-    if (error && error.code !== 'PGRST116') { // PGRST116 = table n'existe pas encore
-      console.error('Supabase connection error:', error)
-      return false
-    }
-    console.log('✅ Supabase connected successfully!')
-    return true
-  } catch (error) {
-    console.error('❌ Supabase connection failed:', error)
-    return false
-  }
-}
-</file>
-
-<file path="src/services/libraryService.ts">
-// src/services/libraryService.ts
-import { supabase } from '@/lib/supabase'
-import type { LibraryItem, MediaStatus } from '@/types'
-
-export class LibraryService {
-  // Clé pour localStorage (fallback)
-  private static STORAGE_KEY = 'stackr_library'
-
-  // Récupérer la bibliothèque (localStorage en attendant l'auth)
-  static async getLibrary(): Promise<LibraryItem[]> {
-    try {
-      // Pour l'instant on utilise localStorage
-      // Une fois l'auth configurée, on utilisera Supabase
-      const stored = localStorage.getItem(this.STORAGE_KEY)
-      const items = stored ? JSON.parse(stored) : []
-      console.log('📚 Library loaded:', items.length, 'items')
-      return items
-    } catch (error) {
-      console.error('❌ Error loading library:', error)
-      return []
-    }
-  }
-
-  // Ajouter à la bibliothèque
-  static async addToLibrary(item: any, status: MediaStatus): Promise<boolean> {
-    try {
-      const library = await this.getLibrary()
-      
-      // Vérifier si l'item existe déjà
-      const existingIndex = library.findIndex(libItem => libItem.id === item.id)
-      
-      const newItem: LibraryItem = {
-        id: item.id,
-        title: item.title,
-        category: item.category,
-        status,
-        addedAt: new Date().toISOString(),
-        year: item.year || new Date().getFullYear(),
-        rating: item.rating || 0,
-        image: item.image || item.background_image,
-        author: item.author,
-        artist: item.artist,
-        director: item.director,
-        genre: item.genre
-      }
-
-      if (existingIndex !== -1) {
-        // Mettre à jour l'item existant
-        library[existingIndex] = { ...library[existingIndex], ...newItem }
-        console.log('📝 Updated item in library:', newItem.title)
-      } else {
-        // Ajouter le nouvel item
-        library.unshift(newItem) // unshift pour ajouter en premier
-        console.log('➕ Added new item to library:', newItem.title)
-      }
-
-      // Sauvegarder
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
-      console.log('💾 Library saved! Total items:', library.length)
-      return true
-    } catch (error) {
-      console.error('❌ Error adding to library:', error)
-      return false
-    }
-  }
-
-  // Mettre à jour un item
-  static async updateLibraryItem(itemId: string, updates: Partial<LibraryItem>): Promise<boolean> {
-    try {
-      const library = await this.getLibrary()
-      const itemIndex = library.findIndex(item => item.id === itemId)
-      
-      if (itemIndex === -1) {
-        console.warn('⚠️ Item not found for update:', itemId)
-        return false
-      }
-
-      // Appliquer les mises à jour
-      library[itemIndex] = { ...library[itemIndex], ...updates }
-      
-      // Auto-set dates based on status
-      if (updates.status === 'currently-playing' && !library[itemIndex].dateStarted) {
-        library[itemIndex].dateStarted = new Date().toISOString()
-      }
-      if (updates.status === 'completed' && !library[itemIndex].dateCompleted) {
-        library[itemIndex].dateCompleted = new Date().toISOString()
-      }
-
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
-      console.log('📝 Updated library item:', library[itemIndex].title)
-      return true
-    } catch (error) {
-      console.error('❌ Error updating library item:', error)
-      return false
-    }
-  }
-
-  // Supprimer un item
-  static async removeFromLibrary(itemId: string): Promise<boolean> {
-    try {
-      const library = await this.getLibrary()
-      const itemToRemove = library.find(item => item.id === itemId)
-      
-      if (!itemToRemove) {
-        console.warn('⚠️ Item not found for deletion:', itemId)
-        return false
-      }
-
-      const filteredLibrary = library.filter(item => item.id !== itemId)
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredLibrary))
-      console.log('🗑️ Removed from library:', itemToRemove.title)
-      return true
-    } catch (error) {
-      console.error('❌ Error removing from library:', error)
-      return false
-    }
-  }
-
-  // Statistiques de la bibliothèque
-  static async getLibraryStats() {
-    try {
-      const library = await this.getLibrary()
-      const stats = {
-        total: library.length,
-        byStatus: {} as Record<MediaStatus, number>,
-        byCategory: {} as Record<string, number>
-      }
-
-      library.forEach(item => {
-        // Stats par statut
-        stats.byStatus[item.status] = (stats.byStatus[item.status] || 0) + 1
-        // Stats par catégorie
-        stats.byCategory[item.category] = (stats.byCategory[item.category] || 0) + 1
-      })
-
-      console.log('📊 Library stats:', stats)
-      return stats
-    } catch (error) {
-      console.error('❌ Error getting library stats:', error)
-      return { total: 0, byStatus: {} as any, byCategory: {} }
-    }
-  }
-
-  // Test de connexion Supabase (pour le futur)
-  static async testSupabaseConnection(): Promise<boolean> {
-    try {
-      const { data, error } = await supabase.from('library_items').select('*').limit(1)
-      if (error && error.code === 'PGRST116') {
-        console.log('ℹ️ Supabase connected but tables not created yet')
-        return true
-      }
-      if (error) {
-        console.error('❌ Supabase error:', error.message)
-        return false
-      }
-      console.log('✅ Supabase fully operational!')
-      return true
-    } catch (error) {
-      console.log('ℹ️ Supabase not configured yet, using localStorage')
-      return false
-    }
-  }
-
-  // Fonction pour migrer vers Supabase plus tard
-  static async migrateToSupabase(): Promise<boolean> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        console.log('ℹ️ No user authenticated for migration')
-        return false
-      }
-
-      const localLibrary = await this.getLibrary()
-      if (localLibrary.length === 0) {
-        console.log('ℹ️ No local library to migrate')
-        return true
-      }
-
-      // TODO: Implémenter la migration une fois l'auth configurée
-      console.log('🔄 Migration will be implemented after auth setup')
-      return true
-    } catch (error) {
-      console.error('❌ Migration error:', error)
-      return false
-    }
-  }
-}
-
-export default LibraryService
-</file>
-
 <file path=".gitignore">
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
@@ -3258,38 +3039,6 @@ export const idsMatch = (id1: string, id2: string): boolean => {
 }
 </file>
 
-<file path="package.json">
-{
-  "name": "stackr",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.51.0",
-    "lucide-react": "^0.525.0",
-    "next": "15.3.5",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.5",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
-}
-</file>
-
 <file path="src/components/MusicDetailModal.tsx">
 'use client'
 import { useState, useEffect, useRef } from 'react'
@@ -3976,6 +3725,72 @@ export default function MusicDetailModal({
 }
 </file>
 
+<file path="src/lib/supabase.ts">
+// src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js'
+
+// Variables en dur pour éviter les problèmes d'environnement
+const supabaseUrl = 'https://jumpxvlqnzyxifsakzit.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bXB4dmxxbnp5eGlmc2Freml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTg2NTgsImV4cCI6MjA2ODI5NDY1OH0.kYJ0g4bwaZr690Hy6KsUstv5NA5Ac5YBZZFKJeFU5CA'
+
+// Créer le client Supabase
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+})
+
+// Test de connexion
+export const testSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('library_items').select('*').limit(1)
+    if (error && error.code !== 'PGRST116') {
+      console.error('❌ Supabase connection error:', error)
+      return false
+    }
+    console.log('✅ Supabase connected successfully!')
+    return true
+  } catch (error) {
+    console.error('❌ Supabase connection failed:', error)
+    return false
+  }
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "stackr",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.51.0",
+    "lucide-react": "^0.525.0",
+    "next": "15.3.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+</file>
+
 <file path="src/app/globals.css">
 @import "tailwindcss";
 
@@ -4557,6 +4372,414 @@ export default function GameCardHorizontal({
     </div>
   )
 }
+</file>
+
+<file path="src/services/libraryService.ts">
+// src/services/libraryService.ts
+import { supabase } from '@/lib/supabase'
+import type { LibraryItem, MediaStatus } from '@/types'
+
+export class LibraryService {
+  // Clé pour localStorage (fallback)
+  private static STORAGE_KEY = 'stackr_library'
+
+  // Récupérer la bibliothèque (Supabase + fallback localStorage)
+  static async getLibrary(): Promise<LibraryItem[]> {
+    try {
+      // Vérifier si on est côté client
+      if (typeof window === 'undefined') {
+        return []
+      }
+
+      // Essayer Supabase d'abord
+      try {
+        const { data, error } = await supabase
+          .from('library_items')
+          .select('*')
+          .order('added_at', { ascending: false })
+
+        if (!error && data) {
+          console.log('📚 Library loaded from Supabase:', data.length, 'items')
+          
+          // Convertir les données Supabase au format LibraryItem
+          const convertedItems: LibraryItem[] = data.map(item => ({
+            id: item.id,
+            title: item.title,
+            category: item.category,
+            status: item.status,
+            addedAt: item.added_at,
+            year: item.year,
+            rating: item.rating,
+            image: item.image,
+            author: item.author,
+            artist: item.artist,
+            director: item.director,
+            genre: item.genre,
+            userRating: item.user_rating,
+            progress: item.progress,
+            notes: item.notes,
+            dateStarted: item.date_started,
+            dateCompleted: item.date_completed
+          }))
+          
+          // Synchroniser avec localStorage comme backup
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(convertedItems))
+          return convertedItems
+        }
+      } catch (supabaseError) {
+        console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)
+      }
+
+      // Fallback vers localStorage
+      const stored = localStorage.getItem(this.STORAGE_KEY)
+      const items = stored ? JSON.parse(stored) : []
+      console.log('📚 Library loaded from localStorage:', items.length, 'items')
+      return items
+
+    } catch (error) {
+      console.error('❌ Error loading library:', error)
+      return []
+    }
+  }
+
+  // Ajouter à la bibliothèque
+  static async addToLibrary(item: any, status: MediaStatus): Promise<boolean> {
+    try {
+      // Vérifier si on est côté client
+      if (typeof window === 'undefined') {
+        return false
+      }
+
+      const newItem: LibraryItem = {
+        id: item.id,
+        title: item.title,
+        category: item.category,
+        status,
+        addedAt: new Date().toISOString(),
+        year: item.year || new Date().getFullYear(),
+        rating: item.rating || 0,
+        image: item.image || item.background_image,
+        author: item.author,
+        artist: item.artist,
+        director: item.director,
+        genre: item.genre
+      }
+
+      // Essayer Supabase d'abord
+      try {
+        const { data, error } = await supabase
+          .from('library_items')
+          .upsert({
+            id: newItem.id,
+            title: newItem.title,
+            category: newItem.category,
+            status: newItem.status,
+            added_at: newItem.addedAt,
+            year: newItem.year,
+            rating: newItem.rating,
+            image: newItem.image,
+            author: newItem.author,
+            artist: newItem.artist,
+            director: newItem.director,
+            genre: newItem.genre
+          }, {
+            onConflict: 'id'
+          })
+          .select()
+
+        if (!error) {
+          console.log('➕ Added to Supabase:', newItem.title)
+          
+          // Synchroniser localStorage
+          const library = await this.getLibraryFromLocalStorage()
+          const existingIndex = library.findIndex(libItem => libItem.id === newItem.id)
+          
+          if (existingIndex !== -1) {
+            library[existingIndex] = newItem
+          } else {
+            library.unshift(newItem)
+          }
+          
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+          return true
+        } else {
+          console.error('Supabase error:', error)
+        }
+      } catch (supabaseError) {
+        console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)
+      }
+
+      // Fallback vers localStorage
+      const library = await this.getLibraryFromLocalStorage()
+      const existingIndex = library.findIndex(libItem => libItem.id === newItem.id)
+      
+      if (existingIndex !== -1) {
+        library[existingIndex] = { ...library[existingIndex], ...newItem }
+        console.log('📝 Updated item in localStorage:', newItem.title)
+      } else {
+        library.unshift(newItem)
+        console.log('➕ Added new item to localStorage:', newItem.title)
+      }
+
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+      console.log('💾 Library saved! Total items:', library.length)
+      return true
+
+    } catch (error) {
+      console.error('❌ Error adding to library:', error)
+      return false
+    }
+  }
+
+  // Mettre à jour un item
+  static async updateLibraryItem(itemId: string, updates: Partial<LibraryItem>): Promise<boolean> {
+    try {
+      // Vérifier si on est côté client
+      if (typeof window === 'undefined') {
+        return false
+      }
+
+      // Essayer Supabase d'abord
+      try {
+        const updateData: any = {}
+        
+        // Mapper les champs LibraryItem vers les champs de la base
+        if (updates.status) updateData.status = updates.status
+        if (updates.userRating !== undefined) updateData.user_rating = updates.userRating
+        if (updates.progress !== undefined) updateData.progress = updates.progress
+        if (updates.notes !== undefined) updateData.notes = updates.notes
+        if (updates.dateStarted) updateData.date_started = updates.dateStarted
+        if (updates.dateCompleted) updateData.date_completed = updates.dateCompleted
+        
+        // Auto-set dates based on status
+        if (updates.status === 'currently-playing' && !updateData.date_started) {
+          updateData.date_started = new Date().toISOString()
+        }
+        if (updates.status === 'completed' && !updateData.date_completed) {
+          updateData.date_completed = new Date().toISOString()
+        }
+
+        const { error } = await supabase
+          .from('library_items')
+          .update(updateData)
+          .eq('id', itemId)
+
+        if (!error) {
+          console.log('📝 Updated item in Supabase:', itemId)
+        } else {
+          console.error('Supabase update error:', error)
+        }
+      } catch (supabaseError) {
+        console.log('⚠️ Supabase unavailable for update:', supabaseError)
+      }
+
+      // Mise à jour localStorage (toujours faire)
+      const library = await this.getLibraryFromLocalStorage()
+      const itemIndex = library.findIndex(item => item.id === itemId)
+      
+      if (itemIndex === -1) {
+        console.warn('⚠️ Item not found for update:', itemId)
+        return false
+      }
+
+      // Appliquer les mises à jour
+      library[itemIndex] = { ...library[itemIndex], ...updates }
+      
+      // Auto-set dates based on status
+      if (updates.status === 'currently-playing' && !library[itemIndex].dateStarted) {
+        library[itemIndex].dateStarted = new Date().toISOString()
+      }
+      if (updates.status === 'completed' && !library[itemIndex].dateCompleted) {
+        library[itemIndex].dateCompleted = new Date().toISOString()
+      }
+
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+      console.log('📝 Updated library item:', library[itemIndex].title)
+      return true
+
+    } catch (error) {
+      console.error('❌ Error updating library item:', error)
+      return false
+    }
+  }
+
+  // Supprimer un item
+  static async removeFromLibrary(itemId: string): Promise<boolean> {
+    try {
+      // Vérifier si on est côté client
+      if (typeof window === 'undefined') {
+        return false
+      }
+
+      // Essayer Supabase d'abord
+      try {
+        const { error } = await supabase
+          .from('library_items')
+          .delete()
+          .eq('id', itemId)
+
+        if (!error) {
+          console.log('🗑️ Removed from Supabase:', itemId)
+        } else {
+          console.error('Supabase delete error:', error)
+        }
+      } catch (supabaseError) {
+        console.log('⚠️ Supabase unavailable for deletion:', supabaseError)
+      }
+
+      // Suppression localStorage (toujours faire)
+      const library = await this.getLibraryFromLocalStorage()
+      const itemToRemove = library.find(item => item.id === itemId)
+      
+      if (!itemToRemove) {
+        console.warn('⚠️ Item not found for deletion:', itemId)
+        return false
+      }
+
+      const filteredLibrary = library.filter(item => item.id !== itemId)
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredLibrary))
+      console.log('🗑️ Removed from library:', itemToRemove.title)
+      return true
+
+    } catch (error) {
+      console.error('❌ Error removing from library:', error)
+      return false
+    }
+  }
+
+  // Méthode helper pour récupérer uniquement localStorage
+  private static async getLibraryFromLocalStorage(): Promise<LibraryItem[]> {
+    try {
+      if (typeof window === 'undefined') return []
+      const stored = localStorage.getItem(this.STORAGE_KEY)
+      return stored ? JSON.parse(stored) : []
+    } catch (error) {
+      console.error('Error reading localStorage:', error)
+      return []
+    }
+  }
+
+  // Statistiques de la bibliothèque
+  static async getLibraryStats() {
+    try {
+      const library = await this.getLibrary()
+      const stats = {
+        total: library.length,
+        byStatus: {} as Record<MediaStatus, number>,
+        byCategory: {} as Record<string, number>
+      }
+
+      library.forEach(item => {
+        // Stats par statut
+        stats.byStatus[item.status] = (stats.byStatus[item.status] || 0) + 1
+        // Stats par catégorie
+        stats.byCategory[item.category] = (stats.byCategory[item.category] || 0) + 1
+      })
+
+      console.log('📊 Library stats:', stats)
+      return stats
+    } catch (error) {
+      console.error('❌ Error getting library stats:', error)
+      return { total: 0, byStatus: {} as any, byCategory: {} }
+    }
+  }
+
+  // Test de connexion Supabase
+  static async testSupabaseConnection(): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.from('library_items').select('count').limit(1)
+      
+      if (error && error.code === 'PGRST116') {
+        console.log('ℹ️ Supabase connected but tables not created yet - run the SQL setup!')
+        return false
+      }
+      if (error) {
+        console.error('❌ Supabase error:', error.message)
+        return false
+      }
+      
+      console.log('✅ Supabase fully operational!')
+      return true
+    } catch (error) {
+      console.log('ℹ️ Supabase connection failed, using localStorage fallback')
+      return false
+    }
+  }
+
+  // Migrer localStorage vers Supabase
+  static async migrateToSupabase(): Promise<boolean> {
+    try {
+      // Vérifier la connexion Supabase
+      const isConnected = await this.testSupabaseConnection()
+      if (!isConnected) {
+        console.log('ℹ️ Cannot migrate: Supabase not available')
+        return false
+      }
+
+      // Récupérer les données localStorage
+      const localData = localStorage.getItem(this.STORAGE_KEY)
+      if (!localData) {
+        console.log('ℹ️ No local data to migrate')
+        return true
+      }
+
+      const localLibrary: LibraryItem[] = JSON.parse(localData)
+      if (localLibrary.length === 0) {
+        console.log('ℹ️ No local library to migrate')
+        return true
+      }
+
+      console.log('🔄 Starting migration of', localLibrary.length, 'items...')
+
+      // Migrer chaque item
+      let migrated = 0
+      for (const item of localLibrary) {
+        try {
+          const { error } = await supabase
+            .from('library_items')
+            .upsert({
+              id: item.id,
+              title: item.title,
+              category: item.category,
+              status: item.status,
+              added_at: item.addedAt,
+              year: item.year,
+              rating: item.rating,
+              image: item.image,
+              author: item.author,
+              artist: item.artist,
+              director: item.director,
+              genre: item.genre,
+              user_rating: item.userRating,
+              progress: item.progress,
+              notes: item.notes,
+              date_started: item.dateStarted,
+              date_completed: item.dateCompleted
+            }, {
+              onConflict: 'id'
+            })
+          
+          if (!error) {
+            migrated++
+          } else {
+            console.error('Error migrating item:', item.title, error)
+          }
+        } catch (itemError) {
+          console.error('Error migrating item:', item.title, itemError)
+        }
+      }
+
+      console.log(`✅ Migration completed! ${migrated}/${localLibrary.length} items migrated`)
+      return true
+    } catch (error) {
+      console.error('❌ Migration error:', error)
+      return false
+    }
+  }
+}
+
+// Export par défaut de la classe
+export default LibraryService
 </file>
 
 <file path="src/components/CategoryTabs.tsx">
@@ -6688,783 +6911,6 @@ export default function GameDetailModal({
 }
 </file>
 
-<file path="src/app/page.tsx">
-'use client'
-import { useState, useEffect } from 'react'
-import { Search } from 'lucide-react'
-import CategoryTabs from '@/components/CategoryTabs'
-import ContentSection from '@/components/ContentSection'
-import LibrarySection from '@/components/LibrarySection'
-import GameDetailModal from '@/components/GameDetailModal'
-import MovieDetailModal from '@/components/MovieDetailModal'
-import BookDetailModal from '@/components/BookDetailModal'
-import MusicDetailModal from '@/components/MusicDetailModal'
-import SearchModal from '@/components/SearchModal'
-import BottomNavigation from '@/components/BottomNavigation'
-import RoadmapPage from '@/components/RoadmapPage'
-import { sampleContent } from '@/data/sampleContent'
-import { omdbService } from '@/services/omdbService'
-import { googleBooksService } from '@/services/googleBooksService'
-import { musicService } from '@/services/musicService'
-import { rawgService } from '@/services/rawgService'
-import { normalizeId, idsMatch } from '@/utils/idNormalizer'
-import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
-
-export default function Home() {
-  const [activeTab, setActiveTab] = useState<MediaCategory>('games')
-  const [activeMainTab, setActiveMainTab] = useState('home')
-  const [library, setLibrary] = useState<LibraryItem[]>([])
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
-  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
-  const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
-  const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  
-  // State pour le contenu dynamique des jeux
-  const [gameContent, setGameContent] = useState<{
-    popular: ContentItem[]
-    topRated: ContentItem[]
-    newReleases: ContentItem[]
-  }>({
-    popular: [],
-    topRated: [],
-    newReleases: []
-  })
-  const [gamesLoading, setGamesLoading] = useState(false)
-  
-  // State pour le contenu dynamique des films
-  const [movieContent, setMovieContent] = useState<{
-    popular: ContentItem[]
-    topRated: ContentItem[]
-    recent: ContentItem[]
-  }>({
-    popular: [],
-    topRated: [],
-    recent: []
-  })
-  const [moviesLoading, setMoviesLoading] = useState(false)
-
-  // State pour le contenu dynamique des livres
-  const [bookContent, setBookContent] = useState<{
-    fiction: ContentItem[]
-    nonFiction: ContentItem[]
-    newReleases: ContentItem[]
-  }>({
-    fiction: [],
-    nonFiction: [],
-    newReleases: []
-  })
-  const [booksLoading, setBooksLoading] = useState(false)
-
-  // State pour le contenu dynamique de la musique
-  const [musicContent, setMusicContent] = useState<{
-    popular: ContentItem[]
-    topRated: ContentItem[]
-    newReleases: ContentItem[]
-  }>({
-    popular: [],
-    topRated: [],
-    newReleases: []
-  })
-  const [musicLoading, setMusicLoading] = useState(false)
-
-  // User reviews state
-  const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
-
-  // Charger le contenu selon la catégorie active
-  useEffect(() => {
-    if (activeTab === 'games') {
-      loadGameContent()
-    } else if (activeTab === 'movies') {
-      loadMovieContent()
-    } else if (activeTab === 'books') {
-      loadBookContent()
-    } else if (activeTab === 'music') {
-      loadMusicContent()
-    }
-  }, [activeTab])
-
-  const loadGameContent = async () => {
-    try {
-      setGamesLoading(true)
-
-      const [popularGames, topRatedGames, newReleaseGames] = await Promise.all([
-        rawgService.getPopularGames().then(games => 
-          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
-        ),
-        rawgService.getTopRatedGames().then(games => 
-          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
-        ),
-        rawgService.getNewReleases().then(games => 
-          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
-        )
-      ])
-
-      setGameContent({
-        popular: popularGames,
-        topRated: topRatedGames,
-        newReleases: newReleaseGames
-      })
-    } catch (error) {
-      console.error('Error loading game content:', error)
-      
-      // Fallback vers les données statiques
-      setGameContent({
-        popular: sampleContent.games.slice(0, 4),
-        topRated: sampleContent.games.slice(4, 8),
-        newReleases: sampleContent.games.slice(0, 4)
-      })
-    } finally {
-      setGamesLoading(false)
-    }
-  }
-
-  const loadMovieContent = async () => {
-    try {
-      setMoviesLoading(true)
-
-      const [popularMovies, topRatedMovies, recentMovies] = await Promise.all([
-        omdbService.getPopularMovies().then(movies => 
-          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
-        ),
-        omdbService.getTopRatedMovies().then(movies => 
-          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
-        ),
-        omdbService.getRecentMovies().then(movies => 
-          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
-        )
-      ])
-
-      setMovieContent({
-        popular: popularMovies,
-        topRated: topRatedMovies,
-        recent: recentMovies
-      })
-    } catch (error) {
-      console.error('Error loading movie content:', error)
-      
-      // Fallback vers les données statiques
-      setMovieContent({
-        popular: sampleContent.movies.slice(0, 4),
-        topRated: sampleContent.movies.slice(4, 8),
-        recent: sampleContent.movies.slice(0, 4)
-      })
-    } finally {
-      setMoviesLoading(false)
-    }
-  }
-
-  const loadBookContent = async () => {
-    try {
-      setBooksLoading(true)
-
-      const [fictionBooks, nonFictionBooks, newReleaseBooks] = await Promise.all([
-        googleBooksService.getFictionBooks().then(books => 
-          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
-        ),
-        googleBooksService.getNonFictionBooks().then(books => 
-          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
-        ),
-        googleBooksService.getNewReleases().then(books => 
-          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
-        )
-      ])
-
-      setBookContent({
-        fiction: fictionBooks,
-        nonFiction: nonFictionBooks,
-        newReleases: newReleaseBooks
-      })
-    } catch (error) {
-      console.error('Error loading book content:', error)
-      
-      // Fallback vers les données statiques
-      setBookContent({
-        fiction: sampleContent.books.slice(0, 4),
-        nonFiction: sampleContent.books.slice(4, 8),
-        newReleases: sampleContent.books.slice(0, 4)
-      })
-    } finally {
-      setBooksLoading(false)
-    }
-  }
-
-  const loadMusicContent = async () => {
-    try {
-      setMusicLoading(true)
-
-      const [popularAlbums, topRatedAlbums, newReleaseAlbums] = await Promise.all([
-        musicService.getPopularAlbums().then(albums => 
-          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
-        ),
-        musicService.getTopRatedAlbums().then(albums => 
-          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
-        ),
-        musicService.getNewReleases().then(albums => 
-          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
-        )
-      ])
-
-      setMusicContent({
-        popular: popularAlbums,
-        topRated: topRatedAlbums,
-        newReleases: newReleaseAlbums
-      })
-    } catch (error) {
-      console.error('Error loading music content:', error)
-      
-      // Fallback vers les données statiques
-      setMusicContent({
-        popular: sampleContent.music.slice(0, 4),
-        topRated: sampleContent.music.slice(4, 8),
-        newReleases: sampleContent.music.slice(0, 4)
-      })
-    } finally {
-      setMusicLoading(false)
-    }
-  }
-
-  // Fonction corrigée pour ajouter à la bibliothèque
-  const handleAddToLibrary = (item: any, status: MediaStatus) => {
-    const normalizedId = normalizeId(item.id)
-    
-    const newItem: LibraryItem = {
-      id: normalizedId,
-      title: item.title,
-      category: item.category || activeTab,
-      status,
-      addedAt: new Date().toISOString(),
-      year: item.year || new Date().getFullYear(),
-      rating: item.rating || 0,
-      image: item.image || item.background_image,
-      author: item.author,
-      artist: item.artist,
-      director: item.director,
-      genre: item.genre
-    }
-
-    setLibrary(prev => {
-      const existingIndex = prev.findIndex((libItem: LibraryItem) => 
-        idsMatch(libItem.id, normalizedId)
-      )
-      
-      if (existingIndex !== -1) {
-        const updated = [...prev]
-        updated[existingIndex] = { 
-          ...updated[existingIndex], 
-          status, 
-          addedAt: new Date().toISOString() 
-        }
-        return updated
-      }
-      
-      return [...prev, newItem]
-    })
-  }
-
-  const handleUpdateItem = (id: string, updates: Partial<LibraryItem>) => {
-    setLibrary(prev =>
-      prev.map(item =>
-        idsMatch(item.id, id)
-          ? { ...item, ...updates }
-          : item
-      )
-    )
-  }
-
-  const handleDeleteItem = (id: string) => {
-    setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
-  }
-
-  const handleOpenGameDetail = (gameId: string) => {
-    const normalizedGameId = normalizeId(gameId)
-    setSelectedGameId(normalizedGameId)
-  }
-
-  const handleOpenMovieDetail = (movieId: string) => {
-    const normalizedMovieId = normalizeId(movieId)
-    setSelectedMovieId(normalizedMovieId)
-  }
-
-  const handleOpenBookDetail = (bookId: string) => {
-    const normalizedBookId = normalizeId(bookId)
-    setSelectedBookId(normalizedBookId)
-  }
-
-  const handleOpenMusicDetail = (musicId: string) => {
-    const normalizedMusicId = normalizeId(musicId)
-    setSelectedMusicId(normalizedMusicId)
-  }
-
-  const handleOpenSearch = () => {
-    setIsSearchOpen(true)
-  }
-
-  const handleReviewSubmit = (reviewData: any) => {
-    const currentItemId = selectedGameId || selectedMovieId || selectedBookId || selectedMusicId
-    if (!currentItemId) return
-
-    const newReview: Review = {
-      id: Date.now(),
-      username: "CurrentUser",
-      rating: reviewData.rating,
-      review: reviewData.review,
-      date: new Date().toISOString().split('T')[0]
-    }
-
-    setUserReviews(prev => ({
-      ...prev,
-      [currentItemId]: [...(prev[currentItemId] || []), newReview]
-    }))
-  }
-
-  // Générer des reviews pour différentes plateformes
-  const generateSteamReviews = (gameId: number): Review[] => {
-    const reviewTemplates = [
-      { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
-      { rating: 4, text: "Great storyline and graphics. Minor bugs but overall excellent experience.", author: "GameReviewer", helpful: 89 },
-      { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
-      { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
-      { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 }
-    ]
-
-    const seed = gameId
-    const selectedReviews = []
-    const numReviews = 5
-
-    for (let i = 0; i < numReviews; i++) {
-      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length
-      const template = reviewTemplates[index]
-      
-      const gameSpecificVariations = {
-        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
-        daysAgo: (seed * i * 3) % 180 + 1,
-      }
-      
-      selectedReviews.push({
-        id: `steam_${gameId}_${i}`,
-        username: template.author,
-        rating: template.rating,
-        text: template.text,
-        helpful: gameSpecificVariations.helpful,
-        date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
-          .toISOString().split('T')[0],
-        platform: 'Steam'
-      })
-    }
-
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
-  }
-
-  const generateGoodreadsReviews = (bookId: string): Review[] => {
-    const reviewTemplates = [
-      { rating: 5, text: "Absolutely loved this book! Couldn't put it down. The characters were so well developed and the plot was engaging throughout.", author: "BookLover", helpful: 156 },
-      { rating: 4, text: "Really enjoyed this read. Great writing style and interesting themes. A few slow parts but overall fantastic.", author: "AvidReader", helpful: 89 },
-      { rating: 5, text: "One of my favorite books this year! Beautiful prose and such an emotional journey. Highly recommend!", author: "BookwormLife", helpful: 234 },
-      { rating: 3, text: "Good book but not amazing. The story was decent but felt a bit predictable at times.", author: "CasualReader", helpful: 45 },
-      { rating: 4, text: "Solid storytelling and great character development. Would definitely read more from this author.", author: "LitCritic", helpful: 112 }
-    ]
-
-    const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    const selectedReviews = []
-    
-    for (let i = 0; i < 5; i++) {
-      const index = (seed * 11 + i * 17) % reviewTemplates.length
-      const template = reviewTemplates[index]
-      
-      const bookSpecificVariations = {
-        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
-        daysAgo: (seed * i * 4) % 90 + 1,
-      }
-      
-      selectedReviews.push({
-        id: `goodreads_${bookId}_${i}`,
-        username: template.author,
-        rating: template.rating,
-        text: template.text,
-        helpful: bookSpecificVariations.helpful,
-        date: new Date(Date.now() - bookSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
-          .toISOString().split('T')[0],
-        platform: 'Goodreads'
-      })
-    }
-
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
-  }
-
-  const generateIMDBReviews = (movieId: string): Review[] => {
-    const reviewTemplates = [
-      { rating: 5, text: "A masterpiece! Brilliant acting and cinematography. This film will be remembered for years.", author: "CinemaLover", helpful: 89 },
-      { rating: 4, text: "Excellent storytelling and character development. Minor pacing issues but overall fantastic.", author: "FilmCritic", helpful: 156 },
-      { rating: 5, text: "One of the best films I've seen. Perfect blend of drama and emotion. Highly recommended!", author: "MovieBuff", helpful: 234 },
-      { rating: 3, text: "Good but not great. Some brilliant moments but overall feels uneven.", author: "CasualViewer", helpful: 45 },
-      { rating: 4, text: "Strong performances and great direction. A solid addition to the genre.", author: "FilmStudent", helpful: 78 }
-    ]
-
-    const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    const selectedReviews = []
-    
-    for (let i = 0; i < 5; i++) {
-      const index = (seed * 13 + i * 19) % reviewTemplates.length
-      const template = reviewTemplates[index]
-      
-      const movieSpecificVariations = {
-        helpful: Math.max(1, template.helpful + (seed * i % 40) - 20),
-        daysAgo: (seed * i * 2) % 120 + 1,
-      }
-      
-      selectedReviews.push({
-        id: `imdb_${movieId}_${i}`,
-        username: template.author,
-        rating: template.rating,
-        text: template.text,
-        helpful: movieSpecificVariations.helpful,
-        date: new Date(Date.now() - movieSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
-          .toISOString().split('T')[0],
-        platform: 'IMDb'
-      })
-    }
-
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
-  }
-
-  const generateSpotifyReviews = (musicId: string): Review[] => {
-    const reviewTemplates = [
-      { rating: 5, text: "This album is absolutely phenomenal! Every track is a masterpiece. Can't stop listening!", author: "MusicLover99", helpful: 201 },
-      { rating: 4, text: "Really solid album with great production. A few tracks could be stronger but overall fantastic.", author: "IndieHead", helpful: 134 },
-      { rating: 5, text: "Pure genius! The way they blend genres is incredible. This will be on repeat for months.", author: "VinylCollector", helpful: 187 },
-      { rating: 3, text: "Good but not groundbreaking. Some nice moments but doesn't live up to the hype.", author: "CasualListener", helpful: 67 },
-      { rating: 4, text: "Excellent songwriting and vocals. The production quality is top-notch throughout.", author: "AudioPhile", helpful: 145 }
-    ]
-
-    const seed = musicId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    const selectedReviews = []
-    
-    for (let i = 0; i < 5; i++) {
-      const index = (seed * 7 + i * 11) % reviewTemplates.length
-      const template = reviewTemplates[index]
-      
-      const musicSpecificVariations = {
-        helpful: Math.max(1, template.helpful + (seed * i % 60) - 30),
-        daysAgo: (seed * i * 5) % 200 + 1,
-      }
-      
-      selectedReviews.push({
-        id: `spotify_${musicId}_${i}`,
-        username: template.author,
-        rating: template.rating,
-        text: template.text,
-        helpful: musicSpecificVariations.helpful,
-        date: new Date(Date.now() - musicSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
-          .toISOString().split('T')[0],
-        platform: 'Music Community'
-      })
-    }
-
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
-  }
-
-  const getSections = () => {
-    if (activeTab === 'games') {
-      return [
-        { title: 'Popular this week', items: gameContent.popular },
-        { title: 'Top rated of all time', items: gameContent.topRated },
-        { title: 'New releases', items: gameContent.newReleases }
-      ]
-    }
-    
-    if (activeTab === 'movies') {
-      return [
-        { title: 'Popular classics', items: movieContent.popular },
-        { title: 'Top rated of all time', items: movieContent.topRated },
-        { title: 'Recent favorites', items: movieContent.recent }
-      ]
-    }
-    
-    if (activeTab === 'books') {
-      return [
-        { title: 'Fiction favorites', items: bookContent.fiction },
-        { title: 'Non-fiction highlights', items: bookContent.nonFiction },
-        { title: 'New releases', items: bookContent.newReleases }
-      ]
-    }
-
-    if (activeTab === 'music') {
-      return [
-        { title: 'Popular albums', items: musicContent.popular },
-        { title: 'Classic masterpieces', items: musicContent.topRated },
-        { title: 'Latest releases', items: musicContent.newReleases }
-      ]
-    }
-    
-    const allContent = getCurrentContent()
-    const popularItems = allContent.slice(0, 4)
-    const topRatedItems = allContent.slice(4, 8) 
-    const editorPicksItems = allContent.slice(0, 4)
-
-    const sectionConfig = {
-      games: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Top rated of all time', items: topRatedItems },
-        { title: "Editor's Choice", items: editorPicksItems }
-      ],
-      music: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Top albums', items: topRatedItems },
-        { title: 'Hidden gems', items: editorPicksItems }
-      ],
-      books: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Bestsellers', items: topRatedItems },
-        { title: 'Must reads', items: editorPicksItems }
-      ]
-    }
-
-    return sectionConfig[activeTab] || sectionConfig.games
-  }
-
-  const getCurrentContent = (): ContentItem[] => {
-    switch (activeTab) {
-      case 'games': return sampleContent.games
-      case 'movies': return sampleContent.movies
-      case 'music': return sampleContent.music
-      case 'books': return sampleContent.books
-      default: return sampleContent.games
-    }
-  }
-
-  // Rendu selon l'onglet principal actif
-  const renderMainContent = () => {
-    switch (activeMainTab) {
-      case 'home':
-        return renderHomeContent()
-      case 'library':
-        return renderLibraryContent()
-      case 'discover':
-        return renderDiscoverContent()
-      case 'search':
-        return renderSearchContent()
-      case 'roadmap':
-        return <RoadmapPage onBack={() => setActiveMainTab('home')} />
-      default:
-        return renderHomeContent()
-    }
-  }
-
-  const renderHomeContent = () => {
-    const sections = getSections()
-    
-    return (
-      <div className="bg-white">
-        {/* Header fixe avec arrière-plan gris */}
-        <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
-          {/* Barre de recherche étendue */}
-          <div className="flex items-center justify-between px-4 sm:px-6 py-4">
-            <div className="flex-1 max-w-2xl mx-auto">
-              <div 
-                className="relative cursor-pointer"
-                onClick={() => setIsSearchOpen(true)}
-              >
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
-                  <span>Search...</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center ml-4">
-              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600 text-sm font-medium">👤</span>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Onglets de catégories */}
-          <div className="px-4 sm:px-6">
-            <CategoryTabs 
-              activeTab={activeTab} 
-              onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
-            />
-          </div>
-        </div>
-        
-        {/* Contenu scrollable avec loading state */}
-        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
-          {(gamesLoading && activeTab === 'games') || 
-           (moviesLoading && activeTab === 'movies') || 
-           (booksLoading && activeTab === 'books') || 
-           (musicLoading && activeTab === 'music') ? (
-            <div className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="mb-8">
-                  <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
-                  <div className="flex space-x-4 overflow-x-auto pb-4">
-                    {[1, 2, 3, 4].map((j) => (
-                      <div key={j} className="flex-shrink-0 w-32">
-                        <div className="w-32 h-40 bg-gray-200 rounded-lg animate-pulse mb-3"></div>
-                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
-                        <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-6 sm:space-y-8">
-              {sections.map((section, index) => (
-                <ContentSection
-                  key={`${activeTab}-${index}`}
-                  title={section.title}
-                  items={section.items}
-                  category={activeTab}
-                  onAddToLibrary={handleAddToLibrary}
-                  library={library}
-                  onOpenGameDetail={handleOpenGameDetail}
-                  onOpenMovieDetail={handleOpenMovieDetail}
-                  onOpenBookDetail={handleOpenBookDetail}
-                  onOpenMusicDetail={handleOpenMusicDetail}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  const renderLibraryContent = () => (
-    <div className="bg-white min-h-screen">
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
-      </div>
-      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
-        <LibrarySection 
-          library={library}
-          onAddToLibrary={handleAddToLibrary}
-          onUpdateItem={handleUpdateItem}
-          onDeleteItem={handleDeleteItem}
-          onOpenGameDetail={handleOpenGameDetail}
-          onOpenMovieDetail={handleOpenMovieDetail}
-          onOpenBookDetail={handleOpenBookDetail}
-          onOpenMusicDetail={handleOpenMusicDetail}
-          onOpenSearch={handleOpenSearch}
-        />
-      </div>
-    </div>
-  )
-
-  const renderDiscoverContent = () => (
-    <div className="bg-white min-h-screen">
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
-      </div>
-      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
-        <div className="space-y-6">
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Trending This Week</h3>
-            <p className="text-gray-600">Baldur's Gate 3, Spider-Man 2, Cyberpunk 2077</p>
-          </div>
-          <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Recommended for You</h3>
-            <p className="text-gray-600">Based on your preferences</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  const renderSearchContent = () => (
-    <div className="bg-white min-h-screen">
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Search</h1>
-      </div>
-      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
-        <div 
-          className="bg-gray-50 rounded-xl p-4 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
-          onClick={() => setIsSearchOpen(true)}
-        >
-          <div className="flex items-center space-x-3">
-            <Search className="text-gray-400" size={20} />
-            <span className="text-gray-500">Search games, movies, music, books...</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  return (
-    <div className="min-h-screen bg-white">
-      {renderMainContent()}
-
-      {/* Bottom Navigation */}
-      <BottomNavigation 
-        activeTab={activeMainTab} 
-        onTabChange={setActiveMainTab} 
-      />
-
-      {/* Modals */}
-      <GameDetailModal
-        isOpen={!!selectedGameId}
-        onClose={() => setSelectedGameId(null)}
-        gameId={selectedGameId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        library={library}
-        userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
-        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
-
-      <MovieDetailModal
-        isOpen={!!selectedMovieId}
-        onClose={() => setSelectedMovieId(null)}
-        movieId={selectedMovieId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        library={library}
-        userReviews={selectedMovieId ? userReviews[selectedMovieId] || [] : []}
-        imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
-
-      <BookDetailModal
-        isOpen={!!selectedBookId}
-        onClose={() => setSelectedBookId(null)}
-        bookId={selectedBookId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        library={library}
-        userReviews={selectedBookId ? userReviews[selectedBookId] || [] : []}
-        goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
-
-      <MusicDetailModal
-        isOpen={!!selectedMusicId}
-        onClose={() => setSelectedMusicId(null)}
-        albumId={selectedMusicId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        library={library}
-        userReviews={selectedMusicId ? userReviews[selectedMusicId] || [] : []}
-        spotifyReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
-
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenGameDetail={handleOpenGameDetail}
-        onOpenMovieDetail={handleOpenMovieDetail}
-        onOpenBookDetail={handleOpenBookDetail}
-        onOpenMusicDetail={handleOpenMusicDetail}
-        library={library}
-      />
-    </div>
-  )
-}
-</file>
-
 <file path="src/components/SearchModal.tsx">
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -8163,6 +7609,814 @@ function debounce<T extends (...args: any[]) => any>(
     if (timeout) clearTimeout(timeout)
     timeout = setTimeout(() => func(...args), wait)
   }
+}
+</file>
+
+<file path="src/app/page.tsx">
+'use client'
+import { useState, useEffect } from 'react'
+import { Search } from 'lucide-react'
+import CategoryTabs from '@/components/CategoryTabs'
+import ContentSection from '@/components/ContentSection'
+import LibrarySection from '@/components/LibrarySection'
+import GameDetailModal from '@/components/GameDetailModal'
+import MovieDetailModal from '@/components/MovieDetailModal'
+import BookDetailModal from '@/components/BookDetailModal'
+import MusicDetailModal from '@/components/MusicDetailModal'
+import SearchModal from '@/components/SearchModal'
+import BottomNavigation from '@/components/BottomNavigation'
+import RoadmapPage from '@/components/RoadmapPage'
+import { sampleContent } from '@/data/sampleContent'
+import { omdbService } from '@/services/omdbService'
+import { googleBooksService } from '@/services/googleBooksService'
+import { musicService } from '@/services/musicService'
+import { rawgService } from '@/services/rawgService'
+import { LibraryService } from '@/services/libraryService'
+import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<MediaCategory>('games')
+  const [activeMainTab, setActiveMainTab] = useState('home')
+  const [library, setLibrary] = useState<LibraryItem[]>([])
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
+  const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  
+  // State pour le contenu dynamique des jeux
+  const [gameContent, setGameContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    newReleases: []
+  })
+  const [gamesLoading, setGamesLoading] = useState(false)
+  
+  // State pour le contenu dynamique des films
+  const [movieContent, setMovieContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    recent: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    recent: []
+  })
+  const [moviesLoading, setMoviesLoading] = useState(false)
+
+  // State pour le contenu dynamique des livres
+  const [bookContent, setBookContent] = useState<{
+    fiction: ContentItem[]
+    nonFiction: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    fiction: [],
+    nonFiction: [],
+    newReleases: []
+  })
+  const [booksLoading, setBooksLoading] = useState(false)
+
+  // State pour le contenu dynamique de la musique
+  const [musicContent, setMusicContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    newReleases: []
+  })
+  const [musicLoading, setMusicLoading] = useState(false)
+
+  // User reviews state
+  const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
+
+  // Charger la bibliothèque au démarrage
+  useEffect(() => {
+    const loadSavedLibrary = async () => {
+      try {
+        const savedLibrary = await LibraryService.getLibrary()
+        setLibrary(savedLibrary)
+        
+        // Test optionnel de connexion Supabase
+        await LibraryService.testSupabaseConnection()
+      } catch (error) {
+        console.error('Error loading saved library:', error)
+      }
+    }
+    loadSavedLibrary()
+  }, [])
+
+  // Charger le contenu selon la catégorie active
+  useEffect(() => {
+    if (activeTab === 'games') {
+      loadGameContent()
+    } else if (activeTab === 'movies') {
+      loadMovieContent()
+    } else if (activeTab === 'books') {
+      loadBookContent()
+    } else if (activeTab === 'music') {
+      loadMusicContent()
+    }
+  }, [activeTab])
+
+  const loadGameContent = async () => {
+    try {
+      setGamesLoading(true)
+
+      const [popularGames, topRatedGames, newReleaseGames] = await Promise.all([
+        rawgService.getPopularGames().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        ),
+        rawgService.getTopRatedGames().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        ),
+        rawgService.getNewReleases().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        )
+      ])
+
+      setGameContent({
+        popular: popularGames,
+        topRated: topRatedGames,
+        newReleases: newReleaseGames
+      })
+    } catch (error) {
+      console.error('Error loading game content:', error)
+      
+      // Fallback vers les données statiques
+      setGameContent({
+        popular: sampleContent.games.slice(0, 4),
+        topRated: sampleContent.games.slice(4, 8),
+        newReleases: sampleContent.games.slice(0, 4)
+      })
+    } finally {
+      setGamesLoading(false)
+    }
+  }
+
+  const loadMovieContent = async () => {
+    try {
+      setMoviesLoading(true)
+
+      const [popularMovies, topRatedMovies, recentMovies] = await Promise.all([
+        omdbService.getPopularMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        ),
+        omdbService.getTopRatedMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        ),
+        omdbService.getRecentMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        )
+      ])
+
+      setMovieContent({
+        popular: popularMovies,
+        topRated: topRatedMovies,
+        recent: recentMovies
+      })
+    } catch (error) {
+      console.error('Error loading movie content:', error)
+      
+      // Fallback vers les données statiques
+      setMovieContent({
+        popular: sampleContent.movies.slice(0, 4),
+        topRated: sampleContent.movies.slice(4, 8),
+        recent: sampleContent.movies.slice(0, 4)
+      })
+    } finally {
+      setMoviesLoading(false)
+    }
+  }
+
+  const loadBookContent = async () => {
+    try {
+      setBooksLoading(true)
+
+      const [fictionBooks, nonFictionBooks, newReleaseBooks] = await Promise.all([
+        googleBooksService.getFictionBooks().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        ),
+        googleBooksService.getNonFictionBooks().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        ),
+        googleBooksService.getNewReleases().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        )
+      ])
+
+      setBookContent({
+        fiction: fictionBooks,
+        nonFiction: nonFictionBooks,
+        newReleases: newReleaseBooks
+      })
+    } catch (error) {
+      console.error('Error loading book content:', error)
+      
+      // Fallback vers les données statiques
+      setBookContent({
+        fiction: sampleContent.books.slice(0, 4),
+        nonFiction: sampleContent.books.slice(4, 8),
+        newReleases: sampleContent.books.slice(0, 4)
+      })
+    } finally {
+      setBooksLoading(false)
+    }
+  }
+
+  const loadMusicContent = async () => {
+    try {
+      setMusicLoading(true)
+
+      const [popularAlbums, topRatedAlbums, newReleaseAlbums] = await Promise.all([
+        musicService.getPopularAlbums().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        ),
+        musicService.getTopRatedAlbums().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        ),
+        musicService.getNewReleases().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        )
+      ])
+
+      setMusicContent({
+        popular: popularAlbums,
+        topRated: topRatedAlbums,
+        newReleases: newReleaseAlbums
+      })
+    } catch (error) {
+      console.error('Error loading music content:', error)
+      
+      // Fallback vers les données statiques
+      setMusicContent({
+        popular: sampleContent.music.slice(0, 4),
+        topRated: sampleContent.music.slice(4, 8),
+        newReleases: sampleContent.music.slice(0, 4)
+      })
+    } finally {
+      setMusicLoading(false)
+    }
+  }
+
+  // Fonction modifiée pour ajouter à la bibliothèque avec Supabase
+  const handleAddToLibrary = async (item: any, status: MediaStatus) => {
+    const normalizedId = normalizeId(item.id)
+    
+    const newItem: LibraryItem = {
+      id: normalizedId,
+      title: item.title,
+      category: item.category || activeTab,
+      status,
+      addedAt: new Date().toISOString(),
+      year: item.year || new Date().getFullYear(),
+      rating: item.rating || 0,
+      image: item.image || item.background_image,
+      author: item.author,
+      artist: item.artist,
+      director: item.director,
+      genre: item.genre
+    }
+
+    // Sauvegarder avec le service
+    const success = await LibraryService.addToLibrary(newItem, status)
+    
+    if (success) {
+      // Mettre à jour l'état local
+      setLibrary(prev => {
+        const existingIndex = prev.findIndex((libItem: LibraryItem) => 
+          idsMatch(libItem.id, normalizedId)
+        )
+        
+        if (existingIndex !== -1) {
+          const updated = [...prev]
+          updated[existingIndex] = { 
+            ...updated[existingIndex], 
+            status, 
+            addedAt: new Date().toISOString() 
+          }
+          return updated
+        }
+        
+        return [newItem, ...prev] // Ajouter en premier
+      })
+    }
+  }
+
+  const handleUpdateItem = async (id: string, updates: Partial<LibraryItem>) => {
+    const success = await LibraryService.updateLibraryItem(id, updates)
+    
+    if (success) {
+      setLibrary(prev =>
+        prev.map(item =>
+          idsMatch(item.id, id)
+            ? { ...item, ...updates }
+            : item
+        )
+      )
+    }
+  }
+
+  const handleDeleteItem = async (id: string) => {
+    const success = await LibraryService.removeFromLibrary(id)
+    
+    if (success) {
+      setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
+    }
+  }
+
+  const handleOpenGameDetail = (gameId: string) => {
+    const normalizedGameId = normalizeId(gameId)
+    setSelectedGameId(normalizedGameId)
+  }
+
+  const handleOpenMovieDetail = (movieId: string) => {
+    const normalizedMovieId = normalizeId(movieId)
+    setSelectedMovieId(normalizedMovieId)
+  }
+
+  const handleOpenBookDetail = (bookId: string) => {
+    const normalizedBookId = normalizeId(bookId)
+    setSelectedBookId(normalizedBookId)
+  }
+
+  const handleOpenMusicDetail = (musicId: string) => {
+    const normalizedMusicId = normalizeId(musicId)
+    setSelectedMusicId(normalizedMusicId)
+  }
+
+  const handleOpenSearch = () => {
+    setIsSearchOpen(true)
+  }
+
+  const handleReviewSubmit = (reviewData: any) => {
+    const currentItemId = selectedGameId || selectedMovieId || selectedBookId || selectedMusicId
+    if (!currentItemId) return
+
+    const newReview: Review = {
+      id: Date.now(),
+      username: "CurrentUser",
+      rating: reviewData.rating,
+      review: reviewData.review,
+      date: new Date().toISOString().split('T')[0]
+    }
+
+    setUserReviews(prev => ({
+      ...prev,
+      [currentItemId]: [...(prev[currentItemId] || []), newReview]
+    }))
+  }
+
+  // Générer des reviews pour différentes plateformes
+  const generateSteamReviews = (gameId: number): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
+      { rating: 4, text: "Great storyline and graphics. Minor bugs but overall excellent experience.", author: "GameReviewer", helpful: 89 },
+      { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
+      { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
+      { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 }
+    ]
+
+    const seed = gameId
+    const selectedReviews = []
+    const numReviews = 5
+
+    for (let i = 0; i < numReviews; i++) {
+      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length
+      const template = reviewTemplates[index]
+      
+      const gameSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
+        daysAgo: (seed * i * 3) % 180 + 1,
+      }
+      
+      selectedReviews.push({
+        id: `steam_${gameId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: gameSpecificVariations.helpful,
+        date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Steam'
+      })
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
+
+  const generateGoodreadsReviews = (bookId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "Absolutely loved this book! Couldn't put it down. The characters were so well developed and the plot was engaging throughout.", author: "BookLover", helpful: 156 },
+      { rating: 4, text: "Really enjoyed this read. Great writing style and interesting themes. A few slow parts but overall fantastic.", author: "AvidReader", helpful: 89 },
+      { rating: 5, text: "One of my favorite books this year! Beautiful prose and such an emotional journey. Highly recommend!", author: "BookwormLife", helpful: 234 },
+      { rating: 3, text: "Good book but not amazing. The story was decent but felt a bit predictable at times.", author: "CasualReader", helpful: 45 },
+      { rating: 4, text: "Solid storytelling and great character development. Would definitely read more from this author.", author: "LitCritic", helpful: 112 }
+    ]
+
+    const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 11 + i * 17) % reviewTemplates.length
+      const template = reviewTemplates[index]
+      
+      const bookSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
+        daysAgo: (seed * i * 4) % 90 + 1,
+      }
+      
+      selectedReviews.push({
+        id: `goodreads_${bookId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: bookSpecificVariations.helpful,
+        date: new Date(Date.now() - bookSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Goodreads'
+      })
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
+
+  const generateIMDBReviews = (movieId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "A masterpiece! Brilliant acting and cinematography. This film will be remembered for years.", author: "CinemaLover", helpful: 89 },
+      { rating: 4, text: "Excellent storytelling and character development. Minor pacing issues but overall fantastic.", author: "FilmCritic", helpful: 156 },
+      { rating: 5, text: "One of the best films I've seen. Perfect blend of drama and emotion. Highly recommended!", author: "MovieBuff", helpful: 234 },
+      { rating: 3, text: "Good but not great. Some brilliant moments but overall feels uneven.", author: "CasualViewer", helpful: 45 },
+      { rating: 4, text: "Strong performances and great direction. A solid addition to the genre.", author: "FilmStudent", helpful: 78 }
+    ]
+
+    const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 13 + i * 19) % reviewTemplates.length
+      const template = reviewTemplates[index]
+      
+      const movieSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 40) - 20),
+        daysAgo: (seed * i * 2) % 120 + 1,
+      }
+      
+      selectedReviews.push({
+        id: `imdb_${movieId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: movieSpecificVariations.helpful,
+        date: new Date(Date.now() - movieSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'IMDb'
+      })
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
+
+  const generateSpotifyReviews = (musicId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "This album is absolutely phenomenal! Every track is a masterpiece. Can't stop listening!", author: "MusicLover99", helpful: 201 },
+      { rating: 4, text: "Really solid album with great production. A few tracks could be stronger but overall fantastic.", author: "IndieHead", helpful: 134 },
+      { rating: 5, text: "Pure genius! The way they blend genres is incredible. This will be on repeat for months.", author: "VinylCollector", helpful: 187 },
+      { rating: 3, text: "Good but not groundbreaking. Some nice moments but doesn't live up to the hype.", author: "CasualListener", helpful: 67 },
+      { rating: 4, text: "Excellent songwriting and vocals. The production quality is top-notch throughout.", author: "AudioPhile", helpful: 145 }
+    ]
+
+    const seed = musicId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 7 + i * 11) % reviewTemplates.length
+      const template = reviewTemplates[index]
+      
+      const musicSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 60) - 30),
+        daysAgo: (seed * i * 5) % 200 + 1,
+      }
+      
+      selectedReviews.push({
+        id: `spotify_${musicId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: musicSpecificVariations.helpful,
+        date: new Date(Date.now() - musicSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Music Community'
+      })
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
+
+  const getSections = () => {
+    if (activeTab === 'games') {
+      return [
+        { title: 'Popular this week', items: gameContent.popular },
+        { title: 'Top rated of all time', items: gameContent.topRated },
+        { title: 'New releases', items: gameContent.newReleases }
+      ]
+    }
+    
+    if (activeTab === 'movies') {
+      return [
+        { title: 'Popular classics', items: movieContent.popular },
+        { title: 'Top rated of all time', items: movieContent.topRated },
+        { title: 'Recent favorites', items: movieContent.recent }
+      ]
+    }
+    
+    if (activeTab === 'books') {
+      return [
+        { title: 'Fiction favorites', items: bookContent.fiction },
+        { title: 'Non-fiction highlights', items: bookContent.nonFiction },
+        { title: 'New releases', items: bookContent.newReleases }
+      ]
+    }
+
+    if (activeTab === 'music') {
+      return [
+        { title: 'Popular albums', items: musicContent.popular },
+        { title: 'Classic masterpieces', items: musicContent.topRated },
+        { title: 'Latest releases', items: musicContent.newReleases }
+      ]
+    }
+    
+    const allContent = getCurrentContent()
+    const popularItems = allContent.slice(0, 4)
+    const topRatedItems = allContent.slice(4, 8) 
+    const editorPicksItems = allContent.slice(0, 4)
+
+    const sectionConfig = {
+      games: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Top rated of all time', items: topRatedItems },
+        { title: "Editor's Choice", items: editorPicksItems }
+      ],
+      music: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Top albums', items: topRatedItems },
+        { title: 'Hidden gems', items: editorPicksItems }
+      ],
+      books: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Bestsellers', items: topRatedItems },
+        { title: 'Must reads', items: editorPicksItems }
+      ]
+    }
+
+    return sectionConfig[activeTab] || sectionConfig.games
+  }
+
+  const getCurrentContent = (): ContentItem[] => {
+    switch (activeTab) {
+      case 'games': return sampleContent.games
+      case 'movies': return sampleContent.movies
+      case 'music': return sampleContent.music
+      case 'books': return sampleContent.books
+      default: return sampleContent.games
+    }
+  }
+
+  // Rendu selon l'onglet principal actif
+  const renderMainContent = () => {
+    switch (activeMainTab) {
+      case 'home':
+        return renderHomeContent()
+      case 'library':
+        return renderLibraryContent()
+      case 'discover':
+        return renderDiscoverContent()
+      case 'search':
+        return renderSearchContent()
+      case 'roadmap':
+        return <RoadmapPage onBack={() => setActiveMainTab('home')} />
+      default:
+        return renderHomeContent()
+    }
+  }
+
+  const renderHomeContent = () => {
+    const sections = getSections()
+    
+    return (
+      <div className="bg-white">
+        {/* Header fixe avec arrière-plan gris */}
+        <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
+          {/* Barre de recherche étendue */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4">
+            <div className="flex-1 max-w-2xl mx-auto">
+              <div 
+                className="relative cursor-pointer"
+                onClick={() => setIsSearchOpen(true)}
+              >
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
+                  <span>Search...</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center ml-4">
+              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 text-sm font-medium">👤</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Onglets de catégories */}
+          <div className="px-4 sm:px-6">
+            <CategoryTabs 
+              activeTab={activeTab} 
+              onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
+            />
+          </div>
+        </div>
+        
+        {/* Contenu scrollable avec loading state */}
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
+          {(gamesLoading && activeTab === 'games') || 
+           (moviesLoading && activeTab === 'movies') || 
+           (booksLoading && activeTab === 'books') || 
+           (musicLoading && activeTab === 'music') ? (
+            <div className="space-y-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="mb-8">
+                  <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
+                  <div className="flex space-x-4 overflow-x-auto pb-4">
+                    {[1, 2, 3, 4].map((j) => (
+                      <div key={j} className="flex-shrink-0 w-32">
+                        <div className="w-32 h-40 bg-gray-200 rounded-lg animate-pulse mb-3"></div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6 sm:space-y-8">
+              {sections.map((section, index) => (
+                <ContentSection
+                  key={`${activeTab}-${index}`}
+                  title={section.title}
+                  items={section.items}
+                  category={activeTab}
+                  onAddToLibrary={handleAddToLibrary}
+                  library={library}
+                  onOpenGameDetail={handleOpenGameDetail}
+                  onOpenMovieDetail={handleOpenMovieDetail}
+                  onOpenBookDetail={handleOpenBookDetail}
+                  onOpenMusicDetail={handleOpenMusicDetail}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderLibraryContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <LibrarySection 
+          library={library}
+          onAddToLibrary={handleAddToLibrary}
+          onUpdateItem={handleUpdateItem}
+          onDeleteItem={handleDeleteItem}
+          onOpenGameDetail={handleOpenGameDetail}
+          onOpenMovieDetail={handleOpenMovieDetail}
+          onOpenBookDetail={handleOpenBookDetail}
+          onOpenMusicDetail={handleOpenMusicDetail}
+          onOpenSearch={handleOpenSearch}
+        />
+      </div>
+    </div>
+  )
+
+  const renderDiscoverContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Trending This Week</h3>
+            <p className="text-gray-600">Baldur's Gate 3, Spider-Man 2, Cyberpunk 2077</p>
+          </div>
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Recommended for You</h3>
+            <p className="text-gray-600">Based on your preferences</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderSearchContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Search</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <div 
+          className="bg-gray-50 rounded-xl p-4 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+          onClick={() => setIsSearchOpen(true)}
+        >
+          <div className="flex items-center space-x-3">
+            <Search className="text-gray-400" size={20} />
+            <span className="text-gray-500">Search games, movies, music, books...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen bg-white">
+      {renderMainContent()}
+
+      {/* Bottom Navigation */}
+      <BottomNavigation 
+        activeTab={activeMainTab} 
+        onTabChange={setActiveMainTab} 
+      />
+
+      {/* Modals */}
+      <GameDetailModal
+        isOpen={!!selectedGameId}
+        onClose={() => setSelectedGameId(null)}
+        gameId={selectedGameId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
+        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <MovieDetailModal
+        isOpen={!!selectedMovieId}
+        onClose={() => setSelectedMovieId(null)}
+        movieId={selectedMovieId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedMovieId ? userReviews[selectedMovieId] || [] : []}
+        imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <BookDetailModal
+        isOpen={!!selectedBookId}
+        onClose={() => setSelectedBookId(null)}
+        bookId={selectedBookId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedBookId ? userReviews[selectedBookId] || [] : []}
+        goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <MusicDetailModal
+        isOpen={!!selectedMusicId}
+        onClose={() => setSelectedMusicId(null)}
+        albumId={selectedMusicId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        library={library}
+        userReviews={selectedMusicId ? userReviews[selectedMusicId] || [] : []}
+        spotifyReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenGameDetail={handleOpenGameDetail}
+        onOpenMovieDetail={handleOpenMovieDetail}
+        onOpenBookDetail={handleOpenBookDetail}
+        onOpenMusicDetail={handleOpenMusicDetail}
+        library={library}
+      />
+    </div>
+  )
 }
 </file>
 
