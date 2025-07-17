@@ -30,6 +30,19 @@ export interface ContentItem {
   
   // Propriété alternative pour les noms
   name?: string
+  
+  // NOUVELLES PROPRIÉTÉS pour films/séries
+  type?: string        // 'movie' ou 'series'
+  isMovie?: boolean    // true si c'est un film
+  isSeries?: boolean   // true si c'est une série TV
+  totalSeasons?: number // Nombre de saisons pour les séries
+  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
+  overview?: string    // Synopsis/description
+  runtime?: string     // Durée
+  actors?: string      // Acteurs principaux
+  language?: string    // Langue
+  country?: string     // Pays
+  awards?: string      // Récompenses
 }
 
 // Interface pour les items dans la bibliothèque utilisateur
@@ -45,7 +58,7 @@ export interface LibraryItem extends ContentItem {
 
 // Interface pour les résultats de recherche
 export interface SearchResult extends ContentItem {
-  // Hérite de ContentItem, pas besoin d'ajouter de propriétés
+  // Hérite de ContentItem avec toutes les nouvelles propriétés
 }
 
 // Interface pour les reviews/critiques

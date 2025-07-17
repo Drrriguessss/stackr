@@ -253,8 +253,8 @@ export default function SearchModal({
       }
 
       if (category === 'all' || category === 'movies') {
-        searchPromises.push(searchMovies(searchQuery).catch(err => {
-          errors.push(`Movies: ${err.message}`)
+        searchPromises.push(searchMoviesAndSeries(searchQuery).catch(err => {
+          errors.push(`Movies & TV: ${err.message}`)
           return []
         }))
       }
@@ -327,10 +327,11 @@ export default function SearchModal({
     }))
   }
 
-  const searchMovies = async (query: string): Promise<SearchResult[]> => {
+  // NOUVELLE FONCTION : Recherche films + séries combinés
+  const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
     try {
-      const movies = await omdbService.searchMovies(query)
-      return movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+      const moviesAndSeries = await omdbService.searchMoviesAndSeries(query)
+      return moviesAndSeries.slice(0, 8).map(item => omdbService.convertToAppFormat(item))
     } catch (error) {
       console.error('OMDB search failed:', error)
       throw error
@@ -454,7 +455,7 @@ export default function SearchModal({
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search games, movies, music, books..."
+            placeholder="Search games, movies, TV shows, music, books..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -474,7 +475,7 @@ export default function SearchModal({
           {[
             { key: 'all', label: 'All' },
             { key: 'games', label: 'Games' },
-            { key: 'movies', label: 'Movies' },
+            { key: 'movies', label: 'Movies & TV' },
             { key: 'music', label: 'Music' },
             { key: 'books', label: 'Books' }
           ].map(({ key, label }) => (
@@ -571,9 +572,15 @@ export default function SearchModal({
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="text-gray-900 font-medium truncate">{result.title}</h3>
+                        <h3 className="text-gray-900 font-medium truncate flex-1">
+                          {result.title}
+                          {/* Indicateur TV Series */}
+                          {result.isSeries && (
+                            <span className="ml-2 text-purple-600 text-xs"> • TV Series</span>
+                          )}
+                        </h3>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium border ${categoryInfo.color} flex-shrink-0`}>
-                          {result.category}
+                          {result.category === 'movies' ? (result.isSeries ? 'TV' : 'Film') : result.category}
                         </span>
                       </div>
                       <p className="text-gray-600 text-sm truncate">{getCreator(result)}</p>
@@ -592,6 +599,13 @@ export default function SearchModal({
                               <Star size={12} className="text-yellow-500 mr-1" />
                               <span>{result.rating}</span>
                             </div>
+                          </>
+                        )}
+                        {/* Afficher saisons pour les séries */}
+                        {result.isSeries && result.totalSeasons && (
+                          <>
+                            <span>•</span>
+                            <span>{result.totalSeasons} season{result.totalSeasons > 1 ? 's' : ''}</span>
                           </>
                         )}
                       </div>

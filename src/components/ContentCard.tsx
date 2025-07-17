@@ -164,8 +164,19 @@ export default function ContentCard({
       </div>
 
       <div className="mt-3 px-1">
-        <h3 className="text-gray-900 text-sm font-semibold truncate leading-tight">{item.title}</h3>
-        <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-gray-900 text-sm font-semibold truncate leading-tight flex-1">
+            {item.title}
+          </h3>
+          {/* Indicateur série TV */}
+          {item.isSeries && (
+            <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium flex-shrink-0">
+              TV
+            </span>
+          )}
+        </div>
+        
+        <div className="flex justify-between items-center text-xs text-gray-500">
           <span>{item.year}</span>
           {item.rating && item.rating > 0 && (
             <span className="flex items-center">
@@ -174,6 +185,13 @@ export default function ContentCard({
             </span>
           )}
         </div>
+        
+        {/* Afficher le nombre de saisons pour les séries */}
+        {item.isSeries && item.totalSeasons && (
+          <div className="text-xs text-gray-500 mt-1">
+            {item.totalSeasons} season{item.totalSeasons > 1 ? 's' : ''}
+          </div>
+        )}
       </div>
 
       {showActions && (

@@ -9,7 +9,7 @@ export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsPro
   const tabs = [
     { id: 'books', name: 'Books' },
     { id: 'games', name: 'Games' },
-    { id: 'movies', name: 'Movies' },
+    { id: 'movies', name: 'Movies & TV' },
     { id: 'music', name: 'Music' },
   ]
 
