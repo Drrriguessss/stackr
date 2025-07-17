@@ -69,9 +69,12 @@ src/components/MusicDetailModal.tsx
 src/components/RoadmapPage.tsx
 src/components/SearchModal.tsx
 src/data/sampleContent.ts
+src/lib/supabase.ts
 src/services/googleBooksService.ts
+src/services/libraryService.ts
 src/services/musicService.ts
 src/services/omdbService.ts
+src/services/rawgService.ts
 src/tailwind.config.js
 src/types/index.ts
 src/utils/idNormalizer.ts
@@ -80,6 +83,225 @@ tsconfig.json
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="src/lib/supabase.ts">
+// src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Créer le client Supabase
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Test de connexion (optionnel)
+export const testSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('library_items').select('*').limit(1)
+    if (error && error.code !== 'PGRST116') { // PGRST116 = table n'existe pas encore
+      console.error('Supabase connection error:', error)
+      return false
+    }
+    console.log('✅ Supabase connected successfully!')
+    return true
+  } catch (error) {
+    console.error('❌ Supabase connection failed:', error)
+    return false
+  }
+}
+</file>
+
+<file path="src/services/libraryService.ts">
+// src/services/libraryService.ts
+import { supabase } from '@/lib/supabase'
+import type { LibraryItem, MediaStatus } from '@/types'
+
+export class LibraryService {
+  // Clé pour localStorage (fallback)
+  private static STORAGE_KEY = 'stackr_library'
+
+  // Récupérer la bibliothèque (localStorage en attendant l'auth)
+  static async getLibrary(): Promise<LibraryItem[]> {
+    try {
+      // Pour l'instant on utilise localStorage
+      // Une fois l'auth configurée, on utilisera Supabase
+      const stored = localStorage.getItem(this.STORAGE_KEY)
+      const items = stored ? JSON.parse(stored) : []
+      console.log('📚 Library loaded:', items.length, 'items')
+      return items
+    } catch (error) {
+      console.error('❌ Error loading library:', error)
+      return []
+    }
+  }
+
+  // Ajouter à la bibliothèque
+  static async addToLibrary(item: any, status: MediaStatus): Promise<boolean> {
+    try {
+      const library = await this.getLibrary()
+      
+      // Vérifier si l'item existe déjà
+      const existingIndex = library.findIndex(libItem => libItem.id === item.id)
+      
+      const newItem: LibraryItem = {
+        id: item.id,
+        title: item.title,
+        category: item.category,
+        status,
+        addedAt: new Date().toISOString(),
+        year: item.year || new Date().getFullYear(),
+        rating: item.rating || 0,
+        image: item.image || item.background_image,
+        author: item.author,
+        artist: item.artist,
+        director: item.director,
+        genre: item.genre
+      }
+
+      if (existingIndex !== -1) {
+        // Mettre à jour l'item existant
+        library[existingIndex] = { ...library[existingIndex], ...newItem }
+        console.log('📝 Updated item in library:', newItem.title)
+      } else {
+        // Ajouter le nouvel item
+        library.unshift(newItem) // unshift pour ajouter en premier
+        console.log('➕ Added new item to library:', newItem.title)
+      }
+
+      // Sauvegarder
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+      console.log('💾 Library saved! Total items:', library.length)
+      return true
+    } catch (error) {
+      console.error('❌ Error adding to library:', error)
+      return false
+    }
+  }
+
+  // Mettre à jour un item
+  static async updateLibraryItem(itemId: string, updates: Partial<LibraryItem>): Promise<boolean> {
+    try {
+      const library = await this.getLibrary()
+      const itemIndex = library.findIndex(item => item.id === itemId)
+      
+      if (itemIndex === -1) {
+        console.warn('⚠️ Item not found for update:', itemId)
+        return false
+      }
+
+      // Appliquer les mises à jour
+      library[itemIndex] = { ...library[itemIndex], ...updates }
+      
+      // Auto-set dates based on status
+      if (updates.status === 'currently-playing' && !library[itemIndex].dateStarted) {
+        library[itemIndex].dateStarted = new Date().toISOString()
+      }
+      if (updates.status === 'completed' && !library[itemIndex].dateCompleted) {
+        library[itemIndex].dateCompleted = new Date().toISOString()
+      }
+
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+      console.log('📝 Updated library item:', library[itemIndex].title)
+      return true
+    } catch (error) {
+      console.error('❌ Error updating library item:', error)
+      return false
+    }
+  }
+
+  // Supprimer un item
+  static async removeFromLibrary(itemId: string): Promise<boolean> {
+    try {
+      const library = await this.getLibrary()
+      const itemToRemove = library.find(item => item.id === itemId)
+      
+      if (!itemToRemove) {
+        console.warn('⚠️ Item not found for deletion:', itemId)
+        return false
+      }
+
+      const filteredLibrary = library.filter(item => item.id !== itemId)
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredLibrary))
+      console.log('🗑️ Removed from library:', itemToRemove.title)
+      return true
+    } catch (error) {
+      console.error('❌ Error removing from library:', error)
+      return false
+    }
+  }
+
+  // Statistiques de la bibliothèque
+  static async getLibraryStats() {
+    try {
+      const library = await this.getLibrary()
+      const stats = {
+        total: library.length,
+        byStatus: {} as Record<MediaStatus, number>,
+        byCategory: {} as Record<string, number>
+      }
+
+      library.forEach(item => {
+        // Stats par statut
+        stats.byStatus[item.status] = (stats.byStatus[item.status] || 0) + 1
+        // Stats par catégorie
+        stats.byCategory[item.category] = (stats.byCategory[item.category] || 0) + 1
+      })
+
+      console.log('📊 Library stats:', stats)
+      return stats
+    } catch (error) {
+      console.error('❌ Error getting library stats:', error)
+      return { total: 0, byStatus: {} as any, byCategory: {} }
+    }
+  }
+
+  // Test de connexion Supabase (pour le futur)
+  static async testSupabaseConnection(): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.from('library_items').select('*').limit(1)
+      if (error && error.code === 'PGRST116') {
+        console.log('ℹ️ Supabase connected but tables not created yet')
+        return true
+      }
+      if (error) {
+        console.error('❌ Supabase error:', error.message)
+        return false
+      }
+      console.log('✅ Supabase fully operational!')
+      return true
+    } catch (error) {
+      console.log('ℹ️ Supabase not configured yet, using localStorage')
+      return false
+    }
+  }
+
+  // Fonction pour migrer vers Supabase plus tard
+  static async migrateToSupabase(): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.log('ℹ️ No user authenticated for migration')
+        return false
+      }
+
+      const localLibrary = await this.getLibrary()
+      if (localLibrary.length === 0) {
+        console.log('ℹ️ No local library to migrate')
+        return true
+      }
+
+      // TODO: Implémenter la migration une fois l'auth configurée
+      console.log('🔄 Migration will be implemented after auth setup')
+      return true
+    } catch (error) {
+      console.error('❌ Migration error:', error)
+      return false
+    }
+  }
+}
+
+export default LibraryService
+</file>
 
 <file path=".gitignore">
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
@@ -1658,318 +1880,6 @@ export default function MovieDetailModal({
 }
 </file>
 
-<file path="src/components/MusicDetailModal.tsx">
-'use client'
-import { useState, useEffect, useRef } from 'react'
-import { X, Star, ExternalLink, Calendar, Music, Award, Users, Globe, Play, HeadphonesIcon } from 'lucide-react'
-import { musicService, formatTrackCount, formatPrice, formatDuration } from '@/services/musicService'
-import type { LibraryItem, Review, MediaStatus } from '@/types'
-
-interface MusicDetailModalProps {
-  isOpen: boolean
-  onClose: () => void
-  albumId: string
-  onAddToLibrary: (item: any, status: MediaStatus) => void
-  library: LibraryItem[]
-  userReviews: Review[]
-  spotifyReviews: Review[]
-  onReviewSubmit: (reviewData: any) => void
-}
-
-interface AlbumDetail {
-  collectionId: number
-  collectionName: string
-  artistName: string
-  artworkUrl100?: string
-  releaseDate?: string
-  primaryGenreName?: string
-  trackCount?: number
-  copyright?: string
-  collectionPrice?: number
-  currency?: string
-  country?: string
-  collectionViewUrl?: string
-  artistViewUrl?: string
-  collectionType?: string
-}
-
-export default function MusicDetailModal({ 
-  isOpen, 
-  onClose, 
-  albumId, 
-  onAddToLibrary, 
-  library, 
-  userReviews, 
-  spotifyReviews, 
-  onReviewSubmit 
-}: MusicDetailModalProps) {
-  const [albumDetail, setAlbumDetail] = useState<AlbumDetail | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info')
-  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
-  const [userRating, setUserRating] = useState<number>(0)
-  const [hoverRating, setHoverRating] = useState<number>(0)
-  const [showReviewBox, setShowReviewBox] = useState(false)
-  const [userReview, setUserReview] = useState('')
-  const [similarAlbums, setSimilarAlbums] = useState<any[]>([])
-  const [artistAlbums, setArtistAlbums] = useState<any[]>([])
-
-  const scrollableRef = useRef<HTMLDivElement>(null)
-
-  const albumStats = {
-    'want-to-play': 1845,
-    'currently-playing': 623,
-    'completed': 4312
-  }
-
-  useEffect(() => {
-    if (isOpen) {
-      setActiveTab('info')
-      setSimilarAlbums([])
-      setArtistAlbums([])
-    }
-  }, [isOpen, albumId])
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    if (isOpen && albumId) {
-      fetchAlbumDetail()
-    }
-  }, [isOpen, albumId])
-
-  useEffect(() => {
-    const libraryItem = library.find(item => item.id === `music-${albumId}`)
-    if (libraryItem) {
-      setSelectedStatus(libraryItem.status)
-    } else {
-      setSelectedStatus(null)
-    }
-  }, [albumId, library])
-
-  const fetchAlbumDetail = async () => {
-    if (!albumId) return
-    
-    setLoading(true)
-    try {
-      let iTunesId = albumId
-      
-      // Si l'ID commence par 'music-', le retirer
-      if (albumId.startsWith('music-')) {
-        iTunesId = albumId.replace('music-', '')
-      }
-      
-      const data = await musicService.getAlbumDetails(iTunesId)
-      setAlbumDetail(data as AlbumDetail)
-      
-      // Charger des albums similaires et de l'artiste
-      if (data) {
-        if (data.primaryGenreName) {
-          await fetchSimilarAlbums(data)
-        }
-        if (data.artistName) {
-          await fetchArtistAlbums(data.artistName, data.collectionId)
-        }
-      }
-      
-    } catch (error) {
-      console.error('Erreur lors du chargement des détails:', error)
-      setAlbumDetail(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchSimilarAlbums = async (album: AlbumDetail) => {
-    try {
-      const similarAlbumsData = await musicService.getSimilarAlbums(album as any, 6)
-      const convertedAlbums = similarAlbumsData.map(album => musicService.convertToAppFormat(album))
-      setSimilarAlbums(convertedAlbums)
-    } catch (error) {
-      console.error('Error fetching similar albums:', error)
-      setSimilarAlbums([])
-    }
-  }
-
-  const fetchArtistAlbums = async (artist: string, excludeAlbumId: number) => {
-    try {
-      const artistAlbumsData = await musicService.getAlbumsByArtist(artist, 8)
-      const filteredAlbums = artistAlbumsData
-        .filter(album => album.collectionId !== excludeAlbumId)
-        .slice(0, 6)
-        .map(album => musicService.convertToAppFormat(album))
-      
-      setArtistAlbums(filteredAlbums)
-    } catch (error) {
-      console.error('Error fetching artist albums:', error)
-      setArtistAlbums([])
-    }
-  }
-
-  const handleStatusSelect = (status: MediaStatus) => {
-    if (!albumDetail) return
-    
-    const albumItem = {
-      id: `music-${albumDetail.collectionId}`,
-      title: albumDetail.collectionName,
-      image: musicService.getBestImageURL(albumDetail as any, 'medium'),
-      category: 'music' as const,
-      year: albumDetail.releaseDate ? new Date(albumDetail.releaseDate).getFullYear() : new Date().getFullYear(),
-      rating: 0,
-      artist: albumDetail.artistName
-    }
-    
-    onAddToLibrary(albumItem, status)
-    setSelectedStatus(status)
-  }
-
-  const getStatusLabel = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'Want to Listen'
-      case 'currently-playing': return 'Listening'
-      case 'completed': return 'Listened'
-      case 'paused': return 'Paused'
-      case 'dropped': return 'Dropped'
-      default: return status
-    }
-  }
-
-  const getStatusColor = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'bg-orange-500 hover:bg-orange-600'
-      case 'currently-playing': return 'bg-green-500 hover:bg-green-600'
-      case 'completed': return 'bg-blue-500 hover:bg-blue-600'
-      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600'
-      case 'dropped': return 'bg-red-500 hover:bg-red-600'
-      default: return 'bg-gray-500 hover:bg-gray-600'
-    }
-  }
-
-  const handleSubmitReview = () => {
-    if (userRating > 0 && userReview.trim()) {
-      onReviewSubmit({
-        rating: userRating,
-        review: userReview.trim()
-      })
-      
-      setShowReviewBox(false)
-      setUserReview('')
-      setUserRating(0)
-    }
-  }
-
-  if (!isOpen) return null
-
-  return (
-    <div 
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose()
-        }
-      }}
-    >
-      <div 
-        className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col shadow-xl border border-gray-100"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : albumDetail ? (
-          <>
-            {/* Header */}
-            <div className="relative bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-2 hover:bg-white/80 rounded-full transition-colors"
-              >
-                <X size={20} />
-              </button>
-              
-              <div className="p-6 flex items-center space-x-4">
-                <div className="w-20 h-20 rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-gray-100 flex-shrink-0">
-                  {musicService.getBestImageURL(albumDetail as any, 'medium') ? (
-                    <img
-                      src={musicService.getBestImageURL(albumDetail as any, 'medium')!}
-                      alt={albumDetail.collectionName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl">
-                      🎵
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-1">{musicService.cleanAlbumName(albumDetail.collectionName)}</h1>
-                  <h2 className="text-lg text-gray-600 mb-2">{albumDetail.artistName}</h2>
-                  
-                  <div className="flex items-center space-x-4 mb-2">
-                    {albumDetail.releaseDate && (
-                      <span className="text-gray-600 text-sm">
-                        {new Date(albumDetail.releaseDate).getFullYear()}
-                      </span>
-                    )}
-                    {albumDetail.trackCount && (
-                      <>
-                        <span className="text-gray-600">•</span>
-                        <span className="text-gray-600 text-sm">{formatTrackCount(albumDetail.trackCount)}</span>
-                      </>
-                    )}
-                    {albumDetail.primaryGenreName && (
-                      <>
-                        <span className="text-gray-600">•</span>
-                        <span className="text-gray-600 text-sm">{albumDetail.primaryGenreName}</span>
-                      </>
-                    )}
-                  </div>
-                  
-                  {albumDetail.trackCount && (
-                    <div className="text-sm text-gray-600">
-                      {formatDuration(albumDetail.trackCount)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Rest of the modal content would continue here... */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="text-center text-gray-500">
-                <Music size={48} className="mx-auto mb-4 text-gray-300" />
-                <p>Album detail content would go here...</p>
-                <p className="text-sm mt-2">Similar to BookDetailModal structure</p>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="p-8 text-center text-gray-600">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">🎵</span>
-            </div>
-            <p className="text-lg font-medium text-gray-900 mb-2">Album not found</p>
-            <p className="text-sm">Unable to load album details. Please try again.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-</file>
-
 <file path="src/components/RoadmapPage.tsx">
 'use client'
 import { ArrowLeft, Check, Clock, Zap, Users, Star, Sparkles } from 'lucide-react'
@@ -3050,6 +2960,146 @@ export const formatRating = (rating: string): number => {
 }
 </file>
 
+<file path="src/services/rawgService.ts">
+// Service pour l'API RAWG (jeux vidéo)
+export interface RAWGGame {
+  id: number
+  name: string
+  background_image: string
+  rating: number
+  rating_count: number
+  released: string
+  platforms: { platform: { name: string } }[]
+  developers: { name: string }[]
+  publishers: { name: string }[]
+  genres: { name: string }[]
+  tags: { name: string }[]
+  description_raw?: string
+  metacritic?: number
+  esrb_rating?: { name: string }
+}
+
+export interface RAWGSearchResponse {
+  count: number
+  results: RAWGGame[]
+}
+
+class RAWGService {
+  private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+  private readonly baseURL = 'https://api.rawg.io/api'
+  
+  // Rechercher des jeux
+  async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${pageSize}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error searching games:', error)
+      throw error
+    }
+  }
+
+  // Obtenir les jeux populaires
+  async getPopularGames(): Promise<RAWGGame[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&dates=2020-01-01,2024-12-31&metacritic=80,100`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching popular games:', error)
+      return []
+    }
+  }
+
+  // Obtenir les jeux les mieux notés
+  async getTopRatedGames(): Promise<RAWGGame[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&metacritic=90,100`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching top rated games:', error)
+      return []
+    }
+  }
+
+  // Obtenir les nouveautés
+  async getNewReleases(): Promise<RAWGGame[]> {
+    try {
+      const currentDate = new Date()
+      const threeMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 3, currentDate.getDate())
+      
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-released&dates=${threeMonthsAgo.toISOString().split('T')[0]},${currentDate.toISOString().split('T')[0]}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching new releases:', error)
+      return []
+    }
+  }
+
+  // Convertir un jeu RAWG vers le format de l'app
+  convertToAppFormat(game: RAWGGame): any {
+    return {
+      id: `game-${game.id}`,
+      title: game.name || 'Unknown Game',
+      name: game.name || 'Unknown Game',
+      author: game.developers?.[0]?.name || 'Unknown Developer',
+      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
+      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
+      genre: game.genres?.[0]?.name || 'Unknown',
+      category: 'games' as const,
+      image: game.background_image,
+      background_image: game.background_image,
+      released: game.released,
+      developers: game.developers,
+      genres: game.genres,
+      
+      // Données supplémentaires
+      description_raw: game.description_raw,
+      metacritic: game.metacritic,
+      esrb_rating: game.esrb_rating,
+      platforms: game.platforms,
+      publishers: game.publishers,
+      tags: game.tags,
+      rating_count: game.rating_count
+    }
+  }
+}
+
+// Instance singleton
+export const rawgService = new RAWGService()
+</file>
+
 <file path="src/tailwind.config.js">
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -3220,6 +3270,7 @@ export const idsMatch = (id1: string, id2: string): boolean => {
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.51.0",
     "lucide-react": "^0.525.0",
     "next": "15.3.5",
     "react": "^19.0.0",
@@ -3236,6 +3287,692 @@ export const idsMatch = (id1: string, id2: string): boolean => {
     "tailwindcss": "^4",
     "typescript": "^5"
   }
+}
+</file>
+
+<file path="src/components/MusicDetailModal.tsx">
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { X, Star, ExternalLink, Calendar, Music, Award, Users, Globe, Play, HeadphonesIcon, Clock } from 'lucide-react'
+import { musicService, formatTrackCount, formatPrice, formatDuration } from '@/services/musicService'
+import type { LibraryItem, Review, MediaStatus } from '@/types'
+
+interface MusicDetailModalProps {
+  isOpen: boolean
+  onClose: () => void
+  albumId: string
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  library: LibraryItem[]
+  userReviews: Review[]
+  spotifyReviews: Review[]
+  onReviewSubmit: (reviewData: any) => void
+}
+
+interface AlbumDetail {
+  collectionId: number
+  collectionName: string
+  artistName: string
+  artworkUrl100?: string
+  releaseDate?: string
+  primaryGenreName?: string
+  trackCount?: number
+  copyright?: string
+  collectionPrice?: number
+  currency?: string
+  country?: string
+  collectionViewUrl?: string
+  artistViewUrl?: string
+  collectionType?: string
+}
+
+export default function MusicDetailModal({ 
+  isOpen, 
+  onClose, 
+  albumId, 
+  onAddToLibrary, 
+  library, 
+  userReviews, 
+  spotifyReviews, 
+  onReviewSubmit 
+}: MusicDetailModalProps) {
+  const [albumDetail, setAlbumDetail] = useState<AlbumDetail | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info')
+  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
+  const [userRating, setUserRating] = useState<number>(0)
+  const [hoverRating, setHoverRating] = useState<number>(0)
+  const [showReviewBox, setShowReviewBox] = useState(false)
+  const [userReview, setUserReview] = useState('')
+  const [similarAlbums, setSimilarAlbums] = useState<any[]>([])
+  const [artistAlbums, setArtistAlbums] = useState<any[]>([])
+
+  const scrollableRef = useRef<HTMLDivElement>(null)
+
+  const albumStats = {
+    'want-to-play': 1845,
+    'currently-playing': 623,
+    'completed': 4312
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('info')
+      setSimilarAlbums([])
+      setArtistAlbums([])
+    }
+  }, [isOpen, albumId])
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen && albumId) {
+      fetchAlbumDetail()
+    }
+  }, [isOpen, albumId])
+
+  useEffect(() => {
+    const libraryItem = library.find(item => item.id === `music-${albumId}`)
+    if (libraryItem) {
+      setSelectedStatus(libraryItem.status)
+    } else {
+      setSelectedStatus(null)
+    }
+  }, [albumId, library])
+
+  const fetchAlbumDetail = async () => {
+    if (!albumId) return
+    
+    setLoading(true)
+    try {
+      let iTunesId = albumId
+      
+      // Si l'ID commence par 'music-', le retirer
+      if (albumId.startsWith('music-')) {
+        iTunesId = albumId.replace('music-', '')
+      }
+      
+      const data = await musicService.getAlbumDetails(iTunesId)
+      setAlbumDetail(data as AlbumDetail)
+      
+      // Charger des albums similaires et de l'artiste
+      if (data) {
+        if (data.primaryGenreName) {
+          await fetchSimilarAlbums(data)
+        }
+        if (data.artistName) {
+          await fetchArtistAlbums(data.artistName, data.collectionId)
+        }
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors du chargement des détails:', error)
+      setAlbumDetail(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSimilarAlbums = async (album: AlbumDetail) => {
+    try {
+      const similarAlbumsData = await musicService.getSimilarAlbums(album as any, 6)
+      const convertedAlbums = similarAlbumsData.map(album => musicService.convertToAppFormat(album))
+      setSimilarAlbums(convertedAlbums)
+    } catch (error) {
+      console.error('Error fetching similar albums:', error)
+      setSimilarAlbums([])
+    }
+  }
+
+  const fetchArtistAlbums = async (artist: string, excludeAlbumId: number) => {
+    try {
+      const artistAlbumsData = await musicService.getAlbumsByArtist(artist, 8)
+      const filteredAlbums = artistAlbumsData
+        .filter(album => album.collectionId !== excludeAlbumId)
+        .slice(0, 6)
+        .map(album => musicService.convertToAppFormat(album))
+      
+      setArtistAlbums(filteredAlbums)
+    } catch (error) {
+      console.error('Error fetching artist albums:', error)
+      setArtistAlbums([])
+    }
+  }
+
+  const handleStatusSelect = (status: MediaStatus) => {
+    if (!albumDetail) return
+    
+    const albumItem = {
+      id: `music-${albumDetail.collectionId}`,
+      title: albumDetail.collectionName,
+      image: musicService.getBestImageURL(albumDetail as any, 'medium'),
+      category: 'music' as const,
+      year: albumDetail.releaseDate ? new Date(albumDetail.releaseDate).getFullYear() : new Date().getFullYear(),
+      rating: 0,
+      artist: albumDetail.artistName
+    }
+    
+    onAddToLibrary(albumItem, status)
+    setSelectedStatus(status)
+  }
+
+  const getStatusLabel = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'Want to Listen'
+      case 'currently-playing': return 'Listening'
+      case 'completed': return 'Listened'
+      case 'paused': return 'Paused'
+      case 'dropped': return 'Dropped'
+      default: return status
+    }
+  }
+
+  const getStatusColor = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'bg-orange-500 hover:bg-orange-600'
+      case 'currently-playing': return 'bg-green-500 hover:bg-green-600'
+      case 'completed': return 'bg-blue-500 hover:bg-blue-600'
+      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600'
+      case 'dropped': return 'bg-red-500 hover:bg-red-600'
+      default: return 'bg-gray-500 hover:bg-gray-600'
+    }
+  }
+
+  const handleSubmitReview = () => {
+    if (userRating > 0 && userReview.trim()) {
+      onReviewSubmit({
+        rating: userRating,
+        review: userReview.trim()
+      })
+      
+      setShowReviewBox(false)
+      setUserReview('')
+      setUserRating(0)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col shadow-xl border border-gray-100"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : albumDetail ? (
+          <>
+            {/* Header */}
+            <div className="relative bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-2 hover:bg-white/80 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="p-6 flex items-center space-x-4">
+                <div className="w-20 h-20 rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-gray-100 flex-shrink-0">
+                  {musicService.getBestImageURL(albumDetail as any, 'medium') ? (
+                    <img
+                      src={musicService.getBestImageURL(albumDetail as any, 'medium')!}
+                      alt={albumDetail.collectionName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl">
+                      🎵
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-1">{musicService.cleanAlbumName(albumDetail.collectionName)}</h1>
+                  <h2 className="text-lg text-gray-600 mb-2">{albumDetail.artistName}</h2>
+                  
+                  <div className="flex items-center space-x-4 mb-2">
+                    {albumDetail.releaseDate && (
+                      <span className="text-gray-600 text-sm">
+                        {new Date(albumDetail.releaseDate).getFullYear()}
+                      </span>
+                    )}
+                    {albumDetail.trackCount && (
+                      <>
+                        <span className="text-gray-600">•</span>
+                        <span className="text-gray-600 text-sm">{formatTrackCount(albumDetail.trackCount)}</span>
+                      </>
+                    )}
+                    {albumDetail.primaryGenreName && (
+                      <>
+                        <span className="text-gray-600">•</span>
+                        <span className="text-gray-600 text-sm">{albumDetail.primaryGenreName}</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {albumDetail.trackCount && (
+                    <div className="text-sm text-gray-600">
+                      {formatDuration(albumDetail.trackCount)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div ref={scrollableRef} className="flex-1 overflow-y-auto">
+              {/* Action buttons */}
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex space-x-3 mb-4">
+                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusSelect(status)}
+                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all text-white shadow-sm ${
+                        selectedStatus === status
+                          ? getStatusColor(status)
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      <div className="text-sm font-semibold">{getStatusLabel(status)}</div>
+                      <div className="text-xs opacity-80">
+                        {albumStats[status].toLocaleString()} listeners
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                
+                {selectedStatus && (
+                  <div className="text-sm text-gray-600 bg-green-50 border border-green-200 rounded-lg p-3">
+                    ✅ Added to your library on {new Date().toLocaleDateString()}
+                  </div>
+                )}
+
+                {/* User rating */}
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h4 className="text-gray-900 font-semibold mb-3">Rate this album</h4>
+                  <div className="flex items-center space-x-2 mb-3">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        onClick={() => {
+                          setUserRating(rating)
+                          setShowReviewBox(true)
+                        }}
+                        onMouseEnter={() => setHoverRating(rating)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className="p-1 hover:scale-110 transition-transform"
+                      >
+                        <Star
+                          size={24}
+                          className={`transition-colors ${
+                            (hoverRating || userRating) >= rating
+                              ? 'text-yellow-500 fill-current'
+                              : 'text-gray-300 hover:text-yellow-400'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    {userRating > 0 && (
+                      <span className="text-gray-900 ml-2 font-medium">{userRating}/5</span>
+                    )}
+                  </div>
+                  
+                  {showReviewBox && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <label className="text-sm text-gray-700 mb-2 block font-medium">Share your thoughts</label>
+                      <textarea
+                        value={userReview}
+                        onChange={(e) => setUserReview(e.target.value)}
+                        placeholder="What did you think about this album?"
+                        className="w-full h-20 px-3 py-2 bg-white text-gray-900 text-sm rounded-lg resize-none border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <div className="flex space-x-2 mt-3">
+                        <button 
+                          onClick={handleSubmitReview}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Submit Review
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setShowReviewBox(false)
+                            setUserReview('')
+                          }}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reviews Section */}
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
+                <div className="flex space-x-4 overflow-x-auto pb-2">
+                  {/* User reviews first */}
+                  {userReviews.map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-blue-50 rounded-xl p-4 border border-blue-100">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 text-sm">👤</span>
+                        </div>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-blue-600 bg-blue-200 px-2 py-1 rounded-full font-medium">You</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {review.review || review.text}
+                      </p>
+                    </div>
+                  ))}
+                  
+                  {/* Spotify reviews */}
+                  {spotifyReviews.slice(0, 5).map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-gray-600 text-sm">🎵</span>
+                        </div>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded-full font-medium">Music Community</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {review.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+                <div className="flex px-6">
+                  {(['info', 'social', 'more'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 py-4 px-4 font-medium transition-colors relative ${
+                        activeTab === tab
+                          ? 'text-gray-900'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      {activeTab === tab && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tab content */}
+              <div className="p-6">
+                {activeTab === 'info' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Artist</h5>
+                        <p className="text-gray-600 text-sm">
+                          {albumDetail.artistName}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Release Date</h5>
+                        <p className="text-gray-600 text-sm">
+                          {albumDetail.releaseDate ? new Date(albumDetail.releaseDate).toLocaleDateString() : 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Genre</h5>
+                        <p className="text-gray-600 text-sm">
+                          {albumDetail.primaryGenreName || 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Tracks</h5>
+                        <p className="text-gray-600 text-sm">
+                          {albumDetail.trackCount ? formatTrackCount(albumDetail.trackCount) : 'Unknown'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {albumDetail.copyright && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-3">Copyright</h4>
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                          <p className="text-gray-700 text-sm">
+                            {albumDetail.copyright}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'social' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Listening Stats</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-orange-600">{albumStats['want-to-play'].toLocaleString()}</div>
+                          <div className="text-sm text-orange-700 font-medium">Want to Listen</div>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-green-600">{albumStats['currently-playing'].toLocaleString()}</div>
+                          <div className="text-sm text-green-700 font-medium">Listening</div>
+                        </div>
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-blue-600">{albumStats['completed'].toLocaleString()}</div>
+                          <div className="text-sm text-blue-700 font-medium">Listened</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Album Type</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                          <Music size={20} className="text-purple-600" />
+                          <span className="font-medium text-purple-900">
+                            {albumDetail.collectionType || 'Album'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'more' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">External Links</h4>
+                      <div className="space-y-3">
+                        {albumDetail.collectionViewUrl && (
+                          <a 
+                            href={albumDetail.collectionViewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            View on iTunes
+                          </a>
+                        )}
+
+                        {albumDetail.artistViewUrl && (
+                          <a
+                            href={albumDetail.artistViewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <Users size={16} />
+                            <span>Artist Page</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+
+                        <a 
+                          href={`https://open.spotify.com/search/${encodeURIComponent(albumDetail.artistName + ' ' + albumDetail.collectionName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                        >
+                          <Play className="w-4 h-4" />
+                          Search on Spotify
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* More from Artist */}
+                    {artistAlbums.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-4">
+                          More from {albumDetail.artistName}
+                        </h4>
+                        <div className="flex space-x-3 overflow-x-auto pb-2">
+                          {artistAlbums.map((album) => (
+                            <div key={album.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+                              {album.image && (
+                                <img
+                                  src={album.image}
+                                  alt={album.title}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={album.title}>
+                                {album.title}
+                              </h5>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
+                                <span className="text-xs text-gray-600">{album.rating?.toFixed(1) || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Similar Albums */}
+                    {similarAlbums.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-4">Similar Albums</h4>
+                        <div className="flex space-x-3 overflow-x-auto pb-2">
+                          {similarAlbums.map((album) => (
+                            <div key={album.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+                              {album.image && (
+                                <img
+                                  src={album.image}
+                                  alt={album.title}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={album.title}>
+                                {album.title}
+                              </h5>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
+                                <span className="text-xs text-gray-600">{album.rating?.toFixed(1) || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Additional Info */}
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Additional Information</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">Country:</span>
+                            <span className="text-gray-600">
+                              {albumDetail.country || 'Unknown'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">Duration:</span>
+                            <span className="text-gray-600">
+                              {albumDetail.trackCount ? formatDuration(albumDetail.trackCount) : 'Unknown'}
+                            </span>
+                          </div>
+                          {albumDetail.collectionPrice && (
+                            <div className="flex justify-between col-span-2">
+                              <span className="font-medium text-gray-900">Price:</span>
+                              <span className="text-gray-600 text-right">
+                                {formatPrice(albumDetail.collectionPrice, albumDetail.currency || 'USD')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="p-8 text-center text-gray-600">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">🎵</span>
+            </div>
+            <p className="text-lg font-medium text-gray-900 mb-2">Album not found</p>
+            <p className="text-sm">Unable to load album details. Please try again.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 </file>
 
@@ -5969,6 +6706,7 @@ import { sampleContent } from '@/data/sampleContent'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
+import { rawgService } from '@/services/rawgService'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
@@ -5982,7 +6720,19 @@ export default function Home() {
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   
-  // State pour le contenu dynamique des films, livres et musique
+  // State pour le contenu dynamique des jeux
+  const [gameContent, setGameContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    newReleases: []
+  })
+  const [gamesLoading, setGamesLoading] = useState(false)
+  
+  // State pour le contenu dynamique des films
   const [movieContent, setMovieContent] = useState<{
     popular: ContentItem[]
     topRated: ContentItem[]
@@ -5994,6 +6744,7 @@ export default function Home() {
   })
   const [moviesLoading, setMoviesLoading] = useState(false)
 
+  // State pour le contenu dynamique des livres
   const [bookContent, setBookContent] = useState<{
     fiction: ContentItem[]
     nonFiction: ContentItem[]
@@ -6005,6 +6756,7 @@ export default function Home() {
   })
   const [booksLoading, setBooksLoading] = useState(false)
 
+  // State pour le contenu dynamique de la musique
   const [musicContent, setMusicContent] = useState<{
     popular: ContentItem[]
     topRated: ContentItem[]
@@ -6021,7 +6773,9 @@ export default function Home() {
 
   // Charger le contenu selon la catégorie active
   useEffect(() => {
-    if (activeTab === 'movies') {
+    if (activeTab === 'games') {
+      loadGameContent()
+    } else if (activeTab === 'movies') {
       loadMovieContent()
     } else if (activeTab === 'books') {
       loadBookContent()
@@ -6029,6 +6783,41 @@ export default function Home() {
       loadMusicContent()
     }
   }, [activeTab])
+
+  const loadGameContent = async () => {
+    try {
+      setGamesLoading(true)
+
+      const [popularGames, topRatedGames, newReleaseGames] = await Promise.all([
+        rawgService.getPopularGames().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        ),
+        rawgService.getTopRatedGames().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        ),
+        rawgService.getNewReleases().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        )
+      ])
+
+      setGameContent({
+        popular: popularGames,
+        topRated: topRatedGames,
+        newReleases: newReleaseGames
+      })
+    } catch (error) {
+      console.error('Error loading game content:', error)
+      
+      // Fallback vers les données statiques
+      setGameContent({
+        popular: sampleContent.games.slice(0, 4),
+        topRated: sampleContent.games.slice(4, 8),
+        newReleases: sampleContent.games.slice(0, 4)
+      })
+    } finally {
+      setGamesLoading(false)
+    }
+  }
 
   const loadMovieContent = async () => {
     try {
@@ -6213,21 +7002,21 @@ export default function Home() {
 
   const handleReviewSubmit = (reviewData: any) => {
     const currentItemId = selectedGameId || selectedMovieId || selectedBookId || selectedMusicId
-    if (!currentItemId) return;
-    
+    if (!currentItemId) return
+
     const newReview: Review = {
       id: Date.now(),
       username: "CurrentUser",
       rating: reviewData.rating,
       review: reviewData.review,
       date: new Date().toISOString().split('T')[0]
-    };
+    }
 
     setUserReviews(prev => ({
       ...prev,
       [currentItemId]: [...(prev[currentItemId] || []), newReview]
-    }));
-  };
+    }))
+  }
 
   // Générer des reviews pour différentes plateformes
   const generateSteamReviews = (gameId: number): Review[] => {
@@ -6237,20 +7026,20 @@ export default function Home() {
       { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
       { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
       { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 }
-    ];
+    ]
 
-    const seed = gameId;
-    const selectedReviews = [];
-    const numReviews = 5;
+    const seed = gameId
+    const selectedReviews = []
+    const numReviews = 5
 
     for (let i = 0; i < numReviews; i++) {
-      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length;
-      const template = reviewTemplates[index];
+      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length
+      const template = reviewTemplates[index]
       
       const gameSpecificVariations = {
         helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
         daysAgo: (seed * i * 3) % 180 + 1,
-      };
+      }
       
       selectedReviews.push({
         id: `steam_${gameId}_${i}`,
@@ -6261,11 +7050,11 @@ export default function Home() {
         date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
           .toISOString().split('T')[0],
         platform: 'Steam'
-      });
+      })
     }
 
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
-  };
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
 
   const generateGoodreadsReviews = (bookId: string): Review[] => {
     const reviewTemplates = [
@@ -6274,19 +7063,19 @@ export default function Home() {
       { rating: 5, text: "One of my favorite books this year! Beautiful prose and such an emotional journey. Highly recommend!", author: "BookwormLife", helpful: 234 },
       { rating: 3, text: "Good book but not amazing. The story was decent but felt a bit predictable at times.", author: "CasualReader", helpful: 45 },
       { rating: 4, text: "Solid storytelling and great character development. Would definitely read more from this author.", author: "LitCritic", helpful: 112 }
-    ];
+    ]
 
-    const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const selectedReviews = [];
+    const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
     
     for (let i = 0; i < 5; i++) {
-      const index = (seed * 11 + i * 17) % reviewTemplates.length;
-      const template = reviewTemplates[index];
+      const index = (seed * 11 + i * 17) % reviewTemplates.length
+      const template = reviewTemplates[index]
       
       const bookSpecificVariations = {
         helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
         daysAgo: (seed * i * 4) % 90 + 1,
-      };
+      }
       
       selectedReviews.push({
         id: `goodreads_${bookId}_${i}`,
@@ -6297,11 +7086,11 @@ export default function Home() {
         date: new Date(Date.now() - bookSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
           .toISOString().split('T')[0],
         platform: 'Goodreads'
-      });
+      })
     }
 
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
-  };
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
 
   const generateIMDBReviews = (movieId: string): Review[] => {
     const reviewTemplates = [
@@ -6310,19 +7099,19 @@ export default function Home() {
       { rating: 5, text: "One of the best films I've seen. Perfect blend of drama and emotion. Highly recommended!", author: "MovieBuff", helpful: 234 },
       { rating: 3, text: "Good but not great. Some brilliant moments but overall feels uneven.", author: "CasualViewer", helpful: 45 },
       { rating: 4, text: "Strong performances and great direction. A solid addition to the genre.", author: "FilmStudent", helpful: 78 }
-    ];
+    ]
 
-    const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const selectedReviews = [];
+    const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
     
     for (let i = 0; i < 5; i++) {
-      const index = (seed * 13 + i * 19) % reviewTemplates.length;
-      const template = reviewTemplates[index];
+      const index = (seed * 13 + i * 19) % reviewTemplates.length
+      const template = reviewTemplates[index]
       
       const movieSpecificVariations = {
         helpful: Math.max(1, template.helpful + (seed * i % 40) - 20),
         daysAgo: (seed * i * 2) % 120 + 1,
-      };
+      }
       
       selectedReviews.push({
         id: `imdb_${movieId}_${i}`,
@@ -6333,11 +7122,11 @@ export default function Home() {
         date: new Date(Date.now() - movieSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
           .toISOString().split('T')[0],
         platform: 'IMDb'
-      });
+      })
     }
 
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
-  };
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
 
   const generateSpotifyReviews = (musicId: string): Review[] => {
     const reviewTemplates = [
@@ -6346,19 +7135,19 @@ export default function Home() {
       { rating: 5, text: "Pure genius! The way they blend genres is incredible. This will be on repeat for months.", author: "VinylCollector", helpful: 187 },
       { rating: 3, text: "Good but not groundbreaking. Some nice moments but doesn't live up to the hype.", author: "CasualListener", helpful: 67 },
       { rating: 4, text: "Excellent songwriting and vocals. The production quality is top-notch throughout.", author: "AudioPhile", helpful: 145 }
-    ];
+    ]
 
-    const seed = musicId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const selectedReviews = [];
+    const seed = musicId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
     
     for (let i = 0; i < 5; i++) {
-      const index = (seed * 7 + i * 11) % reviewTemplates.length;
-      const template = reviewTemplates[index];
+      const index = (seed * 7 + i * 11) % reviewTemplates.length
+      const template = reviewTemplates[index]
       
       const musicSpecificVariations = {
         helpful: Math.max(1, template.helpful + (seed * i % 60) - 30),
         daysAgo: (seed * i * 5) % 200 + 1,
-      };
+      }
       
       selectedReviews.push({
         id: `spotify_${musicId}_${i}`,
@@ -6369,13 +7158,21 @@ export default function Home() {
         date: new Date(Date.now() - musicSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
           .toISOString().split('T')[0],
         platform: 'Music Community'
-      });
+      })
     }
 
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0));
-  };
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
 
   const getSections = () => {
+    if (activeTab === 'games') {
+      return [
+        { title: 'Popular this week', items: gameContent.popular },
+        { title: 'Top rated of all time', items: gameContent.topRated },
+        { title: 'New releases', items: gameContent.newReleases }
+      ]
+    }
+    
     if (activeTab === 'movies') {
       return [
         { title: 'Popular classics', items: movieContent.popular },
@@ -6495,7 +7292,8 @@ export default function Home() {
         
         {/* Contenu scrollable avec loading state */}
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
-          {(moviesLoading && activeTab === 'movies') || 
+          {(gamesLoading && activeTab === 'games') || 
+           (moviesLoading && activeTab === 'movies') || 
            (booksLoading && activeTab === 'books') || 
            (musicLoading && activeTab === 'music') ? (
             <div className="space-y-6">

@@ -16,6 +16,7 @@ import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
 import { rawgService } from '@/services/rawgService'
+import LibraryService from '@/services/libraryService'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
@@ -79,6 +80,22 @@ export default function Home() {
 
   // User reviews state
   const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
+
+  // Charger la bibliothèque au démarrage
+  useEffect(() => {
+    const loadSavedLibrary = async () => {
+      try {
+        const savedLibrary = await LibraryService.getLibrary()
+        setLibrary(savedLibrary)
+        
+        // Test optionnel de connexion Supabase
+        await LibraryService.testSupabaseConnection()
+      } catch (error) {
+        console.error('Error loading saved library:', error)
+      }
+    }
+    loadSavedLibrary()
+  }, [])
 
   // Charger le contenu selon la catégorie active
   useEffect(() => {
@@ -233,8 +250,8 @@ export default function Home() {
     }
   }
 
-  // Fonction corrigée pour ajouter à la bibliothèque
-  const handleAddToLibrary = (item: any, status: MediaStatus) => {
+  // Fonction modifiée pour ajouter à la bibliothèque avec Supabase
+  const handleAddToLibrary = async (item: any, status: MediaStatus) => {
     const normalizedId = normalizeId(item.id)
     
     const newItem: LibraryItem = {
@@ -252,37 +269,51 @@ export default function Home() {
       genre: item.genre
     }
 
-    setLibrary(prev => {
-      const existingIndex = prev.findIndex((libItem: LibraryItem) => 
-        idsMatch(libItem.id, normalizedId)
-      )
-      
-      if (existingIndex !== -1) {
-        const updated = [...prev]
-        updated[existingIndex] = { 
-          ...updated[existingIndex], 
-          status, 
-          addedAt: new Date().toISOString() 
+    // Sauvegarder avec le service
+    const success = await LibraryService.addToLibrary(newItem, status)
+    
+    if (success) {
+      // Mettre à jour l'état local
+      setLibrary(prev => {
+        const existingIndex = prev.findIndex((libItem: LibraryItem) => 
+          idsMatch(libItem.id, normalizedId)
+        )
+        
+        if (existingIndex !== -1) {
+          const updated = [...prev]
+          updated[existingIndex] = { 
+            ...updated[existingIndex], 
+            status, 
+            addedAt: new Date().toISOString() 
+          }
+          return updated
         }
-        return updated
-      }
-      
-      return [...prev, newItem]
-    })
+        
+        return [newItem, ...prev] // Ajouter en premier
+      })
+    }
   }
 
-  const handleUpdateItem = (id: string, updates: Partial<LibraryItem>) => {
-    setLibrary(prev =>
-      prev.map(item =>
-        idsMatch(item.id, id)
-          ? { ...item, ...updates }
-          : item
+  const handleUpdateItem = async (id: string, updates: Partial<LibraryItem>) => {
+    const success = await LibraryService.updateLibraryItem(id, updates)
+    
+    if (success) {
+      setLibrary(prev =>
+        prev.map(item =>
+          idsMatch(item.id, id)
+            ? { ...item, ...updates }
+            : item
+        )
       )
-    )
+    }
   }
 
-  const handleDeleteItem = (id: string) => {
-    setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
+  const handleDeleteItem = async (id: string) => {
+    const success = await LibraryService.removeFromLibrary(id)
+    
+    if (success) {
+      setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
+    }
   }
 
   const handleOpenGameDetail = (gameId: string) => {
