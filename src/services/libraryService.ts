@@ -186,4 +186,5 @@ export class LibraryService {
   }
 }
 
+// Export par défaut de la classe
 export default LibraryService

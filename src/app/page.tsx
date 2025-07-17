@@ -16,7 +16,7 @@ import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
 import { rawgService } from '@/services/rawgService'
-import LibraryService from '@/services/libraryService'
+import { LibraryService } from '@/services/libraryService'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
