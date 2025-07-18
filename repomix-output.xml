@@ -143,123 +143,6 @@ export default config;
 <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
 </file>
 
-<file path="src/components/WelcomePopup.tsx">
-'use client'
-import { X, Search, Library, Sparkles, Gamepad2, Film, Music, BookOpen } from 'lucide-react'
-
-interface WelcomePopupProps {
-  isOpen: boolean
-  onClose: () => void
-  onOpenSearch: () => void
-  onScanLibrary?: () => void
-}
-
-export default function WelcomePopup({ 
-  isOpen, 
-  onClose, 
-  onOpenSearch,
-  onScanLibrary 
-}: WelcomePopupProps) {
-  if (!isOpen) return null
-
-  return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-white/80 hover:text-white z-10 p-2 hover:bg-white/10 rounded-full transition-colors"
-        >
-          <X size={20} />
-        </button>
-
-        {/* Content */}
-        <div className="p-8 text-white">
-          {/* Header with Icons */}
-          <div className="text-center mb-6">
-            <div className="flex justify-center items-center space-x-2 mb-4">
-              <Sparkles className="text-yellow-300" size={24} />
-              <h1 className="text-2xl font-bold">Welcome to Stackr!</h1>
-              <Sparkles className="text-yellow-300" size={24} />
-            </div>
-            
-            {/* Entertainment Icons */}
-            <div className="flex justify-center space-x-4 mb-4 opacity-80">
-              <Gamepad2 size={20} className="text-green-300" />
-              <Film size={20} className="text-blue-300" />
-              <Music size={20} className="text-purple-300" />
-              <BookOpen size={20} className="text-orange-300" />
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="space-y-4 text-center text-white/90">
-            <p className="text-lg leading-relaxed">
-              Track all your entertainment in one place! Games, movies, music, and books.
-            </p>
-            
-            <p className="text-sm leading-relaxed opacity-90">
-              Content you rate, review, or add to your library will automatically be saved here.
-            </p>
-            
-            <p className="text-sm leading-relaxed opacity-90">
-              Let's get you started by adding items to your collection.
-            </p>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="space-y-3 mt-8">
-            <button
-              onClick={() => {
-                onOpenSearch()
-                onClose()
-              }}
-              className="w-full bg-white hover:bg-gray-100 text-gray-900 py-3 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
-            >
-              <Search size={18} />
-              <span>Search & Add Content</span>
-            </button>
-            
-            {onScanLibrary && (
-              <button
-                onClick={() => {
-                  onScanLibrary()
-                  onClose()
-                }}
-                className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 border border-white/20"
-              >
-                <Library size={18} />
-                <span>Import from Other Apps</span>
-              </button>
-            )}
-            
-            <button
-              onClick={onClose}
-              className="w-full text-white/80 hover:text-white py-2 px-6 rounded-xl font-medium transition-colors text-sm"
-            >
-              I'll explore on my own
-            </button>
-          </div>
-
-          {/* Bottom Tip */}
-          <div className="mt-6 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-            <div className="flex items-start space-x-3">
-              <Sparkles size={16} className="text-yellow-300 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-white/90 leading-relaxed">
-                <span className="font-semibold">Pro tip:</span> Use the search to find and add your favorite games, movies, albums, and books. You can track what you want to experience, what you're currently enjoying, and what you've completed!
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Decorative Bottom Bar */}
-        <div className="h-2 bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400"></div>
-      </div>
-    </div>
-  )
-}
-</file>
-
 <file path="src/tailwind.config.js">
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -389,6 +272,123 @@ const nextConfig = {
 }
 
 module.exports = nextConfig
+</file>
+
+<file path="src/components/WelcomePopup.tsx">
+'use client'
+import { X, Search, Library, Sparkles, Gamepad2, Film, Music, BookOpen } from 'lucide-react'
+
+interface WelcomePopupProps {
+  isOpen: boolean
+  onClose: () => void
+  onOpenSearch: () => void
+  onScanLibrary?: () => void
+}
+
+export default function WelcomePopup({ 
+  isOpen, 
+  onClose, 
+  onOpenSearch,
+  onScanLibrary 
+}: WelcomePopupProps) {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white/80 hover:text-white z-10 p-2 hover:bg-white/10 rounded-full transition-colors"
+        >
+          <X size={20} />
+        </button>
+
+        {/* Content */}
+        <div className="p-8 text-white">
+          {/* Header with Icons */}
+          <div className="text-center mb-6">
+            <div className="flex justify-center items-center space-x-2 mb-4">
+              <Sparkles className="text-yellow-300" size={24} />
+              <h1 className="text-2xl font-bold">Welcome to Stackr!</h1>
+              <Sparkles className="text-yellow-300" size={24} />
+            </div>
+            
+            {/* Entertainment Icons */}
+            <div className="flex justify-center space-x-4 mb-4 opacity-80">
+              <Gamepad2 size={20} className="text-green-300" />
+              <Film size={20} className="text-blue-300" />
+              <Music size={20} className="text-purple-300" />
+              <BookOpen size={20} className="text-orange-300" />
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-4 text-center text-white/90">
+            <p className="text-lg leading-relaxed">
+              Track all your entertainment in one place! Games, movies, music, and books.
+            </p>
+            
+            <p className="text-sm leading-relaxed opacity-90">
+              Content you rate, review, or add to your library will automatically be saved here.
+            </p>
+            
+            <p className="text-sm leading-relaxed opacity-90">
+              Let's get you started by adding items to your collection.
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3 mt-8">
+            <button
+              onClick={() => {
+                onOpenSearch()
+                onClose()
+              }}
+              className="w-full bg-white hover:bg-gray-100 text-gray-900 py-3 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
+            >
+              <Search size={18} />
+              <span>Search & Add Content</span>
+            </button>
+            
+            {onScanLibrary && (
+              <button
+                onClick={() => {
+                  onScanLibrary()
+                  onClose()
+                }}
+                className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 border border-white/20"
+              >
+                <Library size={18} />
+                <span>Import from Other Apps</span>
+              </button>
+            )}
+            
+            <button
+              onClick={onClose}
+              className="w-full text-white/80 hover:text-white py-2 px-6 rounded-xl font-medium transition-colors text-sm"
+            >
+              I'll explore on my own
+            </button>
+          </div>
+
+          {/* Bottom Tip */}
+          <div className="mt-6 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+            <div className="flex items-start space-x-3">
+              <Sparkles size={16} className="text-yellow-300 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-white/90 leading-relaxed">
+                <span className="font-semibold">Pro tip:</span> Use the search to find and add your favorite games, movies, albums, and books. You can track what you want to experience, what you're currently enjoying, and what you've completed!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Decorative Bottom Bar */}
+        <div className="h-2 bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400"></div>
+      </div>
+    </div>
+  )
+}
 </file>
 
 <file path="src/services/googleBooksService.ts">
@@ -1482,6 +1482,7 @@ export default function RootLayout({
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Calendar, BookOpen, Award, Users, Globe, Eye, Check } from 'lucide-react'
 import { googleBooksService, formatPageCount, formatPublisher, getReadingTime } from '@/services/googleBooksService'
+import { idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
 interface BookDetailModalProps {
@@ -1489,7 +1490,7 @@ interface BookDetailModalProps {
   onClose: () => void
   bookId: string
   onAddToLibrary: (item: any, status: MediaStatus) => void
-  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
+  onDeleteItem?: (id: string) => void
   library: LibraryItem[]
   userReviews: Review[]
   goodreadsReviews: Review[]
@@ -1537,7 +1538,7 @@ export default function BookDetailModal({
   onClose, 
   bookId, 
   onAddToLibrary, 
-  onDeleteItem, // ✅ NOUVELLE PROP
+  onDeleteItem,
   library, 
   userReviews, 
   goodreadsReviews, 
@@ -1588,12 +1589,37 @@ export default function BookDetailModal({
     }
   }, [isOpen, bookId])
 
+  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
   useEffect(() => {
-    const libraryItem = library.find(item => item.id === `book-${bookId}`)
+    console.log('📚 DEBUG BookModal:')
+    console.log('  bookId:', bookId)
+    console.log('  library IDs:', library.map(item => item.id))
+    console.log('  looking for match with bookId:', bookId)
+    
+    // Essayer plusieurs formats d'ID pour trouver l'item
+    const possibleIds = [
+      bookId,
+      `book-${bookId}`,
+      bookId.startsWith('book-') ? bookId.replace('book-', '') : `book-${bookId}`
+    ]
+    
+    console.log('  possibleIds:', possibleIds)
+    
+    let libraryItem = null
+    for (const id of possibleIds) {
+      libraryItem = library.find(item => idsMatch(item.id, id))
+      if (libraryItem) {
+        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
+        break
+      }
+    }
+    
     if (libraryItem) {
       setSelectedStatus(libraryItem.status)
+      console.log('  status set to:', libraryItem.status)
     } else {
       setSelectedStatus(null)
+      console.log('  ❌ no library item found - status set to null')
     }
   }, [bookId, library])
 
@@ -1609,8 +1635,12 @@ export default function BookDetailModal({
         googleBookId = bookId.replace('book-', '')
       }
       
+      console.log('📚 Fetching book details for ID:', googleBookId)
+      
       const data = await googleBooksService.getBookDetails(googleBookId)
       setBookDetail(data as BookDetail)
+      
+      console.log('📚 Book detail fetched:', data)
       
       // Charger des livres similaires et de l'auteur
       if (data?.volumeInfo) {
@@ -1656,11 +1686,22 @@ export default function BookDetailModal({
     }
   }
 
+  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
   const handleStatusSelect = (status: MediaStatus) => {
     if (!bookDetail) return
     
+    // Créer un ID normalisé
+    const normalizedId = bookId.startsWith('book-') 
+      ? bookId 
+      : `book-${bookDetail.id}`
+    
+    console.log('🔧 Adding book to library:')
+    console.log('  bookDetail.id:', bookDetail.id)
+    console.log('  bookId:', bookId)
+    console.log('  normalizedId:', normalizedId)
+    
     const bookItem = {
-      id: `book-${bookDetail.id}`,
+      id: normalizedId,
       title: bookDetail.volumeInfo.title,
       image: googleBooksService.getBestImageURL(bookDetail as any, 'medium'),
       category: 'books' as const,
@@ -1669,6 +1710,7 @@ export default function BookDetailModal({
       author: bookDetail.volumeInfo.authors?.[0] || 'Unknown Author'
     }
     
+    console.log('  final bookItem:', bookItem)
     onAddToLibrary(bookItem, status)
     setSelectedStatus(status)
   }
@@ -1808,18 +1850,22 @@ export default function BookDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* ✅ Action buttons avec possibilité de décocher */}
+              {/* Action buttons avec possibilité de décocher */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
                       onClick={() => {
-                        // ✅ NOUVELLE LOGIQUE : Si déjà sélectionné, on retire de la bibliothèque
+                        // Si déjà sélectionné, on retire de la bibliothèque
                         if (selectedStatus === status) {
-                          // Retirer de la bibliothèque
                           if (onDeleteItem) {
-                            onDeleteItem(`book-${bookId}`)
+                            // 🔧 CORRECTION: Utiliser l'ID cohérent
+                            const idToDelete = bookId.startsWith('book-') 
+                              ? bookId 
+                              : `book-${bookDetail.id}`
+                            console.log('🗑️ Removing from library with ID:', idToDelete)
+                            onDeleteItem(idToDelete)
                           }
                           setSelectedStatus(null)
                         } else {
@@ -1829,7 +1875,7 @@ export default function BookDetailModal({
                       }}
                       className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
                         selectedStatus === status
-                          ? `${getStatusColor(status)} ring-2 ring-blue-300` // ✅ Indication visuelle forte
+                          ? `${getStatusColor(status)} ring-2 ring-blue-300`
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
@@ -1855,7 +1901,10 @@ export default function BookDetailModal({
                     <button 
                       onClick={() => {
                         if (onDeleteItem) {
-                          onDeleteItem(`book-${bookId}`)
+                          const idToDelete = bookId.startsWith('book-') 
+                            ? bookId 
+                            : `book-${bookDetail.id}`
+                          onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)
                       }}
@@ -2294,6 +2343,7 @@ export default function BookDetailModal({
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Calendar, Clock, Award, Users, Globe, Check } from 'lucide-react'
 import { omdbService } from '@/services/omdbService'
+import { idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
 interface MovieDetailModalProps {
@@ -2301,7 +2351,7 @@ interface MovieDetailModalProps {
   onClose: () => void
   movieId: string
   onAddToLibrary: (item: any, status: MediaStatus) => void
-  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
+  onDeleteItem?: (id: string) => void
   library: LibraryItem[]
   userReviews: Review[]
   imdbReviews: Review[]
@@ -2340,7 +2390,7 @@ export default function MovieDetailModal({
   onClose, 
   movieId, 
   onAddToLibrary, 
-  onDeleteItem, // ✅ NOUVELLE PROP
+  onDeleteItem,
   library, 
   userReviews, 
   imdbReviews, 
@@ -2389,12 +2439,37 @@ export default function MovieDetailModal({
     }
   }, [isOpen, movieId])
 
+  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
   useEffect(() => {
-    const libraryItem = library.find(item => item.id === `movie-${movieId}`)
+    console.log('🔍 DEBUG MovieModal:')
+    console.log('  movieId:', movieId)
+    console.log('  library IDs:', library.map(item => item.id))
+    console.log('  looking for match with movieId:', movieId)
+    
+    // Essayer plusieurs formats d'ID pour trouver l'item
+    const possibleIds = [
+      movieId,
+      `movie-${movieId}`,
+      movieId.startsWith('movie-') ? movieId.replace('movie-', '') : `movie-${movieId}`
+    ]
+    
+    console.log('  possibleIds:', possibleIds)
+    
+    let libraryItem = null
+    for (const id of possibleIds) {
+      libraryItem = library.find(item => idsMatch(item.id, id))
+      if (libraryItem) {
+        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
+        break
+      }
+    }
+    
     if (libraryItem) {
       setSelectedStatus(libraryItem.status)
+      console.log('  status set to:', libraryItem.status)
     } else {
       setSelectedStatus(null)
+      console.log('  ❌ no library item found - status set to null')
     }
   }, [movieId, library])
 
@@ -2410,8 +2485,12 @@ export default function MovieDetailModal({
         imdbId = movieId.replace('movie-', '')
       }
       
+      console.log('🎬 Fetching movie details for ID:', imdbId)
+      
       const data = await omdbService.getMovieDetails(imdbId)
       setMovieDetail(data as MovieDetail)
+      
+      console.log('🎬 Movie detail fetched:', data)
       
       // Charger des films similaires (simulation basée sur le genre)
       if (data?.Genre) {
@@ -2442,11 +2521,21 @@ export default function MovieDetailModal({
     }
   }
 
+  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
   const handleStatusSelect = (status: MediaStatus) => {
     if (!movieDetail) return
     
+    // Créer un ID normalisé
+    const normalizedId = movieDetail.imdbID.startsWith('movie-') 
+      ? movieDetail.imdbID 
+      : `movie-${movieDetail.imdbID}`
+    
+    console.log('🔧 Adding movie to library:')
+    console.log('  movieDetail.imdbID:', movieDetail.imdbID)
+    console.log('  normalizedId:', normalizedId)
+    
     const movieItem = {
-      id: `movie-${movieDetail.imdbID}`,
+      id: normalizedId,
       title: movieDetail.Title,
       image: movieDetail.Poster !== 'N/A' ? movieDetail.Poster : undefined,
       category: 'movies' as const,
@@ -2455,6 +2544,7 @@ export default function MovieDetailModal({
       director: movieDetail.Director
     }
     
+    console.log('  final movieItem:', movieItem)
     onAddToLibrary(movieItem, status)
     setSelectedStatus(status)
   }
@@ -2586,18 +2676,22 @@ export default function MovieDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* ✅ Action buttons avec possibilité de décocher */}
+              {/* Action buttons avec possibilité de décocher */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
                       onClick={() => {
-                        // ✅ NOUVELLE LOGIQUE : Si déjà sélectionné, on retire de la bibliothèque
+                        // Si déjà sélectionné, on retire de la bibliothèque
                         if (selectedStatus === status) {
-                          // Retirer de la bibliothèque
                           if (onDeleteItem) {
-                            onDeleteItem(`movie-${movieId}`)
+                            // 🔧 CORRECTION: Utiliser l'ID cohérent
+                            const idToDelete = movieDetail.imdbID.startsWith('movie-') 
+                              ? movieDetail.imdbID 
+                              : `movie-${movieDetail.imdbID}`
+                            console.log('🗑️ Removing from library with ID:', idToDelete)
+                            onDeleteItem(idToDelete)
                           }
                           setSelectedStatus(null)
                         } else {
@@ -2607,7 +2701,7 @@ export default function MovieDetailModal({
                       }}
                       className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
                         selectedStatus === status
-                          ? `${getStatusColor(status)} ring-2 ring-blue-300` // ✅ Indication visuelle forte
+                          ? `${getStatusColor(status)} ring-2 ring-blue-300`
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
@@ -2633,7 +2727,10 @@ export default function MovieDetailModal({
                     <button 
                       onClick={() => {
                         if (onDeleteItem) {
-                          onDeleteItem(`movie-${movieId}`)
+                          const idToDelete = movieDetail.imdbID.startsWith('movie-') 
+                            ? movieDetail.imdbID 
+                            : `movie-${movieDetail.imdbID}`
+                          onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)
                       }}
@@ -3976,6 +4073,7 @@ export default function GameCardHorizontal({
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Calendar, Music, Award, Users, Globe, Play, HeadphonesIcon, Clock, Check } from 'lucide-react'
 import { musicService, formatTrackCount, formatPrice, formatDuration } from '@/services/musicService'
+import { idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
 interface MusicDetailModalProps {
@@ -3983,7 +4081,7 @@ interface MusicDetailModalProps {
   onClose: () => void
   albumId: string
   onAddToLibrary: (item: any, status: MediaStatus) => void
-  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
+  onDeleteItem?: (id: string) => void
   library: LibraryItem[]
   userReviews: Review[]
   spotifyReviews: Review[]
@@ -4012,7 +4110,7 @@ export default function MusicDetailModal({
   onClose, 
   albumId, 
   onAddToLibrary, 
-  onDeleteItem, // ✅ NOUVELLE PROP
+  onDeleteItem,
   library, 
   userReviews, 
   spotifyReviews, 
@@ -4063,12 +4161,37 @@ export default function MusicDetailModal({
     }
   }, [isOpen, albumId])
 
+  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
   useEffect(() => {
-    const libraryItem = library.find(item => item.id === `music-${albumId}`)
+    console.log('🎵 DEBUG MusicModal:')
+    console.log('  albumId:', albumId)
+    console.log('  library IDs:', library.map(item => item.id))
+    console.log('  looking for match with albumId:', albumId)
+    
+    // Essayer plusieurs formats d'ID pour trouver l'item
+    const possibleIds = [
+      albumId,
+      `music-${albumId}`,
+      albumId.startsWith('music-') ? albumId.replace('music-', '') : `music-${albumId}`
+    ]
+    
+    console.log('  possibleIds:', possibleIds)
+    
+    let libraryItem = null
+    for (const id of possibleIds) {
+      libraryItem = library.find(item => idsMatch(item.id, id))
+      if (libraryItem) {
+        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
+        break
+      }
+    }
+    
     if (libraryItem) {
       setSelectedStatus(libraryItem.status)
+      console.log('  status set to:', libraryItem.status)
     } else {
       setSelectedStatus(null)
+      console.log('  ❌ no library item found - status set to null')
     }
   }, [albumId, library])
 
@@ -4084,8 +4207,12 @@ export default function MusicDetailModal({
         iTunesId = albumId.replace('music-', '')
       }
       
+      console.log('🎵 Fetching album details for ID:', iTunesId)
+      
       const data = await musicService.getAlbumDetails(iTunesId)
       setAlbumDetail(data as AlbumDetail)
+      
+      console.log('🎵 Album detail fetched:', data)
       
       // Charger des albums similaires et de l'artiste
       if (data) {
@@ -4131,11 +4258,22 @@ export default function MusicDetailModal({
     }
   }
 
+  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
   const handleStatusSelect = (status: MediaStatus) => {
     if (!albumDetail) return
     
+    // Créer un ID normalisé
+    const normalizedId = albumId.startsWith('music-') 
+      ? albumId 
+      : `music-${albumDetail.collectionId}`
+    
+    console.log('🔧 Adding album to library:')
+    console.log('  albumDetail.collectionId:', albumDetail.collectionId)
+    console.log('  albumId:', albumId)
+    console.log('  normalizedId:', normalizedId)
+    
     const albumItem = {
-      id: `music-${albumDetail.collectionId}`,
+      id: normalizedId,
       title: albumDetail.collectionName,
       image: musicService.getBestImageURL(albumDetail as any, 'medium'),
       category: 'music' as const,
@@ -4144,6 +4282,7 @@ export default function MusicDetailModal({
       artist: albumDetail.artistName
     }
     
+    console.log('  final albumItem:', albumItem)
     onAddToLibrary(albumItem, status)
     setSelectedStatus(status)
   }
@@ -4263,18 +4402,22 @@ export default function MusicDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* ✅ Action buttons avec possibilité de décocher */}
+              {/* Action buttons avec possibilité de décocher */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
                       onClick={() => {
-                        // ✅ NOUVELLE LOGIQUE : Si déjà sélectionné, on retire de la bibliothèque
+                        // Si déjà sélectionné, on retire de la bibliothèque
                         if (selectedStatus === status) {
-                          // Retirer de la bibliothèque
                           if (onDeleteItem) {
-                            onDeleteItem(`music-${albumId}`)
+                            // 🔧 CORRECTION: Utiliser l'ID cohérent
+                            const idToDelete = albumId.startsWith('music-') 
+                              ? albumId 
+                              : `music-${albumDetail.collectionId}`
+                            console.log('🗑️ Removing from library with ID:', idToDelete)
+                            onDeleteItem(idToDelete)
                           }
                           setSelectedStatus(null)
                         } else {
@@ -4284,7 +4427,7 @@ export default function MusicDetailModal({
                       }}
                       className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
                         selectedStatus === status
-                          ? `${getStatusColor(status)} ring-2 ring-blue-300 text-white` // ✅ Indication visuelle forte
+                          ? `${getStatusColor(status)} ring-2 ring-blue-300 text-white`
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
@@ -4310,7 +4453,10 @@ export default function MusicDetailModal({
                     <button 
                       onClick={() => {
                         if (onDeleteItem) {
-                          onDeleteItem(`music-${albumId}`)
+                          const idToDelete = albumId.startsWith('music-') 
+                            ? albumId 
+                            : `music-${albumDetail.collectionId}`
+                          onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)
                       }}
@@ -4470,7 +4616,7 @@ export default function MusicDetailModal({
                 </div>
               </div>
 
-              {/* Tab content - reste inchangé */}
+              {/* Tab content */}
               <div className="p-6">
                 {activeTab === 'info' && (
                   <div className="space-y-6">
@@ -4514,7 +4660,6 @@ export default function MusicDetailModal({
                   </div>
                 )}
 
-                {/* Autres onglets restent inchangés */}
                 {activeTab === 'social' && (
                   <div className="space-y-6">
                     <div>

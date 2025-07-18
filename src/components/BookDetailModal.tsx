@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Calendar, BookOpen, Award, Users, Globe, Eye, Check } from 'lucide-react'
 import { googleBooksService, formatPageCount, formatPublisher, getReadingTime } from '@/services/googleBooksService'
+import { idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
 interface BookDetailModalProps {
@@ -9,7 +10,7 @@ interface BookDetailModalProps {
   onClose: () => void
   bookId: string
   onAddToLibrary: (item: any, status: MediaStatus) => void
-  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
+  onDeleteItem?: (id: string) => void
   library: LibraryItem[]
   userReviews: Review[]
   goodreadsReviews: Review[]
@@ -57,7 +58,7 @@ export default function BookDetailModal({
   onClose, 
   bookId, 
   onAddToLibrary, 
-  onDeleteItem, // ✅ NOUVELLE PROP
+  onDeleteItem,
   library, 
   userReviews, 
   goodreadsReviews, 
@@ -108,12 +109,37 @@ export default function BookDetailModal({
     }
   }, [isOpen, bookId])
 
+  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
   useEffect(() => {
-    const libraryItem = library.find(item => item.id === `book-${bookId}`)
+    console.log('📚 DEBUG BookModal:')
+    console.log('  bookId:', bookId)
+    console.log('  library IDs:', library.map(item => item.id))
+    console.log('  looking for match with bookId:', bookId)
+    
+    // Essayer plusieurs formats d'ID pour trouver l'item
+    const possibleIds = [
+      bookId,
+      `book-${bookId}`,
+      bookId.startsWith('book-') ? bookId.replace('book-', '') : `book-${bookId}`
+    ]
+    
+    console.log('  possibleIds:', possibleIds)
+    
+    let libraryItem = null
+    for (const id of possibleIds) {
+      libraryItem = library.find(item => idsMatch(item.id, id))
+      if (libraryItem) {
+        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
+        break
+      }
+    }
+    
     if (libraryItem) {
       setSelectedStatus(libraryItem.status)
+      console.log('  status set to:', libraryItem.status)
     } else {
       setSelectedStatus(null)
+      console.log('  ❌ no library item found - status set to null')
     }
   }, [bookId, library])
 
@@ -129,8 +155,12 @@ export default function BookDetailModal({
         googleBookId = bookId.replace('book-', '')
       }
       
+      console.log('📚 Fetching book details for ID:', googleBookId)
+      
       const data = await googleBooksService.getBookDetails(googleBookId)
       setBookDetail(data as BookDetail)
+      
+      console.log('📚 Book detail fetched:', data)
       
       // Charger des livres similaires et de l'auteur
       if (data?.volumeInfo) {
@@ -176,11 +206,22 @@ export default function BookDetailModal({
     }
   }
 
+  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
   const handleStatusSelect = (status: MediaStatus) => {
     if (!bookDetail) return
     
+    // Créer un ID normalisé
+    const normalizedId = bookId.startsWith('book-') 
+      ? bookId 
+      : `book-${bookDetail.id}`
+    
+    console.log('🔧 Adding book to library:')
+    console.log('  bookDetail.id:', bookDetail.id)
+    console.log('  bookId:', bookId)
+    console.log('  normalizedId:', normalizedId)
+    
     const bookItem = {
-      id: `book-${bookDetail.id}`,
+      id: normalizedId,
       title: bookDetail.volumeInfo.title,
       image: googleBooksService.getBestImageURL(bookDetail as any, 'medium'),
       category: 'books' as const,
@@ -189,6 +230,7 @@ export default function BookDetailModal({
       author: bookDetail.volumeInfo.authors?.[0] || 'Unknown Author'
     }
     
+    console.log('  final bookItem:', bookItem)
     onAddToLibrary(bookItem, status)
     setSelectedStatus(status)
   }
@@ -328,18 +370,22 @@ export default function BookDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* ✅ Action buttons avec possibilité de décocher */}
+              {/* Action buttons avec possibilité de décocher */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
                       onClick={() => {
-                        // ✅ NOUVELLE LOGIQUE : Si déjà sélectionné, on retire de la bibliothèque
+                        // Si déjà sélectionné, on retire de la bibliothèque
                         if (selectedStatus === status) {
-                          // Retirer de la bibliothèque
                           if (onDeleteItem) {
-                            onDeleteItem(`book-${bookId}`)
+                            // 🔧 CORRECTION: Utiliser l'ID cohérent
+                            const idToDelete = bookId.startsWith('book-') 
+                              ? bookId 
+                              : `book-${bookDetail.id}`
+                            console.log('🗑️ Removing from library with ID:', idToDelete)
+                            onDeleteItem(idToDelete)
                           }
                           setSelectedStatus(null)
                         } else {
@@ -349,7 +395,7 @@ export default function BookDetailModal({
                       }}
                       className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
                         selectedStatus === status
-                          ? `${getStatusColor(status)} ring-2 ring-blue-300` // ✅ Indication visuelle forte
+                          ? `${getStatusColor(status)} ring-2 ring-blue-300`
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
@@ -375,7 +421,10 @@ export default function BookDetailModal({
                     <button 
                       onClick={() => {
                         if (onDeleteItem) {
-                          onDeleteItem(`book-${bookId}`)
+                          const idToDelete = bookId.startsWith('book-') 
+                            ? bookId 
+                            : `book-${bookDetail.id}`
+                          onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)
                       }}

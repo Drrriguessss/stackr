@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Calendar, Clock, Award, Users, Globe, Check } from 'lucide-react'
 import { omdbService } from '@/services/omdbService'
+import { idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
 interface MovieDetailModalProps {
@@ -9,7 +10,7 @@ interface MovieDetailModalProps {
   onClose: () => void
   movieId: string
   onAddToLibrary: (item: any, status: MediaStatus) => void
-  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
+  onDeleteItem?: (id: string) => void
   library: LibraryItem[]
   userReviews: Review[]
   imdbReviews: Review[]
@@ -48,7 +49,7 @@ export default function MovieDetailModal({
   onClose, 
   movieId, 
   onAddToLibrary, 
-  onDeleteItem, // ✅ NOUVELLE PROP
+  onDeleteItem,
   library, 
   userReviews, 
   imdbReviews, 
@@ -97,12 +98,37 @@ export default function MovieDetailModal({
     }
   }, [isOpen, movieId])
 
+  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
   useEffect(() => {
-    const libraryItem = library.find(item => item.id === `movie-${movieId}`)
+    console.log('🔍 DEBUG MovieModal:')
+    console.log('  movieId:', movieId)
+    console.log('  library IDs:', library.map(item => item.id))
+    console.log('  looking for match with movieId:', movieId)
+    
+    // Essayer plusieurs formats d'ID pour trouver l'item
+    const possibleIds = [
+      movieId,
+      `movie-${movieId}`,
+      movieId.startsWith('movie-') ? movieId.replace('movie-', '') : `movie-${movieId}`
+    ]
+    
+    console.log('  possibleIds:', possibleIds)
+    
+    let libraryItem = null
+    for (const id of possibleIds) {
+      libraryItem = library.find(item => idsMatch(item.id, id))
+      if (libraryItem) {
+        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
+        break
+      }
+    }
+    
     if (libraryItem) {
       setSelectedStatus(libraryItem.status)
+      console.log('  status set to:', libraryItem.status)
     } else {
       setSelectedStatus(null)
+      console.log('  ❌ no library item found - status set to null')
     }
   }, [movieId, library])
 
@@ -118,8 +144,12 @@ export default function MovieDetailModal({
         imdbId = movieId.replace('movie-', '')
       }
       
+      console.log('🎬 Fetching movie details for ID:', imdbId)
+      
       const data = await omdbService.getMovieDetails(imdbId)
       setMovieDetail(data as MovieDetail)
+      
+      console.log('🎬 Movie detail fetched:', data)
       
       // Charger des films similaires (simulation basée sur le genre)
       if (data?.Genre) {
@@ -150,11 +180,21 @@ export default function MovieDetailModal({
     }
   }
 
+  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
   const handleStatusSelect = (status: MediaStatus) => {
     if (!movieDetail) return
     
+    // Créer un ID normalisé
+    const normalizedId = movieDetail.imdbID.startsWith('movie-') 
+      ? movieDetail.imdbID 
+      : `movie-${movieDetail.imdbID}`
+    
+    console.log('🔧 Adding movie to library:')
+    console.log('  movieDetail.imdbID:', movieDetail.imdbID)
+    console.log('  normalizedId:', normalizedId)
+    
     const movieItem = {
-      id: `movie-${movieDetail.imdbID}`,
+      id: normalizedId,
       title: movieDetail.Title,
       image: movieDetail.Poster !== 'N/A' ? movieDetail.Poster : undefined,
       category: 'movies' as const,
@@ -163,6 +203,7 @@ export default function MovieDetailModal({
       director: movieDetail.Director
     }
     
+    console.log('  final movieItem:', movieItem)
     onAddToLibrary(movieItem, status)
     setSelectedStatus(status)
   }
@@ -294,18 +335,22 @@ export default function MovieDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* ✅ Action buttons avec possibilité de décocher */}
+              {/* Action buttons avec possibilité de décocher */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
                       onClick={() => {
-                        // ✅ NOUVELLE LOGIQUE : Si déjà sélectionné, on retire de la bibliothèque
+                        // Si déjà sélectionné, on retire de la bibliothèque
                         if (selectedStatus === status) {
-                          // Retirer de la bibliothèque
                           if (onDeleteItem) {
-                            onDeleteItem(`movie-${movieId}`)
+                            // 🔧 CORRECTION: Utiliser l'ID cohérent
+                            const idToDelete = movieDetail.imdbID.startsWith('movie-') 
+                              ? movieDetail.imdbID 
+                              : `movie-${movieDetail.imdbID}`
+                            console.log('🗑️ Removing from library with ID:', idToDelete)
+                            onDeleteItem(idToDelete)
                           }
                           setSelectedStatus(null)
                         } else {
@@ -315,7 +360,7 @@ export default function MovieDetailModal({
                       }}
                       className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
                         selectedStatus === status
-                          ? `${getStatusColor(status)} ring-2 ring-blue-300` // ✅ Indication visuelle forte
+                          ? `${getStatusColor(status)} ring-2 ring-blue-300`
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
@@ -341,7 +386,10 @@ export default function MovieDetailModal({
                     <button 
                       onClick={() => {
                         if (onDeleteItem) {
-                          onDeleteItem(`movie-${movieId}`)
+                          const idToDelete = movieDetail.imdbID.startsWith('movie-') 
+                            ? movieDetail.imdbID 
+                            : `movie-${movieDetail.imdbID}`
+                          onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)
                       }}

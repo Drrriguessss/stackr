@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Calendar, Music, Award, Users, Globe, Play, HeadphonesIcon, Clock, Check } from 'lucide-react'
 import { musicService, formatTrackCount, formatPrice, formatDuration } from '@/services/musicService'
+import { idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
 interface MusicDetailModalProps {
@@ -9,7 +10,7 @@ interface MusicDetailModalProps {
   onClose: () => void
   albumId: string
   onAddToLibrary: (item: any, status: MediaStatus) => void
-  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
+  onDeleteItem?: (id: string) => void
   library: LibraryItem[]
   userReviews: Review[]
   spotifyReviews: Review[]
@@ -38,7 +39,7 @@ export default function MusicDetailModal({
   onClose, 
   albumId, 
   onAddToLibrary, 
-  onDeleteItem, // ✅ NOUVELLE PROP
+  onDeleteItem,
   library, 
   userReviews, 
   spotifyReviews, 
@@ -89,12 +90,37 @@ export default function MusicDetailModal({
     }
   }, [isOpen, albumId])
 
+  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
   useEffect(() => {
-    const libraryItem = library.find(item => item.id === `music-${albumId}`)
+    console.log('🎵 DEBUG MusicModal:')
+    console.log('  albumId:', albumId)
+    console.log('  library IDs:', library.map(item => item.id))
+    console.log('  looking for match with albumId:', albumId)
+    
+    // Essayer plusieurs formats d'ID pour trouver l'item
+    const possibleIds = [
+      albumId,
+      `music-${albumId}`,
+      albumId.startsWith('music-') ? albumId.replace('music-', '') : `music-${albumId}`
+    ]
+    
+    console.log('  possibleIds:', possibleIds)
+    
+    let libraryItem = null
+    for (const id of possibleIds) {
+      libraryItem = library.find(item => idsMatch(item.id, id))
+      if (libraryItem) {
+        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
+        break
+      }
+    }
+    
     if (libraryItem) {
       setSelectedStatus(libraryItem.status)
+      console.log('  status set to:', libraryItem.status)
     } else {
       setSelectedStatus(null)
+      console.log('  ❌ no library item found - status set to null')
     }
   }, [albumId, library])
 
@@ -110,8 +136,12 @@ export default function MusicDetailModal({
         iTunesId = albumId.replace('music-', '')
       }
       
+      console.log('🎵 Fetching album details for ID:', iTunesId)
+      
       const data = await musicService.getAlbumDetails(iTunesId)
       setAlbumDetail(data as AlbumDetail)
+      
+      console.log('🎵 Album detail fetched:', data)
       
       // Charger des albums similaires et de l'artiste
       if (data) {
@@ -157,11 +187,22 @@ export default function MusicDetailModal({
     }
   }
 
+  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
   const handleStatusSelect = (status: MediaStatus) => {
     if (!albumDetail) return
     
+    // Créer un ID normalisé
+    const normalizedId = albumId.startsWith('music-') 
+      ? albumId 
+      : `music-${albumDetail.collectionId}`
+    
+    console.log('🔧 Adding album to library:')
+    console.log('  albumDetail.collectionId:', albumDetail.collectionId)
+    console.log('  albumId:', albumId)
+    console.log('  normalizedId:', normalizedId)
+    
     const albumItem = {
-      id: `music-${albumDetail.collectionId}`,
+      id: normalizedId,
       title: albumDetail.collectionName,
       image: musicService.getBestImageURL(albumDetail as any, 'medium'),
       category: 'music' as const,
@@ -170,6 +211,7 @@ export default function MusicDetailModal({
       artist: albumDetail.artistName
     }
     
+    console.log('  final albumItem:', albumItem)
     onAddToLibrary(albumItem, status)
     setSelectedStatus(status)
   }
@@ -289,18 +331,22 @@ export default function MusicDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* ✅ Action buttons avec possibilité de décocher */}
+              {/* Action buttons avec possibilité de décocher */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
                       onClick={() => {
-                        // ✅ NOUVELLE LOGIQUE : Si déjà sélectionné, on retire de la bibliothèque
+                        // Si déjà sélectionné, on retire de la bibliothèque
                         if (selectedStatus === status) {
-                          // Retirer de la bibliothèque
                           if (onDeleteItem) {
-                            onDeleteItem(`music-${albumId}`)
+                            // 🔧 CORRECTION: Utiliser l'ID cohérent
+                            const idToDelete = albumId.startsWith('music-') 
+                              ? albumId 
+                              : `music-${albumDetail.collectionId}`
+                            console.log('🗑️ Removing from library with ID:', idToDelete)
+                            onDeleteItem(idToDelete)
                           }
                           setSelectedStatus(null)
                         } else {
@@ -310,7 +356,7 @@ export default function MusicDetailModal({
                       }}
                       className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
                         selectedStatus === status
-                          ? `${getStatusColor(status)} ring-2 ring-blue-300 text-white` // ✅ Indication visuelle forte
+                          ? `${getStatusColor(status)} ring-2 ring-blue-300 text-white`
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
@@ -336,7 +382,10 @@ export default function MusicDetailModal({
                     <button 
                       onClick={() => {
                         if (onDeleteItem) {
-                          onDeleteItem(`music-${albumId}`)
+                          const idToDelete = albumId.startsWith('music-') 
+                            ? albumId 
+                            : `music-${albumDetail.collectionId}`
+                          onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)
                       }}
@@ -496,7 +545,7 @@ export default function MusicDetailModal({
                 </div>
               </div>
 
-              {/* Tab content - reste inchangé */}
+              {/* Tab content */}
               <div className="p-6">
                 {activeTab === 'info' && (
                   <div className="space-y-6">
@@ -540,7 +589,6 @@ export default function MusicDetailModal({
                   </div>
                 )}
 
-                {/* Autres onglets restent inchangés */}
                 {activeTab === 'social' && (
                   <div className="space-y-6">
                     <div>
