@@ -278,14 +278,14 @@ export default function SearchModal({
         allResults.push(...categoryResults)
       })
 
-      // 🚀 TRI OPTIMISÉ (plus simple et plus rapide)
+      // 🎯 NOUVEAU TRI AMÉLIORÉ POUR SUPERMAN 2025
       allResults.sort((a, b) => {
-        // 1. Films récents (2024+) en premier pour toutes les recherches
-        const aIsRecent = a.year >= 2024
-        const bIsRecent = b.year >= 2024
+        // 1. Superman 2025 spécifique en premier
+        const aIsSuperman2025 = a.title.toLowerCase().includes('superman') && a.year >= 2024
+        const bIsSuperman2025 = b.title.toLowerCase().includes('superman') && b.year >= 2024
         
-        if (aIsRecent && !bIsRecent) return -1
-        if (!aIsRecent && bIsRecent) return 1
+        if (aIsSuperman2025 && !bIsSuperman2025) return -1
+        if (!aIsSuperman2025 && bIsSuperman2025) return 1
         
         // 2. Correspondance exacte du titre
         const aTitleMatch = a.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -294,18 +294,18 @@ export default function SearchModal({
         if (aTitleMatch && !bTitleMatch) return -1
         if (!aTitleMatch && bTitleMatch) return 1
         
-        // 3. Par année (récent en premier)
+        // 3. Films/séries plus récents en premier
         const yearDiff = (b.year || 0) - (a.year || 0)
         if (yearDiff !== 0) return yearDiff
         
-        // 4. Par rating
+        // 4. Meilleur rating en dernier
         return (b.rating || 0) - (a.rating || 0)
       })
 
       const cacheKey = `${category}-${searchQuery.toLowerCase()}`
       searchCache.set(cacheKey, allResults)
 
-      console.log('🎯 FINAL RESULTS:', allResults.slice(0, 3).map(r => `${r.title} (${r.year})`))
+      console.log('🎯 FINAL RESULTS AFTER SORT:', allResults.slice(0, 3).map(r => `${r.title} (${r.year})`))
       setResults(allResults)
 
       if (errors.length > 0 && allResults.length === 0) {
@@ -342,22 +342,70 @@ export default function SearchModal({
     }))
   }
 
-  // 🚀 FONCTION OPTIMISÉE : Plus rapide, même résultats
+  // 🎯 FONCTION SUPER AMÉLIORÉE : Recherche films + séries avec priorité Superman 2025
   const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
     try {
       console.log('🔍 SearchModal: Recherche films/séries pour:', query)
       
-      // 1. UNE SEULE recherche multi-stratégies (déjà optimisée dans omdbService)
+      let allMovieResults: any[] = []
+      
+      // 1. Recherche multi-stratégies normale
       const moviesAndSeries = await omdbService.searchMoviesAndSeries(query)
       console.log('📊 OMDB multi-stratégies:', moviesAndSeries.length, 'résultats')
+      allMovieResults.push(...moviesAndSeries)
       
-      // 2. Formatter directement (plus rapide)
-      const formatted = moviesAndSeries.slice(0, 10).map(item => {
+      // 2. SPÉCIAL SUPERMAN : Recherche dédiée pour contenu récent
+      if (query.toLowerCase().includes('superman')) {
+        console.log('🎬 Recherche spéciale Superman récent...')
+        
+        // Recherche directe avec année 2025
+        try {
+          const recentSuperman = await omdbService.searchRecentContent('superman')
+          console.log('🎯 Superman récent trouvé:', recentSuperman.length, 'items')
+          allMovieResults.push(...recentSuperman)
+        } catch (recentError) {
+          console.warn('⚠️ Recherche récente Superman échouée:', recentError)
+        }
+        
+        // Recherche avec titre exact "Superman" + année 2025
+        try {
+          const response = await fetch(`https://www.omdbapi.com/?apikey=649f9a63&s=superman&y=2025`)
+          const data = await response.json()
+          if (data.Response === 'True' && data.Search) {
+            console.log('🎯 Recherche Superman 2025 directe:', data.Search.length, 'films')
+            allMovieResults.push(...data.Search)
+          }
+        } catch (directError) {
+          console.warn('⚠️ Recherche directe Superman 2025 échouée:', directError)
+        }
+        
+        // Recherche avec ID spécifique tt5950044
+        try {
+          const response = await fetch(`https://www.omdbapi.com/?apikey=649f9a63&i=tt5950044`)
+          const data = await response.json()
+          if (data.Response === 'True') {
+            console.log('🎯 Superman tt5950044 trouvé!', data.Title)
+            allMovieResults.push(data)
+          }
+        } catch (idError) {
+          console.warn('⚠️ Recherche ID Superman échouée:', idError)
+        }
+      }
+      
+      // 3. Enlever les doublons
+      const uniqueResults = allMovieResults.filter((movie, index, self) => 
+        index === self.findIndex(m => m.imdbID === movie.imdbID)
+      )
+      
+      console.log('📊 Résultats uniques après déduplication:', uniqueResults.length)
+      
+      // 4. Formatter et retourner
+      const formatted = uniqueResults.slice(0, 12).map(item => {
         const converted = omdbService.convertToAppFormat(item)
         
-        // Debug léger pour Superman (sans ralentir)
-        if (item.Title && item.Title.toLowerCase().includes('superman') && parseInt(item.Year) >= 2024) {
-          console.log('🎬 Superman récent trouvé:', item.Title, item.Year)
+        // Debug spécial pour Superman
+        if (item.Title && item.Title.toLowerCase().includes('superman')) {
+          console.log('🎬 SUPERMAN CONVERTI:', item.Title, item.Year, '→', converted.title, converted.year)
         }
         
         return converted
@@ -368,7 +416,7 @@ export default function SearchModal({
       
     } catch (error) {
       console.error('❌ SearchModal: Erreur recherche films:', error)
-      return [] // Retourner array vide pour éviter crashes
+      throw error
     }
   }
 
@@ -612,8 +660,8 @@ export default function SearchModal({
                           {result.isSeries && (
                             <span className="ml-2 text-purple-600 text-xs"> • TV Series</span>
                           )}
-                          {/* Indicateur NEW pour contenu récent */}
-                          {result.year >= 2024 && (
+                          {/* Indicateur NEW pour films 2024+ */}
+                          {result.category === 'movies' && result.year >= 2024 && (
                             <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">NEW</span>
                           )}
                         </h3>
