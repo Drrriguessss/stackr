@@ -1,5 +1,5 @@
 'use client'
-import { ArrowLeft, Check, Clock, Zap, Users, Star, Sparkles } from 'lucide-react'
+import { ArrowLeft, Check, Clock, Zap, Users, Star, Sparkles, CheckCircle, Smartphone } from 'lucide-react'
 
 interface RoadmapPageProps {
   onBack: () => void
@@ -10,63 +10,65 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
     {
       id: 'phase1',
       title: 'Phase 1 - Foundations',
-      status: 'in-progress',
+      status: 'completed',
       description: 'Core app structure and basic features',
       items: [
         { text: 'BottomNavigation with Apple design', completed: true },
-        { text: 'Movies/Music/Books APIs integration', completed: false },
-        { text: 'Discover & Search pages', completed: false },
-        { text: 'Content browsing optimization', completed: false }
+        { text: 'Movies/Music/Books/Games APIs integration', completed: true },
+        { text: 'Discover & Search pages', completed: true },
+        { text: 'Content browsing optimization', completed: true },
+        { text: 'Responsive design & mobile optimization', completed: true }
       ]
     },
     {
       id: 'phase2', 
       title: 'Phase 2 - Core Features',
-      status: 'planned',
+      status: 'completed',
       description: 'Essential functionality and data persistence',
       items: [
-        { text: 'Database setup with Supabase', completed: false },
-        { text: 'User authentication (Google/Apple)', completed: false },
-        { text: 'Advanced Library features', completed: false },
-        { text: 'Basic recommendation algorithms', completed: false },
-        { text: 'User stats and analytics', completed: false }
+        { text: 'Database setup with Supabase', completed: true },
+        { text: 'Library management system', completed: true },
+        { text: 'Content detail modals', completed: true },
+        { text: 'Status tracking (Want/Playing/Completed)', completed: true },
+        { text: 'Basic recommendation algorithms', completed: true }
       ]
     },
     {
       id: 'phase3',
-      title: 'Phase 3 - Social Features', 
-      status: 'planned',
-      description: 'Connect with friends and share recommendations',
+      title: 'Phase 3 - Enhanced Experience',
+      status: 'in-progress', 
+      description: 'Improved user experience and mobile features',
       items: [
-        { text: 'Friend system (add/remove friends)', completed: false },
-        { text: 'Friend Recommendations with personal messages', completed: false, isNew: true },
-        { text: 'Activity Feed (see friends\' activities)', completed: false },
-        { text: 'Groups & Communities', completed: false },
-        { text: 'Public profiles', completed: false }
+        { text: 'Progressive Web App (PWA) support', completed: false, isNew: true },
+        { text: 'Offline functionality', completed: false },
+        { text: 'Push notifications', completed: false },
+        { text: 'User reviews and ratings', completed: false },
+        { text: 'Advanced filtering and sorting', completed: false }
       ]
     },
     {
       id: 'phase4',
-      title: 'Phase 4 - Advanced Social',
-      status: 'future', 
-      description: 'Rich social interactions and community features',
+      title: 'Phase 4 - Social Features',
+      status: 'planned', 
+      description: 'Connect with friends and share recommendations',
       items: [
-        { text: 'Reviews & Ratings system', completed: false },
-        { text: 'Challenges between friends', completed: false },
-        { text: 'Social stats and comparisons', completed: false },
-        { text: 'Collaborative lists', completed: false },
-        { text: 'Comments & Discussions', completed: false }
+        { text: 'User authentication (Google/Apple)', completed: false },
+        { text: 'Friend system (add/remove friends)', completed: false },
+        { text: 'Friend Recommendations with personal messages', completed: false },
+        { text: 'Activity Feed (see friends\' activities)', completed: false },
+        { text: 'Public profiles and sharing', completed: false }
       ]
     },
     {
       id: 'phase5',
-      title: 'Phase 5 - Pro Features',
+      title: 'Phase 5 - Advanced Features',
       status: 'future',
-      description: 'Advanced features and platform expansion',
+      description: 'Premium features and platform expansion',
       items: [
-        { text: 'AI-powered recommendations', completed: false },
+        { text: 'AI-powered smart recommendations', completed: false },
         { text: 'Advanced analytics dashboard', completed: false },
         { text: 'Custom themes and personalization', completed: false },
+        { text: 'Groups & Communities', completed: false },
         { text: 'Native mobile apps (iOS/Android)', completed: false },
         { text: 'Public API for developers', completed: false }
       ]
@@ -75,16 +77,22 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'in-progress':
+      case 'completed':
         return { 
           color: 'bg-green-50 border-green-200 text-green-700',
-          icon: <Zap size={16} className="text-green-600" />,
+          icon: <CheckCircle size={16} className="text-green-600" />,
+          label: 'Completed'
+        }
+      case 'in-progress':
+        return {
+          color: 'bg-blue-50 border-blue-200 text-blue-700', 
+          icon: <Zap size={16} className="text-blue-600" />,
           label: 'In Progress'
         }
       case 'planned':
         return {
-          color: 'bg-blue-50 border-blue-200 text-blue-700', 
-          icon: <Clock size={16} className="text-blue-600" />,
+          color: 'bg-orange-50 border-orange-200 text-orange-700', 
+          icon: <Clock size={16} className="text-orange-600" />,
           label: 'Planned'
         }
       case 'future':
@@ -180,7 +188,7 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
                         <span>{statusInfo.label}</span>
                       </div>
                     </div>
-                    {phase.status === 'in-progress' && (
+                    {(phase.status === 'in-progress' || phase.status === 'completed') && (
                       <div className="text-sm font-medium text-green-600">{progress}%</div>
                     )}
                   </div>
@@ -188,10 +196,12 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
                   <p className="text-gray-600 text-sm mb-3">{phase.description}</p>
                   
                   {/* Progress Bar */}
-                  {phase.status === 'in-progress' && (
+                  {(phase.status === 'in-progress' || phase.status === 'completed') && (
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          phase.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
+                        }`}
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -221,7 +231,7 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
                           </span>
                           {item.isNew && (
                             <div className="flex items-center space-x-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                              <Sparkles size={10} />
+                              {item.text.includes('PWA') ? <Smartphone size={10} /> : <Sparkles size={10} />}
                               <span>New</span>
                             </div>
                           )}
