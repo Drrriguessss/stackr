@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Star, Plus, TrendingUp, ChevronRight, Play, Book, Headphones, Film, Check, MoreHorizontal, Loader2 } from 'lucide-react'
+import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, MoreHorizontal, Loader2 } from 'lucide-react'
 import { rawgService } from '@/services/rawgService'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
@@ -8,8 +8,6 @@ import { musicService } from '@/services/musicService'
 import type { ContentItem, LibraryItem, MediaStatus } from '@/types'
 
 // Constants
-const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
-const OMDB_API_KEY = '649f9a63'
 const MIN_LIBRARY_ITEMS = 10
 
 interface CategorySection {
@@ -30,7 +28,7 @@ interface ForYouSection {
 
 interface DiscoverPageProps {
   onAddToLibrary?: (item: any, status: MediaStatus) => void
-  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
+  onDeleteItem?: (id: string) => void
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
   onOpenBookDetail?: (bookId: string) => void
@@ -40,7 +38,7 @@ interface DiscoverPageProps {
 
 export default function DiscoverPage({
   onAddToLibrary,
-  onDeleteItem, // ✅ NOUVELLE PROP
+  onDeleteItem,
   onOpenGameDetail,
   onOpenMovieDetail,
   onOpenBookDetail,
@@ -101,9 +99,15 @@ export default function DiscoverPage({
   ])
 
   // UI state
-  const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState<string | null>(null)
+  const [showPersonalization, setShowPersonalization] = useState(false)
+  const [visibilitySettings, setVisibilitySettings] = useState<{[key: string]: boolean}>({
+    'trending-games': true,
+    'popular-movies': true,
+    'new-books': true,
+    'hot-albums': true
+  })
 
   // Load data on mount
   useEffect(() => {
@@ -198,27 +202,11 @@ export default function DiscoverPage({
       // Strategy 1: More from favorite creators
       if (preferences.topCreators.length > 0) {
         const favoriteCreator = preferences.topCreators[0]
-        
-        // Search for more content from this creator
-        if (preferences.dominantCategory === 'games') {
-          const games = await rawgService.getPopularGames()
-          const creatorGames = games.filter(game => 
-            game.developers?.some(dev => dev.name.toLowerCase().includes(favoriteCreator.toLowerCase()))
-          )
-          
-          creatorGames.slice(0, 2).forEach(game => {
-            const converted = rawgService.convertToAppFormat(game)
-            if (!library.some(item => item.id === converted.id)) {
-              recommendations.push(converted)
-            }
-          })
-        }
-        
         reasoning = `Because you loved content by ${favoriteCreator}`
       }
 
       // Strategy 2: Similar genres
-      if (preferences.topGenres.length > 0 && recommendations.length < 4) {
+      if (preferences.topGenres.length > 0) {
         const favoriteGenre = preferences.topGenres[0]
         
         // Get content in favorite genre
@@ -236,10 +224,7 @@ export default function DiscoverPage({
           if (game.genres?.some((g: any) => g.name.toLowerCase().includes(favoriteGenre.toLowerCase()))) {
             const converted = rawgService.convertToAppFormat(game)
             if (!library.some(item => item.id === converted.id)) {
-              genreMatches.push({
-                ...converted,
-                score: calculateRecommendationScore(converted, preferences)
-              })
+              genreMatches.push(converted)
             }
           }
         })
@@ -249,82 +234,16 @@ export default function DiscoverPage({
           if (movie.Genre && movie.Genre.toLowerCase().includes(favoriteGenre.toLowerCase())) {
             const converted = omdbService.convertToAppFormat(movie)
             if (!library.some(item => item.id === converted.id)) {
-              genreMatches.push({
-                ...converted,
-                score: calculateRecommendationScore(converted, preferences)
-              })
+              genreMatches.push(converted)
             }
           }
         })
 
-        // Sort by score and add top matches
-        genreMatches
-          .sort((a, b) => (b.score || 0) - (a.score || 0))
-          .slice(0, 4 - recommendations.length)
-          .forEach(item => recommendations.push(item))
+        // Add top matches
+        genreMatches.slice(0, 6).forEach(item => recommendations.push(item))
 
         if (!reasoning && genreMatches.length > 0) {
           reasoning = `Because you love ${favoriteGenre} content`
-        }
-      }
-
-      // Strategy 3: Trending in favorite category
-      if (recommendations.length < 4) {
-        const category = preferences.dominantCategory
-        let categoryContent: any[] = []
-
-        switch (category) {
-          case 'games':
-            categoryContent = await rawgService.getPopularGames().catch(() => [])
-            break
-          case 'movies':
-            categoryContent = await omdbService.getPopularMovies().catch(() => [])
-            break
-          case 'books':
-            categoryContent = await googleBooksService.getFictionBooks().catch(() => [])
-            break
-          case 'music':
-            categoryContent = await musicService.getPopularAlbums().catch(() => [])
-            break
-        }
-
-        categoryContent.slice(0, 4 - recommendations.length).forEach(item => {
-          let converted: ContentItem
-
-          switch (category) {
-            case 'games':
-              converted = rawgService.convertToAppFormat(item)
-              break
-            case 'movies':
-              converted = omdbService.convertToAppFormat(item)
-              break
-            case 'books':
-              converted = googleBooksService.convertToAppFormat(item)
-              break
-            case 'music':
-              converted = musicService.convertToAppFormat(item)
-              break
-            default:
-              return
-          }
-
-          if (!library.some(libItem => libItem.id === converted.id)) {
-            recommendations.push(converted)
-          }
-        })
-
-        if (!reasoning && recommendations.length > 0) {
-          reasoning = `Trending ${category} picks for you`
-        }
-      }
-
-      // Strategy 4: Based on high-rated items
-      if (recommendations.length < 4 && preferences.highRatedItems.length > 0) {
-        const favoriteItem = preferences.highRatedItems[0]
-        const itemName = favoriteItem.title
-        
-        if (!reasoning) {
-          reasoning = `Because you gave ${itemName} 5 stars`
         }
       }
 
@@ -340,36 +259,6 @@ export default function DiscoverPage({
         reasoning: 'Unable to generate recommendations'
       }
     }
-  }
-
-  const calculateRecommendationScore = (item: ContentItem, preferences: any): number => {
-    let score = 0
-
-    // Genre match (40% weight)
-    if (preferences.topGenres.includes(item.genre)) {
-      score += 0.4
-    }
-
-    // Creator match (30% weight)
-    const creator = item.author || item.artist || item.director
-    if (preferences.topCreators.includes(creator)) {
-      score += 0.3
-    }
-
-    // Year similarity (20% weight)
-    const yearDiff = Math.abs(item.year - preferences.avgYear)
-    if (yearDiff <= 2) {
-      score += 0.2
-    } else if (yearDiff <= 5) {
-      score += 0.1
-    }
-
-    // Rating weight (10% weight)
-    if (item.rating && item.rating >= 4.0) {
-      score += 0.1
-    }
-
-    return score
   }
 
   const loadForYouRecommendations = async () => {
@@ -424,36 +313,18 @@ export default function DiscoverPage({
       const heroItems = [
         games[0] ? { 
           ...rawgService.convertToAppFormat(games[0]), 
-          subtitle: 'Game of the Year',
           description: getDescriptionForHero('games'),
-          callToAction: getCallToActionForCategory('games'),
-          stats: {
-            trending: '+' + Math.floor(Math.random() * 100 + 50) + '%',
-            users: (Math.random() * 2 + 0.5).toFixed(1) + 'M',
-            engagement: Math.floor(Math.random() * 10 + 90) + '%'
-          }
+          callToAction: getCallToActionForCategory('games')
         } : null,
         movies[0] ? { 
           ...omdbService.convertToAppFormat(movies[0]), 
-          subtitle: 'Epic Masterpiece',
           description: getDescriptionForHero('movies'),
-          callToAction: getCallToActionForCategory('movies'),
-          stats: {
-            trending: '+' + Math.floor(Math.random() * 100 + 50) + '%',
-            users: (Math.random() * 2 + 0.5).toFixed(1) + 'M',
-            engagement: Math.floor(Math.random() * 10 + 90) + '%'
-          }
+          callToAction: getCallToActionForCategory('movies')
         } : null,
         books[0] ? { 
           ...googleBooksService.convertToAppFormat(books[0]), 
-          subtitle: 'Literary Phenomenon',
           description: getDescriptionForHero('books'),
-          callToAction: getCallToActionForCategory('books'),
-          stats: {
-            trending: '+' + Math.floor(Math.random() * 100 + 50) + '%',
-            users: (Math.random() * 2 + 0.5).toFixed(1) + 'M',
-            engagement: Math.floor(Math.random() * 10 + 90) + '%'
-          }
+          callToAction: getCallToActionForCategory('books')
         } : null
       ].filter(Boolean)
 
@@ -474,12 +345,8 @@ export default function DiscoverPage({
         return {
           ...converted,
           trending: '+' + Math.floor(Math.random() * 100 + 20) + '%',
-          status: getRandomStatus(),
-          stats: {
-            users: (Math.random() * 3 + 0.5).toFixed(1) + 'M',
-            completion: Math.floor(Math.random() * 20 + 80) + '%'
-          }
-        } as ContentItem & { trending: string; status: string; stats: any }
+          status: getRandomStatus()
+        } as ContentItem & { trending: string; status: string }
       })
 
       setCategorySections(prev => prev.map(section => 
@@ -652,7 +519,6 @@ export default function DiscoverPage({
     }, 1500)
   }
 
-  // ✅ NOUVELLE FONCTION pour gérer la suppression
   const handleRemoveFromLibrary = (item: ContentItem) => {
     if (!onDeleteItem) return
     onDeleteItem(item.id)
@@ -772,10 +638,13 @@ export default function DiscoverPage({
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Header */}
+      {/* Header with Settings */}
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center space-x-4">
-          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button 
+            onClick={() => setShowPersonalization(true)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
             <MoreHorizontal className="w-6 h-6 text-gray-700" />
           </button>
         </div>
@@ -791,125 +660,92 @@ export default function DiscoverPage({
         </div>
       </div>
 
-      {/* Hero Section */}
-      <div className="px-6 pb-8">
+      {/* Hero Section - Compact Banner Style */}
+      <div className="px-6 pb-6">
         {heroLoading || !currentHeroItem ? (
-          <div className="bg-gray-100 rounded-3xl h-80 animate-pulse flex items-center justify-center">
+          <div className="bg-gray-100 rounded-2xl h-48 animate-pulse flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
           </div>
         ) : (
-          <div className="relative bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
-            {/* Hero Image */}
-            <div className="relative h-80 overflow-hidden">
+          <div 
+            className="relative bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-48 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => handleHeroAction(currentHeroItem)}
+          >
+            {/* Hero Image - Banner style */}
+            <div className="absolute inset-0">
               <img
                 src={currentHeroItem.image || ''}
                 alt={currentHeroItem.title}
                 className="w-full h-full object-cover"
               />
-              
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
-              
-              {/* Navigation dots */}
-              <div className="absolute top-4 right-4 flex space-x-2">
-                {heroContent.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setCurrentHeroIndex(index)
-                      setIsAutoplay(false)
-                    }}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      index === currentHeroIndex 
-                        ? 'bg-white scale-125' 
-                        : 'bg-white/50 hover:bg-white/80'
-                    }`}
-                  />
-                ))}
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent"></div>
             </div>
 
-            {/* Hero Content */}
-            <div className="p-6">
-              <div className="mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">
+            {/* Navigation dots */}
+            <div className="absolute top-4 right-4 flex space-x-2">
+              {heroContent.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCurrentHeroIndex(index)
+                    setIsAutoplay(false)
+                  }}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentHeroIndex 
+                      ? 'bg-white scale-125' 
+                      : 'bg-white/50 hover:bg-white/80'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Hero Content - Left aligned */}
+            <div className="absolute inset-0 flex items-center">
+              <div className="p-6 text-white">
+                <h2 className="text-2xl font-bold mb-2">
                   {currentHeroItem.title}
                 </h2>
-                {currentHeroItem.subtitle && (
-                  <p className="text-lg text-gray-600 mb-3">{currentHeroItem.subtitle}</p>
-                )}
                 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4 mb-3">
                   <div className="flex items-center space-x-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        size={20}
+                        size={16}
                         className={`${
-                          star <= (currentHeroItem.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-200'
+                          star <= (currentHeroItem.rating || 0) ? 'text-yellow-400 fill-current' : 'text-white/40'
                         }`}
                       />
                     ))}
-                    <span className="ml-2 text-gray-600 font-medium">{currentHeroItem.rating || 0}/5</span>
+                    <span className="ml-2 text-white/90 font-medium">{currentHeroItem.rating || 0}/5</span>
                   </div>
                   
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
-                    <span>{currentHeroItem.year}</span>
-                    <span>{currentHeroItem.genre || 'Unknown'}</span>
-                    <span>{currentHeroItem.author || currentHeroItem.artist || currentHeroItem.director || 'Unknown'}</span>
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-gray-600 leading-relaxed mb-6 line-clamp-2">
-                {currentHeroItem.description || 'Discover this amazing content and add it to your library!'}
-              </p>
-
-              <div className="flex items-center space-x-3">
-                <button 
-                  onClick={() => handleHeroAction(currentHeroItem)}
-                  className="flex-1 bg-gray-900 hover:bg-gray-800 text-white py-4 px-6 rounded-2xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2"
-                >
-                  <Play size={18} />
-                  <span>{currentHeroItem.callToAction || 'Explore'}</span>
-                </button>
-                
-                <button 
-                  onClick={() => handleAddToLibrary(currentHeroItem)}
-                  className="p-4 bg-gray-100 hover:bg-gray-200 rounded-2xl transition-colors"
-                >
-                  <Plus size={20} className="text-gray-700" />
-                </button>
-              </div>
-
-              {currentHeroItem.stats && (
-                <div className="flex items-center justify-center space-x-8 mt-6 pt-6 border-t border-gray-100">
-                  {currentHeroItem.stats.users && (
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-gray-900">{currentHeroItem.stats.users}</div>
-                      <div className="text-xs text-gray-500">Users</div>
-                    </div>
-                  )}
-                  {currentHeroItem.stats.trending && (
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">{currentHeroItem.stats.trending}</div>
-                      <div className="text-xs text-gray-500">This week</div>
-                    </div>
-                  )}
-                  {currentHeroItem.stats.engagement && (
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-gray-900">{currentHeroItem.stats.engagement}</div>
-                      <div className="text-xs text-gray-500">Satisfaction</div>
-                    </div>
+                  <span className="text-white/80">•</span>
+                  <span className="text-white/80">{currentHeroItem.year}</span>
+                  
+                  {currentHeroItem.genre && (
+                    <>
+                      <span className="text-white/80">•</span>
+                      <span className="text-white/80">{currentHeroItem.genre}</span>
+                    </>
                   )}
                 </div>
-              )}
+
+                <p className="text-white/90 text-sm leading-relaxed max-w-md">
+                  {currentHeroItem.description ? 
+                    currentHeroItem.description.substring(0, 120) + (currentHeroItem.description.length > 120 ? '...' : '') :
+                    'Discover this amazing content and add it to your library!'
+                  }
+                </p>
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* For You Section */}
-      {library.length >= MIN_LIBRARY_ITEMS && (
+      {/* For You Section with minimum requirement */}
+      {library.length >= MIN_LIBRARY_ITEMS ? (
         <div className="px-6 pb-8">
           <div className="mb-4">
             <div className="flex items-center space-x-3">
@@ -926,122 +762,121 @@ export default function DiscoverPage({
           </div>
 
           {forYouSection.loading ? (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex space-x-4 overflow-x-auto pb-2">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-gray-100 rounded-3xl h-48 animate-pulse"></div>
+                <div key={i} className="flex-shrink-0 w-32 bg-gray-100 rounded-2xl h-44 animate-pulse"></div>
               ))}
             </div>
           ) : forYouSection.items.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex space-x-4 overflow-x-auto pb-2 horizontal-scroll">
               {forYouSection.items.map((item) => (
                 <div
                   key={item.id}
-                  className="group bg-white rounded-3xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer"
+                  className="flex-shrink-0 w-32 cursor-pointer"
                   onClick={() => handleItemClick(item)}
                 >
-                  {/* Image */}
-                  <div className="relative h-32 overflow-hidden">
-                    <img
-                      src={item.image || ''}
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    
-                    {/* Add button */}
-                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {isInLibrary(item.id) ? (
-                        <div className="relative">
-                          <div className="bg-green-500 text-white p-2 rounded-full shadow-lg flex items-center justify-center">
-                            <Check size={16} />
+                  <div className="relative bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden group">
+                    {/* Image */}
+                    <div className="relative h-40 overflow-hidden">
+                      <img
+                        src={item.image || ''}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      
+                      {/* Add button */}
+                      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {isInLibrary(item.id) ? (
+                          <div className="relative">
+                            <div className="bg-green-500 text-white p-2 rounded-full shadow-lg flex items-center justify-center">
+                              <Check size={14} />
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRemoveFromLibrary(item)
+                              }}
+                              className="absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 transition-colors"
+                              title="Remove from library"
+                            >
+                              ×
+                            </button>
                           </div>
-                          {/* ✅ NOUVEAU : Option pour retirer */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleRemoveFromLibrary(item)
-                            }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 transition-colors"
-                            title="Remove from library"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ) : addingItem === item.id ? (
-                        <div className="bg-blue-500 text-white p-2 rounded-full shadow-lg animate-pulse">
-                          <Plus size={16} />
-                        </div>
-                      ) : (
-                        <div className="relative">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowStatusPopup(item.id)
-                            }}
-                            className="bg-white/90 hover:bg-white text-gray-700 p-2 rounded-full shadow-lg backdrop-blur-sm transition-colors"
-                          >
-                            <Plus size={16} />
-                          </button>
+                        ) : addingItem === item.id ? (
+                          <div className="bg-blue-500 text-white p-2 rounded-full shadow-lg animate-pulse">
+                            <Plus size={14} />
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setShowStatusPopup(item.id)
+                              }}
+                              className="bg-white/90 hover:bg-white text-gray-700 p-2 rounded-full shadow-lg backdrop-blur-sm transition-colors"
+                            >
+                              <Plus size={14} />
+                            </button>
 
-                          {showStatusPopup === item.id && (
-                            <>
-                              <div 
-                                className="fixed inset-0 z-[998]"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowStatusPopup(null)
-                                }}
-                              />
-                              <div 
-                                className="absolute bottom-full right-0 mb-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-gray-200 py-2 min-w-44 z-[999]"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {getStatusOptions(item.category).map((option) => (
-                                  <button
-                                    key={option.value}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleAddToLibrary(item, option.value as MediaStatus)
-                                      setShowStatusPopup(null)
-                                    }}
-                                    className="w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-50 text-gray-700 hover:text-gray-900 font-medium"
-                                  >
-                                    {option.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
+                            {showStatusPopup === item.id && (
+                              <>
+                                <div 
+                                  className="fixed inset-0 z-[998]"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setShowStatusPopup(null)
+                                  }}
+                                />
+                                <div 
+                                  className="absolute bottom-full right-0 mb-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-gray-200 py-2 min-w-36 z-[999]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {getStatusOptions(item.category).map((option) => (
+                                    <button
+                                      key={option.value}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleAddToLibrary(item, option.value as MediaStatus)
+                                        setShowStatusPopup(null)
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm transition-all duration-200 hover:bg-gray-50 text-gray-700 hover:text-gray-900 font-medium"
+                                    >
+                                      {option.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Content */}
-                  <div className="p-4">
-                    <div className="mb-2">
-                      <h3 className="font-semibold text-gray-900 text-sm line-clamp-1">
+                    {/* Content */}
+                    <div className="p-3">
+                      <h3 className="font-semibold text-gray-900 text-sm line-clamp-1 mb-1">
                         {item.title}
                       </h3>
-                    </div>
 
-                    {/* Rating */}
-                    <div className="flex items-center space-x-1 mb-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={12}
-                          className={`${
-                            star <= (item.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-200'
-                          }`}
-                        />
-                      ))}
-                      <span className="text-xs text-gray-500 ml-1">{item.rating || 0}/5</span>
-                    </div>
+                      {/* Rating */}
+                      <div className="flex items-center space-x-1 mb-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={10}
+                            className={`${
+                              star <= (item.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-200'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-500 ml-1">{item.rating || 0}/5</span>
+                      </div>
 
-                    {/* Meta info */}
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{item.author || item.artist || item.director}</span>
-                      <span>{item.year}</span>
+                      {/* Meta info */}
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span className="truncate">{item.author || item.artist || item.director}</span>
+                        <span>{item.year}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1053,14 +888,33 @@ export default function DiscoverPage({
             </div>
           )}
         </div>
+      ) : (
+        <div className="px-6 pb-8">
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Personalized Recommendations</h3>
+              <p className="text-gray-600 mb-4">
+                Please add 10 items to your library to see suggestions tailored to your profile.
+              </p>
+              <div className="text-sm text-purple-600 bg-purple-100 rounded-lg px-3 py-2 inline-block">
+                {library.length}/10 items in your library
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Category Sections */}
+      {/* Category Sections - Horizontal Carousels */}
       <div className="space-y-8 pb-24">
-        {categorySections.map((section) => {
+        {categorySections
+          .filter(section => {
+            return visibilitySettings[section.id] !== false
+          })
+          .map((section) => {
           const colors = getColorClasses(section.color)
-          const isExpanded = expandedSection === section.id
-          const itemsToShow = isExpanded ? section.items : section.items.slice(0, 4)
           
           return (
             <div key={section.id} className="px-6">
@@ -1077,176 +931,208 @@ export default function DiscoverPage({
                     <p className="text-sm text-gray-500">{section.subtitle}</p>
                   </div>
                 </div>
-                
-                {!section.loading && section.items.length > 4 && (
-                  <button 
-                    onClick={() => setExpandedSection(isExpanded ? null : section.id)}
-                    className="flex items-center space-x-1 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    <span>{isExpanded ? 'Show less' : 'See all'}</span>
-                    <ChevronRight 
-                      size={16} 
-                      className={`transform transition-transform ${isExpanded ? 'rotate-90' : ''}`} 
-                    />
-                  </button>
-                )}
               </div>
 
-              {/* Content Grid */}
+              {/* Horizontal Carousel */}
               {section.loading ? (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex space-x-4 overflow-x-auto pb-2">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="bg-gray-100 rounded-3xl h-48 animate-pulse"></div>
+                    <div key={i} className="flex-shrink-0 w-32 bg-gray-100 rounded-2xl h-44 animate-pulse"></div>
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  {itemsToShow.map((item) => (
+                <div className="flex space-x-4 overflow-x-auto pb-2 horizontal-scroll">
+                  {section.items.map((item) => (
                     <div
                       key={item.id}
-                      className="group bg-white rounded-3xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer"
+                      className="flex-shrink-0 w-32 cursor-pointer"
                       onClick={() => handleItemClick(item)}
                     >
-                      {/* Image */}
-                      <div className="relative h-32 overflow-hidden">
-                        <img
-                          src={item.image || ''}
-                          alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        
-                        {getStatusBadge((item as any).status, (item as any).trending)}
-                        
-                        {/* Add button */}
-                        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {isInLibrary(item.id) ? (
-                            <div className="relative">
-                              <div className="bg-green-500 text-white p-2 rounded-full shadow-lg flex items-center justify-center">
-                                <Check size={16} />
+                      <div className="relative bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden group">
+                        {/* Image */}
+                        <div className="relative h-40 overflow-hidden">
+                          <img
+                            src={item.image || ''}
+                            alt={item.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          
+                          {getStatusBadge((item as any).status, (item as any).trending)}
+                          
+                          {/* Add button */}
+                          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {isInLibrary(item.id) ? (
+                              <div className="relative">
+                                <div className="bg-green-500 text-white p-2 rounded-full shadow-lg flex items-center justify-center">
+                                  <Check size={14} />
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleRemoveFromLibrary(item)
+                                  }}
+                                  className="absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 transition-colors"
+                                  title="Remove from library"
+                                >
+                                  ×
+                                </button>
                               </div>
-                              {/* ✅ NOUVEAU : Option pour retirer */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleRemoveFromLibrary(item)
-                                }}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 transition-colors"
-                                title="Remove from library"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ) : addingItem === item.id ? (
-                            <div className="bg-blue-500 text-white p-2 rounded-full shadow-lg animate-pulse">
-                              <Plus size={16} />
-                            </div>
-                          ) : (
-                            <div className="relative">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowStatusPopup(item.id)
-                                }}
-                                className="bg-white/90 hover:bg-white text-gray-700 p-2 rounded-full shadow-lg backdrop-blur-sm transition-colors"
-                              >
-                                <Plus size={16} />
-                              </button>
-
-                              {showStatusPopup === item.id && (
-                                <>
-                                  <div 
-                                    className="fixed inset-0 z-[998]"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setShowStatusPopup(null)
-                                    }}
-                                  />
-                                  <div 
-                                    className="absolute bottom-full right-0 mb-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-gray-200 py-2 min-w-44 z-[999]"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {getStatusOptions(item.category).map((option) => (
-                                      <button
-                                        key={option.value}
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleAddToLibrary(item, option.value as MediaStatus)
-                                          setShowStatusPopup(null)
-                                        }}
-                                        className="w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-50 text-gray-700 hover:text-gray-900 font-medium"
-                                      >
-                                        {option.label}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Content */}
-                      <div className="p-4">
-                        <div className="mb-2">
-                          <h3 className="font-semibold text-gray-900 text-sm line-clamp-1">
-                            {item.title}
-                          </h3>
-                        </div>
-
-                        {/* Rating */}
-                        <div className="flex items-center space-x-1 mb-2">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              size={12}
-                              className={`${
-                                star <= (item.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-200'
-                              }`}
-                            />
-                          ))}
-                          <span className="text-xs text-gray-500 ml-1">{item.rating || 0}/5</span>
-                        </div>
-
-                        {/* Meta info */}
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>{item.author || item.artist || item.director}</span>
-                          <span>{item.year}</span>
-                        </div>
-
-                        {/* Stats if available */}
-                        {(item as any).stats && (
-                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                            {(item as any).stats.users && (
-                              <div className="flex items-center space-x-1 text-xs text-gray-500">
-                                <span>{(item as any).stats.users}</span>
+                            ) : addingItem === item.id ? (
+                              <div className="bg-blue-500 text-white p-2 rounded-full shadow-lg animate-pulse">
+                                <Plus size={14} />
                               </div>
-                            )}
-                            {(item as any).stats.completion && (
-                              <div className="text-xs text-green-600 font-medium">
-                                {(item as any).stats.completion}
+                            ) : (
+                              <div className="relative">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setShowStatusPopup(item.id)
+                                  }}
+                                  className="bg-white/90 hover:bg-white text-gray-700 p-2 rounded-full shadow-lg backdrop-blur-sm transition-colors"
+                                >
+                                  <Plus size={14} />
+                                </button>
+
+                                {showStatusPopup === item.id && (
+                                  <>
+                                    <div 
+                                      className="fixed inset-0 z-[998]"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setShowStatusPopup(null)
+                                      }}
+                                    />
+                                    <div 
+                                      className="absolute bottom-full right-0 mb-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-gray-200 py-2 min-w-36 z-[999]"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {getStatusOptions(item.category).map((option) => (
+                                        <button
+                                          key={option.value}
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleAddToLibrary(item, option.value as MediaStatus)
+                                            setShowStatusPopup(null)
+                                          }}
+                                          className="w-full text-left px-3 py-2 text-sm transition-all duration-200 hover:bg-gray-50 text-gray-700 hover:text-gray-900 font-medium"
+                                        >
+                                          {option.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             )}
                           </div>
-                        )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-3">
+                          <h3 className="font-semibold text-gray-900 text-sm line-clamp-1 mb-1">
+                            {item.title}
+                          </h3>
+
+                          {/* Rating */}
+                          <div className="flex items-center space-x-1 mb-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={10}
+                                className={`${
+                                  star <= (item.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-200'
+                                }`}
+                              />
+                            ))}
+                            <span className="text-xs text-gray-500 ml-1">{item.rating || 0}/5</span>
+                          </div>
+
+                          {/* Meta info */}
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span className="truncate">{item.author || item.artist || item.director}</span>
+                            <span>{item.year}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {/* Expansion indicator */}
-              {isExpanded && section.items.length > 4 && (
-                <div className="mt-4 animate-fade-in">
-                  <div className="text-center text-sm text-gray-500">
-                    {section.items.length} items total
-                  </div>
                 </div>
               )}
             </div>
           )
         })}
       </div>
+
+      {/* Personalization Modal */}
+      {showPersonalization && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
+            onClick={() => setShowPersonalization(false)}
+          />
+          
+          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl z-50 border-t border-gray-100">
+            <div className="flex justify-center pt-4 pb-2">
+              <div className="w-8 h-1 bg-gray-200 rounded-full" />
+            </div>
+            
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-xl font-semibold text-gray-900">Customize Discover</h3>
+              <p className="text-sm text-gray-500 mt-1">Choose what content you want to see</p>
+            </div>
+
+            <div className="px-6 py-4 max-h-96 overflow-y-auto">
+              <div className="space-y-4">
+                {categorySections.map((section) => {
+                  const colors = getColorClasses(section.color)
+                  return (
+                    <div key={section.id} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-lg ${colors.bg} ${colors.border} border`}>
+                          <div className={colors.text}>
+                            {section.icon}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">{section.title}</h4>
+                          <p className="text-sm text-gray-500">{section.subtitle}</p>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => setVisibilitySettings(prev => ({
+                          ...prev,
+                          [section.id]: !prev[section.id]
+                        }))}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          visibilitySettings[section.id] ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            visibilitySettings[section.id] ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100">
+              <button
+                onClick={() => setShowPersonalization(false)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition-colors"
+              >
+                Done
+              </button>
+            </div>
+
+            <div className="h-6 bg-white" />
+          </div>
+        </>
+      )}
 
       <style jsx>{`
         .line-clamp-1 {
@@ -1256,26 +1142,18 @@ export default function DiscoverPage({
           overflow: hidden;
         }
         
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
+        .horizontal-scroll {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+          overflow-x: auto;
+          overflow-y: hidden;
+          scroll-behavior: smooth;
+          scroll-snap-type: x mandatory;
         }
         
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
+        .horizontal-scroll::-webkit-scrollbar {
+          display: none;
+          height: 0px;
         }
       `}</style>
     </div>
