@@ -340,14 +340,7 @@ export default function DiscoverPage({
   const loadGamesContent = async () => {
     try {
       const games = await rawgService.getPopularGames()
-      const convertedGames = games.map(game => {
-        const converted = rawgService.convertToAppFormat(game)
-        return {
-          ...converted,
-          trending: '+' + Math.floor(Math.random() * 100 + 20) + '%',
-          status: getRandomStatus()
-        } as ContentItem & { trending: string; status: string }
-      })
+      const convertedGames = games.map(game => rawgService.convertToAppFormat(game))
 
       setCategorySections(prev => prev.map(section => 
         section.id === 'trending-games' 
@@ -368,14 +361,7 @@ export default function DiscoverPage({
   const loadMoviesContent = async () => {
     try {
       const movies = await omdbService.getPopularMovies()
-      const convertedMovies = movies.map(movie => {
-        const converted = omdbService.convertToAppFormat(movie)
-        return {
-          ...converted,
-          trending: '+' + Math.floor(Math.random() * 100 + 20) + '%',
-          status: getRandomStatus()
-        } as ContentItem & { trending: string; status: string }
-      })
+      const convertedMovies = movies.map(movie => omdbService.convertToAppFormat(movie))
 
       setCategorySections(prev => prev.map(section => 
         section.id === 'popular-movies' 
@@ -396,14 +382,7 @@ export default function DiscoverPage({
   const loadBooksContent = async () => {
     try {
       const books = await googleBooksService.getFictionBooks()
-      const convertedBooks = books.map(book => {
-        const converted = googleBooksService.convertToAppFormat(book)
-        return {
-          ...converted,
-          trending: '+' + Math.floor(Math.random() * 100 + 20) + '%',
-          status: getRandomStatus()
-        } as ContentItem & { trending: string; status: string }
-      })
+      const convertedBooks = books.map(book => googleBooksService.convertToAppFormat(book))
 
       setCategorySections(prev => prev.map(section => 
         section.id === 'new-books' 
@@ -424,14 +403,7 @@ export default function DiscoverPage({
   const loadMusicContent = async () => {
     try {
       const albums = await musicService.getPopularAlbums()
-      const convertedAlbums = albums.map(album => {
-        const converted = musicService.convertToAppFormat(album)
-        return {
-          ...converted,
-          trending: '+' + Math.floor(Math.random() * 100 + 20) + '%',
-          status: getRandomStatus()
-        } as ContentItem & { trending: string; status: string }
-      })
+      const convertedAlbums = albums.map(album => musicService.convertToAppFormat(album))
 
       setCategorySections(prev => prev.map(section => 
         section.id === 'hot-albums' 
@@ -449,11 +421,6 @@ export default function DiscoverPage({
   }
 
   // Helper functions
-  const getRandomStatus = (): 'new' | 'trending' | 'hot' => {
-    const statuses: ('new' | 'trending' | 'hot')[] = ['new', 'trending', 'hot']
-    return statuses[Math.floor(Math.random() * statuses.length)]
-  }
-
   const getDescriptionForHero = (category: string) => {
     const descriptions = {
       games: 'An epic adventure that redefines the gaming experience with stunning visuals and immersive storytelling.',
@@ -608,30 +575,7 @@ export default function DiscoverPage({
   }
 
   const getStatusBadge = (status?: 'new' | 'trending' | 'hot', trending?: string) => {
-    if (status === 'hot') {
-      return (
-        <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center space-x-1">
-          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-          <span>HOT</span>
-        </div>
-      )
-    }
-    if (status === 'new') {
-      return (
-        <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded-lg text-xs font-bold">
-          NEW
-        </div>
-      )
-    }
-    if (trending) {
-      return (
-        <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center space-x-1">
-          <TrendingUp size={10} />
-          <span>{trending}</span>
-        </div>
-      )
-    }
-    return null
+    return null // Removed all badges as requested
   }
 
   const currentHeroItem = heroContent[currentHeroIndex]
@@ -703,9 +647,11 @@ export default function DiscoverPage({
             {/* Hero Content - Left aligned */}
             <div className="absolute inset-0 flex items-center">
               <div className="p-6 text-white">
-                <h2 className="text-2xl font-bold mb-2">
-                  {currentHeroItem.title}
-                </h2>
+                <div className="bg-black/40 backdrop-blur-sm rounded-lg px-3 py-1.5 mb-3 inline-block">
+                  <h2 className="text-2xl font-bold">
+                    {currentHeroItem.title}
+                  </h2>
+                </div>
                 
                 <div className="flex items-center space-x-4 mb-3">
                   <div className="flex items-center space-x-1">
@@ -749,11 +695,6 @@ export default function DiscoverPage({
         <div className="px-6 pb-8">
           <div className="mb-4">
             <div className="flex items-center space-x-3">
-              <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200">
-                <div className="text-purple-700">
-                  <Star size={20} />
-                </div>
-              </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">For You</h2>
                 <p className="text-sm text-gray-500">{forYouSection.reasoning}</p>
@@ -893,7 +834,7 @@ export default function DiscoverPage({
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100">
             <div className="text-center">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-purple-600" />
+                <span className="text-2xl">⭐</span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Personalized Recommendations</h3>
               <p className="text-gray-600 mb-4">
@@ -921,11 +862,6 @@ export default function DiscoverPage({
               {/* Section Header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className={`p-3 rounded-2xl ${colors.bg} ${colors.border} border`}>
-                    <div className={colors.text}>
-                      {section.icon}
-                    </div>
-                  </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
                     <p className="text-sm text-gray-500">{section.subtitle}</p>
@@ -956,8 +892,6 @@ export default function DiscoverPage({
                             alt={item.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
-                          
-                          {getStatusBadge((item as any).status, (item as any).trending)}
                           
                           {/* Add button */}
                           <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
