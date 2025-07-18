@@ -64,6 +64,7 @@ export default function MovieDetailModal({
   const [showReviewBox, setShowReviewBox] = useState(false)
   const [userReview, setUserReview] = useState('')
   const [similarMovies, setSimilarMovies] = useState<any[]>([])
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false) // 🔧 NOUVEAU
 
   const scrollableRef = useRef<HTMLDivElement>(null)
 
@@ -73,19 +74,14 @@ export default function MovieDetailModal({
     'completed': 8923
   }
 
-  // 🔧 NOUVELLE FONCTION: Créer un ID cohérent pour l'ajout et la suppression
+  // 🔧 Fonction pour créer un ID cohérent
   const getConsistentId = (movieId: string, imdbID?: string): string => {
-    // Si movieId commence déjà par 'movie-', l'utiliser tel quel
     if (movieId.startsWith('movie-')) {
       return movieId
     }
-    
-    // Si on a un imdbID du détail du film, l'utiliser
     if (imdbID) {
       return `movie-${imdbID}`
     }
-    
-    // Sinon, ajouter le préfixe au movieId
     return `movie-${movieId}`
   }
 
@@ -93,6 +89,7 @@ export default function MovieDetailModal({
     if (isOpen) {
       setActiveTab('info')
       setSimilarMovies([])
+      setHasUnsavedChanges(false) // 🔧 Reset changes
     }
   }, [isOpen, movieId])
 
@@ -114,39 +111,47 @@ export default function MovieDetailModal({
     }
   }, [isOpen, movieId])
 
-  // 🔧 CORRECTION: Utiliser idsMatch pour détecter le statut avec debug amélioré
+  // 🔧 Détecter le statut initial
   useEffect(() => {
-    console.log('🎬 DEBUG MovieModal - Checking library status:')
-    console.log('  movieId reçu:', movieId)
-    console.log('  library IDs:', library.map(item => item.id))
+    console.log('🎬 Checking initial library status for movieId:', movieId)
     
-    // Créer les IDs possibles à chercher
     const possibleIds = [
       movieId,
       `movie-${movieId}`,
       movieId.startsWith('movie-') ? movieId.replace('movie-', '') : null
     ].filter(Boolean)
     
-    console.log('  IDs possibles à chercher:', possibleIds)
-    
-    // Chercher dans la bibliothèque
     let libraryItem = null
     for (const id of possibleIds) {
       libraryItem = library.find(item => idsMatch(item.id, id!))
       if (libraryItem) {
-        console.log('  ✅ Trouvé dans la bibliothèque avec ID:', id, '→', libraryItem)
+        console.log('  ✅ Found in library:', libraryItem)
         break
       }
     }
     
     if (libraryItem) {
       setSelectedStatus(libraryItem.status)
-      console.log('  Status défini:', libraryItem.status)
     } else {
       setSelectedStatus(null)
-      console.log('  ❌ Pas trouvé dans la bibliothèque')
     }
   }, [movieId, library])
+
+  // 🔧 NOUVEAU: Gérer la fermeture avec auto-suppression
+  const handleClose = () => {
+    console.log('🚪 Modal closing...')
+    console.log('  hasUnsavedChanges:', hasUnsavedChanges)
+    console.log('  selectedStatus:', selectedStatus)
+    
+    // Si aucun statut n'est sélectionné et qu'il y avait des changements, supprimer de la bibliothèque
+    if (hasUnsavedChanges && selectedStatus === null && movieDetail && onDeleteItem) {
+      const idToDelete = getConsistentId(movieId, movieDetail.imdbID)
+      console.log('🗑️ Auto-removing from library on close:', idToDelete)
+      onDeleteItem(idToDelete)
+    }
+    
+    onClose()
+  }
 
   const fetchMovieDetail = async () => {
     if (!movieId) return
@@ -155,7 +160,6 @@ export default function MovieDetailModal({
     try {
       let imdbId = movieId
       
-      // Si l'ID commence par 'movie-', le retirer
       if (movieId.startsWith('movie-')) {
         imdbId = movieId.replace('movie-', '')
       }
@@ -165,15 +169,12 @@ export default function MovieDetailModal({
       const data = await omdbService.getMovieDetails(imdbId)
       setMovieDetail(data as MovieDetail)
       
-      console.log('🎬 Movie detail fetched:', data)
-      
-      // Charger des films similaires (simulation basée sur le genre)
       if (data?.Genre) {
         await fetchSimilarMovies(data.Genre.split(',')[0].trim())
       }
       
     } catch (error) {
-      console.error('Erreur lors du chargement des détails:', error)
+      console.error('Error loading movie details:', error)
       setMovieDetail(null)
     } finally {
       setLoading(false)
@@ -182,7 +183,6 @@ export default function MovieDetailModal({
 
   const fetchSimilarMovies = async (genre: string) => {
     try {
-      // Rechercher des films par genre (simulation)
       const searchResults = await omdbService.searchMovies(genre)
       const similarMoviesData = searchResults
         .filter(movie => movie.imdbID !== movieId)
@@ -196,42 +196,51 @@ export default function MovieDetailModal({
     }
   }
 
-  // 🔧 CORRECTION: Utiliser l'ID cohérent pour l'ajout
+  // 🔧 CORRECTION: Gestion du statut avec auto-suppression
   const handleStatusSelect = (status: MediaStatus) => {
     if (!movieDetail) return
     
-    // Créer un ID cohérent
     const consistentId = getConsistentId(movieId, movieDetail.imdbID)
     
-    console.log('🔧 Adding movie to library:')
-    console.log('  movieDetail.imdbID:', movieDetail.imdbID)
-    console.log('  movieId original:', movieId)
-    console.log('  consistentId final:', consistentId)
+    console.log('🔧 Status selection:')
+    console.log('  Current selectedStatus:', selectedStatus)
+    console.log('  New status:', status)
+    console.log('  consistentId:', consistentId)
     
-    const movieItem = {
-      id: consistentId,
-      title: movieDetail.Title,
-      image: movieDetail.Poster !== 'N/A' ? movieDetail.Poster : undefined,
-      category: 'movies' as const,
-      year: parseInt(movieDetail.Year) || new Date().getFullYear(),
-      rating: movieDetail.imdbRating ? Number((parseFloat(movieDetail.imdbRating) / 2).toFixed(1)) : 0,
-      director: movieDetail.Director
+    if (selectedStatus === status) {
+      // 🔧 NOUVEAU: Si même statut, désélectionner (suppression différée)
+      console.log('🔄 Deselecting status - will remove on close')
+      setSelectedStatus(null)
+      setHasUnsavedChanges(true)
+    } else {
+      // Ajouter/Modifier le statut
+      const movieItem = {
+        id: consistentId,
+        title: movieDetail.Title,
+        image: movieDetail.Poster !== 'N/A' ? movieDetail.Poster : undefined,
+        category: 'movies' as const,
+        year: parseInt(movieDetail.Year) || new Date().getFullYear(),
+        rating: movieDetail.imdbRating ? Number((parseFloat(movieDetail.imdbRating) / 2).toFixed(1)) : 0,
+        director: movieDetail.Director
+      }
+      
+      console.log('➕ Adding/updating movie:', movieItem)
+      onAddToLibrary(movieItem, status)
+      setSelectedStatus(status)
+      setHasUnsavedChanges(true)
     }
-    
-    console.log('  final movieItem:', movieItem)
-    onAddToLibrary(movieItem, status)
-    setSelectedStatus(status)
   }
 
-  // 🔧 CORRECTION: Utiliser l'ID cohérent pour la suppression
+  // 🔧 Suppression immédiate via bouton
   const handleRemoveFromLibrary = () => {
     if (!onDeleteItem || !movieDetail) return
     
     const idToDelete = getConsistentId(movieId, movieDetail.imdbID)
-    console.log('🗑️ Removing movie from library with ID:', idToDelete)
+    console.log('🗑️ Immediate removal from library:', idToDelete)
     
     onDeleteItem(idToDelete)
     setSelectedStatus(null)
+    setHasUnsavedChanges(false) // Pas besoin d'auto-suppression
   }
 
   const getStatusLabel = (status: MediaStatus) => {
@@ -269,12 +278,6 @@ export default function MovieDetailModal({
     }
   }
 
-  const getRatingFromSource = (source: string) => {
-    if (!movieDetail?.Ratings) return null
-    const rating = movieDetail.Ratings.find(r => r.Source === source)
-    return rating?.Value || null
-  }
-
   if (!isOpen) return null
 
   return (
@@ -282,7 +285,7 @@ export default function MovieDetailModal({
       className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
-          onClose()
+          handleClose() // 🔧 Utiliser handleClose au lieu de onClose
         }
       }}
     >
@@ -299,7 +302,7 @@ export default function MovieDetailModal({
             {/* Header */}
             <div className="relative bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
               <button
-                onClick={onClose}
+                onClick={handleClose} // 🔧 Utiliser handleClose
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-2 hover:bg-white/80 rounded-full transition-colors"
               >
                 <X size={20} />
@@ -361,21 +364,13 @@ export default function MovieDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* 🔧 Action buttons avec logique de suppression corrigée */}
+              {/* 🔧 Action buttons avec logique complète */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
-                      onClick={() => {
-                        // Si déjà sélectionné, on retire de la bibliothèque
-                        if (selectedStatus === status) {
-                          handleRemoveFromLibrary()
-                        } else {
-                          // Ajouter/Modifier le statut
-                          handleStatusSelect(status)
-                        }
-                      }}
+                      onClick={() => handleStatusSelect(status)}
                       className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
                         selectedStatus === status
                           ? `${getStatusColor(status)} ring-2 ring-blue-300`
@@ -397,7 +392,7 @@ export default function MovieDetailModal({
                   ))}
                 </div>
                 
-                {/* Message d'état */}
+                {/* 🔧 Message d'état avec indication de suppression automatique */}
                 {selectedStatus ? (
                   <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
                     <span>✅ Added to your library as "{getStatusLabel(selectedStatus)}"</span>
@@ -408,13 +403,17 @@ export default function MovieDetailModal({
                       Remove from library
                     </button>
                   </div>
+                ) : hasUnsavedChanges ? (
+                  <div className="text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                    ⚠️ No status selected - this movie will be removed from your library when you close this window
+                  </div>
                 ) : (
                   <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-3">
                     💡 Click a status to add this movie to your library
                   </div>
                 )}
 
-                {/* User rating */}
+                {/* User rating - reste identique */}
                 <div className="mt-6 pt-6 border-t border-gray-100">
                   <h4 className="text-gray-900 font-semibold mb-3">Rate this movie</h4>
                   <div className="flex items-center space-x-2 mb-3">
@@ -475,11 +474,10 @@ export default function MovieDetailModal({
                 </div>
               </div>
 
-              {/* Reviews Section */}
+              {/* Reviews Section - reste identique */}
               <div className="p-6 border-b border-gray-100">
                 <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
                 <div className="flex space-x-4 overflow-x-auto pb-2">
-                  {/* User reviews first */}
                   {userReviews.map((review) => (
                     <div key={review.id} className="flex-shrink-0 w-64 bg-blue-50 rounded-xl p-4 border border-blue-100">
                       <div className="flex items-center space-x-2 mb-3">
@@ -507,7 +505,6 @@ export default function MovieDetailModal({
                     </div>
                   ))}
                   
-                  {/* IMDb reviews */}
                   {imdbReviews.slice(0, 5).map((review) => (
                     <div key={review.id} className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 border border-gray-200">
                       <div className="flex items-center space-x-2 mb-3">
@@ -537,7 +534,7 @@ export default function MovieDetailModal({
                 </div>
               </div>
 
-              {/* Tabs */}
+              {/* Tabs - reste identique */}
               <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
                 <div className="flex px-6">
                   {(['info', 'social', 'more'] as const).map((tab) => (
@@ -559,7 +556,7 @@ export default function MovieDetailModal({
                 </div>
               </div>
 
-              {/* Tab content */}
+              {/* Tab content - reste identique */}
               <div className="p-6">
                 {activeTab === 'info' && (
                   <div className="space-y-6">
@@ -685,7 +682,6 @@ export default function MovieDetailModal({
                       </div>
                     </div>
 
-                    {/* Similar Movies */}
                     {similarMovies.length > 0 && (
                       <div>
                         <h4 className="text-gray-900 font-semibold mb-4">Similar Movies</h4>
@@ -712,7 +708,6 @@ export default function MovieDetailModal({
                       </div>
                     )}
 
-                    {/* Technical Info */}
                     <div>
                       <h4 className="text-gray-900 font-semibold mb-4">Additional Information</h4>
                       <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
