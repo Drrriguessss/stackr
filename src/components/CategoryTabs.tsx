@@ -9,7 +9,7 @@ export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsPro
   const tabs = [
     { id: 'books', name: 'Books' },
     { id: 'games', name: 'Games' },
-    { id: 'movies', name: 'Movies & TV' },
+    { id: 'movies', name: 'Films & TV' },
     { id: 'music', name: 'Music' },
   ]
 
@@ -19,7 +19,7 @@ export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsPro
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`flex-1 pb-3 pt-2 text-base font-medium transition-colors relative text-center ${
+          className={`flex-1 pb-3 pt-2 text-sm font-medium transition-colors relative text-center whitespace-nowrap ${
             activeTab === tab.id
               ? 'text-gray-900'
               : 'text-gray-500 hover:text-gray-700'
