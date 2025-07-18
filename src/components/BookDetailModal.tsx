@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Calendar, BookOpen, Award, Users, Globe, Eye, Check } from 'lucide-react'
 import { googleBooksService, formatPageCount, formatPublisher, getReadingTime } from '@/services/googleBooksService'
-import { idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
 interface BookDetailModalProps {
@@ -109,37 +108,18 @@ export default function BookDetailModal({
     }
   }, [isOpen, bookId])
 
-  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
+  // 🔧 SIMPLIFIÉ: Même logique que GameDetailModal
   useEffect(() => {
-    console.log('📚 DEBUG BookModal:')
-    console.log('  bookId:', bookId)
-    console.log('  library IDs:', library.map(item => item.id))
-    console.log('  looking for match with bookId:', bookId)
+    console.log('📚 Simple status check for bookId:', bookId)
+    console.log('📚 Library items:', library.map(item => `${item.id} (${item.title})`))
     
-    // Essayer plusieurs formats d'ID pour trouver l'item
-    const possibleIds = [
-      bookId,
-      `book-${bookId}`,
-      bookId.startsWith('book-') ? bookId.replace('book-', '') : `book-${bookId}`
-    ]
-    
-    console.log('  possibleIds:', possibleIds)
-    
-    let libraryItem = null
-    for (const id of possibleIds) {
-      libraryItem = library.find(item => idsMatch(item.id, id))
-      if (libraryItem) {
-        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
-        break
-      }
-    }
-    
+    const libraryItem = library.find(item => item.id === bookId)
     if (libraryItem) {
+      console.log('📚 ✅ Found in library:', libraryItem)
       setSelectedStatus(libraryItem.status)
-      console.log('  status set to:', libraryItem.status)
     } else {
+      console.log('📚 ❌ Not found in library')
       setSelectedStatus(null)
-      console.log('  ❌ no library item found - status set to null')
     }
   }, [bookId, library])
 
@@ -150,7 +130,6 @@ export default function BookDetailModal({
     try {
       let googleBookId = bookId
       
-      // Si l'ID commence par 'book-', le retirer
       if (bookId.startsWith('book-')) {
         googleBookId = bookId.replace('book-', '')
       }
@@ -162,7 +141,6 @@ export default function BookDetailModal({
       
       console.log('📚 Book detail fetched:', data)
       
-      // Charger des livres similaires et de l'auteur
       if (data?.volumeInfo) {
         if (data.volumeInfo.categories?.length) {
           await fetchSimilarBooks(data)
@@ -206,22 +184,14 @@ export default function BookDetailModal({
     }
   }
 
-  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
+  // 🔧 SIMPLIFIÉ: Même logique que GameDetailModal
   const handleStatusSelect = (status: MediaStatus) => {
     if (!bookDetail) return
     
-    // Créer un ID normalisé
-    const normalizedId = bookId.startsWith('book-') 
-      ? bookId 
-      : `book-${bookDetail.id}`
-    
-    console.log('🔧 Adding book to library:')
-    console.log('  bookDetail.id:', bookDetail.id)
-    console.log('  bookId:', bookId)
-    console.log('  normalizedId:', normalizedId)
+    console.log('📚 Adding book to library with bookId:', bookId)
     
     const bookItem = {
-      id: normalizedId,
+      id: bookId, // 🔑 UTILISE DIRECTEMENT bookId comme GameDetailModal
       title: bookDetail.volumeInfo.title,
       image: googleBooksService.getBestImageURL(bookDetail as any, 'medium'),
       category: 'books' as const,
@@ -230,7 +200,6 @@ export default function BookDetailModal({
       author: bookDetail.volumeInfo.authors?.[0] || 'Unknown Author'
     }
     
-    console.log('  final bookItem:', bookItem)
     onAddToLibrary(bookItem, status)
     setSelectedStatus(status)
   }
@@ -370,22 +339,19 @@ export default function BookDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* Action buttons avec possibilité de décocher */}
+              {/* 🔧 EXACTEMENT comme GameDetailModal */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
                       onClick={() => {
-                        // Si déjà sélectionné, on retire de la bibliothèque
+                        // 🔑 EXACTEMENT la même logique que GameDetailModal
                         if (selectedStatus === status) {
+                          // Si déjà sélectionné, on retire de la bibliothèque
                           if (onDeleteItem) {
-                            // 🔧 CORRECTION: Utiliser l'ID cohérent
-                            const idToDelete = bookId.startsWith('book-') 
-  ? bookId 
-  : `book-${bookId}`
-                            console.log('🗑️ Removing from library with ID:', idToDelete)
-                            onDeleteItem(idToDelete)
+                            console.log('🗑️ Removing book with ID:', bookId)
+                            onDeleteItem(bookId) // 🔑 UTILISE DIRECTEMENT bookId
                           }
                           setSelectedStatus(null)
                         } else {
@@ -421,10 +387,8 @@ export default function BookDetailModal({
                     <button 
                       onClick={() => {
                         if (onDeleteItem) {
-                          const idToDelete = bookId.startsWith('book-') 
-                            ? bookId 
-                            : `book-${bookId}`
-                          onDeleteItem(idToDelete)
+                          console.log('🗑️ Remove button clicked for bookId:', bookId)
+                          onDeleteItem(bookId) // 🔑 UTILISE DIRECTEMENT bookId
                         }
                         setSelectedStatus(null)
                       }}
@@ -504,7 +468,6 @@ export default function BookDetailModal({
               <div className="p-6 border-b border-gray-100">
                 <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
                 <div className="flex space-x-4 overflow-x-auto pb-2">
-                  {/* User reviews first */}
                   {userReviews.map((review) => (
                     <div key={review.id} className="flex-shrink-0 w-64 bg-blue-50 rounded-xl p-4 border border-blue-100">
                       <div className="flex items-center space-x-2 mb-3">
@@ -532,7 +495,6 @@ export default function BookDetailModal({
                     </div>
                   ))}
                   
-                  {/* Goodreads reviews */}
                   {goodreadsReviews.slice(0, 5).map((review) => (
                     <div key={review.id} className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 border border-gray-200">
                       <div className="flex items-center space-x-2 mb-3">
