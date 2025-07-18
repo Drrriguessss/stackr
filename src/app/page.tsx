@@ -11,6 +11,7 @@ import MusicDetailModal from '@/components/MusicDetailModal'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
+import DiscoverPage from '@/components/DiscoverPage'
 import { sampleContent } from '@/data/sampleContent'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
@@ -697,23 +698,14 @@ export default function Home() {
   )
 
   const renderDiscoverContent = () => (
-    <div className="bg-white min-h-screen">
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
-      </div>
-      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
-        <div className="space-y-6">
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Trending This Week</h3>
-            <p className="text-gray-600">Baldur's Gate 3, Spider-Man 2, Cyberpunk 2077</p>
-          </div>
-          <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Recommended for You</h3>
-            <p className="text-gray-600">Based on your preferences</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <DiscoverPage
+      onAddToLibrary={handleAddToLibrary}
+      onOpenGameDetail={handleOpenGameDetail}
+      onOpenMovieDetail={handleOpenMovieDetail}
+      onOpenBookDetail={handleOpenBookDetail}
+      onOpenMusicDetail={handleOpenMusicDetail}
+      library={library}
+    />
   )
 
   const renderSearchContent = () => (

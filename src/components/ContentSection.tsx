@@ -6,7 +6,7 @@ interface ContentSectionProps {
   title: string
   items: ContentItem[]
   category: MediaCategory
-  onAddToLibrary: (item: ContentItem, status: MediaStatus) => void
+  onAddToLibrary: (item: ContentItem | LibraryItem, status: MediaStatus) => void // ✅ Mise à jour du type
   library: LibraryItem[]
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void

@@ -43,10 +43,59 @@ export interface ContentItem {
   language?: string    // Langue
   country?: string     // Pays
   awards?: string      // Récompenses
+
+  // NOUVELLES PROPRIÉTÉS pour Discover Page
+  subtitle?: string    // Sous-titre pour hero section
+  description?: string // Description détaillée
+  trending?: string    // Pourcentage de tendance ex: "+25%"
+  status?: 'new' | 'trending' | 'hot' | undefined // Badge status
+  callToAction?: string // Texte du bouton d'action
+  stats?: {
+    users?: string      // Nombre d'utilisateurs ex: "2.5M"
+    completion?: string // Pourcentage de completion ex: "85%"
+    trending?: string   // Tendance ex: "+15%"
+    engagement?: string // Engagement ex: "92%"
+  }
 }
 
 // Interface pour les items dans la bibliothèque utilisateur
-export interface LibraryItem extends ContentItem {
+export interface LibraryItem {
+  id: string
+  title: string
+  year: number
+  rating?: number
+  genre?: string
+  category: MediaCategory
+  image?: string
+  
+  // Créateurs selon le type de média
+  author?: string      // Pour les livres
+  artist?: string      // Pour la musique
+  director?: string    // Pour les films
+  
+  // Données spécifiques aux jeux (RAWG API)
+  background_image?: string
+  developers?: Array<{ name: string }>
+  genres?: Array<{ name: string }>
+  released?: string
+  
+  // Propriété alternative pour les noms
+  name?: string
+  
+  // NOUVELLES PROPRIÉTÉS pour films/séries
+  type?: string        // 'movie' ou 'series'
+  isMovie?: boolean    // true si c'est un film
+  isSeries?: boolean   // true si c'est une série TV
+  totalSeasons?: number // Nombre de saisons pour les séries
+  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
+  overview?: string    // Synopsis/description
+  runtime?: string     // Durée
+  actors?: string      // Acteurs principaux
+  language?: string    // Langue
+  country?: string     // Pays
+  awards?: string      // Récompenses
+
+  // Propriétés spécifiques à la bibliothèque
   status: MediaStatus
   addedAt: string
   dateStarted?: string

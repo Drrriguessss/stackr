@@ -13,6 +13,7 @@ interface LibrarySectionProps {
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
   onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void // Ajout de la prop manquante
   onOpenSearch?: () => void
 }
 
@@ -24,6 +25,7 @@ export default function LibrarySection({
   onOpenGameDetail,
   onOpenMovieDetail,
   onOpenBookDetail,
+  onOpenMusicDetail, // Ajout de la prop
   onOpenSearch
 }: LibrarySectionProps) {
   const [activeFilter, setActiveFilter] = useState('all')
@@ -114,8 +116,9 @@ export default function LibrarySection({
       onOpenMovieDetail(item.id)
     } else if (item.category === 'books' && onOpenBookDetail) {
       onOpenBookDetail(item.id)
+    } else if (item.category === 'music' && onOpenMusicDetail) {
+      onOpenMusicDetail(item.id)
     }
-    // TODO: Ajouter support pour music plus tard
   }
 
   // Quick Edit Modal Component
@@ -338,6 +341,7 @@ export default function LibrarySection({
                     onOpenGameDetail={onOpenGameDetail}
                     onOpenMovieDetail={onOpenMovieDetail}
                     onOpenBookDetail={onOpenBookDetail}
+                    onOpenMusicDetail={onOpenMusicDetail}
                   />
                   
                   {/* Edit button overlay */}

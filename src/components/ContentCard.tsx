@@ -5,9 +5,9 @@ import { idsMatch } from '@/utils/idNormalizer'
 import type { ContentItem, LibraryItem, MediaCategory, MediaStatus } from '@/types'
 
 interface ContentCardProps {
-  item: ContentItem
+  item: ContentItem | LibraryItem // ✅ Accepter les deux types
   category: MediaCategory
-  onAddToLibrary: (item: ContentItem, status: MediaStatus) => void
+  onAddToLibrary: (item: ContentItem | LibraryItem, status: MediaStatus) => void
   library: LibraryItem[]
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
