@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Calendar, Music, Award, Users, Globe, Play, HeadphonesIcon, Clock, Check } from 'lucide-react'
 import { musicService, formatTrackCount, formatPrice, formatDuration } from '@/services/musicService'
-import { idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
 interface MusicDetailModalProps {
@@ -90,37 +89,18 @@ export default function MusicDetailModal({
     }
   }, [isOpen, albumId])
 
-  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
+  // 🔧 SIMPLIFIÉ: Même logique que GameDetailModal
   useEffect(() => {
-    console.log('🎵 DEBUG MusicModal:')
-    console.log('  albumId:', albumId)
-    console.log('  library IDs:', library.map(item => item.id))
-    console.log('  looking for match with albumId:', albumId)
+    console.log('🎵 Simple status check for albumId:', albumId)
+    console.log('🎵 Library items:', library.map(item => `${item.id} (${item.title})`))
     
-    // Essayer plusieurs formats d'ID pour trouver l'item
-    const possibleIds = [
-      albumId,
-      `music-${albumId}`,
-      albumId.startsWith('music-') ? albumId.replace('music-', '') : `music-${albumId}`
-    ]
-    
-    console.log('  possibleIds:', possibleIds)
-    
-    let libraryItem = null
-    for (const id of possibleIds) {
-      libraryItem = library.find(item => idsMatch(item.id, id))
-      if (libraryItem) {
-        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
-        break
-      }
-    }
-    
+    const libraryItem = library.find(item => item.id === albumId)
     if (libraryItem) {
+      console.log('🎵 ✅ Found in library:', libraryItem)
       setSelectedStatus(libraryItem.status)
-      console.log('  status set to:', libraryItem.status)
     } else {
+      console.log('🎵 ❌ Not found in library')
       setSelectedStatus(null)
-      console.log('  ❌ no library item found - status set to null')
     }
   }, [albumId, library])
 
@@ -131,7 +111,6 @@ export default function MusicDetailModal({
     try {
       let iTunesId = albumId
       
-      // Si l'ID commence par 'music-', le retirer
       if (albumId.startsWith('music-')) {
         iTunesId = albumId.replace('music-', '')
       }
@@ -143,7 +122,6 @@ export default function MusicDetailModal({
       
       console.log('🎵 Album detail fetched:', data)
       
-      // Charger des albums similaires et de l'artiste
       if (data) {
         if (data.primaryGenreName) {
           await fetchSimilarAlbums(data)
@@ -187,22 +165,14 @@ export default function MusicDetailModal({
     }
   }
 
-  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
+  // 🔧 SIMPLIFIÉ: Même logique que GameDetailModal
   const handleStatusSelect = (status: MediaStatus) => {
     if (!albumDetail) return
     
-    // Créer un ID normalisé
-    const normalizedId = albumId.startsWith('music-') 
-      ? albumId 
-      : `music-${albumDetail.collectionId}`
-    
-    console.log('🔧 Adding album to library:')
-    console.log('  albumDetail.collectionId:', albumDetail.collectionId)
-    console.log('  albumId:', albumId)
-    console.log('  normalizedId:', normalizedId)
+    console.log('🎵 Adding album to library with albumId:', albumId)
     
     const albumItem = {
-      id: normalizedId,
+      id: albumId, // 🔑 UTILISE DIRECTEMENT albumId comme GameDetailModal
       title: albumDetail.collectionName,
       image: musicService.getBestImageURL(albumDetail as any, 'medium'),
       category: 'music' as const,
@@ -211,7 +181,6 @@ export default function MusicDetailModal({
       artist: albumDetail.artistName
     }
     
-    console.log('  final albumItem:', albumItem)
     onAddToLibrary(albumItem, status)
     setSelectedStatus(status)
   }
@@ -331,22 +300,19 @@ export default function MusicDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* Action buttons avec possibilité de décocher */}
+              {/* 🔧 EXACTEMENT comme GameDetailModal */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
                       onClick={() => {
-                        // Si déjà sélectionné, on retire de la bibliothèque
+                        // 🔑 EXACTEMENT la même logique que GameDetailModal
                         if (selectedStatus === status) {
+                          // Si déjà sélectionné, on retire de la bibliothèque
                           if (onDeleteItem) {
-                            // 🔧 CORRECTION: Utiliser l'ID cohérent
-                            const idToDelete = albumId.startsWith('music-') 
-  ? albumId 
-  : `music-${albumId}`
-                            console.log('🗑️ Removing from library with ID:', idToDelete)
-                            onDeleteItem(idToDelete)
+                            console.log('🗑️ Removing album with ID:', albumId)
+                            onDeleteItem(albumId) // 🔑 UTILISE DIRECTEMENT albumId
                           }
                           setSelectedStatus(null)
                         } else {
@@ -382,10 +348,8 @@ export default function MusicDetailModal({
                     <button 
                       onClick={() => {
                         if (onDeleteItem) {
-                          const idToDelete = albumId.startsWith('music-') 
-                            ? albumId 
-                            : `music-${albumId}`
-                          onDeleteItem(idToDelete)
+                          console.log('🗑️ Remove button clicked for albumId:', albumId)
+                          onDeleteItem(albumId) // 🔑 UTILISE DIRECTEMENT albumId
                         }
                         setSelectedStatus(null)
                       }}
@@ -465,7 +429,6 @@ export default function MusicDetailModal({
               <div className="p-6 border-b border-gray-100">
                 <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
                 <div className="flex space-x-4 overflow-x-auto pb-2">
-                  {/* User reviews first */}
                   {userReviews.map((review) => (
                     <div key={review.id} className="flex-shrink-0 w-64 bg-blue-50 rounded-xl p-4 border border-blue-100">
                       <div className="flex items-center space-x-2 mb-3">
@@ -493,7 +456,6 @@ export default function MusicDetailModal({
                     </div>
                   ))}
                   
-                  {/* Spotify reviews */}
                   {spotifyReviews.slice(0, 5).map((review) => (
                     <div key={review.id} className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 border border-gray-200">
                       <div className="flex items-center space-x-2 mb-3">
