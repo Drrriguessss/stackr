@@ -386,8 +386,8 @@ export default function MovieDetailModal({
                     <button 
                       onClick={() => {
                         if (onDeleteItem) {
-                          const idToDelete = movieDetail.imdbID.startsWith('movie-') 
-                            ? movieDetail.imdbID 
+                          const idToDelete = movieId.startsWith('movie-') 
+                            ? movieId 
                             : `movie-${movieId}`
                           onDeleteItem(idToDelete)
                         }
