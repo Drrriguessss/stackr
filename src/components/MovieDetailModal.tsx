@@ -388,7 +388,7 @@ export default function MovieDetailModal({
                         if (onDeleteItem) {
                           const idToDelete = movieDetail.imdbID.startsWith('movie-') 
                             ? movieDetail.imdbID 
-                            : `movie-${movieDetail.imdbID}`
+                            : `movie-${movieId}`
                           onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)

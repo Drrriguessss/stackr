@@ -423,7 +423,7 @@ export default function BookDetailModal({
                         if (onDeleteItem) {
                           const idToDelete = bookId.startsWith('book-') 
                             ? bookId 
-                            : `book-${bookDetail.id}`
+                            : `book-${bookId}`
                           onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)

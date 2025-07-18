@@ -384,7 +384,7 @@ export default function MusicDetailModal({
                         if (onDeleteItem) {
                           const idToDelete = albumId.startsWith('music-') 
                             ? albumId 
-                            : `music-${albumDetail.collectionId}`
+                            : `music-${albumId}`
                           onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)
