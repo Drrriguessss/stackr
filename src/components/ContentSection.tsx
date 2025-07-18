@@ -6,7 +6,8 @@ interface ContentSectionProps {
   title: string
   items: ContentItem[]
   category: MediaCategory
-  onAddToLibrary: (item: ContentItem | LibraryItem, status: MediaStatus) => void // ✅ Mise à jour du type
+  onAddToLibrary: (item: ContentItem | LibraryItem, status: MediaStatus) => void
+  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
   library: LibraryItem[]
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
@@ -19,6 +20,7 @@ export default function ContentSection({
   items, 
   category, 
   onAddToLibrary, 
+  onDeleteItem, // ✅ NOUVELLE PROP
   library, 
   onOpenGameDetail,
   onOpenMovieDetail,
@@ -43,6 +45,7 @@ export default function ContentSection({
               item={item}
               category={category}
               onAddToLibrary={onAddToLibrary}
+              onDeleteItem={onDeleteItem} // ✅ NOUVELLE PROP PASSÉE
               library={library}
               onOpenGameDetail={onOpenGameDetail}
               onOpenMovieDetail={onOpenMovieDetail}

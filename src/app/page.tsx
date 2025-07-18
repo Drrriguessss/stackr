@@ -662,6 +662,7 @@ export default function Home() {
                   items={section.items}
                   category={activeTab}
                   onAddToLibrary={handleAddToLibrary}
+                  onDeleteItem={handleDeleteItem} // ✅ AJOUT NOUVELLE PROP
                   library={library}
                   onOpenGameDetail={handleOpenGameDetail}
                   onOpenMovieDetail={handleOpenMovieDetail}
@@ -700,6 +701,7 @@ export default function Home() {
   const renderDiscoverContent = () => (
     <DiscoverPage
       onAddToLibrary={handleAddToLibrary}
+      onDeleteItem={handleDeleteItem} // ✅ AJOUT NOUVELLE PROP
       onOpenGameDetail={handleOpenGameDetail}
       onOpenMovieDetail={handleOpenMovieDetail}
       onOpenBookDetail={handleOpenBookDetail}
@@ -737,12 +739,13 @@ export default function Home() {
         onTabChange={setActiveMainTab} 
       />
 
-      {/* Modals */}
+      {/* ✅ MODALS AVEC onDeleteItem AJOUTÉ */}
       <GameDetailModal
         isOpen={!!selectedGameId}
         onClose={() => setSelectedGameId(null)}
         gameId={selectedGameId || ''}
         onAddToLibrary={handleAddToLibrary}
+        onDeleteItem={handleDeleteItem} // ✅ AJOUT
         library={library}
         userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
         googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
@@ -754,6 +757,7 @@ export default function Home() {
         onClose={() => setSelectedMovieId(null)}
         movieId={selectedMovieId || ''}
         onAddToLibrary={handleAddToLibrary}
+        onDeleteItem={handleDeleteItem} // ✅ AJOUT
         library={library}
         userReviews={selectedMovieId ? userReviews[selectedMovieId] || [] : []}
         imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
@@ -765,6 +769,7 @@ export default function Home() {
         onClose={() => setSelectedBookId(null)}
         bookId={selectedBookId || ''}
         onAddToLibrary={handleAddToLibrary}
+        onDeleteItem={handleDeleteItem} // ✅ AJOUT
         library={library}
         userReviews={selectedBookId ? userReviews[selectedBookId] || [] : []}
         goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
@@ -776,6 +781,7 @@ export default function Home() {
         onClose={() => setSelectedMusicId(null)}
         albumId={selectedMusicId || ''}
         onAddToLibrary={handleAddToLibrary}
+        onDeleteItem={handleDeleteItem} // ✅ AJOUT
         library={library}
         userReviews={selectedMusicId ? userReviews[selectedMusicId] || [] : []}
         spotifyReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}

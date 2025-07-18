@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { X, Star, ExternalLink, Calendar, Music, Award, Users, Globe, Play, HeadphonesIcon, Clock } from 'lucide-react'
+import { X, Star, ExternalLink, Calendar, Music, Award, Users, Globe, Play, HeadphonesIcon, Clock, Check } from 'lucide-react'
 import { musicService, formatTrackCount, formatPrice, formatDuration } from '@/services/musicService'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
@@ -9,6 +9,7 @@ interface MusicDetailModalProps {
   onClose: () => void
   albumId: string
   onAddToLibrary: (item: any, status: MediaStatus) => void
+  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
   library: LibraryItem[]
   userReviews: Review[]
   spotifyReviews: Review[]
@@ -37,6 +38,7 @@ export default function MusicDetailModal({
   onClose, 
   albumId, 
   onAddToLibrary, 
+  onDeleteItem, // ✅ NOUVELLE PROP
   library, 
   userReviews, 
   spotifyReviews, 
@@ -287,30 +289,65 @@ export default function MusicDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* Action buttons */}
+              {/* ✅ Action buttons avec possibilité de décocher */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
-                      onClick={() => handleStatusSelect(status)}
-                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all text-white shadow-sm ${
+                      onClick={() => {
+                        // ✅ NOUVELLE LOGIQUE : Si déjà sélectionné, on retire de la bibliothèque
+                        if (selectedStatus === status) {
+                          // Retirer de la bibliothèque
+                          if (onDeleteItem) {
+                            onDeleteItem(`music-${albumId}`)
+                          }
+                          setSelectedStatus(null)
+                        } else {
+                          // Ajouter/Modifier le statut
+                          handleStatusSelect(status)
+                        }
+                      }}
+                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
                         selectedStatus === status
-                          ? getStatusColor(status)
+                          ? `${getStatusColor(status)} ring-2 ring-blue-300 text-white` // ✅ Indication visuelle forte
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
-                      <div className="text-sm font-semibold">{getStatusLabel(status)}</div>
-                      <div className="text-xs opacity-80">
-                        {albumStats[status].toLocaleString()} listeners
+                      <div className="flex items-center justify-center space-x-2">
+                        {selectedStatus === status && (
+                          <Check size={16} className="text-white" />
+                        )}
+                        <div>
+                          <div className="text-sm font-semibold">{getStatusLabel(status)}</div>
+                          <div className="text-xs opacity-80">
+                            {albumStats[status].toLocaleString()} listeners
+                          </div>
+                        </div>
                       </div>
                     </button>
                   ))}
                 </div>
                 
-                {selectedStatus && (
-                  <div className="text-sm text-gray-600 bg-green-50 border border-green-200 rounded-lg p-3">
-                    ✅ Added to your library on {new Date().toLocaleDateString()}
+                {/* Message d'état */}
+                {selectedStatus ? (
+                  <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                    <span>✅ Added to your library as "{getStatusLabel(selectedStatus)}"</span>
+                    <button 
+                      onClick={() => {
+                        if (onDeleteItem) {
+                          onDeleteItem(`music-${albumId}`)
+                        }
+                        setSelectedStatus(null)
+                      }}
+                      className="text-red-600 hover:text-red-800 text-sm underline"
+                    >
+                      Remove from library
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    💡 Click a status to add this album to your library
                   </div>
                 )}
 
@@ -459,7 +496,7 @@ export default function MusicDetailModal({
                 </div>
               </div>
 
-              {/* Tab content */}
+              {/* Tab content - reste inchangé */}
               <div className="p-6">
                 {activeTab === 'info' && (
                   <div className="space-y-6">
@@ -503,6 +540,7 @@ export default function MusicDetailModal({
                   </div>
                 )}
 
+                {/* Autres onglets restent inchangés */}
                 {activeTab === 'social' && (
                   <div className="space-y-6">
                     <div>

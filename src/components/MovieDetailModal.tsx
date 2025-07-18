@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { X, Star, ExternalLink, Calendar, Clock, Award, Users, Globe } from 'lucide-react'
+import { X, Star, ExternalLink, Calendar, Clock, Award, Users, Globe, Check } from 'lucide-react'
 import { omdbService } from '@/services/omdbService'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
@@ -9,6 +9,7 @@ interface MovieDetailModalProps {
   onClose: () => void
   movieId: string
   onAddToLibrary: (item: any, status: MediaStatus) => void
+  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
   library: LibraryItem[]
   userReviews: Review[]
   imdbReviews: Review[]
@@ -47,6 +48,7 @@ export default function MovieDetailModal({
   onClose, 
   movieId, 
   onAddToLibrary, 
+  onDeleteItem, // ✅ NOUVELLE PROP
   library, 
   userReviews, 
   imdbReviews, 
@@ -178,12 +180,12 @@ export default function MovieDetailModal({
 
   const getStatusColor = (status: MediaStatus) => {
     switch (status) {
-      case 'want-to-play': return 'bg-orange-500 hover:bg-orange-600'
-      case 'currently-playing': return 'bg-green-500 hover:bg-green-600'
-      case 'completed': return 'bg-blue-500 hover:bg-blue-600'
-      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600'
-      case 'dropped': return 'bg-red-500 hover:bg-red-600'
-      default: return 'bg-gray-500 hover:bg-gray-600'
+      case 'want-to-play': return 'bg-orange-500 hover:bg-orange-600 text-white'
+      case 'currently-playing': return 'bg-green-500 hover:bg-green-600 text-white'
+      case 'completed': return 'bg-blue-500 hover:bg-blue-600 text-white'
+      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600 text-white'
+      case 'dropped': return 'bg-red-500 hover:bg-red-600 text-white'
+      default: return 'bg-gray-500 hover:bg-gray-600 text-white'
     }
   }
 
@@ -292,30 +294,65 @@ export default function MovieDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* Action buttons */}
+              {/* ✅ Action buttons avec possibilité de décocher */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
-                      onClick={() => handleStatusSelect(status)}
-                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all text-white shadow-sm ${
+                      onClick={() => {
+                        // ✅ NOUVELLE LOGIQUE : Si déjà sélectionné, on retire de la bibliothèque
+                        if (selectedStatus === status) {
+                          // Retirer de la bibliothèque
+                          if (onDeleteItem) {
+                            onDeleteItem(`movie-${movieId}`)
+                          }
+                          setSelectedStatus(null)
+                        } else {
+                          // Ajouter/Modifier le statut
+                          handleStatusSelect(status)
+                        }
+                      }}
+                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
                         selectedStatus === status
-                          ? getStatusColor(status)
+                          ? `${getStatusColor(status)} ring-2 ring-blue-300` // ✅ Indication visuelle forte
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
-                      <div className="text-sm font-semibold">{getStatusLabel(status)}</div>
-                      <div className="text-xs opacity-80">
-                        {movieStats[status].toLocaleString()} users
+                      <div className="flex items-center justify-center space-x-2">
+                        {selectedStatus === status && (
+                          <Check size={16} className="text-white" />
+                        )}
+                        <div>
+                          <div className="text-sm font-semibold">{getStatusLabel(status)}</div>
+                          <div className="text-xs opacity-80">
+                            {movieStats[status].toLocaleString()} users
+                          </div>
+                        </div>
                       </div>
                     </button>
                   ))}
                 </div>
                 
-                {selectedStatus && (
-                  <div className="text-sm text-gray-600 bg-green-50 border border-green-200 rounded-lg p-3">
-                    ✅ Added to your library on {new Date().toLocaleDateString()}
+                {/* Message d'état */}
+                {selectedStatus ? (
+                  <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                    <span>✅ Added to your library as "{getStatusLabel(selectedStatus)}"</span>
+                    <button 
+                      onClick={() => {
+                        if (onDeleteItem) {
+                          onDeleteItem(`movie-${movieId}`)
+                        }
+                        setSelectedStatus(null)
+                      }}
+                      className="text-red-600 hover:text-red-800 text-sm underline"
+                    >
+                      Remove from library
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    💡 Click a status to add this movie to your library
                   </div>
                 )}
 

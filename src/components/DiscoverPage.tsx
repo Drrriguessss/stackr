@@ -30,6 +30,7 @@ interface ForYouSection {
 
 interface DiscoverPageProps {
   onAddToLibrary?: (item: any, status: MediaStatus) => void
+  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
   onOpenBookDetail?: (bookId: string) => void
@@ -39,6 +40,7 @@ interface DiscoverPageProps {
 
 export default function DiscoverPage({
   onAddToLibrary,
+  onDeleteItem, // ✅ NOUVELLE PROP
   onOpenGameDetail,
   onOpenMovieDetail,
   onOpenBookDetail,
@@ -650,6 +652,12 @@ export default function DiscoverPage({
     }, 1500)
   }
 
+  // ✅ NOUVELLE FONCTION pour gérer la suppression
+  const handleRemoveFromLibrary = (item: ContentItem) => {
+    if (!onDeleteItem) return
+    onDeleteItem(item.id)
+  }
+
   const handleHeroAction = (item: ContentItem) => {
     handleItemClick(item)
   }
@@ -942,8 +950,21 @@ export default function DiscoverPage({
                     {/* Add button */}
                     <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {isInLibrary(item.id) ? (
-                        <div className="bg-green-500 text-white p-2 rounded-full shadow-lg flex items-center justify-center">
-                          <Check size={16} />
+                        <div className="relative">
+                          <div className="bg-green-500 text-white p-2 rounded-full shadow-lg flex items-center justify-center">
+                            <Check size={16} />
+                          </div>
+                          {/* ✅ NOUVEAU : Option pour retirer */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveFromLibrary(item)
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 transition-colors"
+                            title="Remove from library"
+                          >
+                            ×
+                          </button>
                         </div>
                       ) : addingItem === item.id ? (
                         <div className="bg-blue-500 text-white p-2 rounded-full shadow-lg animate-pulse">
@@ -1099,8 +1120,21 @@ export default function DiscoverPage({
                         {/* Add button */}
                         <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           {isInLibrary(item.id) ? (
-                            <div className="bg-green-500 text-white p-2 rounded-full shadow-lg flex items-center justify-center">
-                              <Check size={16} />
+                            <div className="relative">
+                              <div className="bg-green-500 text-white p-2 rounded-full shadow-lg flex items-center justify-center">
+                                <Check size={16} />
+                              </div>
+                              {/* ✅ NOUVEAU : Option pour retirer */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRemoveFromLibrary(item)
+                                }}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 transition-colors"
+                                title="Remove from library"
+                              >
+                                ×
+                              </button>
                             </div>
                           ) : addingItem === item.id ? (
                             <div className="bg-blue-500 text-white p-2 rounded-full shadow-lg animate-pulse">

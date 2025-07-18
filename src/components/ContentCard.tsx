@@ -1,13 +1,14 @@
 'use client'
 import { useState } from 'react'
-import { Plus, Check, Star } from 'lucide-react'
+import { Plus, Check, Star, Edit } from 'lucide-react'
 import { idsMatch } from '@/utils/idNormalizer'
 import type { ContentItem, LibraryItem, MediaCategory, MediaStatus } from '@/types'
 
 interface ContentCardProps {
-  item: ContentItem | LibraryItem // ✅ Accepter les deux types
+  item: ContentItem | LibraryItem
   category: MediaCategory
   onAddToLibrary: (item: ContentItem | LibraryItem, status: MediaStatus) => void
+  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP pour retirer
   library: LibraryItem[]
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
@@ -19,6 +20,7 @@ export default function ContentCard({
   item,
   category,
   onAddToLibrary,
+  onDeleteItem,
   library = [],
   onOpenGameDetail,
   onOpenMovieDetail,
@@ -27,13 +29,26 @@ export default function ContentCard({
 }: ContentCardProps) {
   const [showActions, setShowActions] = useState(false)
 
-  // Sécurité : Vérifier que library existe et utiliser normalisation d'ID
+  // ✅ NOUVELLE LOGIQUE : Récupérer l'item exact de la bibliothèque
   const safeLibrary = Array.isArray(library) ? library : []
-  const isInLibrary = safeLibrary.some((libItem: LibraryItem) => idsMatch(libItem.id, item.id))
+  const libraryItem = safeLibrary.find((libItem: LibraryItem) => idsMatch(libItem.id, item.id))
+  const isInLibrary = !!libraryItem
+  const currentStatus = libraryItem?.status
 
   const handleAdd = (status: MediaStatus) => {
     onAddToLibrary(item, status)
     setShowActions(false)
+  }
+
+  // ✅ NOUVELLE FONCTION : Gérer le clic sur le statut actuel
+  const handleStatusClick = () => {
+    if (isInLibrary && onDeleteItem) {
+      // Si déjà dans la bibliothèque, proposer de retirer ou changer
+      setShowActions(true)
+    } else {
+      // Sinon, ouvrir les options d'ajout
+      setShowActions(true)
+    }
   }
 
   const handleCardClick = () => {
@@ -91,6 +106,18 @@ export default function ContentCard({
     }
   }
 
+  // ✅ NOUVELLE FONCTION : Couleur du statut
+  const getStatusColor = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'bg-orange-500'
+      case 'currently-playing': return 'bg-green-500'
+      case 'completed': return 'bg-blue-500'
+      case 'paused': return 'bg-yellow-500'
+      case 'dropped': return 'bg-red-500'
+      default: return 'bg-gray-500'
+    }
+  }
+
   return (
     <div className="group cursor-pointer">
       <div 
@@ -113,10 +140,53 @@ export default function ContentCard({
         
         <div className="absolute top-2 right-2">
           {isInLibrary ? (
-            <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-xs shadow-md">
-              <Check size={14} />
+            // ✅ NOUVEAU : Affichage du statut actuel avec possibilité de modifier
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleStatusClick()
+                }}
+                className={`w-auto px-2 h-7 ${getStatusColor(currentStatus!)} text-white rounded-full flex items-center justify-center text-xs font-medium shadow-md hover:shadow-lg transition-all`}
+              >
+                <Check size={12} className="mr-1" />
+                <span>{getActionLabel(currentStatus!, category).split(' ')[0]}</span>
+              </button>
+
+              {showActions && (
+                <div className="absolute top-8 right-0 bg-white/95 backdrop-blur-sm rounded-lg p-2 z-20 min-w-44 border border-gray-200 shadow-lg">
+                  {/* Options de changement de statut */}
+                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
+                    <button 
+                      key={status}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (status === currentStatus) {
+                          // Si même statut, retirer de la bibliothèque
+                          if (onDeleteItem) {
+                            onDeleteItem(item.id)
+                          }
+                        } else {
+                          // Sinon, changer le statut
+                          handleAdd(status)
+                        }
+                        setShowActions(false)
+                      }} 
+                      className={`block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium flex items-center justify-between ${
+                        status === currentStatus ? 'bg-red-50 text-red-700 hover:bg-red-100' : ''
+                      }`}
+                    >
+                      <span>
+                        {status === currentStatus ? `Remove from ${getActionLabel(status, category)}` : getActionLabel(status, category)}
+                      </span>
+                      {status === currentStatus && <span className="text-red-500">×</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
+            // Bouton d'ajout classique
             <div className="relative">
               <button
                 onClick={(e) => {
@@ -185,6 +255,20 @@ export default function ContentCard({
             </span>
           )}
         </div>
+        
+        {/* ✅ NOUVEAU : Affichage du statut sous la carte */}
+        {isInLibrary && (
+          <div className="mt-2">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              currentStatus === 'want-to-play' ? 'bg-orange-100 text-orange-700' :
+              currentStatus === 'currently-playing' ? 'bg-green-100 text-green-700' :
+              currentStatus === 'completed' ? 'bg-blue-100 text-blue-700' :
+              'bg-gray-100 text-gray-700'
+            }`}>
+              {getActionLabel(currentStatus!, category)}
+            </span>
+          </div>
+        )}
         
         {/* Afficher le nombre de saisons pour les séries */}
         {item.isSeries && item.totalSeasons && (
