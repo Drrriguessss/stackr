@@ -2986,867 +2986,6 @@ export interface StatusOption {
 }
 </file>
 
-<file path="src/components/BookDetailModal.tsx">
-'use client'
-import { useState, useEffect, useRef } from 'react'
-import { X, Star, ExternalLink, Calendar, BookOpen, Award, Users, Globe, Eye, Check } from 'lucide-react'
-import { googleBooksService, formatPageCount, formatPublisher, getReadingTime } from '@/services/googleBooksService'
-import { idsMatch } from '@/utils/idNormalizer'
-import type { LibraryItem, Review, MediaStatus } from '@/types'
-
-interface BookDetailModalProps {
-  isOpen: boolean
-  onClose: () => void
-  bookId: string
-  onAddToLibrary: (item: any, status: MediaStatus) => void
-  onDeleteItem?: (id: string) => void
-  library: LibraryItem[]
-  userReviews: Review[]
-  goodreadsReviews: Review[]
-  onReviewSubmit: (reviewData: any) => void
-}
-
-interface BookDetail {
-  id: string
-  volumeInfo: {
-    title: string
-    subtitle?: string
-    authors?: string[]
-    publisher?: string
-    publishedDate?: string
-    description?: string
-    pageCount?: number
-    categories?: string[]
-    averageRating?: number
-    ratingsCount?: number
-    imageLinks?: {
-      thumbnail?: string
-      small?: string
-      medium?: string
-      large?: string
-    }
-    language?: string
-    previewLink?: string
-    infoLink?: string
-    canonicalVolumeLink?: string
-  }
-  saleInfo?: {
-    isEbook?: boolean
-    buyLink?: string
-    listPrice?: { amount: number, currencyCode: string }
-  }
-  accessInfo?: {
-    webReaderLink?: string
-    epub?: { isAvailable: boolean }
-    pdf?: { isAvailable: boolean }
-  }
-}
-
-export default function BookDetailModal({ 
-  isOpen, 
-  onClose, 
-  bookId, 
-  onAddToLibrary, 
-  onDeleteItem,
-  library, 
-  userReviews, 
-  goodreadsReviews, 
-  onReviewSubmit 
-}: BookDetailModalProps) {
-  const [bookDetail, setBookDetail] = useState<BookDetail | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info')
-  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
-  const [userRating, setUserRating] = useState<number>(0)
-  const [hoverRating, setHoverRating] = useState<number>(0)
-  const [showReviewBox, setShowReviewBox] = useState(false)
-  const [userReview, setUserReview] = useState('')
-  const [similarBooks, setSimilarBooks] = useState<any[]>([])
-  const [authorBooks, setAuthorBooks] = useState<any[]>([])
-
-  const scrollableRef = useRef<HTMLDivElement>(null)
-
-  const bookStats = {
-    'want-to-play': 3241,
-    'currently-playing': 1856,
-    'completed': 12923
-  }
-
-  useEffect(() => {
-    if (isOpen) {
-      setActiveTab('info')
-      setSimilarBooks([])
-      setAuthorBooks([])
-    }
-  }, [isOpen, bookId])
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    if (isOpen && bookId) {
-      fetchBookDetail()
-    }
-  }, [isOpen, bookId])
-
-  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
-  useEffect(() => {
-    console.log('📚 DEBUG BookModal:')
-    console.log('  bookId:', bookId)
-    console.log('  library IDs:', library.map(item => item.id))
-    console.log('  looking for match with bookId:', bookId)
-    
-    // Essayer plusieurs formats d'ID pour trouver l'item
-    const possibleIds = [
-      bookId,
-      `book-${bookId}`,
-      bookId.startsWith('book-') ? bookId.replace('book-', '') : `book-${bookId}`
-    ]
-    
-    console.log('  possibleIds:', possibleIds)
-    
-    let libraryItem = null
-    for (const id of possibleIds) {
-      libraryItem = library.find(item => idsMatch(item.id, id))
-      if (libraryItem) {
-        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
-        break
-      }
-    }
-    
-    if (libraryItem) {
-      setSelectedStatus(libraryItem.status)
-      console.log('  status set to:', libraryItem.status)
-    } else {
-      setSelectedStatus(null)
-      console.log('  ❌ no library item found - status set to null')
-    }
-  }, [bookId, library])
-
-  const fetchBookDetail = async () => {
-    if (!bookId) return
-    
-    setLoading(true)
-    try {
-      let googleBookId = bookId
-      
-      // Si l'ID commence par 'book-', le retirer
-      if (bookId.startsWith('book-')) {
-        googleBookId = bookId.replace('book-', '')
-      }
-      
-      console.log('📚 Fetching book details for ID:', googleBookId)
-      
-      const data = await googleBooksService.getBookDetails(googleBookId)
-      setBookDetail(data as BookDetail)
-      
-      console.log('📚 Book detail fetched:', data)
-      
-      // Charger des livres similaires et de l'auteur
-      if (data?.volumeInfo) {
-        if (data.volumeInfo.categories?.length) {
-          await fetchSimilarBooks(data)
-        }
-        if (data.volumeInfo.authors?.length) {
-          await fetchAuthorBooks(data.volumeInfo.authors[0], data.id)
-        }
-      }
-      
-    } catch (error) {
-      console.error('Erreur lors du chargement des détails:', error)
-      setBookDetail(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchSimilarBooks = async (book: BookDetail) => {
-    try {
-      const similarBooksData = await googleBooksService.getSimilarBooks(book as any, 6)
-      const convertedBooks = similarBooksData.map(book => googleBooksService.convertToAppFormat(book))
-      setSimilarBooks(convertedBooks)
-    } catch (error) {
-      console.error('Error fetching similar books:', error)
-      setSimilarBooks([])
-    }
-  }
-
-  const fetchAuthorBooks = async (author: string, excludeBookId: string) => {
-    try {
-      const authorBooksData = await googleBooksService.getBooksByAuthor(author, 8)
-      const filteredBooks = authorBooksData
-        .filter(book => book.id !== excludeBookId)
-        .slice(0, 6)
-        .map(book => googleBooksService.convertToAppFormat(book))
-      
-      setAuthorBooks(filteredBooks)
-    } catch (error) {
-      console.error('Error fetching author books:', error)
-      setAuthorBooks([])
-    }
-  }
-
-  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
-  const handleStatusSelect = (status: MediaStatus) => {
-    if (!bookDetail) return
-    
-    // Créer un ID normalisé
-    const normalizedId = bookId.startsWith('book-') 
-      ? bookId 
-      : `book-${bookDetail.id}`
-    
-    console.log('🔧 Adding book to library:')
-    console.log('  bookDetail.id:', bookDetail.id)
-    console.log('  bookId:', bookId)
-    console.log('  normalizedId:', normalizedId)
-    
-    const bookItem = {
-      id: normalizedId,
-      title: bookDetail.volumeInfo.title,
-      image: googleBooksService.getBestImageURL(bookDetail as any, 'medium'),
-      category: 'books' as const,
-      year: googleBooksService.getPublicationYear(bookDetail as any),
-      rating: bookDetail.volumeInfo.averageRating || 0,
-      author: bookDetail.volumeInfo.authors?.[0] || 'Unknown Author'
-    }
-    
-    console.log('  final bookItem:', bookItem)
-    onAddToLibrary(bookItem, status)
-    setSelectedStatus(status)
-  }
-
-  const getStatusLabel = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'Want to Read'
-      case 'currently-playing': return 'Reading'
-      case 'completed': return 'Read'
-      case 'paused': return 'Paused'
-      case 'dropped': return 'Dropped'
-      default: return status
-    }
-  }
-
-  const getStatusColor = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'bg-orange-500 hover:bg-orange-600 text-white'
-      case 'currently-playing': return 'bg-green-500 hover:bg-green-600 text-white'
-      case 'completed': return 'bg-blue-500 hover:bg-blue-600 text-white'
-      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600 text-white'
-      case 'dropped': return 'bg-red-500 hover:bg-red-600 text-white'
-      default: return 'bg-gray-500 hover:bg-gray-600 text-white'
-    }
-  }
-
-  const handleSubmitReview = () => {
-    if (userRating > 0 && userReview.trim()) {
-      onReviewSubmit({
-        rating: userRating,
-        review: userReview.trim()
-      })
-      
-      setShowReviewBox(false)
-      setUserReview('')
-      setUserRating(0)
-    }
-  }
-
-  if (!isOpen) return null
-
-  return (
-    <div 
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose()
-        }
-      }}
-    >
-      <div 
-        className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col shadow-xl border border-gray-100"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : bookDetail ? (
-          <>
-            {/* Header */}
-            <div className="relative bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-2 hover:bg-white/80 rounded-full transition-colors"
-              >
-                <X size={20} />
-              </button>
-              
-              <div className="p-6 flex items-center space-x-4">
-                <div className="w-20 h-28 rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-gray-100 flex-shrink-0">
-                  {googleBooksService.getBestImageURL(bookDetail as any, 'medium') ? (
-                    <img
-                      src={googleBooksService.getBestImageURL(bookDetail as any, 'medium')!}
-                      alt={bookDetail.volumeInfo.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl">
-                      📚
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-1">{bookDetail.volumeInfo.title}</h1>
-                  {bookDetail.volumeInfo.subtitle && (
-                    <h2 className="text-lg text-gray-600 mb-2">{bookDetail.volumeInfo.subtitle}</h2>
-                  )}
-                  
-                  <div className="flex items-center space-x-4 mb-2">
-                    <span className="text-gray-700 font-medium">
-                      {bookDetail.volumeInfo.authors?.join(', ') || 'Unknown Author'}
-                    </span>
-                    {bookDetail.volumeInfo.pageCount && (
-                      <>
-                        <span className="text-gray-600">•</span>
-                        <span className="text-gray-600">{formatPageCount(bookDetail.volumeInfo.pageCount)}</span>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                    {bookDetail.volumeInfo.publisher && (
-                      <span>{formatPublisher(bookDetail.volumeInfo.publisher, bookDetail.volumeInfo.publishedDate || '')}</span>
-                    )}
-                    {bookDetail.volumeInfo.pageCount && (
-                      <>
-                        <span>•</span>
-                        <span>{getReadingTime(bookDetail.volumeInfo.pageCount)}</span>
-                      </>
-                    )}
-                  </div>
-                  
-                  {bookDetail.volumeInfo.averageRating && (
-                    <div className="flex items-center space-x-2">
-                      <div className="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            size={16}
-                            className={`${
-                              star <= bookDetail.volumeInfo.averageRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        {bookDetail.volumeInfo.averageRating?.toFixed(1)}/5
-                        {bookDetail.volumeInfo.ratingsCount && ` (${bookDetail.volumeInfo.ratingsCount.toLocaleString()} reviews)`}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* Action buttons avec possibilité de décocher */}
-              <div className="p-6 border-b border-gray-100">
-                <div className="flex space-x-3 mb-4">
-                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => {
-                        // Si déjà sélectionné, on retire de la bibliothèque
-                        if (selectedStatus === status) {
-                          if (onDeleteItem) {
-                            // 🔧 CORRECTION: Utiliser l'ID cohérent
-                            const idToDelete = bookId.startsWith('book-') 
-  ? bookId 
-  : `book-${bookId}`
-                            console.log('🗑️ Removing from library with ID:', idToDelete)
-                            onDeleteItem(idToDelete)
-                          }
-                          setSelectedStatus(null)
-                        } else {
-                          // Ajouter/Modifier le statut
-                          handleStatusSelect(status)
-                        }
-                      }}
-                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
-                        selectedStatus === status
-                          ? `${getStatusColor(status)} ring-2 ring-blue-300`
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-center space-x-2">
-                        {selectedStatus === status && (
-                          <Check size={16} className="text-white" />
-                        )}
-                        <div>
-                          <div className="text-sm font-semibold">{getStatusLabel(status)}</div>
-                          <div className="text-xs opacity-80">
-                            {bookStats[status].toLocaleString()} readers
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                
-                {/* Message d'état */}
-                {selectedStatus ? (
-                  <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
-                    <span>✅ Added to your library as "{getStatusLabel(selectedStatus)}"</span>
-                    <button 
-                      onClick={() => {
-                        if (onDeleteItem) {
-                          const idToDelete = bookId.startsWith('book-') 
-                            ? bookId 
-                            : `book-${bookDetail.id}`
-                          onDeleteItem(idToDelete)
-                        }
-                        setSelectedStatus(null)
-                      }}
-                      className="text-red-600 hover:text-red-800 text-sm underline"
-                    >
-                      Remove from library
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-3">
-                    💡 Click a status to add this book to your library
-                  </div>
-                )}
-
-                {/* User rating */}
-                <div className="mt-6 pt-6 border-t border-gray-100">
-                  <h4 className="text-gray-900 font-semibold mb-3">Rate this book</h4>
-                  <div className="flex items-center space-x-2 mb-3">
-                    {[1, 2, 3, 4, 5].map((rating) => (
-                      <button
-                        key={rating}
-                        onClick={() => {
-                          setUserRating(rating)
-                          setShowReviewBox(true)
-                        }}
-                        onMouseEnter={() => setHoverRating(rating)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        className="p-1 hover:scale-110 transition-transform"
-                      >
-                        <Star
-                          size={24}
-                          className={`transition-colors ${
-                            (hoverRating || userRating) >= rating
-                              ? 'text-yellow-500 fill-current'
-                              : 'text-gray-300 hover:text-yellow-400'
-                          }`}
-                        />
-                      </button>
-                    ))}
-                    {userRating > 0 && (
-                      <span className="text-gray-900 ml-2 font-medium">{userRating}/5</span>
-                    )}
-                  </div>
-                  
-                  {showReviewBox && (
-                    <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                      <label className="text-sm text-gray-700 mb-2 block font-medium">Share your thoughts</label>
-                      <textarea
-                        value={userReview}
-                        onChange={(e) => setUserReview(e.target.value)}
-                        placeholder="What did you think about this book?"
-                        className="w-full h-20 px-3 py-2 bg-white text-gray-900 text-sm rounded-lg resize-none border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <div className="flex space-x-2 mt-3">
-                        <button 
-                          onClick={handleSubmitReview}
-                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          Submit Review
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setShowReviewBox(false)
-                            setUserReview('')
-                          }}
-                          className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Reviews Section */}
-              <div className="p-6 border-b border-gray-100">
-                <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
-                <div className="flex space-x-4 overflow-x-auto pb-2">
-                  {/* User reviews first */}
-                  {userReviews.map((review) => (
-                    <div key={review.id} className="flex-shrink-0 w-64 bg-blue-50 rounded-xl p-4 border border-blue-100">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 text-sm">👤</span>
-                        </div>
-                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
-                        <span className="text-xs text-blue-600 bg-blue-200 px-2 py-1 rounded-full font-medium">You</span>
-                      </div>
-                      <div className="flex items-center space-x-1 mb-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            size={12}
-                            className={`${
-                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
-                      </div>
-                      <p className="text-gray-700 text-sm leading-relaxed">
-                        {review.review || review.text}
-                      </p>
-                    </div>
-                  ))}
-                  
-                  {/* Goodreads reviews */}
-                  {goodreadsReviews.slice(0, 5).map((review) => (
-                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 border border-gray-200">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-gray-600 text-sm">📚</span>
-                        </div>
-                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
-                        <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded-full font-medium">Goodreads</span>
-                      </div>
-                      <div className="flex items-center space-x-1 mb-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            size={12}
-                            className={`${
-                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
-                      </div>
-                      <p className="text-gray-700 text-sm leading-relaxed">
-                        {review.text}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tabs */}
-              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
-                <div className="flex px-6">
-                  {(['info', 'social', 'more'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`flex-1 py-4 px-4 font-medium transition-colors relative ${
-                        activeTab === tab
-                          ? 'text-gray-900'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                      {activeTab === tab && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tab content */}
-              <div className="p-6">
-                {activeTab === 'info' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-gray-900 font-semibold mb-3">Description</h4>
-                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                        <p className="text-gray-700 leading-relaxed">
-                          {googleBooksService.cleanDescription(bookDetail.volumeInfo.description || '') || 'No description available.'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                        <h5 className="text-gray-900 font-medium mb-2">Author(s)</h5>
-                        <p className="text-gray-600 text-sm">
-                          {bookDetail.volumeInfo.authors?.join(', ') || 'Unknown'}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                        <h5 className="text-gray-900 font-medium mb-2">Publisher</h5>
-                        <p className="text-gray-600 text-sm">
-                          {bookDetail.volumeInfo.publisher || 'Unknown'}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                        <h5 className="text-gray-900 font-medium mb-2">Published</h5>
-                        <p className="text-gray-600 text-sm">
-                          {bookDetail.volumeInfo.publishedDate || 'Unknown'}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                        <h5 className="text-gray-900 font-medium mb-2">Pages</h5>
-                        <p className="text-gray-600 text-sm">
-                          {bookDetail.volumeInfo.pageCount ? formatPageCount(bookDetail.volumeInfo.pageCount) : 'Unknown'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {bookDetail.volumeInfo.categories && bookDetail.volumeInfo.categories.length > 0 && (
-                      <div>
-                        <h4 className="text-gray-900 font-semibold mb-3">Categories</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {bookDetail.volumeInfo.categories.map((category, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm"
-                            >
-                              📖 {category}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {activeTab === 'social' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-gray-900 font-semibold mb-4">Reading Stats</h4>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-center">
-                          <div className="text-2xl font-bold text-orange-600">{bookStats['want-to-play'].toLocaleString()}</div>
-                          <div className="text-sm text-orange-700 font-medium">Want to Read</div>
-                        </div>
-                        <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
-                          <div className="text-2xl font-bold text-green-600">{bookStats['currently-playing'].toLocaleString()}</div>
-                          <div className="text-sm text-green-700 font-medium">Reading</div>
-                        </div>
-                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
-                          <div className="text-2xl font-bold text-blue-600">{bookStats['completed'].toLocaleString()}</div>
-                          <div className="text-sm text-blue-700 font-medium">Read</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-gray-900 font-semibold mb-4">Formats Available</h4>
-                      <div className="space-y-3">
-                        {bookDetail.accessInfo?.epub?.isAvailable && (
-                          <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <BookOpen size={20} className="text-blue-600" />
-                            <span className="font-medium text-blue-900">EPUB Available</span>
-                          </div>
-                        )}
-                        {bookDetail.accessInfo?.pdf?.isAvailable && (
-                          <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                            <BookOpen size={20} className="text-red-600" />
-                            <span className="font-medium text-red-900">PDF Available</span>
-                          </div>
-                        )}
-                        {bookDetail.saleInfo?.isEbook && (
-                          <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                            <BookOpen size={20} className="text-purple-600" />
-                            <span className="font-medium text-purple-900">E-book Available</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'more' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-gray-900 font-semibold mb-4">External Links</h4>
-                      <div className="space-y-3">
-                        {bookDetail.volumeInfo.infoLink && (
-                          <a 
-                            href={bookDetail.volumeInfo.infoLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            View on Google Books
-                          </a>
-                        )}
-
-                        {bookDetail.volumeInfo.previewLink && (
-                          <a
-                            href={bookDetail.volumeInfo.previewLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
-                          >
-                            <Eye size={16} />
-                            <span>Preview Book</span>
-                            <ExternalLink size={12} />
-                          </a>
-                        )}
-
-                        {bookDetail.accessInfo?.webReaderLink && (
-                          <a
-                            href={bookDetail.accessInfo.webReaderLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
-                          >
-                            <BookOpen size={16} />
-                            <span>Read Online</span>
-                            <ExternalLink size={12} />
-                          </a>
-                        )}
-
-                        {bookDetail.saleInfo?.buyLink && (
-                          <a
-                            href={bookDetail.saleInfo.buyLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
-                          >
-                            <Globe size={16} />
-                            <span>Buy Book</span>
-                            <ExternalLink size={12} />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* More from Author */}
-                    {authorBooks.length > 0 && (
-                      <div>
-                        <h4 className="text-gray-900 font-semibold mb-4">
-                          More from {bookDetail.volumeInfo.authors?.[0]}
-                        </h4>
-                        <div className="flex space-x-3 overflow-x-auto pb-2">
-                          {authorBooks.map((book) => (
-                            <div key={book.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
-                              {book.image && (
-                                <img
-                                  src={book.image}
-                                  alt={book.title}
-                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
-                                />
-                              )}
-                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={book.title}>
-                                {book.title}
-                              </h5>
-                              <div className="flex items-center">
-                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
-                                <span className="text-xs text-gray-600">{book.rating?.toFixed(1) || 'N/A'}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Similar Books */}
-                    {similarBooks.length > 0 && (
-                      <div>
-                        <h4 className="text-gray-900 font-semibold mb-4">Similar Books</h4>
-                        <div className="flex space-x-3 overflow-x-auto pb-2">
-                          {similarBooks.map((book) => (
-                            <div key={book.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
-                              {book.image && (
-                                <img
-                                  src={book.image}
-                                  alt={book.title}
-                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
-                                />
-                              )}
-                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={book.title}>
-                                {book.title}
-                              </h5>
-                              <div className="flex items-center">
-                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
-                                <span className="text-xs text-gray-600">{book.rating?.toFixed(1) || 'N/A'}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Additional Info */}
-                    <div>
-                      <h4 className="text-gray-900 font-semibold mb-4">Additional Information</h4>
-                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-900">Language:</span>
-                            <span className="text-gray-600">
-                              {bookDetail.volumeInfo.language || 'Unknown'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-900">ISBN:</span>
-                            <span className="text-gray-600">
-                              {googleBooksService.getISBN(bookDetail as any) || 'N/A'}
-                            </span>
-                          </div>
-                          {bookDetail.volumeInfo.pageCount && (
-                            <div className="flex justify-between col-span-2">
-                              <span className="font-medium text-gray-900">Reading Time:</span>
-                              <span className="text-gray-600 text-right">
-                                {getReadingTime(bookDetail.volumeInfo.pageCount)}
-                              </span>
-                            </div>
-                          )}
-                          {bookDetail.saleInfo?.listPrice && (
-                            <div className="flex justify-between col-span-2">
-                              <span className="font-medium text-gray-900">Price:</span>
-                              <span className="text-gray-600 text-right">
-                                {bookDetail.saleInfo.listPrice.amount} {bookDetail.saleInfo.listPrice.currencyCode}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="p-8 text-center text-gray-600">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">📚</span>
-            </div>
-            <p className="text-lg font-medium text-gray-900 mb-2">Book not found</p>
-            <p className="text-sm">Unable to load book details. Please try again.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-</file>
-
 <file path="src/components/DiscoverPage.tsx">
 'use client'
 import React, { useState, useEffect } from 'react'
@@ -4945,6 +4084,1326 @@ export default function DiscoverPage({
 }
 </file>
 
+<file path="src/lib/supabase.ts">
+// src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js'
+
+// Variables d'environnement chargées de manière sécurisée
+
+// Utilisation des variables d'environnement pour la sécurité
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Vérification que les variables d'environnement sont bien définies
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
+}
+
+// Créer le client Supabase
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+})
+
+// Test de connexion
+export const testSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('library_items').select('*').limit(1)
+    if (error && error.code !== 'PGRST116') {
+      console.error('❌ Supabase connection error:', error)
+      return false
+    }
+    console.log('✅ Supabase connected successfully!')
+    return true
+  } catch (error) {
+    console.error('❌ Supabase connection failed:', error)
+    return false
+  }
+}
+</file>
+
+<file path="src/components/BookDetailModal.tsx">
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { X, Star, ExternalLink, Calendar, BookOpen, Award, Users, Globe, Eye, Check } from 'lucide-react'
+import { googleBooksService, formatPageCount, formatPublisher, getReadingTime } from '@/services/googleBooksService'
+import { idsMatch } from '@/utils/idNormalizer'
+import type { LibraryItem, Review, MediaStatus } from '@/types'
+
+interface BookDetailModalProps {
+  isOpen: boolean
+  onClose: () => void
+  bookId: string
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  onDeleteItem?: (id: string) => void
+  library: LibraryItem[]
+  userReviews: Review[]
+  goodreadsReviews: Review[]
+  onReviewSubmit: (reviewData: any) => void
+}
+
+interface BookDetail {
+  id: string
+  volumeInfo: {
+    title: string
+    subtitle?: string
+    authors?: string[]
+    publisher?: string
+    publishedDate?: string
+    description?: string
+    pageCount?: number
+    categories?: string[]
+    averageRating?: number
+    ratingsCount?: number
+    imageLinks?: {
+      thumbnail?: string
+      small?: string
+      medium?: string
+      large?: string
+    }
+    language?: string
+    previewLink?: string
+    infoLink?: string
+    canonicalVolumeLink?: string
+  }
+  saleInfo?: {
+    isEbook?: boolean
+    buyLink?: string
+    listPrice?: { amount: number, currencyCode: string }
+  }
+  accessInfo?: {
+    webReaderLink?: string
+    epub?: { isAvailable: boolean }
+    pdf?: { isAvailable: boolean }
+  }
+}
+
+export default function BookDetailModal({ 
+  isOpen, 
+  onClose, 
+  bookId, 
+  onAddToLibrary, 
+  onDeleteItem,
+  library, 
+  userReviews, 
+  goodreadsReviews, 
+  onReviewSubmit 
+}: BookDetailModalProps) {
+  const [bookDetail, setBookDetail] = useState<BookDetail | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<'info' | 'social' | 'more'>('info')
+  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
+  const [userRating, setUserRating] = useState<number>(0)
+  const [hoverRating, setHoverRating] = useState<number>(0)
+  const [showReviewBox, setShowReviewBox] = useState(false)
+  const [userReview, setUserReview] = useState('')
+  const [similarBooks, setSimilarBooks] = useState<any[]>([])
+  const [authorBooks, setAuthorBooks] = useState<any[]>([])
+
+  const scrollableRef = useRef<HTMLDivElement>(null)
+
+  const bookStats = {
+    'want-to-play': 3241,
+    'currently-playing': 1856,
+    'completed': 12923
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('info')
+      setSimilarBooks([])
+      setAuthorBooks([])
+    }
+  }, [isOpen, bookId])
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen && bookId) {
+      fetchBookDetail()
+    }
+  }, [isOpen, bookId])
+
+  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
+  useEffect(() => {
+    console.log('📚 DEBUG BookModal:')
+    console.log('  bookId:', bookId)
+    console.log('  library IDs:', library.map(item => item.id))
+    console.log('  looking for match with bookId:', bookId)
+    
+    // Essayer plusieurs formats d'ID pour trouver l'item
+    const possibleIds = [
+      bookId,
+      `book-${bookId}`,
+      bookId.startsWith('book-') ? bookId.replace('book-', '') : `book-${bookId}`
+    ]
+    
+    console.log('  possibleIds:', possibleIds)
+    
+    let libraryItem = null
+    for (const id of possibleIds) {
+      libraryItem = library.find(item => idsMatch(item.id, id))
+      if (libraryItem) {
+        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
+        break
+      }
+    }
+    
+    if (libraryItem) {
+      setSelectedStatus(libraryItem.status)
+      console.log('  status set to:', libraryItem.status)
+    } else {
+      setSelectedStatus(null)
+      console.log('  ❌ no library item found - status set to null')
+    }
+  }, [bookId, library])
+
+  const fetchBookDetail = async () => {
+    if (!bookId) return
+    
+    setLoading(true)
+    try {
+      let googleBookId = bookId
+      
+      // Si l'ID commence par 'book-', le retirer
+      if (bookId.startsWith('book-')) {
+        googleBookId = bookId.replace('book-', '')
+      }
+      
+      console.log('📚 Fetching book details for ID:', googleBookId)
+      
+      const data = await googleBooksService.getBookDetails(googleBookId)
+      setBookDetail(data as BookDetail)
+      
+      console.log('📚 Book detail fetched:', data)
+      
+      // Charger des livres similaires et de l'auteur
+      if (data?.volumeInfo) {
+        if (data.volumeInfo.categories?.length) {
+          await fetchSimilarBooks(data)
+        }
+        if (data.volumeInfo.authors?.length) {
+          await fetchAuthorBooks(data.volumeInfo.authors[0], data.id)
+        }
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors du chargement des détails:', error)
+      setBookDetail(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSimilarBooks = async (book: BookDetail) => {
+    try {
+      const similarBooksData = await googleBooksService.getSimilarBooks(book as any, 6)
+      const convertedBooks = similarBooksData.map(book => googleBooksService.convertToAppFormat(book))
+      setSimilarBooks(convertedBooks)
+    } catch (error) {
+      console.error('Error fetching similar books:', error)
+      setSimilarBooks([])
+    }
+  }
+
+  const fetchAuthorBooks = async (author: string, excludeBookId: string) => {
+    try {
+      const authorBooksData = await googleBooksService.getBooksByAuthor(author, 8)
+      const filteredBooks = authorBooksData
+        .filter(book => book.id !== excludeBookId)
+        .slice(0, 6)
+        .map(book => googleBooksService.convertToAppFormat(book))
+      
+      setAuthorBooks(filteredBooks)
+    } catch (error) {
+      console.error('Error fetching author books:', error)
+      setAuthorBooks([])
+    }
+  }
+
+  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
+  const handleStatusSelect = (status: MediaStatus) => {
+    if (!bookDetail) return
+    
+    // Créer un ID normalisé
+    const normalizedId = bookId.startsWith('book-') 
+      ? bookId 
+      : `book-${bookDetail.id}`
+    
+    console.log('🔧 Adding book to library:')
+    console.log('  bookDetail.id:', bookDetail.id)
+    console.log('  bookId:', bookId)
+    console.log('  normalizedId:', normalizedId)
+    
+    const bookItem = {
+      id: normalizedId,
+      title: bookDetail.volumeInfo.title,
+      image: googleBooksService.getBestImageURL(bookDetail as any, 'medium'),
+      category: 'books' as const,
+      year: googleBooksService.getPublicationYear(bookDetail as any),
+      rating: bookDetail.volumeInfo.averageRating || 0,
+      author: bookDetail.volumeInfo.authors?.[0] || 'Unknown Author'
+    }
+    
+    console.log('  final bookItem:', bookItem)
+    onAddToLibrary(bookItem, status)
+    setSelectedStatus(status)
+  }
+
+  const getStatusLabel = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'Want to Read'
+      case 'currently-playing': return 'Reading'
+      case 'completed': return 'Read'
+      case 'paused': return 'Paused'
+      case 'dropped': return 'Dropped'
+      default: return status
+    }
+  }
+
+  const getStatusColor = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'bg-orange-500 hover:bg-orange-600 text-white'
+      case 'currently-playing': return 'bg-green-500 hover:bg-green-600 text-white'
+      case 'completed': return 'bg-blue-500 hover:bg-blue-600 text-white'
+      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600 text-white'
+      case 'dropped': return 'bg-red-500 hover:bg-red-600 text-white'
+      default: return 'bg-gray-500 hover:bg-gray-600 text-white'
+    }
+  }
+
+  const handleSubmitReview = () => {
+    if (userRating > 0 && userReview.trim()) {
+      onReviewSubmit({
+        rating: userRating,
+        review: userReview.trim()
+      })
+      
+      setShowReviewBox(false)
+      setUserReview('')
+      setUserRating(0)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col shadow-xl border border-gray-100"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : bookDetail ? (
+          <>
+            {/* Header */}
+            <div className="relative bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-2 hover:bg-white/80 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="p-6 flex items-center space-x-4">
+                <div className="w-20 h-28 rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-gray-100 flex-shrink-0">
+                  {googleBooksService.getBestImageURL(bookDetail as any, 'medium') ? (
+                    <img
+                      src={googleBooksService.getBestImageURL(bookDetail as any, 'medium')!}
+                      alt={bookDetail.volumeInfo.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl">
+                      📚
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-1">{bookDetail.volumeInfo.title}</h1>
+                  {bookDetail.volumeInfo.subtitle && (
+                    <h2 className="text-lg text-gray-600 mb-2">{bookDetail.volumeInfo.subtitle}</h2>
+                  )}
+                  
+                  <div className="flex items-center space-x-4 mb-2">
+                    <span className="text-gray-700 font-medium">
+                      {bookDetail.volumeInfo.authors?.join(', ') || 'Unknown Author'}
+                    </span>
+                    {bookDetail.volumeInfo.pageCount && (
+                      <>
+                        <span className="text-gray-600">•</span>
+                        <span className="text-gray-600">{formatPageCount(bookDetail.volumeInfo.pageCount)}</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                    {bookDetail.volumeInfo.publisher && (
+                      <span>{formatPublisher(bookDetail.volumeInfo.publisher, bookDetail.volumeInfo.publishedDate || '')}</span>
+                    )}
+                    {bookDetail.volumeInfo.pageCount && (
+                      <>
+                        <span>•</span>
+                        <span>{getReadingTime(bookDetail.volumeInfo.pageCount)}</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {bookDetail.volumeInfo.averageRating && (
+                    <div className="flex items-center space-x-2">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={16}
+                            className={`${
+                              star <= bookDetail.volumeInfo.averageRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {bookDetail.volumeInfo.averageRating?.toFixed(1)}/5
+                        {bookDetail.volumeInfo.ratingsCount && ` (${bookDetail.volumeInfo.ratingsCount.toLocaleString()} reviews)`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div ref={scrollableRef} className="flex-1 overflow-y-auto">
+              {/* Action buttons avec possibilité de décocher */}
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex space-x-3 mb-4">
+                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => {
+                        // Si déjà sélectionné, on retire de la bibliothèque
+                        if (selectedStatus === status) {
+                          if (onDeleteItem) {
+                            // 🔧 CORRECTION: Utiliser l'ID cohérent
+                            const idToDelete = bookId.startsWith('book-') 
+  ? bookId 
+  : `book-${bookId}`
+                            console.log('🗑️ Removing from library with ID:', idToDelete)
+                            onDeleteItem(idToDelete)
+                          }
+                          setSelectedStatus(null)
+                        } else {
+                          // Ajouter/Modifier le statut
+                          handleStatusSelect(status)
+                        }
+                      }}
+                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
+                        selectedStatus === status
+                          ? `${getStatusColor(status)} ring-2 ring-blue-300`
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        {selectedStatus === status && (
+                          <Check size={16} className="text-white" />
+                        )}
+                        <div>
+                          <div className="text-sm font-semibold">{getStatusLabel(status)}</div>
+                          <div className="text-xs opacity-80">
+                            {bookStats[status].toLocaleString()} readers
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Message d'état */}
+                {selectedStatus ? (
+                  <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                    <span>✅ Added to your library as "{getStatusLabel(selectedStatus)}"</span>
+                    <button 
+                      onClick={() => {
+                        if (onDeleteItem) {
+                          const idToDelete = bookId.startsWith('book-') 
+                            ? bookId 
+                            : `book-${bookId}`
+                          onDeleteItem(idToDelete)
+                        }
+                        setSelectedStatus(null)
+                      }}
+                      className="text-red-600 hover:text-red-800 text-sm underline"
+                    >
+                      Remove from library
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    💡 Click a status to add this book to your library
+                  </div>
+                )}
+
+                {/* User rating */}
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h4 className="text-gray-900 font-semibold mb-3">Rate this book</h4>
+                  <div className="flex items-center space-x-2 mb-3">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        onClick={() => {
+                          setUserRating(rating)
+                          setShowReviewBox(true)
+                        }}
+                        onMouseEnter={() => setHoverRating(rating)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className="p-1 hover:scale-110 transition-transform"
+                      >
+                        <Star
+                          size={24}
+                          className={`transition-colors ${
+                            (hoverRating || userRating) >= rating
+                              ? 'text-yellow-500 fill-current'
+                              : 'text-gray-300 hover:text-yellow-400'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    {userRating > 0 && (
+                      <span className="text-gray-900 ml-2 font-medium">{userRating}/5</span>
+                    )}
+                  </div>
+                  
+                  {showReviewBox && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <label className="text-sm text-gray-700 mb-2 block font-medium">Share your thoughts</label>
+                      <textarea
+                        value={userReview}
+                        onChange={(e) => setUserReview(e.target.value)}
+                        placeholder="What did you think about this book?"
+                        className="w-full h-20 px-3 py-2 bg-white text-gray-900 text-sm rounded-lg resize-none border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <div className="flex space-x-2 mt-3">
+                        <button 
+                          onClick={handleSubmitReview}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Submit Review
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setShowReviewBox(false)
+                            setUserReview('')
+                          }}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reviews Section */}
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
+                <div className="flex space-x-4 overflow-x-auto pb-2">
+                  {/* User reviews first */}
+                  {userReviews.map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-blue-50 rounded-xl p-4 border border-blue-100">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 text-sm">👤</span>
+                        </div>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-blue-600 bg-blue-200 px-2 py-1 rounded-full font-medium">You</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {review.review || review.text}
+                      </p>
+                    </div>
+                  ))}
+                  
+                  {/* Goodreads reviews */}
+                  {goodreadsReviews.slice(0, 5).map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-gray-600 text-sm">📚</span>
+                        </div>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded-full font-medium">Goodreads</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {review.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+                <div className="flex px-6">
+                  {(['info', 'social', 'more'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 py-4 px-4 font-medium transition-colors relative ${
+                        activeTab === tab
+                          ? 'text-gray-900'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      {activeTab === tab && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tab content */}
+              <div className="p-6">
+                {activeTab === 'info' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-3">Description</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <p className="text-gray-700 leading-relaxed">
+                          {googleBooksService.cleanDescription(bookDetail.volumeInfo.description || '') || 'No description available.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Author(s)</h5>
+                        <p className="text-gray-600 text-sm">
+                          {bookDetail.volumeInfo.authors?.join(', ') || 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Publisher</h5>
+                        <p className="text-gray-600 text-sm">
+                          {bookDetail.volumeInfo.publisher || 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Published</h5>
+                        <p className="text-gray-600 text-sm">
+                          {bookDetail.volumeInfo.publishedDate || 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Pages</h5>
+                        <p className="text-gray-600 text-sm">
+                          {bookDetail.volumeInfo.pageCount ? formatPageCount(bookDetail.volumeInfo.pageCount) : 'Unknown'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {bookDetail.volumeInfo.categories && bookDetail.volumeInfo.categories.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-3">Categories</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {bookDetail.volumeInfo.categories.map((category, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm"
+                            >
+                              📖 {category}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'social' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Reading Stats</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-orange-600">{bookStats['want-to-play'].toLocaleString()}</div>
+                          <div className="text-sm text-orange-700 font-medium">Want to Read</div>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-green-600">{bookStats['currently-playing'].toLocaleString()}</div>
+                          <div className="text-sm text-green-700 font-medium">Reading</div>
+                        </div>
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-blue-600">{bookStats['completed'].toLocaleString()}</div>
+                          <div className="text-sm text-blue-700 font-medium">Read</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Formats Available</h4>
+                      <div className="space-y-3">
+                        {bookDetail.accessInfo?.epub?.isAvailable && (
+                          <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <BookOpen size={20} className="text-blue-600" />
+                            <span className="font-medium text-blue-900">EPUB Available</span>
+                          </div>
+                        )}
+                        {bookDetail.accessInfo?.pdf?.isAvailable && (
+                          <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                            <BookOpen size={20} className="text-red-600" />
+                            <span className="font-medium text-red-900">PDF Available</span>
+                          </div>
+                        )}
+                        {bookDetail.saleInfo?.isEbook && (
+                          <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                            <BookOpen size={20} className="text-purple-600" />
+                            <span className="font-medium text-purple-900">E-book Available</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'more' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">External Links</h4>
+                      <div className="space-y-3">
+                        {bookDetail.volumeInfo.infoLink && (
+                          <a 
+                            href={bookDetail.volumeInfo.infoLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            View on Google Books
+                          </a>
+                        )}
+
+                        {bookDetail.volumeInfo.previewLink && (
+                          <a
+                            href={bookDetail.volumeInfo.previewLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <Eye size={16} />
+                            <span>Preview Book</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+
+                        {bookDetail.accessInfo?.webReaderLink && (
+                          <a
+                            href={bookDetail.accessInfo.webReaderLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <BookOpen size={16} />
+                            <span>Read Online</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+
+                        {bookDetail.saleInfo?.buyLink && (
+                          <a
+                            href={bookDetail.saleInfo.buyLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <Globe size={16} />
+                            <span>Buy Book</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* More from Author */}
+                    {authorBooks.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-4">
+                          More from {bookDetail.volumeInfo.authors?.[0]}
+                        </h4>
+                        <div className="flex space-x-3 overflow-x-auto pb-2">
+                          {authorBooks.map((book) => (
+                            <div key={book.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+                              {book.image && (
+                                <img
+                                  src={book.image}
+                                  alt={book.title}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={book.title}>
+                                {book.title}
+                              </h5>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
+                                <span className="text-xs text-gray-600">{book.rating?.toFixed(1) || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Similar Books */}
+                    {similarBooks.length > 0 && (
+                      <div>
+                        <h4 className="text-gray-900 font-semibold mb-4">Similar Books</h4>
+                        <div className="flex space-x-3 overflow-x-auto pb-2">
+                          {similarBooks.map((book) => (
+                            <div key={book.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+                              {book.image && (
+                                <img
+                                  src={book.image}
+                                  alt={book.title}
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
+                                />
+                              )}
+                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={book.title}>
+                                {book.title}
+                              </h5>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 fill-current mr-1" />
+                                <span className="text-xs text-gray-600">{book.rating?.toFixed(1) || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Additional Info */}
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Additional Information</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">Language:</span>
+                            <span className="text-gray-600">
+                              {bookDetail.volumeInfo.language || 'Unknown'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">ISBN:</span>
+                            <span className="text-gray-600">
+                              {googleBooksService.getISBN(bookDetail as any) || 'N/A'}
+                            </span>
+                          </div>
+                          {bookDetail.volumeInfo.pageCount && (
+                            <div className="flex justify-between col-span-2">
+                              <span className="font-medium text-gray-900">Reading Time:</span>
+                              <span className="text-gray-600 text-right">
+                                {getReadingTime(bookDetail.volumeInfo.pageCount)}
+                              </span>
+                            </div>
+                          )}
+                          {bookDetail.saleInfo?.listPrice && (
+                            <div className="flex justify-between col-span-2">
+                              <span className="font-medium text-gray-900">Price:</span>
+                              <span className="text-gray-600 text-right">
+                                {bookDetail.saleInfo.listPrice.amount} {bookDetail.saleInfo.listPrice.currencyCode}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="p-8 text-center text-gray-600">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">📚</span>
+            </div>
+            <p className="text-lg font-medium text-gray-900 mb-2">Book not found</p>
+            <p className="text-sm">Unable to load book details. Please try again.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/components/CategoryTabs.tsx">
+'use client'
+
+interface CategoryTabsProps {
+  activeTab: string
+  onTabChange: (tab: string) => void
+}
+
+export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
+  const tabs = [
+    { id: 'books', name: 'Books' },
+    { id: 'games', name: 'Games' },
+    { id: 'movies', name: 'Films & TV' },
+    { id: 'music', name: 'Music' },
+  ]
+
+  return (
+    <div className="flex w-full border-b border-gray-200 mb-0">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex-1 pb-3 pt-2 text-sm font-medium transition-colors relative text-center whitespace-nowrap ${
+            activeTab === tab.id
+              ? 'text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          {tab.name}
+          {/* Soulignement pour l'onglet actif */}
+          {activeTab === tab.id && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+</file>
+
+<file path="src/data/sampleContent.ts">
+import type { ContentItem } from '@/types'
+
+export const sampleContent = {
+  games: [
+    {
+      id: '22511',
+      title: 'Elden Ring',
+      name: 'Elden Ring',
+      author: 'FromSoftware',
+      year: 2022,
+      rating: 4.8,
+      genre: 'Action RPG',
+      image: 'https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg',
+      background_image: 'https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg',
+      released: '2022-02-25',
+      developers: [{ name: 'FromSoftware' }],
+      genres: [{ name: 'RPG' }, { name: 'Action' }],
+      category: 'games' as const
+    },
+    {
+      id: '41494',
+      title: 'Cyberpunk 2077',
+      name: 'Cyberpunk 2077',
+      author: 'CD Projekt RED',
+      year: 2020,
+      rating: 4.1,
+      genre: 'RPG',
+      image: 'https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg',
+      background_image: 'https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg',
+      released: '2020-12-10',
+      developers: [{ name: 'CD PROJEKT RED' }],
+      genres: [{ name: 'RPG' }, { name: 'Adventure' }],
+      category: 'games' as const
+    },
+    {
+      id: '3328',
+      title: 'The Witcher 3: Wild Hunt',
+      name: 'The Witcher 3: Wild Hunt',
+      author: 'CD Projekt RED', 
+      year: 2015,
+      rating: 4.9,
+      genre: 'RPG',
+      image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg',
+      background_image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg',
+      released: '2015-05-18',
+      developers: [{ name: 'CD PROJEKT RED' }],
+      genres: [{ name: 'RPG' }, { name: 'Adventure' }],
+      category: 'games' as const
+    },
+    {
+      id: '58175',
+      title: 'God of War',
+      name: 'God of War',
+      author: 'Santa Monica Studio',
+      year: 2018,
+      rating: 4.7,
+      genre: 'Action Adventure',
+      image: 'https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg',
+      background_image: 'https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg',
+      released: '2018-04-20',
+      developers: [{ name: 'Santa Monica Studio' }],
+      genres: [{ name: 'Action' }, { name: 'Adventure' }],
+      category: 'games' as const
+    },
+    {
+      id: '622492',
+      title: 'Spider-Man 2',
+      name: 'Spider-Man 2',
+      author: 'Insomniac Games',
+      year: 2023,
+      rating: 4.6,
+      genre: 'Action Adventure',
+      image: 'https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg',
+      background_image: 'https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg',
+      released: '2023-10-20',
+      developers: [{ name: 'Insomniac Games' }],
+      genres: [{ name: 'Action' }, { name: 'Adventure' }],
+      category: 'games' as const
+    },
+    {
+      id: '422',
+      title: 'Baldurs Gate 3',
+      name: 'Baldurs Gate 3',
+      author: 'Larian Studios',
+      year: 2023,
+      rating: 4.9,
+      genre: 'RPG',
+      image: 'https://media.rawg.io/media/games/699/69993db1cfcaf895c8b22603ee1aae62.jpg',
+      background_image: 'https://media.rawg.io/media/games/699/69993db1cfcaf895c8b22603ee1aae62.jpg',
+      released: '2023-08-03',
+      developers: [{ name: 'Larian Studios' }],
+      genres: [{ name: 'RPG' }, { name: 'Strategy' }],
+      category: 'games' as const
+    },
+    {
+      id: '28',
+      title: 'Red Dead Redemption 2',
+      name: 'Red Dead Redemption 2',
+      author: 'Rockstar Games',
+      year: 2018,
+      rating: 4.8,
+      genre: 'Action Adventure',
+      image: 'https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg',
+      background_image: 'https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg',
+      released: '2018-10-26',
+      developers: [{ name: 'Rockstar Studios' }],
+      genres: [{ name: 'Action' }, { name: 'Adventure' }],
+      category: 'games' as const
+    },
+    {
+      id: '326243',
+      title: 'Zelda: Tears of the Kingdom',
+      name: 'The Legend of Zelda: Tears of the Kingdom',
+      author: 'Nintendo',
+      year: 2023,
+      rating: 4.9,
+      genre: 'Adventure',
+      image: 'https://media.rawg.io/media/games/8d9/8d92b2b6b28c5497f7a52049e6d0e95d.jpg',
+      background_image: 'https://media.rawg.io/media/games/8d9/8d92b2b6b28c5497f7a52049e6d0e95d.jpg',
+      released: '2023-05-12',
+      developers: [{ name: 'Nintendo EPD' }],
+      genres: [{ name: 'Adventure' }, { name: 'Puzzle' }],
+      category: 'games' as const
+    }
+  ],
+  
+  movies: [
+    {
+      id: 'dune-2021',
+      title: 'Dune',
+      director: 'Denis Villeneuve',
+      year: 2021,
+      rating: 4.2,
+      genre: 'Sci-Fi',
+      image: 'https://image.tmdb.org/t/p/w500/d5NuKzxEfgLAE6twC18pSnWnOzw.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'inception',
+      title: 'Inception',
+      director: 'Christopher Nolan',
+      year: 2010,
+      rating: 4.8,
+      genre: 'Sci-Fi',
+      image: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'interstellar',
+      title: 'Interstellar',
+      director: 'Christopher Nolan',
+      year: 2014,
+      rating: 4.7,
+      genre: 'Sci-Fi Drama',
+      image: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'the-batman',
+      title: 'The Batman',
+      director: 'Matt Reeves',
+      year: 2022,
+      rating: 4.3,
+      genre: 'Action',
+      image: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'top-gun-maverick',
+      title: 'Top Gun: Maverick',
+      director: 'Joseph Kosinski',
+      year: 2022,
+      rating: 4.5,
+      genre: 'Action',
+      image: 'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'everything-everywhere',
+      title: 'Everything Everywhere All at Once',
+      director: 'Daniels',
+      year: 2022,
+      rating: 4.6,
+      genre: 'Sci-Fi Comedy',
+      image: 'https://image.tmdb.org/t/p/w500/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'avatar-2',
+      title: 'Avatar: The Way of Water',
+      director: 'James Cameron',
+      year: 2022,
+      rating: 4.4,
+      genre: 'Sci-Fi',
+      image: 'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'oppenheimer',
+      title: 'Oppenheimer',
+      director: 'Christopher Nolan',
+      year: 2023,
+      rating: 4.7,
+      genre: 'Drama',
+      image: 'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
+      category: 'movies' as const
+    }
+  ],
+
+  music: [
+    {
+      id: 'random-access-memories',
+      title: 'Random Access Memories',
+      artist: 'Daft Punk',
+      year: 2013,
+      rating: 4.5,
+      genre: 'Electronic',
+      image: 'https://images.genius.com/2b3eafa25e5fb5bb0ab8f73ab9d09634.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'after-hours',
+      title: 'After Hours',
+      artist: 'The Weeknd',
+      year: 2020,
+      rating: 4.3,
+      genre: 'R&B',
+      image: 'https://images.genius.com/a9922ad23c21e6a2b6f97e65c5c2ea2b.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'abbey-road',
+      title: 'Abbey Road',
+      artist: 'The Beatles',
+      year: 1969,
+      rating: 4.9,
+      genre: 'Rock',
+      image: 'https://images.genius.com/aeeef7f8b02c67a7f27a8f5e7e2fc439.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'good-kid-maad-city',
+      title: 'good kid, m.A.A.d city',
+      artist: 'Kendrick Lamar',
+      year: 2012,
+      rating: 4.8,
+      genre: 'Hip Hop',
+      image: 'https://images.genius.com/abd8db8081e5daed5d833bdece4a6e0e.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'blond',
+      title: 'Blond',
+      artist: 'Frank Ocean',
+      year: 2016,
+      rating: 4.4,
+      genre: 'R&B',
+      image: 'https://images.genius.com/76e4c6b6cc6c81ac6fe45eae25ddc1a6.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'folklore',
+      title: 'Folklore',
+      artist: 'Taylor Swift',
+      year: 2020,
+      rating: 4.2,
+      genre: 'Indie Folk',
+      image: 'https://images.genius.com/fb9e8d5997d6df7794ae60fc1df2b3a5.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'astroworld',
+      title: 'Astroworld',
+      artist: 'Travis Scott',
+      year: 2018,
+      rating: 4.3,
+      genre: 'Hip Hop',
+      image: 'https://images.genius.com/d842b9a63b5d30b5ce7bb85f6be86e19.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'sour',
+      title: 'SOUR',
+      artist: 'Olivia Rodrigo',
+      year: 2021,
+      rating: 4.1,
+      genre: 'Pop',
+      image: 'https://images.genius.com/53b8d0c0df2e45c6ce8b23fa5e8e8fce.1000x1000x1.jpg',
+      category: 'music' as const
+    }
+  ],
+
+  books: [
+    {
+      id: 'the-silent-patient',
+      title: 'The Silent Patient',
+      author: 'Alex Michaelides',
+      year: 2019,
+      rating: 4.2,
+      genre: 'Thriller',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582398159i/40097951.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'dune-book',
+      title: 'Dune',
+      author: 'Frank Herbert',
+      year: 1965,
+      rating: 4.6,
+      genre: 'Sci-Fi',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1555447414i/44767458.jpg',
+      category: 'books' as const
+    },
+    {
+      id: '1984',
+      title: '1984',
+      author: 'George Orwell',
+      year: 1949,
+      rating: 4.8,
+      genre: 'Dystopian',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1532714506i/40961427.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'it-starts-with-us',
+      title: 'It Starts with Us',
+      author: 'Colleen Hoover',
+      year: 2022,
+      rating: 4.1,
+      genre: 'Romance',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1628449804i/58784475.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'the-love-hypothesis',
+      title: 'The Love Hypothesis',
+      author: 'Ali Hazelwood',
+      year: 2021,
+      rating: 4.0,
+      genre: 'Romance',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1611937942i/56732449.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'project-hail-mary',
+      title: 'Project Hail Mary',
+      author: 'Andy Weir',
+      year: 2021,
+      rating: 4.7,
+      genre: 'Sci-Fi',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1597695864i/54493401.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'where-crawdads-sing',
+      title: 'Where the Crawdads Sing',
+      author: 'Delia Owens',
+      year: 2018,
+      rating: 4.5,
+      genre: 'Fiction',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582135294i/36809135.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'atomic-habits',
+      title: 'Atomic Habits',
+      author: 'James Clear',
+      year: 2018,
+      rating: 4.6,
+      genre: 'Self-Help',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1655988385i/40121378.jpg',
+      category: 'books' as const
+    }
+  ]
+}
+</file>
+
 <file path="src/components/MovieDetailModal.tsx">
 'use client'
 import { useState, useEffect, useRef } from 'react'
@@ -5334,9 +5793,9 @@ export default function MovieDetailModal({
                     <button 
                       onClick={() => {
                         if (onDeleteItem) {
-                          const idToDelete = movieDetail.imdbID.startsWith('movie-') 
-                            ? movieDetail.imdbID 
-                            : `movie-${movieDetail.imdbID}`
+                          const idToDelete = movieId.startsWith('movie-') 
+                            ? movieId 
+                            : `movie-${movieId}`
                           onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)
@@ -5701,87 +6160,6 @@ export default function MovieDetailModal({
           </div>
         )}
       </div>
-    </div>
-  )
-}
-</file>
-
-<file path="src/lib/supabase.ts">
-// src/lib/supabase.ts
-import { createClient } from '@supabase/supabase-js'
-
-// Variables d'environnement chargées de manière sécurisée
-
-// Utilisation des variables d'environnement pour la sécurité
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-// Vérification que les variables d'environnement sont bien définies
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
-}
-
-// Créer le client Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false
-  }
-})
-
-// Test de connexion
-export const testSupabaseConnection = async () => {
-  try {
-    const { data, error } = await supabase.from('library_items').select('*').limit(1)
-    if (error && error.code !== 'PGRST116') {
-      console.error('❌ Supabase connection error:', error)
-      return false
-    }
-    console.log('✅ Supabase connected successfully!')
-    return true
-  } catch (error) {
-    console.error('❌ Supabase connection failed:', error)
-    return false
-  }
-}
-</file>
-
-<file path="src/components/CategoryTabs.tsx">
-'use client'
-
-interface CategoryTabsProps {
-  activeTab: string
-  onTabChange: (tab: string) => void
-}
-
-export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
-  const tabs = [
-    { id: 'books', name: 'Books' },
-    { id: 'games', name: 'Games' },
-    { id: 'movies', name: 'Films & TV' },
-    { id: 'music', name: 'Music' },
-  ]
-
-  return (
-    <div className="flex w-full border-b border-gray-200 mb-0">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onTabChange(tab.id)}
-          className={`flex-1 pb-3 pt-2 text-sm font-medium transition-colors relative text-center whitespace-nowrap ${
-            activeTab === tab.id
-              ? 'text-gray-900'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          {tab.name}
-          {/* Soulignement pour l'onglet actif */}
-          {activeTab === tab.id && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
-          )}
-        </button>
-      ))}
     </div>
   )
 }
@@ -6174,7 +6552,7 @@ export default function MusicDetailModal({
                         if (onDeleteItem) {
                           const idToDelete = albumId.startsWith('music-') 
                             ? albumId 
-                            : `music-${albumDetail.collectionId}`
+                            : `music-${albumId}`
                           onDeleteItem(idToDelete)
                         }
                         setSelectedStatus(null)
@@ -6556,384 +6934,6 @@ export default function MusicDetailModal({
       </div>
     </div>
   )
-}
-</file>
-
-<file path="src/data/sampleContent.ts">
-import type { ContentItem } from '@/types'
-
-export const sampleContent = {
-  games: [
-    {
-      id: '22511',
-      title: 'Elden Ring',
-      name: 'Elden Ring',
-      author: 'FromSoftware',
-      year: 2022,
-      rating: 4.8,
-      genre: 'Action RPG',
-      image: 'https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg',
-      background_image: 'https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg',
-      released: '2022-02-25',
-      developers: [{ name: 'FromSoftware' }],
-      genres: [{ name: 'RPG' }, { name: 'Action' }],
-      category: 'games' as const
-    },
-    {
-      id: '41494',
-      title: 'Cyberpunk 2077',
-      name: 'Cyberpunk 2077',
-      author: 'CD Projekt RED',
-      year: 2020,
-      rating: 4.1,
-      genre: 'RPG',
-      image: 'https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg',
-      background_image: 'https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg',
-      released: '2020-12-10',
-      developers: [{ name: 'CD PROJEKT RED' }],
-      genres: [{ name: 'RPG' }, { name: 'Adventure' }],
-      category: 'games' as const
-    },
-    {
-      id: '3328',
-      title: 'The Witcher 3: Wild Hunt',
-      name: 'The Witcher 3: Wild Hunt',
-      author: 'CD Projekt RED', 
-      year: 2015,
-      rating: 4.9,
-      genre: 'RPG',
-      image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg',
-      background_image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg',
-      released: '2015-05-18',
-      developers: [{ name: 'CD PROJEKT RED' }],
-      genres: [{ name: 'RPG' }, { name: 'Adventure' }],
-      category: 'games' as const
-    },
-    {
-      id: '58175',
-      title: 'God of War',
-      name: 'God of War',
-      author: 'Santa Monica Studio',
-      year: 2018,
-      rating: 4.7,
-      genre: 'Action Adventure',
-      image: 'https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg',
-      background_image: 'https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg',
-      released: '2018-04-20',
-      developers: [{ name: 'Santa Monica Studio' }],
-      genres: [{ name: 'Action' }, { name: 'Adventure' }],
-      category: 'games' as const
-    },
-    {
-      id: '622492',
-      title: 'Spider-Man 2',
-      name: 'Spider-Man 2',
-      author: 'Insomniac Games',
-      year: 2023,
-      rating: 4.6,
-      genre: 'Action Adventure',
-      image: 'https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg',
-      background_image: 'https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg',
-      released: '2023-10-20',
-      developers: [{ name: 'Insomniac Games' }],
-      genres: [{ name: 'Action' }, { name: 'Adventure' }],
-      category: 'games' as const
-    },
-    {
-      id: '422',
-      title: 'Baldurs Gate 3',
-      name: 'Baldurs Gate 3',
-      author: 'Larian Studios',
-      year: 2023,
-      rating: 4.9,
-      genre: 'RPG',
-      image: 'https://media.rawg.io/media/games/699/69993db1cfcaf895c8b22603ee1aae62.jpg',
-      background_image: 'https://media.rawg.io/media/games/699/69993db1cfcaf895c8b22603ee1aae62.jpg',
-      released: '2023-08-03',
-      developers: [{ name: 'Larian Studios' }],
-      genres: [{ name: 'RPG' }, { name: 'Strategy' }],
-      category: 'games' as const
-    },
-    {
-      id: '28',
-      title: 'Red Dead Redemption 2',
-      name: 'Red Dead Redemption 2',
-      author: 'Rockstar Games',
-      year: 2018,
-      rating: 4.8,
-      genre: 'Action Adventure',
-      image: 'https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg',
-      background_image: 'https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg',
-      released: '2018-10-26',
-      developers: [{ name: 'Rockstar Studios' }],
-      genres: [{ name: 'Action' }, { name: 'Adventure' }],
-      category: 'games' as const
-    },
-    {
-      id: '326243',
-      title: 'Zelda: Tears of the Kingdom',
-      name: 'The Legend of Zelda: Tears of the Kingdom',
-      author: 'Nintendo',
-      year: 2023,
-      rating: 4.9,
-      genre: 'Adventure',
-      image: 'https://media.rawg.io/media/games/8d9/8d92b2b6b28c5497f7a52049e6d0e95d.jpg',
-      background_image: 'https://media.rawg.io/media/games/8d9/8d92b2b6b28c5497f7a52049e6d0e95d.jpg',
-      released: '2023-05-12',
-      developers: [{ name: 'Nintendo EPD' }],
-      genres: [{ name: 'Adventure' }, { name: 'Puzzle' }],
-      category: 'games' as const
-    }
-  ],
-  
-  movies: [
-    {
-      id: 'dune-2021',
-      title: 'Dune',
-      director: 'Denis Villeneuve',
-      year: 2021,
-      rating: 4.2,
-      genre: 'Sci-Fi',
-      image: 'https://image.tmdb.org/t/p/w500/d5NuKzxEfgLAE6twC18pSnWnOzw.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'inception',
-      title: 'Inception',
-      director: 'Christopher Nolan',
-      year: 2010,
-      rating: 4.8,
-      genre: 'Sci-Fi',
-      image: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'interstellar',
-      title: 'Interstellar',
-      director: 'Christopher Nolan',
-      year: 2014,
-      rating: 4.7,
-      genre: 'Sci-Fi Drama',
-      image: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'the-batman',
-      title: 'The Batman',
-      director: 'Matt Reeves',
-      year: 2022,
-      rating: 4.3,
-      genre: 'Action',
-      image: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'top-gun-maverick',
-      title: 'Top Gun: Maverick',
-      director: 'Joseph Kosinski',
-      year: 2022,
-      rating: 4.5,
-      genre: 'Action',
-      image: 'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'everything-everywhere',
-      title: 'Everything Everywhere All at Once',
-      director: 'Daniels',
-      year: 2022,
-      rating: 4.6,
-      genre: 'Sci-Fi Comedy',
-      image: 'https://image.tmdb.org/t/p/w500/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'avatar-2',
-      title: 'Avatar: The Way of Water',
-      director: 'James Cameron',
-      year: 2022,
-      rating: 4.4,
-      genre: 'Sci-Fi',
-      image: 'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'oppenheimer',
-      title: 'Oppenheimer',
-      director: 'Christopher Nolan',
-      year: 2023,
-      rating: 4.7,
-      genre: 'Drama',
-      image: 'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
-      category: 'movies' as const
-    }
-  ],
-
-  music: [
-    {
-      id: 'random-access-memories',
-      title: 'Random Access Memories',
-      artist: 'Daft Punk',
-      year: 2013,
-      rating: 4.5,
-      genre: 'Electronic',
-      image: 'https://images.genius.com/2b3eafa25e5fb5bb0ab8f73ab9d09634.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'after-hours',
-      title: 'After Hours',
-      artist: 'The Weeknd',
-      year: 2020,
-      rating: 4.3,
-      genre: 'R&B',
-      image: 'https://images.genius.com/a9922ad23c21e6a2b6f97e65c5c2ea2b.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'abbey-road',
-      title: 'Abbey Road',
-      artist: 'The Beatles',
-      year: 1969,
-      rating: 4.9,
-      genre: 'Rock',
-      image: 'https://images.genius.com/aeeef7f8b02c67a7f27a8f5e7e2fc439.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'good-kid-maad-city',
-      title: 'good kid, m.A.A.d city',
-      artist: 'Kendrick Lamar',
-      year: 2012,
-      rating: 4.8,
-      genre: 'Hip Hop',
-      image: 'https://images.genius.com/abd8db8081e5daed5d833bdece4a6e0e.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'blond',
-      title: 'Blond',
-      artist: 'Frank Ocean',
-      year: 2016,
-      rating: 4.4,
-      genre: 'R&B',
-      image: 'https://images.genius.com/76e4c6b6cc6c81ac6fe45eae25ddc1a6.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'folklore',
-      title: 'Folklore',
-      artist: 'Taylor Swift',
-      year: 2020,
-      rating: 4.2,
-      genre: 'Indie Folk',
-      image: 'https://images.genius.com/fb9e8d5997d6df7794ae60fc1df2b3a5.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'astroworld',
-      title: 'Astroworld',
-      artist: 'Travis Scott',
-      year: 2018,
-      rating: 4.3,
-      genre: 'Hip Hop',
-      image: 'https://images.genius.com/d842b9a63b5d30b5ce7bb85f6be86e19.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'sour',
-      title: 'SOUR',
-      artist: 'Olivia Rodrigo',
-      year: 2021,
-      rating: 4.1,
-      genre: 'Pop',
-      image: 'https://images.genius.com/53b8d0c0df2e45c6ce8b23fa5e8e8fce.1000x1000x1.jpg',
-      category: 'music' as const
-    }
-  ],
-
-  books: [
-    {
-      id: 'the-silent-patient',
-      title: 'The Silent Patient',
-      author: 'Alex Michaelides',
-      year: 2019,
-      rating: 4.2,
-      genre: 'Thriller',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582398159i/40097951.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'dune-book',
-      title: 'Dune',
-      author: 'Frank Herbert',
-      year: 1965,
-      rating: 4.6,
-      genre: 'Sci-Fi',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1555447414i/44767458.jpg',
-      category: 'books' as const
-    },
-    {
-      id: '1984',
-      title: '1984',
-      author: 'George Orwell',
-      year: 1949,
-      rating: 4.8,
-      genre: 'Dystopian',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1532714506i/40961427.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'it-starts-with-us',
-      title: 'It Starts with Us',
-      author: 'Colleen Hoover',
-      year: 2022,
-      rating: 4.1,
-      genre: 'Romance',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1628449804i/58784475.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'the-love-hypothesis',
-      title: 'The Love Hypothesis',
-      author: 'Ali Hazelwood',
-      year: 2021,
-      rating: 4.0,
-      genre: 'Romance',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1611937942i/56732449.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'project-hail-mary',
-      title: 'Project Hail Mary',
-      author: 'Andy Weir',
-      year: 2021,
-      rating: 4.7,
-      genre: 'Sci-Fi',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1597695864i/54493401.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'where-crawdads-sing',
-      title: 'Where the Crawdads Sing',
-      author: 'Delia Owens',
-      year: 2018,
-      rating: 4.5,
-      genre: 'Fiction',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582135294i/36809135.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'atomic-habits',
-      title: 'Atomic Habits',
-      author: 'James Clear',
-      year: 2018,
-      rating: 4.6,
-      genre: 'Self-Help',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1655988385i/40121378.jpg',
-      category: 'books' as const
-    }
-  ]
 }
 </file>
 

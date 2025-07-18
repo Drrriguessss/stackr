@@ -73,6 +73,22 @@ export default function MovieDetailModal({
     'completed': 8923
   }
 
+  // 🔧 NOUVELLE FONCTION: Créer un ID cohérent pour l'ajout et la suppression
+  const getConsistentId = (movieId: string, imdbID?: string): string => {
+    // Si movieId commence déjà par 'movie-', l'utiliser tel quel
+    if (movieId.startsWith('movie-')) {
+      return movieId
+    }
+    
+    // Si on a un imdbID du détail du film, l'utiliser
+    if (imdbID) {
+      return `movie-${imdbID}`
+    }
+    
+    // Sinon, ajouter le préfixe au movieId
+    return `movie-${movieId}`
+  }
+
   useEffect(() => {
     if (isOpen) {
       setActiveTab('info')
@@ -98,37 +114,37 @@ export default function MovieDetailModal({
     }
   }, [isOpen, movieId])
 
-  // 🔧 CORRECTION PRINCIPALE: Utiliser idsMatch pour détecter le statut
+  // 🔧 CORRECTION: Utiliser idsMatch pour détecter le statut avec debug amélioré
   useEffect(() => {
-    console.log('🔍 DEBUG MovieModal:')
-    console.log('  movieId:', movieId)
+    console.log('🎬 DEBUG MovieModal - Checking library status:')
+    console.log('  movieId reçu:', movieId)
     console.log('  library IDs:', library.map(item => item.id))
-    console.log('  looking for match with movieId:', movieId)
     
-    // Essayer plusieurs formats d'ID pour trouver l'item
+    // Créer les IDs possibles à chercher
     const possibleIds = [
       movieId,
       `movie-${movieId}`,
-      movieId.startsWith('movie-') ? movieId.replace('movie-', '') : `movie-${movieId}`
-    ]
+      movieId.startsWith('movie-') ? movieId.replace('movie-', '') : null
+    ].filter(Boolean)
     
-    console.log('  possibleIds:', possibleIds)
+    console.log('  IDs possibles à chercher:', possibleIds)
     
+    // Chercher dans la bibliothèque
     let libraryItem = null
     for (const id of possibleIds) {
-      libraryItem = library.find(item => idsMatch(item.id, id))
+      libraryItem = library.find(item => idsMatch(item.id, id!))
       if (libraryItem) {
-        console.log('  ✅ Found match with ID:', id, 'library item:', libraryItem)
+        console.log('  ✅ Trouvé dans la bibliothèque avec ID:', id, '→', libraryItem)
         break
       }
     }
     
     if (libraryItem) {
       setSelectedStatus(libraryItem.status)
-      console.log('  status set to:', libraryItem.status)
+      console.log('  Status défini:', libraryItem.status)
     } else {
       setSelectedStatus(null)
-      console.log('  ❌ no library item found - status set to null')
+      console.log('  ❌ Pas trouvé dans la bibliothèque')
     }
   }, [movieId, library])
 
@@ -180,21 +196,20 @@ export default function MovieDetailModal({
     }
   }
 
-  // 🔧 CORRECTION: Créer un ID cohérent pour la bibliothèque
+  // 🔧 CORRECTION: Utiliser l'ID cohérent pour l'ajout
   const handleStatusSelect = (status: MediaStatus) => {
     if (!movieDetail) return
     
-    // Créer un ID normalisé
-    const normalizedId = movieDetail.imdbID.startsWith('movie-') 
-      ? movieDetail.imdbID 
-      : `movie-${movieDetail.imdbID}`
+    // Créer un ID cohérent
+    const consistentId = getConsistentId(movieId, movieDetail.imdbID)
     
     console.log('🔧 Adding movie to library:')
     console.log('  movieDetail.imdbID:', movieDetail.imdbID)
-    console.log('  normalizedId:', normalizedId)
+    console.log('  movieId original:', movieId)
+    console.log('  consistentId final:', consistentId)
     
     const movieItem = {
-      id: normalizedId,
+      id: consistentId,
       title: movieDetail.Title,
       image: movieDetail.Poster !== 'N/A' ? movieDetail.Poster : undefined,
       category: 'movies' as const,
@@ -206,6 +221,17 @@ export default function MovieDetailModal({
     console.log('  final movieItem:', movieItem)
     onAddToLibrary(movieItem, status)
     setSelectedStatus(status)
+  }
+
+  // 🔧 CORRECTION: Utiliser l'ID cohérent pour la suppression
+  const handleRemoveFromLibrary = () => {
+    if (!onDeleteItem || !movieDetail) return
+    
+    const idToDelete = getConsistentId(movieId, movieDetail.imdbID)
+    console.log('🗑️ Removing movie from library with ID:', idToDelete)
+    
+    onDeleteItem(idToDelete)
+    setSelectedStatus(null)
   }
 
   const getStatusLabel = (status: MediaStatus) => {
@@ -335,7 +361,7 @@ export default function MovieDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* Action buttons avec possibilité de décocher */}
+              {/* 🔧 Action buttons avec logique de suppression corrigée */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
@@ -344,15 +370,7 @@ export default function MovieDetailModal({
                       onClick={() => {
                         // Si déjà sélectionné, on retire de la bibliothèque
                         if (selectedStatus === status) {
-                          if (onDeleteItem) {
-                            // 🔧 CORRECTION: Utiliser l'ID cohérent
-                           const idToDelete = movieId.startsWith('movie-') 
-  ? movieId 
-  : `movie-${movieId}`
-                            console.log('🗑️ Removing from library with ID:', idToDelete)
-                            onDeleteItem(idToDelete)
-                          }
-                          setSelectedStatus(null)
+                          handleRemoveFromLibrary()
                         } else {
                           // Ajouter/Modifier le statut
                           handleStatusSelect(status)
@@ -384,15 +402,7 @@ export default function MovieDetailModal({
                   <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
                     <span>✅ Added to your library as "{getStatusLabel(selectedStatus)}"</span>
                     <button 
-                      onClick={() => {
-                        if (onDeleteItem) {
-                          const idToDelete = movieId.startsWith('movie-') 
-                            ? movieId 
-                            : `movie-${movieId}`
-                          onDeleteItem(idToDelete)
-                        }
-                        setSelectedStatus(null)
-                      }}
+                      onClick={handleRemoveFromLibrary}
                       className="text-red-600 hover:text-red-800 text-sm underline"
                     >
                       Remove from library
