@@ -1,9 +1,338 @@
 'use client'
-import { useState } from 'react'
-import { Filter, Grid, List, Search, Star, Calendar, Clock, CheckCircle, Heart, Trash2, Edit3, MoreVertical, Plus } from 'lucide-react'
-import ContentCard from './ContentCard'
-import { normalizeId, idsMatch } from '@/utils/idNormalizer'
-import type { LibraryItem, MediaStatus } from '@/types'
+import { useState, useEffect } from 'react'
+import { Filter, Grid, List, Search, Star, Calendar, Clock, CheckCircle, Heart, Trash2, Edit3, MoreVertical, Plus, X, Sparkles, Gamepad2, Film, Music, BookOpen, Library } from 'lucide-react'
+
+// Types
+type MediaCategory = 'games' | 'movies' | 'music' | 'books'
+type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
+
+interface LibraryItem {
+  id: string
+  title: string
+  year: number
+  rating?: number
+  genre?: string
+  category: MediaCategory
+  image?: string
+  author?: string
+  artist?: string
+  director?: string
+  status: MediaStatus
+  addedAt: string
+  dateStarted?: string
+  dateCompleted?: string
+  userRating?: number
+  progress?: number
+  notes?: string
+}
+
+// Utility functions
+const normalizeId = (id: string): string => {
+  if (!id) return ''
+  return id.toString().replace(/^(game-|movie-|music-|book-)/, '')
+}
+
+const idsMatch = (id1: string, id2: string): boolean => {
+  return normalizeId(id1) === normalizeId(id2)
+}
+
+// WelcomePopup Component
+const WelcomePopup = ({ isOpen, onClose, onOpenSearch, onScanLibrary }: {
+  isOpen: boolean
+  onClose: () => void
+  onOpenSearch: () => void
+  onScanLibrary?: () => void
+}) => {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white/80 hover:text-white z-10 p-2 hover:bg-white/10 rounded-full transition-colors"
+        >
+          <X size={20} />
+        </button>
+
+        <div className="p-8 text-white">
+          <div className="text-center mb-6">
+            <div className="flex justify-center items-center space-x-2 mb-4">
+              <Sparkles className="text-yellow-300" size={24} />
+              <h1 className="text-2xl font-bold">Welcome to Stackr!</h1>
+              <Sparkles className="text-yellow-300" size={24} />
+            </div>
+            
+            <div className="flex justify-center space-x-4 mb-4 opacity-80">
+              <Gamepad2 size={20} className="text-green-300" />
+              <Film size={20} className="text-blue-300" />
+              <Music size={20} className="text-purple-300" />
+              <BookOpen size={20} className="text-orange-300" />
+            </div>
+          </div>
+
+          <div className="space-y-4 text-center text-white/90">
+            <p className="text-lg leading-relaxed">
+              Track all your entertainment in one place! Games, movies, music, and books.
+            </p>
+            
+            <p className="text-sm leading-relaxed opacity-90">
+              Content you rate, review, or add to your library will automatically be saved here.
+            </p>
+            
+            <p className="text-sm leading-relaxed opacity-90">
+              Let's get you started by adding items to your collection.
+            </p>
+          </div>
+
+          <div className="space-y-3 mt-8">
+            <button
+              onClick={() => {
+                onOpenSearch()
+                onClose()
+              }}
+              className="w-full bg-white hover:bg-gray-100 text-gray-900 py-3 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
+            >
+              <Search size={18} />
+              <span>Search & Add Content</span>
+            </button>
+            
+            {onScanLibrary && (
+              <button
+                onClick={() => {
+                  onScanLibrary()
+                  onClose()
+                }}
+                className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 border border-white/20"
+              >
+                <Library size={18} />
+                <span>Import from Other Apps</span>
+              </button>
+            )}
+            
+            <button
+              onClick={onClose}
+              className="w-full text-white/80 hover:text-white py-2 px-6 rounded-xl font-medium transition-colors text-sm"
+            >
+              I'll explore on my own
+            </button>
+          </div>
+
+          <div className="mt-6 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+            <div className="flex items-start space-x-3">
+              <Sparkles size={16} className="text-yellow-300 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-white/90 leading-relaxed">
+                <span className="font-semibold">Pro tip:</span> Use the search to find and add your favorite games, movies, albums, and books. You can track what you want to experience, what you're currently enjoying, and what you've completed!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-2 bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400"></div>
+      </div>
+    </div>
+  )
+}
+
+// ContentCard Component
+const ContentCard = ({ 
+  item, 
+  category, 
+  onAddToLibrary, 
+  library, 
+  onOpenGameDetail, 
+  onOpenMovieDetail, 
+  onOpenBookDetail, 
+  onOpenMusicDetail 
+}: {
+  item: LibraryItem
+  category: MediaCategory
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  library: LibraryItem[]
+  onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void
+}) => {
+  const [showActions, setShowActions] = useState(false)
+  
+  const safeLibrary = Array.isArray(library) ? library : []
+  const libraryItem = safeLibrary.find((libItem: LibraryItem) => idsMatch(libItem.id, item.id))
+  const isInLibrary = !!libraryItem
+  const currentStatus = libraryItem?.status
+
+  const handleAdd = (status: MediaStatus) => {
+    onAddToLibrary(item, status)
+    setShowActions(false)
+  }
+
+  const handleCardClick = () => {
+    if (category === 'games' && onOpenGameDetail) {
+      onOpenGameDetail(item.id)
+    } else if (category === 'movies' && onOpenMovieDetail) {
+      onOpenMovieDetail(item.id)
+    } else if (category === 'books' && onOpenBookDetail) {
+      onOpenBookDetail(item.id)
+    } else if (category === 'music' && onOpenMusicDetail) {
+      onOpenMusicDetail(item.id)
+    }
+  }
+
+  const getCategoryGradient = (category: MediaCategory) => {
+    switch (category) {
+      case 'games': return 'from-green-400 to-blue-500'
+      case 'movies': return 'from-purple-400 to-pink-500'
+      case 'music': return 'from-orange-400 to-red-500'
+      case 'books': return 'from-blue-400 to-purple-500'
+      default: return 'from-gray-400 to-gray-600'
+    }
+  }
+
+  const getCategoryEmoji = (category: MediaCategory) => {
+    switch (category) {
+      case 'games': return '🎮'
+      case 'movies': return '🎬'
+      case 'music': return '🎵'
+      case 'books': return '📚'
+      default: return '📄'
+    }
+  }
+
+  const getActionLabel = (status: MediaStatus, category: MediaCategory) => {
+    switch (status) {
+      case 'want-to-play':
+        switch (category) {
+          case 'games': return 'Want to Play'
+          case 'movies': return 'Want to Watch'
+          case 'music': return 'Want to Listen'
+          case 'books': return 'Want to Read'
+          default: return 'Want to Play'
+        }
+      case 'currently-playing':
+        switch (category) {
+          case 'games': return 'Playing'
+          case 'movies': return 'Watching'
+          case 'music': return 'Listening'
+          case 'books': return 'Reading'
+          default: return 'Playing'
+        }
+      case 'completed': return 'Completed'
+      default: return 'Add'
+    }
+  }
+
+  return (
+    <div className="group cursor-pointer">
+      <div 
+        className="relative w-full h-40 bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
+        onClick={handleCardClick}
+      >
+        {item.image ? (
+          <img 
+            src={item.image} 
+            alt={item.title} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+          />
+        ) : (
+          <div className={`w-full h-full bg-gradient-to-br ${getCategoryGradient(category)} flex items-center justify-center`}>
+            <span className="text-white text-2xl">
+              {getCategoryEmoji(category)}
+            </span>
+          </div>
+        )}
+        
+        <div className="absolute top-2 right-2">
+          {isInLibrary ? (
+            <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+              {getActionLabel(currentStatus!, category).split(' ')[0]}
+            </div>
+          ) : (
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowActions(!showActions)
+                }}
+                className="w-7 h-7 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors shadow-md hover:shadow-lg"
+              >
+                <Plus size={14} />
+              </button>
+              {showActions && (
+                <div className="absolute top-8 right-0 bg-white/95 backdrop-blur-sm rounded-lg p-2 z-20 min-w-32 border border-gray-200 shadow-lg">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdd('want-to-play')
+                    }} 
+                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
+                  >
+                    {getActionLabel('want-to-play', category)}
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdd('currently-playing')
+                    }} 
+                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
+                  >
+                    {getActionLabel('currently-playing', category)}
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdd('completed')
+                    }} 
+                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
+                  >
+                    Completed
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3 px-1">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-gray-900 text-sm font-semibold truncate leading-tight flex-1">
+            {item.title}
+          </h3>
+        </div>
+        
+        <div className="flex justify-between items-center text-xs text-gray-500">
+          <span>{item.year}</span>
+          {item.rating && item.rating > 0 && (
+            <span className="flex items-center">
+              <Star size={10} className="text-yellow-500 mr-1 fill-current" />
+              {item.rating.toFixed(1)}
+            </span>
+          )}
+        </div>
+        
+        {isInLibrary && (
+          <div className="mt-2">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              currentStatus === 'want-to-play' ? 'bg-orange-100 text-orange-700' :
+              currentStatus === 'currently-playing' ? 'bg-green-100 text-green-700' :
+              currentStatus === 'completed' ? 'bg-blue-100 text-blue-700' :
+              'bg-gray-100 text-gray-700'
+            }`}>
+              {getActionLabel(currentStatus!, category)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {showActions && (
+        <div 
+          className="fixed inset-0 z-10" 
+          onClick={() => setShowActions(false)}
+        />
+      )}
+    </div>
+  )
+}
 
 interface LibrarySectionProps {
   library: LibraryItem[]
@@ -13,28 +342,49 @@ interface LibrarySectionProps {
   onOpenGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
   onOpenBookDetail?: (bookId: string) => void
-  onOpenMusicDetail?: (musicId: string) => void // Ajout de la prop manquante
+  onOpenMusicDetail?: (musicId: string) => void
   onOpenSearch?: () => void
 }
 
 export default function LibrarySection({
-  library,
+  library = [],
   onAddToLibrary,
   onUpdateItem,
   onDeleteItem,
   onOpenGameDetail,
   onOpenMovieDetail,
   onOpenBookDetail,
-  onOpenMusicDetail, // Ajout de la prop
+  onOpenMusicDetail,
   onOpenSearch
 }: LibrarySectionProps) {
   const [activeFilter, setActiveFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [editingItem, setEditingItem] = useState<string | null>(null)
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false)
+
+  // Ensure library is always an array
+  const safeLibrary = Array.isArray(library) ? library : []
+
+  // Check if user should see welcome popup
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('stackr_welcome_seen')
+    
+    if (!hasSeenWelcome && safeLibrary.length === 0) {
+      setShowWelcomePopup(true)
+    }
+  }, [safeLibrary.length])
+
+  // Function to close welcome popup and mark as seen
+  const handleCloseWelcome = () => {
+    localStorage.setItem('stackr_welcome_seen', 'true')
+    setShowWelcomePopup(false)
+  }
 
   // Filter library by status and search
-  const filteredLibrary = library.filter(item => {
+  const filteredLibrary = safeLibrary.filter(item => {
+    if (!item) return false
+    
     // Status filter
     if (activeFilter !== 'all' && item.status !== activeFilter) return false
     
@@ -42,11 +392,11 @@ export default function LibrarySection({
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       return (
-        item.title.toLowerCase().includes(query) ||
-        item.author?.toLowerCase().includes(query) ||
-        item.artist?.toLowerCase().includes(query) ||
-        item.director?.toLowerCase().includes(query) ||
-        item.genre?.toLowerCase().includes(query)
+        (item.title || '').toLowerCase().includes(query) ||
+        (item.author || '').toLowerCase().includes(query) ||
+        (item.artist || '').toLowerCase().includes(query) ||
+        (item.director || '').toLowerCase().includes(query) ||
+        (item.genre || '').toLowerCase().includes(query)
       )
     }
 
@@ -55,8 +405,8 @@ export default function LibrarySection({
 
   // Get status count
   const getStatusCount = (status: string) => {
-    if (status === 'all') return library.length
-    return library.filter(item => item.status === status).length
+    if (status === 'all') return safeLibrary.length
+    return safeLibrary.filter(item => item && item.status === status).length
   }
 
   // Get status display info
@@ -94,14 +444,14 @@ export default function LibrarySection({
   }
 
   const handleStatusChange = (itemId: string, newStatus: MediaStatus) => {
-    if (!onUpdateItem) return
+    if (!onUpdateItem || !itemId) return
     
     const updates: Partial<LibraryItem> = { status: newStatus }
 
-    if (newStatus === 'completed' && !library.find(i => i.id === itemId)?.dateCompleted) {
+    if (newStatus === 'completed' && !safeLibrary.find(i => i && i.id === itemId)?.dateCompleted) {
       updates.dateCompleted = new Date().toISOString()
     }
-    if (newStatus === 'currently-playing' && !library.find(i => i.id === itemId)?.dateStarted) {
+    if (newStatus === 'currently-playing' && !safeLibrary.find(i => i && i.id === itemId)?.dateStarted) {
       updates.dateStarted = new Date().toISOString()
     }
 
@@ -122,12 +472,15 @@ export default function LibrarySection({
   }
 
   // Quick Edit Modal Component
-  const QuickEditModal = ({ item }: { item: LibraryItem }) => (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="text-gray-900 font-medium">Edit {item.title}</h3>
-        </div>
+  const QuickEditModal = ({ item }: { item: LibraryItem }) => {
+    if (!item) return null
+    
+    return (
+      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
+          <div className="p-4 border-b border-gray-100">
+            <h3 className="text-gray-900 font-medium">Edit {item.title || 'Item'}</h3>
+          </div>
         
         <div className="p-4 space-y-4">
           {/* Status */}
@@ -201,8 +554,9 @@ export default function LibrarySection({
       </div>
     </div>
   )
+}
 
-  if (library.length === 0) {
+  if (safeLibrary.length === 0) {
     return (
       <section className="mt-12 mb-8">
         <div className="flex items-center justify-between mb-6">
@@ -222,6 +576,17 @@ export default function LibrarySection({
             </button>
           )}
         </div>
+
+        {/* Welcome Popup */}
+        <WelcomePopup
+          isOpen={showWelcomePopup}
+          onClose={handleCloseWelcome}
+          onOpenSearch={onOpenSearch || (() => {})}
+          onScanLibrary={() => {
+            console.log('Import feature coming soon!')
+            handleCloseWelcome()
+          }}
+        />
       </section>
     )
   }
@@ -233,7 +598,7 @@ export default function LibrarySection({
         <h2 className="text-2xl font-bold text-gray-900">
           Your Library
           <span className="text-lg font-normal text-gray-500 ml-2">
-            ({library.length} items)
+            ({safeLibrary.length} items)
           </span>
         </h2>
         
@@ -337,7 +702,7 @@ export default function LibrarySection({
                     item={item}
                     category={item.category}
                     onAddToLibrary={onAddToLibrary}
-                    library={library}
+                    library={safeLibrary}
                     onOpenGameDetail={onOpenGameDetail}
                     onOpenMovieDetail={onOpenMovieDetail}
                     onOpenBookDetail={onOpenBookDetail}
@@ -476,15 +841,26 @@ export default function LibrarySection({
           <div className="text-sm text-gray-600">Completed</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-gray-900">{library.length}</div>
+          <div className="text-2xl font-bold text-gray-900">{safeLibrary.length}</div>
           <div className="text-sm text-gray-600">Total Items</div>
         </div>
       </div>
 
       {/* Edit Modal */}
-      {editingItem && (
-        <QuickEditModal item={filteredLibrary.find(i => i.id === editingItem)!} />
+      {editingItem && filteredLibrary.find(i => i && i.id === editingItem) && (
+        <QuickEditModal item={filteredLibrary.find(i => i && i.id === editingItem)!} />
       )}
+
+      {/* Welcome Popup */}
+      <WelcomePopup
+        isOpen={showWelcomePopup}
+        onClose={handleCloseWelcome}
+        onOpenSearch={onOpenSearch || (() => {})}
+        onScanLibrary={() => {
+          console.log('Import feature coming soon!')
+          handleCloseWelcome()
+        }}
+      />
     </section>
   )
 }
