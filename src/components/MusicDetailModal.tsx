@@ -343,8 +343,8 @@ export default function MusicDetailModal({
                           if (onDeleteItem) {
                             // 🔧 CORRECTION: Utiliser l'ID cohérent
                             const idToDelete = albumId.startsWith('music-') 
-                              ? albumId 
-                              : `music-${albumDetail.collectionId}`
+  ? albumId 
+  : `music-${albumId}`
                             console.log('🗑️ Removing from library with ID:', idToDelete)
                             onDeleteItem(idToDelete)
                           }

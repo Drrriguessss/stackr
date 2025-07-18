@@ -382,8 +382,8 @@ export default function BookDetailModal({
                           if (onDeleteItem) {
                             // 🔧 CORRECTION: Utiliser l'ID cohérent
                             const idToDelete = bookId.startsWith('book-') 
-                              ? bookId 
-                              : `book-${bookDetail.id}`
+  ? bookId 
+  : `book-${bookId}`
                             console.log('🗑️ Removing from library with ID:', idToDelete)
                             onDeleteItem(idToDelete)
                           }

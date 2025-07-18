@@ -346,9 +346,9 @@ export default function MovieDetailModal({
                         if (selectedStatus === status) {
                           if (onDeleteItem) {
                             // 🔧 CORRECTION: Utiliser l'ID cohérent
-                            const idToDelete = movieDetail.imdbID.startsWith('movie-') 
-                              ? movieDetail.imdbID 
-                              : `movie-${movieDetail.imdbID}`
+                           const idToDelete = movieId.startsWith('movie-') 
+  ? movieId 
+  : `movie-${movieId}`
                             console.log('🗑️ Removing from library with ID:', idToDelete)
                             onDeleteItem(idToDelete)
                           }
