@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Calendar, Clock, Award, Users, Globe, Check } from 'lucide-react'
 import { omdbService } from '@/services/omdbService'
-import { idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 
 interface MovieDetailModalProps {
@@ -64,7 +63,6 @@ export default function MovieDetailModal({
   const [showReviewBox, setShowReviewBox] = useState(false)
   const [userReview, setUserReview] = useState('')
   const [similarMovies, setSimilarMovies] = useState<any[]>([])
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false) // 🔧 NOUVEAU
 
   const scrollableRef = useRef<HTMLDivElement>(null)
 
@@ -74,22 +72,10 @@ export default function MovieDetailModal({
     'completed': 8923
   }
 
-  // 🔧 Fonction pour créer un ID cohérent
-  const getConsistentId = (movieId: string, imdbID?: string): string => {
-    if (movieId.startsWith('movie-')) {
-      return movieId
-    }
-    if (imdbID) {
-      return `movie-${imdbID}`
-    }
-    return `movie-${movieId}`
-  }
-
   useEffect(() => {
     if (isOpen) {
       setActiveTab('info')
       setSimilarMovies([])
-      setHasUnsavedChanges(false) // 🔧 Reset changes
     }
   }, [isOpen, movieId])
 
@@ -111,47 +97,20 @@ export default function MovieDetailModal({
     }
   }, [isOpen, movieId])
 
-  // 🔧 Détecter le statut initial
+  // 🔧 SIMPLIFIÉ: Même logique que GameDetailModal
   useEffect(() => {
-    console.log('🎬 Checking initial library status for movieId:', movieId)
+    console.log('🎬 Simple status check for movieId:', movieId)
+    console.log('🎬 Library items:', library.map(item => `${item.id} (${item.title})`))
     
-    const possibleIds = [
-      movieId,
-      `movie-${movieId}`,
-      movieId.startsWith('movie-') ? movieId.replace('movie-', '') : null
-    ].filter(Boolean)
-    
-    let libraryItem = null
-    for (const id of possibleIds) {
-      libraryItem = library.find(item => idsMatch(item.id, id!))
-      if (libraryItem) {
-        console.log('  ✅ Found in library:', libraryItem)
-        break
-      }
-    }
-    
+    const libraryItem = library.find(item => item.id === movieId)
     if (libraryItem) {
+      console.log('🎬 ✅ Found in library:', libraryItem)
       setSelectedStatus(libraryItem.status)
     } else {
+      console.log('🎬 ❌ Not found in library')
       setSelectedStatus(null)
     }
   }, [movieId, library])
-
-  // 🔧 NOUVEAU: Gérer la fermeture avec auto-suppression
-  const handleClose = () => {
-    console.log('🚪 Modal closing...')
-    console.log('  hasUnsavedChanges:', hasUnsavedChanges)
-    console.log('  selectedStatus:', selectedStatus)
-    
-    // Si aucun statut n'est sélectionné et qu'il y avait des changements, supprimer de la bibliothèque
-    if (hasUnsavedChanges && selectedStatus === null && movieDetail && onDeleteItem) {
-      const idToDelete = getConsistentId(movieId, movieDetail.imdbID)
-      console.log('🗑️ Auto-removing from library on close:', idToDelete)
-      onDeleteItem(idToDelete)
-    }
-    
-    onClose()
-  }
 
   const fetchMovieDetail = async () => {
     if (!movieId) return
@@ -196,51 +155,24 @@ export default function MovieDetailModal({
     }
   }
 
-  // 🔧 CORRECTION: Gestion du statut avec auto-suppression
+  // 🔧 SIMPLIFIÉ: Même logique que GameDetailModal
   const handleStatusSelect = (status: MediaStatus) => {
     if (!movieDetail) return
     
-    const consistentId = getConsistentId(movieId, movieDetail.imdbID)
+    console.log('🎬 Adding movie to library with movieId:', movieId)
     
-    console.log('🔧 Status selection:')
-    console.log('  Current selectedStatus:', selectedStatus)
-    console.log('  New status:', status)
-    console.log('  consistentId:', consistentId)
-    
-    if (selectedStatus === status) {
-      // 🔧 NOUVEAU: Si même statut, désélectionner (suppression différée)
-      console.log('🔄 Deselecting status - will remove on close')
-      setSelectedStatus(null)
-      setHasUnsavedChanges(true)
-    } else {
-      // Ajouter/Modifier le statut
-      const movieItem = {
-        id: consistentId,
-        title: movieDetail.Title,
-        image: movieDetail.Poster !== 'N/A' ? movieDetail.Poster : undefined,
-        category: 'movies' as const,
-        year: parseInt(movieDetail.Year) || new Date().getFullYear(),
-        rating: movieDetail.imdbRating ? Number((parseFloat(movieDetail.imdbRating) / 2).toFixed(1)) : 0,
-        director: movieDetail.Director
-      }
-      
-      console.log('➕ Adding/updating movie:', movieItem)
-      onAddToLibrary(movieItem, status)
-      setSelectedStatus(status)
-      setHasUnsavedChanges(true)
+    const movieItem = {
+      id: movieId, // 🔑 UTILISE DIRECTEMENT movieId comme GameDetailModal
+      title: movieDetail.Title,
+      image: movieDetail.Poster !== 'N/A' ? movieDetail.Poster : undefined,
+      category: 'movies' as const,
+      year: parseInt(movieDetail.Year) || new Date().getFullYear(),
+      rating: movieDetail.imdbRating ? Number((parseFloat(movieDetail.imdbRating) / 2).toFixed(1)) : 0,
+      director: movieDetail.Director
     }
-  }
-
-  // 🔧 Suppression immédiate via bouton
-  const handleRemoveFromLibrary = () => {
-    if (!onDeleteItem || !movieDetail) return
     
-    const idToDelete = getConsistentId(movieId, movieDetail.imdbID)
-    console.log('🗑️ Immediate removal from library:', idToDelete)
-    
-    onDeleteItem(idToDelete)
-    setSelectedStatus(null)
-    setHasUnsavedChanges(false) // Pas besoin d'auto-suppression
+    onAddToLibrary(movieItem, status)
+    setSelectedStatus(status)
   }
 
   const getStatusLabel = (status: MediaStatus) => {
@@ -285,7 +217,7 @@ export default function MovieDetailModal({
       className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
-          handleClose() // 🔧 Utiliser handleClose au lieu de onClose
+          onClose()
         }
       }}
     >
@@ -302,7 +234,7 @@ export default function MovieDetailModal({
             {/* Header */}
             <div className="relative bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
               <button
-                onClick={handleClose} // 🔧 Utiliser handleClose
+                onClick={onClose}
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-2 hover:bg-white/80 rounded-full transition-colors"
               >
                 <X size={20} />
@@ -364,13 +296,26 @@ export default function MovieDetailModal({
 
             {/* Content */}
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {/* 🔧 Action buttons avec logique complète */}
+              {/* 🔧 EXACTEMENT comme GameDetailModal */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex space-x-3 mb-4">
                   {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                     <button
                       key={status}
-                      onClick={() => handleStatusSelect(status)}
+                      onClick={() => {
+                        // 🔑 EXACTEMENT la même logique que GameDetailModal
+                        if (selectedStatus === status) {
+                          // Si déjà sélectionné, on retire de la bibliothèque
+                          if (onDeleteItem) {
+                            console.log('🗑️ Removing movie with ID:', movieId)
+                            onDeleteItem(movieId) // 🔑 UTILISE DIRECTEMENT movieId
+                          }
+                          setSelectedStatus(null)
+                        } else {
+                          // Ajouter/Modifier le statut
+                          handleStatusSelect(status)
+                        }
+                      }}
                       className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all shadow-sm ${
                         selectedStatus === status
                           ? `${getStatusColor(status)} ring-2 ring-blue-300`
@@ -392,20 +337,22 @@ export default function MovieDetailModal({
                   ))}
                 </div>
                 
-                {/* 🔧 Message d'état avec indication de suppression automatique */}
+                {/* Message d'état */}
                 {selectedStatus ? (
                   <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
                     <span>✅ Added to your library as "{getStatusLabel(selectedStatus)}"</span>
                     <button 
-                      onClick={handleRemoveFromLibrary}
+                      onClick={() => {
+                        if (onDeleteItem) {
+                          console.log('🗑️ Remove button clicked for movieId:', movieId)
+                          onDeleteItem(movieId) // 🔑 UTILISE DIRECTEMENT movieId
+                        }
+                        setSelectedStatus(null)
+                      }}
                       className="text-red-600 hover:text-red-800 text-sm underline"
                     >
                       Remove from library
                     </button>
-                  </div>
-                ) : hasUnsavedChanges ? (
-                  <div className="text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                    ⚠️ No status selected - this movie will be removed from your library when you close this window
                   </div>
                 ) : (
                   <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-3">
@@ -413,7 +360,7 @@ export default function MovieDetailModal({
                   </div>
                 )}
 
-                {/* User rating - reste identique */}
+                {/* User rating */}
                 <div className="mt-6 pt-6 border-t border-gray-100">
                   <h4 className="text-gray-900 font-semibold mb-3">Rate this movie</h4>
                   <div className="flex items-center space-x-2 mb-3">
@@ -474,7 +421,7 @@ export default function MovieDetailModal({
                 </div>
               </div>
 
-              {/* Reviews Section - reste identique */}
+              {/* Reviews Section */}
               <div className="p-6 border-b border-gray-100">
                 <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
                 <div className="flex space-x-4 overflow-x-auto pb-2">
@@ -534,7 +481,7 @@ export default function MovieDetailModal({
                 </div>
               </div>
 
-              {/* Tabs - reste identique */}
+              {/* Tabs */}
               <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
                 <div className="flex px-6">
                   {(['info', 'social', 'more'] as const).map((tab) => (
@@ -556,7 +503,7 @@ export default function MovieDetailModal({
                 </div>
               </div>
 
-              {/* Tab content - reste identique */}
+              {/* Tab content */}
               <div className="p-6">
                 {activeTab === 'info' && (
                   <div className="space-y-6">
