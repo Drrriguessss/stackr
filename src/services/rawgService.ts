@@ -1,4 +1,4 @@
-// src/services/rawgService.ts - VERSION SIMPLIFIÉE COMME LES AUTRES SERVICES
+// src/services/rawgService.ts - VERSION OPTIMISÉE POUR LA PERTINENCE
 export interface RAWGGame {
   id: number
   name: string
@@ -32,7 +32,7 @@ class RAWGService {
   private readonly baseURL = 'https://api.rawg.io/api'
 
   /**
-   * 🎯 RECHERCHE ULTRA-SIMPLIFIÉE - FAIRE CONFIANCE À L'API COMME LES AUTRES
+   * 🎯 RECHERCHE ULTRA-OPTIMISÉE POUR LA PERTINENCE
    */
   async searchGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
     if (!query || query.trim().length < 2) {
@@ -40,15 +40,15 @@ class RAWGService {
     }
 
     const cleanQuery = query.trim()
-    console.log('🎮 [RAWG] Ultra-simple search for:', cleanQuery)
+    console.log('🎮 [RAWG] RELEVANCE-FIRST search for:', cleanQuery)
 
     try {
-      // ✅ FAIRE CONFIANCE À L'API - comme OMDB/Books/Music
+      // ✅ RECHERCHE AVEC PLUS DE RÉSULTATS POUR MIEUX FILTRER
       const url = `${this.baseURL}/games?` + new URLSearchParams({
         key: this.apiKey,
         search: cleanQuery,
-        page_size: Math.min(maxResults * 1.5, 30).toString(), // Un peu plus pour du choix
-        ordering: '-relevance,-released' // L'API fait le travail de pertinence !
+        page_size: '40', // Plus de résultats pour une meilleure sélection
+        ordering: '-relevance' // Laisser l'API faire le travail initial
       }).toString()
 
       const response = await fetch(url, {
@@ -65,28 +65,29 @@ class RAWGService {
       const data: RAWGSearchResponse = await response.json()
       const games = data.results || []
 
-      console.log(`🎮 [RAWG] API returned ${games.length} games (pre-sorted by relevance)`)
+      console.log(`🎮 [RAWG] API returned ${games.length} games`)
 
       if (games.length === 0) {
         return []
       }
 
-      // ✅ FILTRAGE ULTRA-MINIMAL - comme les autres services
-      const validGames = games.filter(game => this.isValidGame(game))
-      
-      // ✅ TRI ULTRA-LÉGER - juste un petit ajustement récence, pas plus !
-      const finalGames = this.lightRecencyAdjustment(validGames)
-
-      console.log(`🎮 [RAWG] Final: ${finalGames.length} games`)
-      
-      // Log simple
-      finalGames.slice(0, 6).forEach((game, i) => {
-        const year = game.released ? new Date(game.released).getFullYear() : 0
-        const icon = year >= 2024 ? '🔥' : year >= 2023 ? '⭐' : year >= 2020 ? '📅' : ''
-        console.log(`  ${i + 1}. ${game.name} (${year}) ${icon}`)
+      // ✅ SCORE DE PERTINENCE ULTRA-PRÉCIS
+      const scoredGames = games.map(game => {
+        const score = this.calculateRelevanceScore(game, cleanQuery)
+        return { ...game, relevanceScore: score }
       })
 
-      return finalGames.slice(0, maxResults)
+      // ✅ TRI PAR SCORE DE PERTINENCE UNIQUEMENT
+      const sortedGames = scoredGames
+        .filter(game => game.relevanceScore > 0) // Éliminer les non-pertinents
+        .sort((a, b) => b.relevanceScore - a.relevanceScore) // Score décroissant
+
+      console.log('🎯 [RAWG] Top results by relevance:')
+      sortedGames.slice(0, 8).forEach((game, i) => {
+        console.log(`  ${i + 1}. ${game.name} (Score: ${game.relevanceScore})`)
+      })
+
+      return sortedGames.slice(0, maxResults)
 
     } catch (error) {
       console.error('🎮 [RAWG] Search failed:', error)
@@ -95,36 +96,111 @@ class RAWGService {
   }
 
   /**
-   * ✅ VALIDATION ULTRA-MINIMALE - comme isValidMovieOrSeries dans OMDB
+   * 🎯 CALCUL DU SCORE DE PERTINENCE ULTRA-PRÉCIS
+   */
+  private calculateRelevanceScore(game: RAWGGame, query: string): number {
+    const queryLower = query.toLowerCase().trim()
+    const gameName = game.name.toLowerCase()
+    const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1)
+    
+    let score = 0
+
+    // 🔥 CORRESPONDANCE EXACTE = 1000 points (priorité absolue)
+    if (gameName === queryLower) {
+      score += 1000
+      console.log(`🔥 EXACT MATCH: ${game.name} (+1000)`)
+      return score // Retour immédiat pour les correspondances exactes
+    }
+
+    // 🎯 CORRESPONDANCE DÉBUT DE TITRE = 500 points
+    if (gameName.startsWith(queryLower)) {
+      score += 500
+      console.log(`🎯 STARTS WITH: ${game.name} (+500)`)
+    }
+
+    // 📍 SÉQUENCE COMPLÈTE DANS LE TITRE = 300 points
+    if (gameName.includes(queryLower)) {
+      score += 300
+      console.log(`📍 SEQUENCE MATCH: ${game.name} (+300)`)
+    }
+
+    // 🔤 CORRESPONDANCE DE TOUS LES MOTS-CLÉS = 200 points
+    if (queryWords.length > 1) {
+      const allWordsMatch = queryWords.every(word => gameName.includes(word))
+      if (allWordsMatch) {
+        score += 200
+        console.log(`🔤 ALL WORDS: ${game.name} (+200)`)
+      }
+    }
+
+    // 📝 CORRESPONDANCE PARTIELLE DES MOTS = 50 points par mot
+    queryWords.forEach(word => {
+      if (gameName.includes(word)) {
+        score += 50
+        console.log(`📝 WORD MATCH "${word}": ${game.name} (+50)`)
+      }
+    })
+
+    // 🏢 CORRESPONDANCE DÉVELOPPEUR = 100 points
+    if (game.developers?.length > 0) {
+      const developerNames = game.developers.map(dev => dev.name.toLowerCase())
+      queryWords.forEach(word => {
+        if (developerNames.some(dev => dev.includes(word))) {
+          score += 100
+          console.log(`🏢 DEVELOPER MATCH "${word}": ${game.name} (+100)`)
+        }
+      })
+    }
+
+    // 🎮 CORRESPONDANCE GENRE = 30 points
+    if (game.genres?.length > 0) {
+      const genreNames = game.genres.map(genre => genre.name.toLowerCase())
+      queryWords.forEach(word => {
+        if (genreNames.some(genre => genre.includes(word))) {
+          score += 30
+          console.log(`🎮 GENRE MATCH "${word}": ${game.name} (+30)`)
+        }
+      })
+    }
+
+    // ⭐ BONUS QUALITÉ (rating élevé) = jusqu'à 50 points
+    if (game.rating && game.rating_count > 10) {
+      const qualityBonus = Math.min(50, Math.round(game.rating * 10))
+      score += qualityBonus
+      console.log(`⭐ QUALITY BONUS: ${game.name} (+${qualityBonus} for rating ${game.rating})`)
+    }
+
+    // 📅 BONUS RÉCENCE (jeux récents) = jusqu'à 30 points
+    if (game.released) {
+      const gameYear = new Date(game.released).getFullYear()
+      const currentYear = new Date().getFullYear()
+      if (gameYear >= currentYear - 1) { // Dernière année
+        score += 30
+        console.log(`📅 RECENT BONUS: ${game.name} (+30 for year ${gameYear})`)
+      } else if (gameYear >= currentYear - 3) { // 3 dernières années
+        score += 15
+        console.log(`📅 MODERN BONUS: ${game.name} (+15 for year ${gameYear})`)
+      }
+    }
+
+    // 🔢 MINIMUM SCORE POUR ÊTRE CONSIDÉRÉ
+    if (score < 50 && !gameName.includes(queryWords[0])) {
+      score = 0 // Éliminer les résultats non pertinents
+    }
+
+    console.log(`📊 FINAL SCORE for "${game.name}": ${score}`)
+    return score
+  }
+
+  /**
+   * ✅ VALIDATION ULTRA-MINIMALE
    */
   private isValidGame(game: RAWGGame): boolean {
-    // Juste éliminer les résultats vraiment cassés - c'est tout !
     return !!(game.id && game.name && game.name.trim().length > 0)
   }
 
   /**
-   * ✅ AJUSTEMENT RÉCENCE ULTRA-LÉGER - ne pas casser l'ordre de l'API
-   */
-  private lightRecencyAdjustment(games: RAWGGame[]): RAWGGame[] {
-    const currentYear = new Date().getFullYear()
-    
-    // ✅ STRATÉGIE: Garder l'ordre de l'API mais juste pousser les 2024-2025 au top
-    const recentGames = games.filter(game => {
-      const year = game.released ? new Date(game.released).getFullYear() : 0
-      return year >= 2024
-    })
-    
-    const olderGames = games.filter(game => {
-      const year = game.released ? new Date(game.released).getFullYear() : 0
-      return year < 2024
-    })
-    
-    // ✅ Concaténer: récents d'abord (dans leur ordre API), puis anciens (dans leur ordre API)
-    return [...recentGames, ...olderGames]
-  }
-
-  /**
-   * ✅ FALLBACK SIMPLE avec jeux populaires récents
+   * ✅ FALLBACK avec jeux populaires récents
    */
   private getFallbackResults(query: string, maxResults: number): RAWGGame[] {
     const fallbackGames: RAWGGame[] = [
@@ -147,15 +223,6 @@ class RAWGService {
         genres: [{ name: "RPG" }], tags: [{ name: "RPG" }]
       },
       {
-        id: 622492,
-        name: "Marvel's Spider-Man 2",
-        background_image: "https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg", 
-        rating: 4.6, rating_count: 200000, released: "2023-10-20",
-        platforms: [{ platform: { name: "PlayStation 5" } }],
-        developers: [{ name: "Insomniac Games" }], publishers: [{ name: "Sony Interactive Entertainment" }],
-        genres: [{ name: "Action" }], tags: [{ name: "Superhero" }]
-      },
-      {
         id: 22511,
         name: "Elden Ring",
         background_image: "https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg",
@@ -172,6 +239,15 @@ class RAWGService {
         platforms: [{ platform: { name: "PlayStation 4" } }],
         developers: [{ name: "Santa Monica Studio" }], publishers: [{ name: "Sony Interactive Entertainment" }],
         genres: [{ name: "Action" }], tags: [{ name: "Action" }]
+      },
+      {
+        id: 41494,
+        name: "Cyberpunk 2077",
+        background_image: "https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg",
+        rating: 4.1, rating_count: 400000, released: "2020-12-10",
+        platforms: [{ platform: { name: "PC" } }],
+        developers: [{ name: "CD PROJEKT RED" }], publishers: [{ name: "CD PROJEKT RED" }],
+        genres: [{ name: "RPG" }], tags: [{ name: "RPG" }]
       }
     ]
 
