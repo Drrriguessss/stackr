@@ -171,29 +171,45 @@ export default function SearchModal({
         return converted
       })
 
-      // ✅ TRI SUPPLÉMENTAIRE PAR ANNÉE (PLUS RÉCENT EN PREMIER)
+      // ✅ TRI OPTIMISÉ: PERTINENCE D'ABORD, PUIS DATE
       const sortedGames = convertedGames.sort((a, b) => {
         const queryLower = query.toLowerCase()
         
-        // 1. Correspondance exacte du titre
-        const aExactMatch = a.title.toLowerCase().includes(queryLower)
-        const bExactMatch = b.title.toLowerCase().includes(queryLower)
+        // 1. PRIORITÉ ABSOLUE: Correspondance exacte du titre
+        const aExactMatch = a.title.toLowerCase() === queryLower
+        const bExactMatch = b.title.toLowerCase() === queryLower
         
         if (aExactMatch && !bExactMatch) return -1
         if (!aExactMatch && bExactMatch) return 1
         
-        // 2. Jeux récents/futurs en priorité (2024+)
-        const currentYear = new Date().getFullYear()
-        const aIsRecent = a.year >= currentYear
-        const bIsRecent = b.year >= currentYear
+        // 2. Correspondance partielle du titre (contient le mot-clé)
+        const aTitleContains = a.title.toLowerCase().includes(queryLower)
+        const bTitleContains = b.title.toLowerCase().includes(queryLower)
         
-        if (aIsRecent && !bIsRecent) return -1
-        if (!aIsRecent && bIsRecent) return 1
+        if (aTitleContains && !bTitleContains) return -1
+        if (!aTitleContains && bTitleContains) return 1
         
-        // 3. Tri par année (plus récent d'abord)
-        if (a.year !== b.year) return b.year - a.year
+        // 3. Pour les jeux qui matchent le titre, prioriser les récents
+        if (aTitleContains && bTitleContains) {
+          const currentYear = new Date().getFullYear()
+          const aIsRecent = a.year >= currentYear
+          const bIsRecent = b.year >= currentYear
+          
+          if (aIsRecent && !bIsRecent) return -1
+          if (!aIsRecent && bIsRecent) return 1
+          
+          // Tri par année si les deux sont récents ou anciens
+          if (a.year !== b.year) return b.year - a.year
+        }
         
-        // 4. Tri par rating
+        // 4. Correspondance développeur/auteur
+        const aDeveloperMatch = (a.developer || a.author || '').toLowerCase().includes(queryLower)
+        const bDeveloperMatch = (b.developer || b.author || '').toLowerCase().includes(queryLower)
+        
+        if (aDeveloperMatch && !bDeveloperMatch) return -1
+        if (!aDeveloperMatch && bDeveloperMatch) return 1
+        
+        // 5. Tri final par rating
         return (b.rating || 0) - (a.rating || 0)
       })
 
@@ -389,18 +405,38 @@ export default function SearchModal({
         allResults.push(...categoryResults)
       })
 
-      // 🔧 TRI INTELLIGENT PAR PERTINENCE ET ANNÉE RÉCENTE
+      // 🔧 TRI INTELLIGENT: PERTINENCE AVANT DATE
       allResults.sort((a, b) => {
         const queryLower = searchQuery.toLowerCase()
         
-        // 1. Correspondance exacte du titre
-        const aTitleMatch = a.title.toLowerCase().includes(queryLower)
-        const bTitleMatch = b.title.toLowerCase().includes(queryLower)
+        // 1. PRIORITÉ ABSOLUE: Correspondance exacte du titre
+        const aExactTitle = a.title.toLowerCase() === queryLower
+        const bExactTitle = b.title.toLowerCase() === queryLower
         
-        if (aTitleMatch && !bTitleMatch) return -1
-        if (!aTitleMatch && bTitleMatch) return 1
+        if (aExactTitle && !bExactTitle) return -1
+        if (!aExactTitle && bExactTitle) return 1
         
-        // 2. Correspondance exacte du créateur
+        // 2. Correspondance partielle forte du titre (contient le mot-clé)
+        const aTitleContains = a.title.toLowerCase().includes(queryLower)
+        const bTitleContains = b.title.toLowerCase().includes(queryLower)
+        
+        if (aTitleContains && !bTitleContains) return -1
+        if (!aTitleContains && bTitleContains) return 1
+        
+        // 3. Pour les résultats qui matchent le titre, prioriser les récents
+        if (aTitleContains && bTitleContains) {
+          const currentYear = new Date().getFullYear()
+          const aIsRecent = a.year >= currentYear
+          const bIsRecent = b.year >= currentYear
+          
+          if (aIsRecent && !bIsRecent) return -1
+          if (!aIsRecent && bIsRecent) return 1
+          
+          // Année (plus récent en premier) pour les titres pertinents
+          if (a.year !== b.year) return (b.year || 0) - (a.year || 0)
+        }
+        
+        // 4. Correspondance créateur (développeur, auteur, etc.)
         const aCreator = getCreator(a).toLowerCase()
         const bCreator = getCreator(b).toLowerCase()
         const aCreatorMatch = aCreator.includes(queryLower)
@@ -409,19 +445,7 @@ export default function SearchModal({
         if (aCreatorMatch && !bCreatorMatch) return -1
         if (!aCreatorMatch && bCreatorMatch) return 1
         
-        // 3. Priorité aux contenus récents (2024+) pour tous les types
-        const currentYear = new Date().getFullYear()
-        const aIsRecent = a.year >= currentYear
-        const bIsRecent = b.year >= currentYear
-        
-        if (aIsRecent && !bIsRecent) return -1
-        if (!aIsRecent && bIsRecent) return 1
-        
-        // 4. Année (plus récent en premier)
-        const yearDiff = (b.year || 0) - (a.year || 0)
-        if (yearDiff !== 0) return yearDiff
-        
-        // 5. Rating
+        // 5. Rating final
         return (b.rating || 0) - (a.rating || 0)
       })
 

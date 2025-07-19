@@ -272,40 +272,53 @@ class RAWGService {
     return enrichedGames
   }
 
-  // ✅ TRIER PAR PERTINENCE ET DATE (PLUS RÉCENT EN PREMIER)
+  // ✅ TRIER PAR PERTINENCE ET DATE (PERTINENCE D'ABORD)
   private sortByRelevanceAndDate(games: RAWGGame[], query: string): RAWGGame[] {
     return games.sort((a, b) => {
       const queryLower = query.toLowerCase()
       
-      // 1. Correspondance exacte du nom (priorité absolue)
+      // 1. PRIORITÉ ABSOLUE: Correspondance exacte du nom
       const aExactMatch = a.name.toLowerCase() === queryLower
       const bExactMatch = b.name.toLowerCase() === queryLower
       
       if (aExactMatch && !bExactMatch) return -1
       if (!aExactMatch && bExactMatch) return 1
       
-      // 2. Correspondance partielle du nom
+      // 2. Correspondance partielle forte du nom (contient le mot-clé)
       const aPartialMatch = a.name.toLowerCase().includes(queryLower)
       const bPartialMatch = b.name.toLowerCase().includes(queryLower)
       
       if (aPartialMatch && !bPartialMatch) return -1
       if (!aPartialMatch && bPartialMatch) return 1
       
-      // 3. Jeux plus récents en premier (2024-2026+ en priorité)
-      const aYear = a.released ? new Date(a.released).getFullYear() : 0
-      const bYear = b.released ? new Date(b.released).getFullYear() : 0
+      // 3. Pour les jeux qui matchent le nom, prioriser les récents
+      if (aPartialMatch && bPartialMatch) {
+        const aYear = a.released ? new Date(a.released).getFullYear() : 0
+        const bYear = b.released ? new Date(b.released).getFullYear() : 0
+        
+        const currentYear = new Date().getFullYear()
+        
+        // Priorité aux jeux récents/à venir (2024+) SEULEMENT pour les matchs pertinents
+        const aIsRecent = aYear >= currentYear
+        const bIsRecent = bYear >= currentYear
+        
+        if (aIsRecent && !bIsRecent) return -1
+        if (!aIsRecent && bIsRecent) return 1
+        
+        // Trier par année (plus récent en premier) pour les matchs pertinents
+        if (aYear !== bYear) return bYear - aYear
+      }
       
-      const currentYear = new Date().getFullYear()
+      // 4. Correspondance développeur (pour les cas où le nom ne match pas exactement)
+      const aDeveloperMatch = a.developers?.some(dev => 
+        dev.name.toLowerCase().includes(queryLower)
+      ) || false
+      const bDeveloperMatch = b.developers?.some(dev => 
+        dev.name.toLowerCase().includes(queryLower)
+      ) || false
       
-      // Priorité absolue aux jeux récents/à venir (2024+)
-      const aIsRecent = aYear >= currentYear
-      const bIsRecent = bYear >= currentYear
-      
-      if (aIsRecent && !bIsRecent) return -1
-      if (!aIsRecent && bIsRecent) return 1
-      
-      // 4. Trier par année (plus récent en premier)
-      if (aYear !== bYear) return bYear - aYear
+      if (aDeveloperMatch && !bDeveloperMatch) return -1
+      if (!aDeveloperMatch && bDeveloperMatch) return 1
       
       // 5. Trier par rating pour départager
       return (b.rating || 0) - (a.rating || 0)
