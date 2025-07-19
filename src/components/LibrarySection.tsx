@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Search, ChevronDown, Star, MoreHorizontal, Edit3, Filter, Calendar, TrendingUp, Hash, User, Clock } from 'lucide-react'
+import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X } from 'lucide-react'
 
 // Types
 type MediaCategory = 'games' | 'movies' | 'music' | 'books'
@@ -122,6 +122,7 @@ const LibrarySection = () => {
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showAddInfoModal, setShowAddInfoModal] = useState<string | null>(null)
+  const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false)
 
   // Filter and sort logic
   const filteredAndSortedLibrary = React.useMemo(() => {
@@ -190,6 +191,7 @@ const LibrarySection = () => {
     return groups
   }, [filteredAndSortedLibrary])
 
+  // Helper functions
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'games': return '🎮'
@@ -268,6 +270,38 @@ const LibrarySection = () => {
 
   const getCreator = (item: LibraryItem) => {
     return item.author || item.artist || item.director || 'Unknown'
+  }
+
+  // Modal Components
+  const GlobalSearchModal = () => {
+    if (!showGlobalSearchModal) return null
+    
+    return (
+      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl w-full max-w-2xl border border-gray-200 shadow-lg">
+          <div className="p-4 border-b border-gray-100">
+            <div className="flex items-center space-x-3">
+              <Search className="text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search games, movies, music, books..."
+                className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none text-lg"
+                autoFocus
+              />
+              <button
+                onClick={() => setShowGlobalSearchModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+          <div className="p-4">
+            <p className="text-gray-500 text-center py-8">Start typing to search for new items to add to your library...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const AddInfoModal = ({ item }: { item: LibraryItem }) => {
@@ -386,10 +420,10 @@ const LibrarySection = () => {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Header avec compteur et boutons */}
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      {/* Header grisé unifié */}
+      <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
         <div className="px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">
               Your Library 
               <span className="text-lg font-normal text-gray-500 ml-2">
@@ -397,19 +431,23 @@ const LibrarySection = () => {
               </span>
             </h1>
             
-            {/* Bouton Add Items - recherche globale */}
+            {/* Icône de recherche globale */}
             <button
-              onClick={() => console.log('Open global search')}
-              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors text-gray-700 font-medium"
-              title="Search and add new items to your library"
+              onClick={() => setShowGlobalSearchModal(true)}
+              className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+              title="Search and add new items"
             >
-              <Search size={16} />
-              <span>Add Items</span>
+              <Search size={20} className="text-gray-600" />
             </button>
           </div>
-          
-          {/* Barre de recherche */}
-          <div className="relative mb-4">
+        </div>
+      </div>
+
+      {/* Contenu principal */}
+      <div className="bg-white">
+        {/* Barre de recherche locale */}
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
@@ -419,10 +457,12 @@ const LibrarySection = () => {
               className="w-full bg-white text-gray-900 pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
             />
           </div>
+        </div>
 
-          {/* Filtres en ligne */}
+        {/* Filtres de catégories et statut */}
+        <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
           <div className="flex items-center justify-between">
-            {/* Boutons de catégories avec texte */}
+            {/* Boutons de catégories */}
             <div className="flex items-center space-x-2">
               {[
                 { key: 'all', label: 'All' },
@@ -481,272 +521,274 @@ const LibrarySection = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Bouton "Sorted by" */}
-      <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
-        <div className="relative inline-block">
-          <button
-            onClick={() => setShowSortDropdown(!showSortDropdown)}
-            className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm font-medium"
-          >
-            {getSortIcon(sortBy)}
-            <span>Sorted by {getSortLabel(sortBy)}</span>
-            <ChevronDown size={14} />
-          </button>
-          
-          {showSortDropdown && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
-              {[
-                { key: 'date_added', label: 'Date Added', icon: <Calendar size={14} /> },
-                { key: 'date_updated', label: 'Date Updated', icon: <Clock size={14} /> },
-                { key: 'title', label: 'Title', icon: <Hash size={14} /> },
-                { key: 'creator', label: 'Creator', icon: <User size={14} /> },
-                { key: 'average_rating', label: 'Average Rating', icon: <Star size={14} /> },
-                { key: 'number_of_ratings', label: 'Number of Ratings', icon: <TrendingUp size={14} /> },
-                { key: 'release_year', label: 'Release Year', icon: <Calendar size={14} /> }
-              ].map(({ key, label, icon }) => (
-                <button
-                  key={key}
-                  onClick={() => {
-                    setSortBy(key as SortOption)
-                    setShowSortDropdown(false)
-                  }}
-                  className="w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
-                >
-                  {icon}
-                  <span>{label}</span>
-                </button>
+        {/* Bouton "Sorted by" */}
+        <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
+          <div className="relative inline-block">
+            <button
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+              className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm font-medium"
+            >
+              {getSortIcon(sortBy)}
+              <span>Sorted by {getSortLabel(sortBy)}</span>
+              <ChevronDown size={14} />
+            </button>
+            
+            {showSortDropdown && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
+                {[
+                  { key: 'date_added', label: 'Date Added', icon: <Calendar size={14} /> },
+                  { key: 'date_updated', label: 'Date Updated', icon: <Clock size={14} /> },
+                  { key: 'title', label: 'Title', icon: <Hash size={14} /> },
+                  { key: 'creator', label: 'Creator', icon: <User size={14} /> },
+                  { key: 'average_rating', label: 'Average Rating', icon: <Star size={14} /> },
+                  { key: 'number_of_ratings', label: 'Number of Ratings', icon: <TrendingUp size={14} /> },
+                  { key: 'release_year', label: 'Release Year', icon: <Calendar size={14} /> }
+                ].map(({ key, label, icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setSortBy(key as SortOption)
+                      setShowSortDropdown(false)
+                    }}
+                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
+                  >
+                    {icon}
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Liste des items groupés par catégorie */}
+        <div className="px-4 sm:px-6 py-4 pb-24">
+          {filteredAndSortedLibrary.length === 0 ? (
+            <div className="text-center py-8 text-gray-600">
+              <p>No items found.</p>
+            </div>
+          ) : activeCategory === 'all' ? (
+            // Vue "All" - groupée par catégories
+            <div className="space-y-8">
+              {Object.entries(groupedLibrary).map(([category, items]) => (
+                <div key={category}>
+                  {/* Titre de catégorie */}
+                  <div className="flex items-center space-x-2 mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {getCategoryDisplayName(category)}
+                    </h2>
+                    <span className="text-gray-500 text-sm">
+                      ({items.length})
+                    </span>
+                  </div>
+                  
+                  {/* Items de cette catégorie */}
+                  <div className="space-y-4">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex items-start space-x-4 p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                        {/* Image */}
+                        <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-lg">
+                              {getCategoryIcon(item.category)}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Contenu principal */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-gray-900 font-semibold text-base leading-tight">
+                                {item.title}
+                              </h3>
+                              <p className="text-gray-600 text-sm mt-1">
+                                by {getCreator(item)}
+                              </p>
+                              
+                              {/* Rating */}
+                              <div className="flex items-center space-x-3 mt-2">
+                                {item.userRating && (
+                                  <div className="flex items-center space-x-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <Star
+                                        key={star}
+                                        size={12}
+                                        className={`${
+                                          star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                                
+                                {item.rating && (
+                                  <div className="text-xs text-gray-500">
+                                    avg {item.rating} • {item.numberOfRatings?.toLocaleString()} ratings
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Meta info */}
+                              <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                                  {getStatusLabel(item.status)}
+                                </span>
+                                <span>{item.year}</span>
+                                <span>Added {formatDate(item.addedAt)}</span>
+                                
+                                {/* Infos additionnelles pour les jeux */}
+                                {item.category === 'games' && item.additionalInfo && (
+                                  <>
+                                    {item.additionalInfo.platform && (
+                                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
+                                        {item.additionalInfo.platform}
+                                      </span>
+                                    )}
+                                    {item.additionalInfo.gamePass && (
+                                      <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
+                                        Game Pass
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Bouton Add Info */}
+                            <button
+                              onClick={() => setShowAddInfoModal(item.id)}
+                              className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-4"
+                            >
+                              <Edit3 size={12} />
+                              <span>Add Info</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ))}
+            </div>
+          ) : (
+            // Vue catégorie spécifique
+            <div>
+              <div className="flex items-center space-x-2 mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {getCategoryDisplayName(activeCategory)}
+                </h2>
+                <span className="text-gray-500 text-lg">
+                  ({filteredAndSortedLibrary.length})
+                </span>
+              </div>
+              
+              <div className="space-y-4">
+                {filteredAndSortedLibrary.map((item) => (
+                  <div key={item.id} className="flex items-start space-x-4 p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                    {/* Image */}
+                    <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-lg">
+                          {getCategoryIcon(item.category)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contenu principal */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-gray-900 font-semibold text-base leading-tight">
+                            {item.title}
+                          </h3>
+                          <p className="text-gray-600 text-sm mt-1">
+                            by {getCreator(item)}
+                          </p>
+                          
+                          {/* Rating */}
+                          <div className="flex items-center space-x-3 mt-2">
+                            {item.userRating && (
+                              <div className="flex items-center space-x-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    size={12}
+                                    className={`${
+                                      star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                            
+                            {item.rating && (
+                              <div className="text-xs text-gray-500">
+                                avg {item.rating} • {item.numberOfRatings?.toLocaleString()} ratings
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Meta info */}
+                          <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                              {getStatusLabel(item.status)}
+                            </span>
+                            <span>{item.year}</span>
+                            <span>Added {formatDate(item.addedAt)}</span>
+                            
+                            {/* Infos additionnelles pour les jeux */}
+                            {item.category === 'games' && item.additionalInfo && (
+                              <>
+                                {item.additionalInfo.platform && (
+                                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
+                                    {item.additionalInfo.platform}
+                                  </span>
+                                )}
+                                {item.additionalInfo.gamePass && (
+                                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
+                                    Game Pass
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bouton Add Info */}
+                        <button
+                          onClick={() => setShowAddInfoModal(item.id)}
+                          className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-4"
+                        >
+                          <Edit3 size={12} />
+                          <span>Add Info</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Liste des items groupés par catégorie */}
-      <div className="px-4 sm:px-6 py-4">
-        {filteredAndSortedLibrary.length === 0 ? (
-          <div className="text-center py-8 text-gray-600">
-            <p>No items found.</p>
-          </div>
-        ) : activeCategory === 'all' ? (
-          // Vue "All" - groupée par catégories
-          <div className="space-y-8">
-            {Object.entries(groupedLibrary).map(([category, items]) => (
-              <div key={category}>
-                {/* Titre de catégorie */}
-                <div className="flex items-center space-x-2 mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    {getCategoryDisplayName(category)}
-                  </h2>
-                  <span className="text-gray-500 text-sm">
-                    ({items.length})
-                  </span>
-                </div>
-                
-                {/* Items de cette catégorie */}
-                <div className="space-y-4">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-start space-x-4 p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-                      {/* Image */}
-                      <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-lg">
-                            {getCategoryIcon(item.category)}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Contenu principal */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-gray-900 font-semibold text-base leading-tight">
-                              {item.title}
-                            </h3>
-                            <p className="text-gray-600 text-sm mt-1">
-                              by {getCreator(item)}
-                            </p>
-                            
-                            {/* Rating */}
-                            <div className="flex items-center space-x-3 mt-2">
-                              {item.userRating && (
-                                <div className="flex items-center space-x-1">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                      key={star}
-                                      size={12}
-                                      className={`${
-                                        star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                              
-                              {item.rating && (
-                                <div className="text-xs text-gray-500">
-                                  avg {item.rating} • {item.numberOfRatings?.toLocaleString()} ratings
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Meta info */}
-                            <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                                {getStatusLabel(item.status)}
-                              </span>
-                              <span>{item.year}</span>
-                              <span>Added {formatDate(item.addedAt)}</span>
-                              
-                              {/* Infos additionnelles pour les jeux */}
-                              {item.category === 'games' && item.additionalInfo && (
-                                <>
-                                  {item.additionalInfo.platform && (
-                                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
-                                      {item.additionalInfo.platform}
-                                    </span>
-                                  )}
-                                  {item.additionalInfo.gamePass && (
-                                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
-                                      Game Pass
-                                    </span>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Bouton Add Info */}
-                          <button
-                            onClick={() => setShowAddInfoModal(item.id)}
-                            className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-4"
-                          >
-                            <Edit3 size={12} />
-                            <span>Add Info</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          // Vue catégorie spécifique
-          <div>
-            <div className="flex items-center space-x-2 mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {getCategoryDisplayName(activeCategory)}
-              </h2>
-              <span className="text-gray-500 text-lg">
-                ({filteredAndSortedLibrary.length})
-              </span>
-            </div>
-            
-            <div className="space-y-4">
-              {filteredAndSortedLibrary.map((item) => (
-                <div key={item.id} className="flex items-start space-x-4 p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-                  {/* Image */}
-                  <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg">
-                        {getCategoryIcon(item.category)}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Contenu principal */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-gray-900 font-semibold text-base leading-tight">
-                          {item.title}
-                        </h3>
-                        <p className="text-gray-600 text-sm mt-1">
-                          by {getCreator(item)}
-                        </p>
-                        
-                        {/* Rating */}
-                        <div className="flex items-center space-x-3 mt-2">
-                          {item.userRating && (
-                            <div className="flex items-center space-x-1">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  size={12}
-                                  className={`${
-                                    star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          )}
-                          
-                          {item.rating && (
-                            <div className="text-xs text-gray-500">
-                              avg {item.rating} • {item.numberOfRatings?.toLocaleString()} ratings
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Meta info */}
-                        <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                            {getStatusLabel(item.status)}
-                          </span>
-                          <span>{item.year}</span>
-                          <span>Added {formatDate(item.addedAt)}</span>
-                          
-                          {/* Infos additionnelles pour les jeux */}
-                          {item.category === 'games' && item.additionalInfo && (
-                            <>
-                              {item.additionalInfo.platform && (
-                                <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
-                                  {item.additionalInfo.platform}
-                                </span>
-                              )}
-                              {item.additionalInfo.gamePass && (
-                                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
-                                  Game Pass
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Bouton Add Info */}
-                      <button
-                        onClick={() => setShowAddInfoModal(item.id)}
-                        className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-4"
-                      >
-                        <Edit3 size={12} />
-                        <span>Add Info</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Modal Add Info */}
+      {/* Modals */}
+      <GlobalSearchModal />
+      
       {showAddInfoModal && (
         <AddInfoModal item={library.find(item => item.id === showAddInfoModal)!} />
       )}
