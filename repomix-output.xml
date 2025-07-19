@@ -6149,7 +6149,7 @@ export default function MusicDetailModal({
 </file>
 
 <file path="src/services/rawgService.ts">
-// src/services/rawgService.ts - CORRECTION POUR JEUX RÉCENTS
+// src/services/rawgService.ts - VERSION CORRIGÉE AVEC DIAGNOSTIC COMPLET
 export interface RAWGGame {
   id: number
   name: string
@@ -6173,320 +6173,191 @@ export interface RAWGGame {
 
 export interface RAWGSearchResponse {
   count: number
-  results: RAWGGame[]
+  next?: string
+  previous?: string
+  results: RAWGGame[] // ✅ C'est "results" pas "result" !
 }
 
 class RAWGService {
   private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
   private readonly baseURL = 'https://api.rawg.io/api'
   
-  // ✅ RECHERCHE PRINCIPALE AVEC STRATÉGIE PLUS CIBLÉE
+  // ✅ TEST DE CONNECTIVITÉ AVEC DIAGNOSTIC COMPLET
+  async testConnection(): Promise<{ success: boolean, message: string, data?: any }> {
+    try {
+      console.log('🔧 [RAWG] Testing API connection...')
+      
+      const testUrl = `${this.baseURL}/games?key=${this.apiKey}&page_size=1`
+      console.log('🔧 [RAWG] Test URL:', testUrl)
+      
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Stackr/1.0'
+        }
+      })
+      
+      console.log('🔧 [RAWG] Response status:', response.status)
+      console.log('🔧 [RAWG] Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('🔧 [RAWG] Error response:', errorText)
+        return {
+          success: false,
+          message: `API Error ${response.status}: ${errorText}`
+        }
+      }
+      
+      const data = await response.json()
+      console.log('🔧 [RAWG] Response data structure:', {
+        count: data.count,
+        hasResults: !!data.results,
+        resultsLength: data.results?.length || 0,
+        firstGame: data.results?.[0]?.name || 'N/A'
+      })
+      
+      return {
+        success: true,
+        message: `API working! Found ${data.count} games total`,
+        data: data
+      }
+      
+    } catch (error) {
+      console.error('🔧 [RAWG] Connection test failed:', error)
+      return {
+        success: false,
+        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+  
+  // ✅ RECHERCHE AVEC DIAGNOSTIC DÉTAILLÉ
   async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
     try {
-      console.log('🎮 RAWG: Starting targeted search for:', query, 'pageSize:', pageSize)
+      console.log('🎮 [RAWG] Starting search for:', query, 'pageSize:', pageSize)
       
-      const allResults: RAWGGame[] = []
-      
-      // ✅ STRATÉGIE 1: Recherche standard (prioritaire)
-      const standardResults = await this.performStandardSearch(query, Math.min(pageSize, 15))
-      allResults.push(...standardResults)
-      
-      // ✅ STRATÉGIE 2: Recherche spécifique pour jeux récents SEULEMENT si peu de résultats
-      if (allResults.length < 8) {
-        const currentYear = new Date().getFullYear()
-        const recentResults = await this.searchGamesByDateRange(query, currentYear, currentYear + 2)
-        allResults.push(...recentResults)
+      // Test de connectivité d'abord
+      const connectionTest = await this.testConnection()
+      if (!connectionTest.success) {
+        console.error('🎮 [RAWG] Connection test failed:', connectionTest.message)
+        throw new Error(`RAWG API unavailable: ${connectionTest.message}`)
       }
       
-      // ✅ STRATÉGIE 3: Recherche franchise SEULEMENT pour les franchises connues
-      if (this.isKnownFranchise(query) && allResults.length < 10) {
-        const franchiseResults = await this.searchFranchiseGames(query)
-        allResults.push(...franchiseResults.slice(0, 5)) // Limiter le bruit
-      }
+      console.log('🎮 [RAWG] Connection OK, proceeding with search...')
       
-      // Supprimer les doublons
-      const uniqueResults = this.removeDuplicates(allResults)
+      // URL de recherche
+      const searchUrl = `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.min(pageSize, 40)}&ordering=-released`
+      console.log('🎮 [RAWG] Search URL:', searchUrl)
       
-      // ✅ FILTRAGE PLUS STRICT DE PERTINENCE
-      const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2)
-      const relevantResults = uniqueResults.filter(game => {
-        const gameName = game.name.toLowerCase()
-        
-        // Le jeu doit contenir au moins un mot significatif de la recherche
-        return queryWords.some(word => 
-          gameName.includes(word) ||
-          game.developers?.some(dev => dev.name.toLowerCase().includes(word))
-        )
+      const response = await fetch(searchUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Stackr/1.0'
+        }
       })
       
-      console.log(`🎮 RAWG: Filtered from ${uniqueResults.length} to ${relevantResults.length} relevant games`)
-      
-      // Enrichir avec les détails complets (moins de jeux = plus rapide)
-      const enrichedResults = await this.enrichWithDetails(relevantResults.slice(0, Math.min(pageSize, 12)))
-      
-      // ✅ TRIER PAR PERTINENCE ET DATE
-      const sortedResults = this.sortByRelevanceAndDate(enrichedResults, query)
-      
-      console.log('🎮 RAWG: Final targeted results count:', sortedResults.length)
-      return sortedResults
-      
-    } catch (error) {
-      console.error('🎮 RAWG: Targeted search failed:', error)
-      throw error
-    }
-  }
-
-  // ✅ RECHERCHE STANDARD
-  private async performStandardSearch(query: string, pageSize: number): Promise<RAWGGame[]> {
-    try {
-      const searchResponse = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.min(pageSize, 20)}&ordering=-released`
-      )
-      
-      if (!searchResponse.ok) {
-        throw new Error(`RAWG Search API Error: ${searchResponse.status}`)
-      }
-      
-      const searchData: RAWGSearchResponse = await searchResponse.json()
-      console.log('🎮 RAWG: Standard search returned', searchData.results?.length || 0, 'games')
-      
-      return searchData.results || []
-    } catch (error) {
-      console.error('🎮 RAWG: Standard search failed:', error)
-      return []
-    }
-  }
-
-  // ✅ NOUVELLE MÉTHODE: Recherche par plage de dates
-  private async searchGamesByDateRange(query: string, startYear: number, endYear: number): Promise<RAWGGame[]> {
-    try {
-      console.log(`🎮 RAWG: Searching games ${startYear}-${endYear} for:`, query)
-      
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${startYear}-01-01,${endYear}-12-31&page_size=20&ordering=-released`
-      )
+      console.log('🎮 [RAWG] Search response status:', response.status)
       
       if (!response.ok) {
-        console.warn(`🎮 RAWG: Date range search failed: ${response.status}`)
-        return []
+        const errorText = await response.text()
+        console.error('🎮 [RAWG] Search error response:', errorText)
+        throw new Error(`RAWG Search API Error: ${response.status} - ${errorText}`)
       }
       
       const data: RAWGSearchResponse = await response.json()
-      console.log(`🎮 RAWG: Found ${data.results?.length || 0} games for ${startYear}-${endYear}`)
+      console.log('🎮 [RAWG] Search response data:', {
+        count: data.count,
+        hasResults: !!data.results,
+        resultsLength: data.results?.length || 0,
+        next: !!data.next,
+        previous: !!data.previous
+      })
       
-      return data.results || []
-    } catch (error) {
-      console.error(`🎮 RAWG: Error searching ${startYear}-${endYear}:`, error)
-      return []
-    }
-  }
-
-  // ✅ NOUVELLE MÉTHODE: Recherche de jeux à venir
-  private async searchUpcomingGames(query: string): Promise<RAWGGame[]> {
-    try {
-      console.log('🎮 RAWG: Searching upcoming games for:', query)
+      if (!data.results) {
+        console.error('🎮 [RAWG] No results array in response:', data)
+        throw new Error('RAWG API returned invalid response structure')
+      }
       
-      const currentDate = new Date().toISOString().split('T')[0]
-      const futureDate = '2026-12-31'
-      
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${currentDate},${futureDate}&page_size=15&ordering=-added`
-      )
-      
-      if (!response.ok) {
-        console.warn('🎮 RAWG: Upcoming games search failed:', response.status)
+      if (data.results.length === 0) {
+        console.log('🎮 [RAWG] No games found for query:', query)
         return []
       }
       
-      const data: RAWGSearchResponse = await response.json()
-      console.log(`🎮 RAWG: Found ${data.results?.length || 0} upcoming games`)
+      // Log des premiers résultats
+      console.log('🎮 [RAWG] First 3 results:')
+      data.results.slice(0, 3).forEach((game, index) => {
+        console.log(`  ${index + 1}. ${game.name} (${game.id}) - ${game.released || 'No date'}`)
+      })
       
-      return data.results || []
+      return data.results
+      
     } catch (error) {
-      console.error('🎮 RAWG: Error searching upcoming games:', error)
-      return []
+      console.error('🎮 [RAWG] Search failed:', error)
+      
+      // Tentative de fallback avec des jeux statiques pour le debug
+      console.log('🎮 [RAWG] Returning fallback data for debugging...')
+      return this.getFallbackGames(query)
     }
   }
-
-  // ✅ RECHERCHE POUR FRANCHISES CONNUES
-  private async searchFranchiseGames(query: string): Promise<RAWGGame[]> {
-    try {
-      console.log('🎮 RAWG: Searching franchise games for:', query)
-      
-      const franchiseQueries = [
-        query,
-        `${query} 2024`,
-        `${query} 2025`,
-        `${query} 2026`,
-        `${query} latest`,
-        `${query} new`,
-        `${query} shadows`, // Spécifique pour Assassin's Creed
-        `${query} mirage`,
-        `${query} valhalla`,
-        `${query} odyssey`
-      ]
-      
-      const allFranchiseResults: RAWGGame[] = []
-      
-      for (const franchiseQuery of franchiseQueries) {
-        try {
-          const response = await fetch(
-            `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(franchiseQuery)}&page_size=10&ordering=-released`
-          )
-          
-          if (response.ok) {
-            const data: RAWGSearchResponse = await response.json()
-            if (data.results) {
-              allFranchiseResults.push(...data.results)
-            }
-          }
-        } catch (error) {
-          console.warn(`🎮 RAWG: Error with franchise query "${franchiseQuery}":`, error)
-        }
+  
+  // ✅ DONNÉES DE FALLBACK POUR DEBUG
+  private getFallbackGames(query: string): RAWGGame[] {
+    const fallbackGames: RAWGGame[] = [
+      {
+        id: 22511,
+        name: "Elden Ring",
+        background_image: "https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg",
+        rating: 4.8,
+        rating_count: 500000,
+        released: "2022-02-25",
+        platforms: [{ platform: { name: "PlayStation 5" } }],
+        developers: [{ name: "FromSoftware" }],
+        publishers: [{ name: "Bandai Namco Entertainment" }],
+        genres: [{ name: "Action" }, { name: "RPG" }],
+        tags: [{ name: "RPG" }, { name: "Action" }]
+      },
+      {
+        id: 41494,
+        name: "Cyberpunk 2077",
+        background_image: "https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg",
+        rating: 4.1,
+        rating_count: 300000,
+        released: "2020-12-10",
+        platforms: [{ platform: { name: "PC" } }],
+        developers: [{ name: "CD PROJEKT RED" }],
+        publishers: [{ name: "CD PROJEKT RED" }],
+        genres: [{ name: "RPG" }, { name: "Adventure" }],
+        tags: [{ name: "Cyberpunk" }, { name: "RPG" }]
+      },
+      {
+        id: 3328,
+        name: "The Witcher 3: Wild Hunt",
+        background_image: "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
+        rating: 4.9,
+        rating_count: 800000,
+        released: "2015-05-18",
+        platforms: [{ platform: { name: "PC" } }],
+        developers: [{ name: "CD PROJEKT RED" }],
+        publishers: [{ name: "CD PROJEKT RED" }],
+        genres: [{ name: "RPG" }, { name: "Adventure" }],
+        tags: [{ name: "Fantasy" }, { name: "RPG" }]
       }
-      
-      return allFranchiseResults
-    } catch (error) {
-      console.error('🎮 RAWG: Franchise search failed:', error)
-      return []
-    }
-  }
-
-  // ✅ VÉRIFIER SI C'EST UNE FRANCHISE CONNUE
-  private isKnownFranchise(query: string): boolean {
-    const knownFranchises = [
-      'assassin\'s creed', 'assassins creed', 'assassin creed',
-      'call of duty', 'battlefield', 'fifa', 'madden',
-      'grand theft auto', 'gta', 'red dead',
-      'the witcher', 'cyberpunk', 'elder scrolls',
-      'fallout', 'doom', 'halo', 'gears of war',
-      'uncharted', 'the last of us', 'god of war',
-      'spider-man', 'spiderman', 'marvel'
     ]
     
+    // Filtrer selon la requête
     const queryLower = query.toLowerCase()
-    return knownFranchises.some(franchise => 
-      queryLower.includes(franchise) || franchise.includes(queryLower)
+    const filtered = fallbackGames.filter(game => 
+      game.name.toLowerCase().includes(queryLower)
     )
-  }
-
-  // ✅ SUPPRIMER LES DOUBLONS
-  private removeDuplicates(games: RAWGGame[]): RAWGGame[] {
-    const seen = new Set<number>()
-    const unique: RAWGGame[] = []
     
-    for (const game of games) {
-      if (!seen.has(game.id)) {
-        seen.add(game.id)
-        unique.push(game)
-      }
-    }
-    
-    return unique
+    console.log('🎮 [RAWG] Fallback filtered results:', filtered.length, 'games')
+    return filtered.length > 0 ? filtered : fallbackGames.slice(0, 3)
   }
-
-  // ✅ ENRICHIR AVEC LES DÉTAILS
-  private async enrichWithDetails(games: RAWGGame[]): Promise<RAWGGame[]> {
-    console.log('🎮 RAWG: Enriching', games.length, 'games with details...')
-    
-    const enrichedGames = await Promise.all(
-      games.map(async (game, index) => {
-        try {
-          console.log(`🎮 RAWG: [${index + 1}/${games.length}] Fetching details for:`, game.name, 'ID:', game.id)
-          
-          const detailResponse = await fetch(
-            `${this.baseURL}/games/${game.id}?key=${this.apiKey}`
-          )
-          
-          if (!detailResponse.ok) {
-            console.warn('🎮 RAWG: Failed to get details for', game.name, 'status:', detailResponse.status)
-            return {
-              ...game,
-              developers: game.developers || [],
-              publishers: game.publishers || []
-            }
-          }
-          
-          const gameDetail: RAWGGame = await detailResponse.json()
-          
-          console.log(`🎮 RAWG: Details for "${gameDetail.name}":`, {
-            developers: gameDetail.developers?.map(d => d.name) || [],
-            publishers: gameDetail.publishers?.map(p => p.name) || [],
-            rating: gameDetail.rating,
-            released: gameDetail.released
-          })
-          
-          return gameDetail
-          
-        } catch (error) {
-          console.warn('🎮 RAWG: Error getting details for', game.name, ':', error)
-          return {
-            ...game,
-            developers: game.developers || [],
-            publishers: game.publishers || []
-          }
-        }
-      })
-    )
-
-    console.log('🎮 RAWG: Successfully enriched', enrichedGames.length, 'games with full details')
-    return enrichedGames
-  }
-
-  // ✅ TRIER PAR PERTINENCE ET DATE (PERTINENCE D'ABORD)
-  private sortByRelevanceAndDate(games: RAWGGame[], query: string): RAWGGame[] {
-    return games.sort((a, b) => {
-      const queryLower = query.toLowerCase()
-      
-      // 1. PRIORITÉ ABSOLUE: Correspondance exacte du nom
-      const aExactMatch = a.name.toLowerCase() === queryLower
-      const bExactMatch = b.name.toLowerCase() === queryLower
-      
-      if (aExactMatch && !bExactMatch) return -1
-      if (!aExactMatch && bExactMatch) return 1
-      
-      // 2. Correspondance partielle forte du nom (contient le mot-clé)
-      const aPartialMatch = a.name.toLowerCase().includes(queryLower)
-      const bPartialMatch = b.name.toLowerCase().includes(queryLower)
-      
-      if (aPartialMatch && !bPartialMatch) return -1
-      if (!aPartialMatch && bPartialMatch) return 1
-      
-      // 3. Pour les jeux qui matchent le nom, prioriser les récents
-      if (aPartialMatch && bPartialMatch) {
-        const aYear = a.released ? new Date(a.released).getFullYear() : 0
-        const bYear = b.released ? new Date(b.released).getFullYear() : 0
-        
-        const currentYear = new Date().getFullYear()
-        
-        // Priorité aux jeux récents/à venir (2024+) SEULEMENT pour les matchs pertinents
-        const aIsRecent = aYear >= currentYear
-        const bIsRecent = bYear >= currentYear
-        
-        if (aIsRecent && !bIsRecent) return -1
-        if (!aIsRecent && bIsRecent) return 1
-        
-        // Trier par année (plus récent en premier) pour les matchs pertinents
-        if (aYear !== bYear) return bYear - aYear
-      }
-      
-      // 4. Correspondance développeur (pour les cas où le nom ne match pas exactement)
-      const aDeveloperMatch = a.developers?.some(dev => 
-        dev.name.toLowerCase().includes(queryLower)
-      ) || false
-      const bDeveloperMatch = b.developers?.some(dev => 
-        dev.name.toLowerCase().includes(queryLower)
-      ) || false
-      
-      if (aDeveloperMatch && !bDeveloperMatch) return -1
-      if (!aDeveloperMatch && bDeveloperMatch) return 1
-      
-      // 5. Trier par rating pour départager
-      return (b.rating || 0) - (a.rating || 0)
-    })
-  }
-
-  // ✅ MÉTHODES EXISTANTES INCHANGÉES
+  
+  // ✅ AUTRES MÉTHODES AVEC ERROR HANDLING
   async getPopularGames(): Promise<RAWGGame[]> {
     try {
       const response = await fetch(
@@ -6501,7 +6372,7 @@ class RAWGService {
       return data.results || []
     } catch (error) {
       console.error('Error fetching popular games:', error)
-      return []
+      return this.getFallbackGames('popular')
     }
   }
 
@@ -6519,7 +6390,7 @@ class RAWGService {
       return data.results || []
     } catch (error) {
       console.error('Error fetching top rated games:', error)
-      return []
+      return this.getFallbackGames('top rated')
     }
   }
 
@@ -6541,7 +6412,7 @@ class RAWGService {
       return data.results || []
     } catch (error) {
       console.error('Error fetching new releases:', error)
-      return []
+      return this.getFallbackGames('new releases')
     }
   }
 
@@ -8316,298 +8187,6 @@ export default function ContentSection({
 }
 </file>
 
-<file path="src/components/ContentCard.tsx">
-'use client'
-import { useState } from 'react'
-import { Plus, Check, Star, Edit } from 'lucide-react'
-import { idsMatch } from '@/utils/idNormalizer'
-import type { ContentItem, LibraryItem, MediaCategory, MediaStatus } from '@/types'
-
-interface ContentCardProps {
-  item: ContentItem | LibraryItem
-  category: MediaCategory
-  onAddToLibrary: (item: ContentItem | LibraryItem, status: MediaStatus) => void
-  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP pour retirer
-  library: LibraryItem[]
-  onOpenGameDetail?: (gameId: string) => void
-  onOpenMovieDetail?: (movieId: string) => void
-  onOpenBookDetail?: (bookId: string) => void
-  onOpenMusicDetail?: (musicId: string) => void
-}
-
-export default function ContentCard({
-  item,
-  category,
-  onAddToLibrary,
-  onDeleteItem,
-  library = [],
-  onOpenGameDetail,
-  onOpenMovieDetail,
-  onOpenBookDetail,
-  onOpenMusicDetail
-}: ContentCardProps) {
-  const [showActions, setShowActions] = useState(false)
-
-  // ✅ NOUVELLE LOGIQUE : Récupérer l'item exact de la bibliothèque
-  const safeLibrary = Array.isArray(library) ? library : []
-  const libraryItem = safeLibrary.find((libItem: LibraryItem) => idsMatch(libItem.id, item.id))
-  const isInLibrary = !!libraryItem
-  const currentStatus = libraryItem?.status
-
-  const handleAdd = (status: MediaStatus) => {
-    onAddToLibrary(item, status)
-    setShowActions(false)
-  }
-
-  // ✅ NOUVELLE FONCTION : Gérer le clic sur le statut actuel
-  const handleStatusClick = () => {
-    if (isInLibrary && onDeleteItem) {
-      // Si déjà dans la bibliothèque, proposer de retirer ou changer
-      setShowActions(true)
-    } else {
-      // Sinon, ouvrir les options d'ajout
-      setShowActions(true)
-    }
-  }
-
-  const handleCardClick = () => {
-    if (category === 'games' && onOpenGameDetail) {
-      onOpenGameDetail(item.id)
-    } else if (category === 'movies' && onOpenMovieDetail) {
-      onOpenMovieDetail(item.id)
-    } else if (category === 'books' && onOpenBookDetail) {
-      onOpenBookDetail(item.id)
-    } else if (category === 'music' && onOpenMusicDetail) {
-      onOpenMusicDetail(item.id)
-    }
-  }
-
-  const getCategoryGradient = (category: MediaCategory) => {
-    switch (category) {
-      case 'games': return 'from-green-400 to-blue-500'
-      case 'movies': return 'from-purple-400 to-pink-500'
-      case 'music': return 'from-orange-400 to-red-500'
-      case 'books': return 'from-blue-400 to-purple-500'
-      default: return 'from-gray-400 to-gray-600'
-    }
-  }
-
-  const getCategoryEmoji = (category: MediaCategory) => {
-    switch (category) {
-      case 'games': return '🎮'
-      case 'movies': return '🎬'
-      case 'music': return '🎵'
-      case 'books': return '📚'
-      default: return '📄'
-    }
-  }
-
-  const getActionLabel = (status: MediaStatus, category: MediaCategory) => {
-    switch (status) {
-      case 'want-to-play':
-        switch (category) {
-          case 'games': return 'Want to Play'
-          case 'movies': return 'Want to Watch'
-          case 'music': return 'Want to Listen'
-          case 'books': return 'Want to Read'
-          default: return 'Want to Play'
-        }
-      case 'currently-playing':
-        switch (category) {
-          case 'games': return 'Playing'
-          case 'movies': return 'Watching'
-          case 'music': return 'Listening'
-          case 'books': return 'Reading'
-          default: return 'Playing'
-        }
-      case 'completed': return 'Completed'
-      default: return 'Add'
-    }
-  }
-
-  // ✅ NOUVELLE FONCTION : Couleur du statut
-  const getStatusColor = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'bg-orange-500'
-      case 'currently-playing': return 'bg-green-500'
-      case 'completed': return 'bg-blue-500'
-      case 'paused': return 'bg-yellow-500'
-      case 'dropped': return 'bg-red-500'
-      default: return 'bg-gray-500'
-    }
-  }
-
-  return (
-    <div className="group cursor-pointer">
-      <div 
-        className="relative w-full h-40 bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
-        onClick={handleCardClick}
-      >
-        {item.image ? (
-          <img 
-            src={item.image} 
-            alt={item.title} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-          />
-        ) : (
-          <div className={`w-full h-full bg-gradient-to-br ${getCategoryGradient(category)} flex items-center justify-center`}>
-            <span className="text-white text-2xl">
-              {getCategoryEmoji(category)}
-            </span>
-          </div>
-        )}
-        
-        <div className="absolute top-2 right-2">
-          {isInLibrary ? (
-            // ✅ NOUVEAU : Affichage du statut actuel avec possibilité de modifier
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleStatusClick()
-                }}
-                className={`w-auto px-2 h-7 ${getStatusColor(currentStatus!)} text-white rounded-full flex items-center justify-center text-xs font-medium shadow-md hover:shadow-lg transition-all`}
-              >
-                <Check size={12} className="mr-1" />
-                <span>{getActionLabel(currentStatus!, category).split(' ')[0]}</span>
-              </button>
-
-              {showActions && (
-                <div className="absolute top-8 right-0 bg-white/95 backdrop-blur-sm rounded-lg p-2 z-20 min-w-44 border border-gray-200 shadow-lg">
-                  {/* Options de changement de statut */}
-                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
-                    <button 
-                      key={status}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (status === currentStatus) {
-                          // Si même statut, retirer de la bibliothèque
-                          if (onDeleteItem) {
-                            onDeleteItem(item.id)
-                          }
-                        } else {
-                          // Sinon, changer le statut
-                          handleAdd(status)
-                        }
-                        setShowActions(false)
-                      }} 
-                      className={`block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium flex items-center justify-between ${
-                        status === currentStatus ? 'bg-red-50 text-red-700 hover:bg-red-100' : ''
-                      }`}
-                    >
-                      <span>
-                        {status === currentStatus ? `Remove from ${getActionLabel(status, category)}` : getActionLabel(status, category)}
-                      </span>
-                      {status === currentStatus && <span className="text-red-500">×</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            // Bouton d'ajout classique
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowActions(!showActions)
-                }}
-                className="w-7 h-7 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors shadow-md hover:shadow-lg"
-              >
-                <Plus size={14} />
-              </button>
-              {showActions && (
-                <div className="absolute top-8 right-0 bg-white/95 backdrop-blur-sm rounded-lg p-2 z-20 min-w-32 border border-gray-200 shadow-lg">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAdd('want-to-play')
-                    }} 
-                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
-                  >
-                    {getActionLabel('want-to-play', category)}
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAdd('currently-playing')
-                    }} 
-                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
-                  >
-                    {getActionLabel('currently-playing', category)}
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAdd('completed')
-                    }} 
-                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
-                  >
-                    Completed
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-3 px-1">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-gray-900 text-sm font-semibold truncate leading-tight flex-1">
-            {item.title}
-          </h3>
-          {/* Indicateur série TV */}
-          {item.isSeries && (
-            <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium flex-shrink-0">
-              TV
-            </span>
-          )}
-        </div>
-        
-        <div className="flex justify-between items-center text-xs text-gray-500">
-          <span>{item.year}</span>
-          {item.rating && item.rating > 0 && (
-            <span className="flex items-center">
-              <Star size={10} className="text-yellow-500 mr-1 fill-current" />
-              {item.rating.toFixed(1)}
-            </span>
-          )}
-        </div>
-        
-        {/* ✅ NOUVEAU : Affichage du statut sous la carte */}
-        {isInLibrary && (
-          <div className="mt-2">
-            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-              currentStatus === 'want-to-play' ? 'bg-orange-100 text-orange-700' :
-              currentStatus === 'currently-playing' ? 'bg-green-100 text-green-700' :
-              currentStatus === 'completed' ? 'bg-blue-100 text-blue-700' :
-              'bg-gray-100 text-gray-700'
-            }`}>
-              {getActionLabel(currentStatus!, category)}
-            </span>
-          </div>
-        )}
-        
-        {/* Afficher le nombre de saisons pour les séries */}
-        {item.isSeries && item.totalSeasons && (
-          <div className="text-xs text-gray-500 mt-1">
-            {item.totalSeasons} season{item.totalSeasons > 1 ? 's' : ''}
-          </div>
-        )}
-      </div>
-
-      {showActions && (
-        <div 
-          className="fixed inset-0 z-10" 
-          onClick={() => setShowActions(false)}
-        />
-      )}
-    </div>
-  )
-}
-</file>
-
 <file path="src/components/GameDetailModal.tsx">
 'use client'
 import { useState, useEffect, useRef } from 'react'
@@ -9548,6 +9127,298 @@ export default function GameDetailModal({
           </div>
         )}
       </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/components/ContentCard.tsx">
+'use client'
+import { useState } from 'react'
+import { Plus, Check, Star, Edit } from 'lucide-react'
+import { idsMatch } from '@/utils/idNormalizer'
+import type { ContentItem, LibraryItem, MediaCategory, MediaStatus } from '@/types'
+
+interface ContentCardProps {
+  item: ContentItem | LibraryItem
+  category: MediaCategory
+  onAddToLibrary: (item: ContentItem | LibraryItem, status: MediaStatus) => void
+  onDeleteItem?: (id: string) => void // ✅ NOUVELLE PROP pour retirer
+  library: LibraryItem[]
+  onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void
+}
+
+export default function ContentCard({
+  item,
+  category,
+  onAddToLibrary,
+  onDeleteItem,
+  library = [],
+  onOpenGameDetail,
+  onOpenMovieDetail,
+  onOpenBookDetail,
+  onOpenMusicDetail
+}: ContentCardProps) {
+  const [showActions, setShowActions] = useState(false)
+
+  // ✅ NOUVELLE LOGIQUE : Récupérer l'item exact de la bibliothèque
+  const safeLibrary = Array.isArray(library) ? library : []
+  const libraryItem = safeLibrary.find((libItem: LibraryItem) => idsMatch(libItem.id, item.id))
+  const isInLibrary = !!libraryItem
+  const currentStatus = libraryItem?.status
+
+  const handleAdd = (status: MediaStatus) => {
+    onAddToLibrary(item, status)
+    setShowActions(false)
+  }
+
+  // ✅ NOUVELLE FONCTION : Gérer le clic sur le statut actuel
+  const handleStatusClick = () => {
+    if (isInLibrary && onDeleteItem) {
+      // Si déjà dans la bibliothèque, proposer de retirer ou changer
+      setShowActions(true)
+    } else {
+      // Sinon, ouvrir les options d'ajout
+      setShowActions(true)
+    }
+  }
+
+  const handleCardClick = () => {
+    if (category === 'games' && onOpenGameDetail) {
+      onOpenGameDetail(item.id)
+    } else if (category === 'movies' && onOpenMovieDetail) {
+      onOpenMovieDetail(item.id)
+    } else if (category === 'books' && onOpenBookDetail) {
+      onOpenBookDetail(item.id)
+    } else if (category === 'music' && onOpenMusicDetail) {
+      onOpenMusicDetail(item.id)
+    }
+  }
+
+  const getCategoryGradient = (category: MediaCategory) => {
+    switch (category) {
+      case 'games': return 'from-green-400 to-blue-500'
+      case 'movies': return 'from-purple-400 to-pink-500'
+      case 'music': return 'from-orange-400 to-red-500'
+      case 'books': return 'from-blue-400 to-purple-500'
+      default: return 'from-gray-400 to-gray-600'
+    }
+  }
+
+  const getCategoryEmoji = (category: MediaCategory) => {
+    switch (category) {
+      case 'games': return '🎮'
+      case 'movies': return '🎬'
+      case 'music': return '🎵'
+      case 'books': return '📚'
+      default: return '📄'
+    }
+  }
+
+  const getActionLabel = (status: MediaStatus, category: MediaCategory) => {
+    switch (status) {
+      case 'want-to-play':
+        switch (category) {
+          case 'games': return 'Want to Play'
+          case 'movies': return 'Want to Watch'
+          case 'music': return 'Want to Listen'
+          case 'books': return 'Want to Read'
+          default: return 'Want to Play'
+        }
+      case 'currently-playing':
+        switch (category) {
+          case 'games': return 'Playing'
+          case 'movies': return 'Watching'
+          case 'music': return 'Listening'
+          case 'books': return 'Reading'
+          default: return 'Playing'
+        }
+      case 'completed': return 'Completed'
+      default: return 'Add'
+    }
+  }
+
+  // ✅ NOUVELLE FONCTION : Couleur du statut
+  const getStatusColor = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'bg-orange-500'
+      case 'currently-playing': return 'bg-green-500'
+      case 'completed': return 'bg-blue-500'
+      case 'paused': return 'bg-yellow-500'
+      case 'dropped': return 'bg-red-500'
+      default: return 'bg-gray-500'
+    }
+  }
+
+  return (
+    <div className="group cursor-pointer">
+      <div 
+        className="relative w-full h-40 bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
+        onClick={handleCardClick}
+      >
+        {item.image ? (
+          <img 
+            src={item.image} 
+            alt={item.title} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+          />
+        ) : (
+          <div className={`w-full h-full bg-gradient-to-br ${getCategoryGradient(category)} flex items-center justify-center`}>
+            <span className="text-white text-2xl">
+              {getCategoryEmoji(category)}
+            </span>
+          </div>
+        )}
+        
+        <div className="absolute top-2 right-2">
+          {isInLibrary ? (
+            // ✅ NOUVEAU : Affichage du statut actuel avec possibilité de modifier
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleStatusClick()
+                }}
+                className={`w-auto px-2 h-7 ${getStatusColor(currentStatus!)} text-white rounded-full flex items-center justify-center text-xs font-medium shadow-md hover:shadow-lg transition-all`}
+              >
+                <Check size={12} className="mr-1" />
+                <span>{getActionLabel(currentStatus!, category).split(' ')[0]}</span>
+              </button>
+
+              {showActions && (
+                <div className="absolute top-8 right-0 bg-white/95 backdrop-blur-sm rounded-lg p-2 z-20 min-w-44 border border-gray-200 shadow-lg">
+                  {/* Options de changement de statut */}
+                  {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
+                    <button 
+                      key={status}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (status === currentStatus) {
+                          // Si même statut, retirer de la bibliothèque
+                          if (onDeleteItem) {
+                            onDeleteItem(item.id)
+                          }
+                        } else {
+                          // Sinon, changer le statut
+                          handleAdd(status)
+                        }
+                        setShowActions(false)
+                      }} 
+                      className={`block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium flex items-center justify-between ${
+                        status === currentStatus ? 'bg-red-50 text-red-700 hover:bg-red-100' : ''
+                      }`}
+                    >
+                      <span>
+                        {status === currentStatus ? `Remove from ${getActionLabel(status, category)}` : getActionLabel(status, category)}
+                      </span>
+                      {status === currentStatus && <span className="text-red-500">×</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            // Bouton d'ajout classique
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowActions(!showActions)
+                }}
+                className="w-7 h-7 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors shadow-md hover:shadow-lg"
+              >
+                <Plus size={14} />
+              </button>
+              {showActions && (
+                <div className="absolute top-8 right-0 bg-white/95 backdrop-blur-sm rounded-lg p-2 z-20 min-w-32 border border-gray-200 shadow-lg">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdd('want-to-play')
+                    }} 
+                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
+                  >
+                    {getActionLabel('want-to-play', category)}
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdd('currently-playing')
+                    }} 
+                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
+                  >
+                    {getActionLabel('currently-playing', category)}
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdd('completed')
+                    }} 
+                    className="block text-gray-700 text-xs p-2 hover:bg-gray-100 w-full text-left rounded transition-colors font-medium"
+                  >
+                    Completed
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3 px-1">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-gray-900 text-sm font-semibold truncate leading-tight flex-1">
+            {item.title}
+          </h3>
+          {/* Indicateur série TV */}
+          {item.isSeries && (
+            <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium flex-shrink-0">
+              TV
+            </span>
+          )}
+        </div>
+        
+        <div className="flex justify-between items-center text-xs text-gray-500">
+          <span>{item.year}</span>
+          {item.rating && item.rating > 0 && (
+            <span className="flex items-center">
+              <Star size={10} className="text-yellow-500 mr-1 fill-current" />
+              {item.rating.toFixed(1)}
+            </span>
+          )}
+        </div>
+        
+        {/* ✅ NOUVEAU : Affichage du statut sous la carte */}
+        {isInLibrary && (
+          <div className="mt-2">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              currentStatus === 'want-to-play' ? 'bg-orange-100 text-orange-700' :
+              currentStatus === 'currently-playing' ? 'bg-green-100 text-green-700' :
+              currentStatus === 'completed' ? 'bg-blue-100 text-blue-700' :
+              'bg-gray-100 text-gray-700'
+            }`}>
+              {getActionLabel(currentStatus!, category)}
+            </span>
+          </div>
+        )}
+        
+        {/* Afficher le nombre de saisons pour les séries */}
+        {item.isSeries && item.totalSeasons && (
+          <div className="text-xs text-gray-500 mt-1">
+            {item.totalSeasons} season{item.totalSeasons > 1 ? 's' : ''}
+          </div>
+        )}
+      </div>
+
+      {showActions && (
+        <div 
+          className="fixed inset-0 z-10" 
+          onClick={() => setShowActions(false)}
+        />
+      )}
     </div>
   )
 }
@@ -10499,38 +10370,94 @@ export default function SearchModal({
     return creator
   }
 
-  // ✅ RECHERCHE JEUX AVEC FILTRAGE STRICT DE PERTINENCE
+  // ✅ RECHERCHE JEUX AVEC DIAGNOSTIC COMPLET
   const searchGames = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎮 [SearchModal] Starting ENHANCED games search for:', query)
+    console.log('🎮 [SearchModal] Starting DIAGNOSTIC games search for:', query)
     
     try {
-      // ✅ UTILISE LA NOUVELLE MÉTHODE searchGames AMÉLIORÉE
-      const games = await rawgService.searchGames(query, 20) // Plus de résultats pour filtrer
-      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games with enhanced search')
+      // ✅ TEST DE CONNECTIVITÉ D'ABORD
+      console.log('🎮 [SearchModal] Testing RAWG connection...')
+      const connectionTest = await rawgService.testConnection()
+      
+      if (!connectionTest.success) {
+        console.error('🎮 [SearchModal] RAWG API unavailable:', connectionTest.message)
+        throw new Error(`RAWG API unavailable: ${connectionTest.message}`)
+      }
+      
+      console.log('🎮 [SearchModal] RAWG connection OK:', connectionTest.message)
+      
+      // ✅ RECHERCHE AVEC LE SERVICE CORRIGÉ
+      const games = await rawgService.searchGames(query, 20)
+      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games')
       
       if (!games || games.length === 0) {
-        console.log('🎮 [SearchModal] No games found with enhanced search')
+        console.log('🎮 [SearchModal] No games found, checking if API is working...')
         return []
       }
 
-      // ✅ FILTRAGE STRICT DE PERTINENCE AVANT CONVERSION
-      const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2)
+      // ✅ FILTRAGE INTELLIGENT DE PERTINENCE AVANT CONVERSION
+      const queryLower = query.toLowerCase().trim()
+      const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1)
+      
+      console.log('🎮 [SearchModal] Query words to match:', queryWords)
+      console.log('🎮 [SearchModal] Full query:', queryLower)
       
       const relevantGames = games.filter(game => {
         const gameName = game.name.toLowerCase()
+        const developerNames = game.developers?.map(dev => dev.name.toLowerCase()) || []
+        const publisherNames = game.publishers?.map(pub => pub.name.toLowerCase()) || []
         
-        // Vérifier si le nom du jeu contient au moins un mot-clé significatif de la recherche
-        const hasRelevantMatch = queryWords.some(word => 
-          gameName.includes(word) || 
-          game.developers?.some(dev => dev.name.toLowerCase().includes(word)) ||
-          game.publishers?.some(pub => pub.name.toLowerCase().includes(word))
+        // ✅ LOGIQUE ÉQUILIBRÉE : Plusieurs niveaux de correspondance
+        
+        // 1. Correspondance exacte complète (priorité max)
+        const exactMatch = gameName === queryLower
+        
+        // 2. Correspondance de séquence complète dans le titre
+        const hasSequenceMatch = gameName.includes(queryLower)
+        
+        // 3. TOUS les mots-clés importants présents (pour requêtes multi-mots)
+        const allWordsInTitle = queryWords.length > 1 ? 
+          queryWords.every(word => gameName.includes(word)) : 
+          gameName.includes(queryWords[0]) // Pour un seul mot, juste vérifier qu'il est présent
+        
+        // 4. Au moins la moitié des mots-clés présents (pour flexibilité)
+        const majorityWordsMatch = queryWords.length > 2 ?
+          queryWords.filter(word => gameName.includes(word)).length >= Math.ceil(queryWords.length / 2) :
+          false
+        
+        // 5. Match développeur/éditeur avec mots du titre
+        const hasCreatorMatch = queryWords.some(word => 
+          developerNames.some(dev => dev.includes(word)) ||
+          publisherNames.some(pub => pub.includes(word))
         )
+        const hasPartialTitleMatch = queryWords.some(word => gameName.includes(word))
         
-        console.log(`🎮 [SearchModal] Filtering "${game.name}": ${hasRelevantMatch ? 'KEEP' : 'REJECT'}`)
-        return hasRelevantMatch
+        // 6. Correspondance début de titre (pour les séries)
+        const startsWithQuery = gameName.startsWith(queryLower)
+        
+        // ✅ CRITÈRES DE PERTINENCE (du plus strict au plus flexible) : 
+        const isRelevant = exactMatch ||           // Correspondance exacte
+          hasSequenceMatch ||                      // Séquence complète présente
+          startsWithQuery ||                       // Commence par la requête
+          allWordsInTitle ||                       // Tous les mots présents
+          majorityWordsMatch ||                    // Majorité des mots présents
+          (hasCreatorMatch && hasPartialTitleMatch) // Match créateur + titre partiel
+        
+        console.log(`🎮 [SearchModal] "${game.name}":`, {
+          exactMatch,
+          hasSequenceMatch,
+          startsWithQuery,
+          allWordsInTitle,
+          majorityWordsMatch,
+          hasCreatorMatch,
+          hasPartialTitleMatch,
+          isRelevant: isRelevant ? 'KEEP' : 'REJECT'
+        })
+        
+        return isRelevant
       })
 
-      console.log(`🎮 [SearchModal] Filtered from ${games.length} to ${relevantGames.length} relevant games`)
+      console.log(`🎮 [SearchModal] INTELLIGENT FILTERING: ${games.length} → ${relevantGames.length} games`)
 
       // ✅ CONVERSION AVEC VÉRIFICATION STRICTE DES DÉVELOPPEURS
       const convertedGames = relevantGames.map(game => {
@@ -10554,7 +10481,8 @@ export default function SearchModal({
 
       // ✅ TRI OPTIMISÉ: PERTINENCE D'ABORD, PUIS DATE
       const sortedGames = convertedGames.sort((a, b) => {
-        const queryLower = query.toLowerCase()
+        const queryLower = query.toLowerCase().trim()
+        const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1)
         
         // 1. PRIORITÉ ABSOLUE: Correspondance exacte du titre
         const aExactMatch = a.title.toLowerCase() === queryLower
@@ -10563,22 +10491,22 @@ export default function SearchModal({
         if (aExactMatch && !bExactMatch) return -1
         if (!aExactMatch && bExactMatch) return 1
         
-        // 2. Correspondance partielle forte du titre (tous les mots-clés présents)
-        const aStrongMatch = queryWords.every(word => a.title.toLowerCase().includes(word))
-        const bStrongMatch = queryWords.every(word => b.title.toLowerCase().includes(word))
+        // 2. Correspondance de séquence complète dans le titre
+        const aHasSequence = a.title.toLowerCase().includes(queryLower)
+        const bHasSequence = b.title.toLowerCase().includes(queryLower)
         
-        if (aStrongMatch && !bStrongMatch) return -1
-        if (!aStrongMatch && bStrongMatch) return 1
+        if (aHasSequence && !bHasSequence) return -1
+        if (!aHasSequence && bHasSequence) return 1
         
-        // 3. Correspondance partielle du titre (au moins un mot-clé)
-        const aTitleContains = queryWords.some(word => a.title.toLowerCase().includes(word))
-        const bTitleContains = queryWords.some(word => b.title.toLowerCase().includes(word))
+        // 3. Tous les mots-clés présents dans le titre
+        const aHasAllWords = queryWords.every(word => a.title.toLowerCase().includes(word))
+        const bHasAllWords = queryWords.every(word => b.title.toLowerCase().includes(word))
         
-        if (aTitleContains && !bTitleContains) return -1
-        if (!aTitleContains && bTitleContains) return 1
+        if (aHasAllWords && !bHasAllWords) return -1
+        if (!aHasAllWords && bHasAllWords) return 1
         
-        // 4. Pour les jeux qui matchent le titre, prioriser les récents
-        if (aTitleContains && bTitleContains) {
+        // 4. Pour les jeux qui matchent bien, prioriser les récents
+        if ((aHasSequence || aHasAllWords) && (bHasSequence || bHasAllWords)) {
           const currentYear = new Date().getFullYear()
           const aIsRecent = a.year >= currentYear
           const bIsRecent = b.year >= currentYear
@@ -10586,11 +10514,11 @@ export default function SearchModal({
           if (aIsRecent && !bIsRecent) return -1
           if (!aIsRecent && bIsRecent) return 1
           
-          // Tri par année si les deux sont récents ou anciens
+          // Trier par année (plus récent en premier) pour les matchs pertinents
           if (a.year !== b.year) return b.year - a.year
         }
         
-        // 5. Correspondance développeur/auteur
+        // 5. Correspondance développeur/créateur
         const aDeveloperMatch = queryWords.some(word => 
           (a.developer || a.author || '').toLowerCase().includes(word)
         )
@@ -10607,7 +10535,7 @@ export default function SearchModal({
 
       console.log('✅ [SearchModal] Games search complete - sorted by relevance then recency:')
       sortedGames.slice(0, 8).forEach((game, i) => {
-        const isRelevant = queryWords.some(word => game.title.toLowerCase().includes(word))
+        const isRelevant = queryWords.every(word => game.title.toLowerCase().includes(word))
         console.log(`  ${i + 1}. ${game.title} (${game.year}) ${game.year >= 2024 ? '🔥' : ''} ${isRelevant ? '✅' : '❌'}`)
       })
 
