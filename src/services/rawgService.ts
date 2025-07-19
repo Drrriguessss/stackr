@@ -104,13 +104,16 @@ class RAWGService {
     }
   }
 
-  // Convertir un jeu RAWG vers le format de l'app
+  // ✅ CONVERTIR UN JEU RAWG VERS LE FORMAT DE L'APP - CORRIGÉ
   convertToAppFormat(game: RAWGGame): any {
+    const developer = game.developers?.[0]?.name || 'Unknown Developer'
+    
     return {
       id: `game-${game.id}`,
       title: game.name || 'Unknown Game',
       name: game.name || 'Unknown Game',
-      author: game.developers?.[0]?.name || 'Unknown Developer',
+      author: developer,           // ✅ Pour compatibilité avec getCreator
+      developer: developer,        // ✅ NOUVEAU: Propriété spécifique aux jeux
       year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
       rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
       genre: game.genres?.[0]?.name || 'Unknown',

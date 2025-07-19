@@ -19,6 +19,18 @@ interface SearchModalProps {
   library: LibraryItem[]
 }
 
+// Debounce utility function
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
+}
+
 export default function SearchModal({
   isOpen,
   onClose,
@@ -53,159 +65,215 @@ export default function SearchModal({
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
-  // Focus input when modal opens
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [isOpen])
-
-  // Close popup when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => setShowStatusPopup(null)
-    if (showStatusPopup) {
-      document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
-    }
-  }, [showStatusPopup])
-
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setQuery('')
-      setResults([])
-      setSelectedIndex(-1)
-      setError(null)
-      setShowStatusPopup(null)
-      setAddingItem(null)
-      setFadeOutPopup(null)
-      setSelectedStatus(null)
-      setJustAddedItems(new Set())
-    }
-  }, [isOpen])
-
-  // Feedback flow detection
-  useEffect(() => {
-    if (addingItem) {
-      const normalizedId = normalizeId(addingItem)
-      
-      const checkLibrary = () => {
-        const isInLibrary = safeLibrary.some((item: LibraryItem) => {
-          if (!item?.id) return false
-          return idsMatch(item.id, addingItem)
-        })
-        
-        if (isInLibrary) {
-          setAddingItem(null)
-          setJustAddedItems(prev => new Set([...prev, addingItem]))
-          
-          setTimeout(() => {
-            setJustAddedItems(prev => {
-              const newSet = new Set(prev)
-              newSet.delete(addingItem)
-              return newSet
-            })
-          }, 3000)
-        }
-      }
-      
-      checkLibrary()
-      
-      const timeoutId = setTimeout(() => {
-        console.warn('Adding timeout reached for:', addingItem)
-        setAddingItem(null)
-        setJustAddedItems(prev => new Set([...prev, addingItem]))
-        
-        setTimeout(() => {
-          setJustAddedItems(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(addingItem)
-            return newSet
-          })
-        }, 2000)
-      }, 5000)
-      
-      return () => clearTimeout(timeoutId)
-    }
-  }, [safeLibrary, addingItem])
-
-  // Get status options based on category
-  const getStatusOptions = (category: string): StatusOption[] => {
-    switch (category) {
-      case 'games':
-        return [
-          { value: 'want-to-play', label: 'Want to Play' },
-          { value: 'currently-playing', label: 'Playing' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'movies':
-        return [
-          { value: 'want-to-play', label: 'Want to Watch' },
-          { value: 'currently-playing', label: 'Watching' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'music':
-        return [
-          { value: 'want-to-play', label: 'Want to Listen' },
-          { value: 'currently-playing', label: 'Listening' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'books':
-        return [
-          { value: 'want-to-play', label: 'Want to Read' },
-          { value: 'currently-playing', label: 'Reading' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      default:
-        return [
-          { value: 'want-to-play', label: 'Want to Play' },
-          { value: 'currently-playing', label: 'Playing' },
-          { value: 'completed', label: 'Completed' }
-        ]
-    }
-  }
-
-  // Check if item is in library avec sécurité
-  const getLibraryItem = (resultId: string): LibraryItem | undefined => {
-    return safeLibrary.find((libItem: LibraryItem) => {
-      if (!libItem?.id) return false
-      return idsMatch(libItem.id, resultId)
-    })
-  }
-
-  // Get status display label
-  const getStatusDisplayLabel = (status: MediaStatus, category: string): string => {
-    const options = getStatusOptions(category)
-    const option = options.find(opt => opt.value === status)
-    return option ? option.label : 'Added'
-  }
-
-  // Fetch with timeout utility
-  const fetchWithTimeout = async (url: string, timeout = 8000): Promise<Response> => {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeout)
+  // 🎮 RECHERCHE JEUX - CORRIGÉE AVEC DÉVELOPPEURS
+  const searchGames = async (query: string): Promise<SearchResult[]> => {
+    console.log('🎮 Starting games search for:', query)
     
     try {
-      const response = await fetch(url, { 
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-        }
+      const games = await rawgService.searchGames(query, 12)
+      console.log('🎮 RAWG service returned:', games.length, 'games')
+      
+      if (!games || games.length === 0) {
+        console.log('🎮 No games found')
+        return []
+      }
+
+      // ✅ CONVERSION AVEC DÉVELOPPEURS ASSURÉS
+      const convertedGames = games.map(game => {
+        const converted = rawgService.convertToAppFormat(game)
+        
+        // ✅ LOG POUR VÉRIFIER LES DÉVELOPPEURS
+        console.log('🎮 Game:', converted.title, '- Developer:', converted.developer, '- Author:', converted.author)
+        
+        return converted
       })
-      clearTimeout(timeoutId)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      return response
+
+      console.log('✅ Games search successful:', convertedGames.length, 'results')
+      return convertedGames
+
     } catch (error) {
-      clearTimeout(timeoutId)
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Request timeout - please try again')
-      }
+      console.error('❌ Games search failed:', error)
       throw error
     }
+  }
+
+  // 🎬 RECHERCHE FILMS/SÉRIES - CORRIGÉE AVEC RÉALISATEURS  
+  const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
+    console.log('🎬 Starting movies/series search for:', query)
+    
+    try {
+      const movies = await omdbService.searchMoviesAndSeries(query, 1)
+      console.log('🎬 OMDB service returned:', movies.length, 'movies/series')
+      
+      if (!movies || movies.length === 0) {
+        console.log('🎬 No movies/series found')
+        return []
+      }
+
+      // ✅ RÉCUPÉRER LES DÉTAILS POUR AVOIR LES RÉALISATEURS
+      const detailedMovies = await Promise.all(
+        movies.slice(0, 8).map(async movie => {
+          try {
+            // Récupérer les détails complets pour avoir le réalisateur
+            const movieDetails = await omdbService.getMovieDetails(movie.imdbID)
+            
+            if (movieDetails) {
+              const converted = omdbService.convertToAppFormat(movieDetails)
+              
+              // ✅ LOG POUR VÉRIFIER LES RÉALISATEURS
+              console.log('🎬 Movie with details:', converted.title, '- Director:', converted.director, '- Author:', converted.author)
+              
+              return converted
+            } else {
+              // Fallback sur les données de base
+              const converted = omdbService.convertToAppFormat(movie)
+              console.log('🎬 Movie fallback:', converted.title, '- Director:', converted.director)
+              return converted
+            }
+          } catch (error) {
+            console.warn('🎬 Failed to get details for:', movie.Title, error)
+            // Fallback sur les données de base
+            const converted = omdbService.convertToAppFormat(movie)
+            return converted
+          }
+        })
+      )
+
+      console.log('✅ Movies search successful:', detailedMovies.length, 'results')
+      return detailedMovies
+
+    } catch (error) {
+      console.error('❌ Movies search failed:', error)
+      throw error
+    }
+  }
+
+  // 🎵 RECHERCHE MUSIQUE - INCHANGÉE
+  const searchMusic = async (query: string): Promise<SearchResult[]> => {
+    console.log('🎵 Starting music search for:', query)
+    
+    try {
+      const albums = await musicService.searchAlbums(query, 20)
+      console.log('🎵 Music service returned:', albums.length, 'albums')
+      
+      if (!albums || albums.length === 0) {
+        console.log('🎵 No albums found')
+        return []
+      }
+
+      const convertedAlbums = albums.map(album => {
+        const converted = musicService.convertToAppFormat(album)
+        console.log('🎵 Converted album:', converted.title, 'by', converted.artist, `(${converted.year}) - Category: ${converted.category}`)
+        return converted
+      })
+
+      console.log('✅ Music search successful:', convertedAlbums.length, 'results')
+      return convertedAlbums
+
+    } catch (error) {
+      console.error('❌ Music search failed:', error)
+      
+      // Fallback pour Taylor Swift
+      if (query.toLowerCase().includes('taylor')) {
+        console.log('🎵 Using extended Taylor Swift fallback')
+        return [
+          {
+            id: 'music-1440935467',
+            title: 'Midnights',
+            artist: 'Taylor Swift',
+            year: 2022,
+            rating: 4.5,
+            genre: 'Pop',
+            category: 'music' as const,
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/18/93/6f/18936ff8-d3ac-4f66-96af-8c6c35e5a63d/22UMGIM86640.rgb.jpg/300x300bb.jpg'
+          },
+          {
+            id: 'music-1584791945',
+            title: '1989 (Taylor\'s Version)',
+            artist: 'Taylor Swift',
+            year: 2023,
+            rating: 4.7,
+            genre: 'Pop',
+            category: 'music' as const,
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/69/4e/c0/694ec029-bef2-8339-a5e8-5f8d8bb5b4ad/23UMGIM78793.rgb.jpg/300x300bb.jpg'
+          }
+        ]
+      }
+      
+      throw error
+    }
+  }
+
+  // 📚 RECHERCHE LIVRES - INCHANGÉE
+  const searchBooks = async (query: string): Promise<SearchResult[]> => {
+    console.log('📚 Starting books search for:', query)
+    
+    try {
+      const books = await googleBooksService.searchBooks(query, 15)
+      console.log('📚 Google Books service returned:', books.length, 'books')
+      
+      if (!books || books.length === 0) {
+        console.log('📚 No books found')
+        return []
+      }
+
+      const convertedBooks = books.map(book => {
+        const converted = googleBooksService.convertToAppFormat(book)
+        console.log('📚 Converted book:', converted.title, 'by', converted.author, `(${converted.year}) - Category: ${converted.category}`)
+        return converted
+      })
+
+      console.log('✅ Books search successful:', convertedBooks.length, 'results')
+      return convertedBooks
+
+    } catch (error) {
+      console.error('❌ Books search failed:', error)
+      throw error
+    }
+  }
+
+  // ✅ FONCTION getCreator DÉFINITIVE ET CORRIGÉE
+  const getCreator = (result: SearchResult) => {
+    console.log('🔍 Getting creator for:', result.title, 'Category:', result.category, 'Available fields:', {
+      author: result.author,
+      director: result.director,
+      developer: result.developer,
+      artist: result.artist,
+      developers: result.developers
+    })
+
+    // Pour les jeux, utiliser le développeur
+    if (result.category === 'games') {
+      const creator = result.developer || 
+                      result.author || 
+                      (result.developers && result.developers.length > 0 ? result.developers[0].name : null) ||
+                      'Unknown Developer'
+      console.log('🎮 Game creator found:', creator)
+      return creator
+    }
+    
+    // Pour les films, utiliser le réalisateur
+    if (result.category === 'movies') {
+      const creator = result.director || result.author || 'Unknown Director'
+      console.log('🎬 Movie creator found:', creator)
+      return creator
+    }
+    
+    // Pour la musique, utiliser l'artiste
+    if (result.category === 'music') {
+      const creator = result.artist || 'Unknown Artist'
+      console.log('🎵 Music creator found:', creator)
+      return creator
+    }
+    
+    // Pour les livres, utiliser l'auteur
+    if (result.category === 'books') {
+      const creator = result.author || 'Unknown Author'
+      console.log('📚 Book creator found:', creator)
+      return creator
+    }
+    
+    return result.author || result.artist || result.director || result.developer || 'Unknown'
   }
 
   // Debounced search with caching
@@ -215,25 +283,6 @@ export default function SearchModal({
     }, 500),
     []
   )
-
-  useEffect(() => {
-    if (!query.trim() || query.length < 2) {
-      setResults([])
-      setSelectedIndex(-1)
-      setError(null)
-      return
-    }
-
-    const cacheKey = `${activeCategory}-${query.toLowerCase()}`
-    if (searchCache.has(cacheKey)) {
-      const cachedResults = searchCache.get(cacheKey)!
-      setResults(cachedResults)
-      setSelectedIndex(-1)
-      return
-    }
-
-    debouncedSearch(query, activeCategory)
-  }, [query, activeCategory, debouncedSearch, searchCache])
 
   const performSearch = async (searchQuery: string, category: string) => {
     if (!searchQuery.trim()) return
@@ -364,225 +413,150 @@ export default function SearchModal({
     }
   }
 
-  // 🎮 RECHERCHE JEUX - CORRIGÉE
-  const searchGames = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎮 Starting games search for:', query)
-    
-    try {
-      // ✅ UTILISER LE SERVICE RAWG EXISTANT
-      const games = await rawgService.searchGames(query, 12)
-      console.log('🎮 RAWG service returned:', games.length, 'games')
-      
-      if (!games || games.length === 0) {
-        console.log('🎮 No games found')
-        return []
-      }
-
-      // ✅ CONVERSION CORRECTE AVEC DÉVELOPPEURS
-      const convertedGames = games.map(game => {
-        const converted = rawgService.convertToAppFormat(game)
-        
-        // ✅ ASSURER QUE LE DÉVELOPPEUR EST BIEN MAPPÉ
-        if (game.developers && game.developers.length > 0) {
-          converted.author = game.developers[0].name
-          converted.developers = game.developers
-        }
-        
-        console.log('🎮 Converted game:', converted.title, `by ${converted.author} (${converted.year}) - Category: ${converted.category}`)
-        return converted
-      })
-
-      console.log('✅ Games search successful:', convertedGames.length, 'results')
-      return convertedGames
-
-    } catch (error) {
-      console.error('❌ Games search failed:', error)
-      throw error
+  // Focus input when modal opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus()
     }
-  }
+  }, [isOpen])
 
-  // 🎬 RECHERCHE FILMS/SÉRIES - SIMPLIFIÉE
-  const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎬 Starting movies/series search for:', query)
-    
-    try {
-      // ✅ UTILISER LE SERVICE OMDB EXISTANT
-      const movies = await omdbService.searchMoviesAndSeries(query, 1)
-      console.log('🎬 OMDB service returned:', movies.length, 'movies/series')
-      
-      if (!movies || movies.length === 0) {
-        console.log('🎬 No movies/series found')
-        return []
-      }
-
-      // ✅ CONVERSION CORRECTE AVEC RÉALISATEURS
-      const convertedMovies = movies.slice(0, 12).map(movie => {
-        const converted = omdbService.convertToAppFormat(movie)
-        
-        // ✅ ASSURER QUE LE RÉALISATEUR EST BIEN MAPPÉ
-        if (movie.Director && movie.Director !== 'N/A') {
-          converted.director = movie.Director
-        }
-        
-        console.log('🎬 Converted movie:', converted.title, `by ${converted.director} (${converted.year}) - Category: ${converted.category}`)
-        return converted
-      })
-
-      console.log('✅ Movies search successful:', convertedMovies.length, 'results')
-      return convertedMovies
-
-    } catch (error) {
-      console.error('❌ Movies search failed:', error)
-      throw error
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowStatusPopup(null)
+    if (showStatusPopup) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
     }
-  }
+  }, [showStatusPopup])
 
-  // 🎵 RECHERCHE MUSIQUE - EXHAUSTIVE
-  const searchMusic = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎵 Starting music search for:', query)
-    
-    try {
-      // ✅ RECHERCHE EXHAUSTIVE (20 résultats au lieu de 8)
-      const albums = await musicService.searchAlbums(query, 20)
-      console.log('🎵 Music service returned:', albums.length, 'albums')
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('')
+      setResults([])
+      setSelectedIndex(-1)
+      setError(null)
+      setShowStatusPopup(null)
+      setAddingItem(null)
+      setFadeOutPopup(null)
+      setSelectedStatus(null)
+      setJustAddedItems(new Set())
+    }
+  }, [isOpen])
+
+  // Feedback flow detection
+  useEffect(() => {
+    if (addingItem) {
+      const normalizedId = normalizeId(addingItem)
       
-      if (!albums || albums.length === 0) {
-        console.log('🎵 No albums found')
-        return []
+      const checkLibrary = () => {
+        const isInLibrary = safeLibrary.some((item: LibraryItem) => {
+          if (!item?.id) return false
+          return idsMatch(item.id, addingItem)
+        })
+        
+        if (isInLibrary) {
+          setAddingItem(null)
+          setJustAddedItems(prev => new Set([...prev, addingItem]))
+          
+          setTimeout(() => {
+            setJustAddedItems(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(addingItem)
+              return newSet
+            })
+          }, 3000)
+        }
       }
-
-      // ✅ CONVERSION CORRECTE
-      const convertedAlbums = albums.map(album => {
-        const converted = musicService.convertToAppFormat(album)
-        console.log('🎵 Converted album:', converted.title, 'by', converted.artist, `(${converted.year}) - Category: ${converted.category}`)
-        return converted
-      })
-
-      console.log('✅ Music search successful:', convertedAlbums.length, 'results')
-      return convertedAlbums
-
-    } catch (error) {
-      console.error('❌ Music search failed:', error)
       
-      // ✅ FALLBACK ÉTENDU
-      if (query.toLowerCase().includes('taylor')) {
-        console.log('🎵 Using extended Taylor Swift fallback')
+      checkLibrary()
+      
+      const timeoutId = setTimeout(() => {
+        console.warn('Adding timeout reached for:', addingItem)
+        setAddingItem(null)
+        setJustAddedItems(prev => new Set([...prev, addingItem]))
+        
+        setTimeout(() => {
+          setJustAddedItems(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(addingItem)
+            return newSet
+          })
+        }, 2000)
+      }, 5000)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [safeLibrary, addingItem])
+
+  useEffect(() => {
+    if (!query.trim() || query.length < 2) {
+      setResults([])
+      setSelectedIndex(-1)
+      setError(null)
+      return
+    }
+
+    const cacheKey = `${activeCategory}-${query.toLowerCase()}`
+    if (searchCache.has(cacheKey)) {
+      const cachedResults = searchCache.get(cacheKey)!
+      setResults(cachedResults)
+      setSelectedIndex(-1)
+      return
+    }
+
+    debouncedSearch(query, activeCategory)
+  }, [query, activeCategory, debouncedSearch, searchCache])
+
+  // Get status options based on category
+  const getStatusOptions = (category: string): StatusOption[] => {
+    switch (category) {
+      case 'games':
         return [
-          {
-            id: 'music-1440935467',
-            title: 'Midnights',
-            artist: 'Taylor Swift',
-            year: 2022,
-            rating: 4.5,
-            genre: 'Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/18/93/6f/18936ff8-d3ac-4f66-96af-8c6c35e5a63d/22UMGIM86640.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-1584791945',
-            title: '1989 (Taylor\'s Version)',
-            artist: 'Taylor Swift',
-            year: 2023,
-            rating: 4.7,
-            genre: 'Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/69/4e/c0/694ec029-bef2-8339-a5e8-5f8d8bb5b4ad/23UMGIM78793.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-1584791944',
-            title: 'folklore',
-            artist: 'Taylor Swift',
-            year: 2020,
-            rating: 4.8,
-            genre: 'Alternative',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/0f/58/54/0f585482-8998-be0a-9565-2dfc81a64558/20UMGIM58208.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-fearless',
-            title: 'Fearless (Taylor\'s Version)',
-            artist: 'Taylor Swift',
-            year: 2021,
-            rating: 4.6,
-            genre: 'Country Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/8b/77/37/8b7737db-22a9-5f17-df0e-b7cf6fdea41e/18UMGIM53115.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-red',
-            title: 'Red (Taylor\'s Version)',
-            artist: 'Taylor Swift',
-            year: 2021,
-            rating: 4.7,
-            genre: 'Pop Rock',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/83/17/2e/83172e66-0eb4-c9ab-a2c8-3b6c5f4b3b8b/21UMGIM76650.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-evermore',
-            title: 'evermore',
-            artist: 'Taylor Swift',
-            year: 2020,
-            rating: 4.5,
-            genre: 'Alternative',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/f3/51/29/f35129e1-6d8e-43e2-b0fa-c90a8e7b7c8f/20UMGIM67878.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-reputation',
-            title: 'reputation',
-            artist: 'Taylor Swift',
-            year: 2017,
-            rating: 4.3,
-            genre: 'Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music127/v4/23/8e/7e/238e7e6f-8fa3-4c78-b940-ff2f45c9b5b5/17UMGIM52009.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-lover',
-            title: 'Lover',
-            artist: 'Taylor Swift',
-            year: 2019,
-            rating: 4.4,
-            genre: 'Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music123/v4/07/77/33/077733d8-be2a-8751-8f7b-5b2c86b5c5db/19UMGIM53550.rgb.jpg/300x300bb.jpg'
-          }
+          { value: 'want-to-play', label: 'Want to Play' },
+          { value: 'currently-playing', label: 'Playing' },
+          { value: 'completed', label: 'Completed' }
         ]
-      }
-      
-      throw error
+      case 'movies':
+        return [
+          { value: 'want-to-play', label: 'Want to Watch' },
+          { value: 'currently-playing', label: 'Watching' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      case 'music':
+        return [
+          { value: 'want-to-play', label: 'Want to Listen' },
+          { value: 'currently-playing', label: 'Listening' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      case 'books':
+        return [
+          { value: 'want-to-play', label: 'Want to Read' },
+          { value: 'currently-playing', label: 'Reading' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      default:
+        return [
+          { value: 'want-to-play', label: 'Want to Play' },
+          { value: 'currently-playing', label: 'Playing' },
+          { value: 'completed', label: 'Completed' }
+        ]
     }
   }
 
-  // 📚 RECHERCHE LIVRES - EXHAUSTIVE
-  const searchBooks = async (query: string): Promise<SearchResult[]> => {
-    console.log('📚 Starting books search for:', query)
-    
-    try {
-      // ✅ RECHERCHE EXHAUSTIVE (15 résultats au lieu de 8)
-      const books = await googleBooksService.searchBooks(query, 15)
-      console.log('📚 Google Books service returned:', books.length, 'books')
-      
-      if (!books || books.length === 0) {
-        console.log('📚 No books found')
-        return []
-      }
+  // Check if item is in library avec sécurité
+  const getLibraryItem = (resultId: string): LibraryItem | undefined => {
+    return safeLibrary.find((libItem: LibraryItem) => {
+      if (!libItem?.id) return false
+      return idsMatch(libItem.id, resultId)
+    })
+  }
 
-      // ✅ CONVERSION CORRECTE
-      const convertedBooks = books.map(book => {
-        const converted = googleBooksService.convertToAppFormat(book)
-        console.log('📚 Converted book:', converted.title, 'by', converted.author, `(${converted.year}) - Category: ${converted.category}`)
-        return converted
-      })
-
-      console.log('✅ Books search successful:', convertedBooks.length, 'results')
-      return convertedBooks
-
-    } catch (error) {
-      console.error('❌ Books search failed:', error)
-      throw error
-    }
+  // Get status display label
+  const getStatusDisplayLabel = (status: MediaStatus, category: string): string => {
+    const options = getStatusOptions(category)
+    const option = options.find(opt => opt.value === status)
+    return option ? option.label : 'Added'
   }
 
   // Status selection with feedback flow
@@ -655,27 +629,6 @@ export default function SearchModal({
       onAddToLibrary(result, 'want-to-play')
       onClose()
     }
-  }
-
-  const getCreator = (result: SearchResult) => {
-    // Pour les jeux, utiliser le développeur
-    if (result.category === 'games') {
-      return result.author || result.developers?.[0]?.name || 'Unknown Developer'
-    }
-    // Pour les films, utiliser le réalisateur
-    if (result.category === 'movies') {
-      return result.director || 'Unknown Director'
-    }
-    // Pour la musique, utiliser l'artiste
-    if (result.category === 'music') {
-      return result.artist || 'Unknown Artist'
-    }
-    // Pour les livres, utiliser l'auteur
-    if (result.category === 'books') {
-      return result.author || 'Unknown Author'
-    }
-    
-    return result.author || result.artist || result.director || 'Unknown'
   }
 
   const getCategoryInfo = (category: string) => {
@@ -945,16 +898,4 @@ export default function SearchModal({
       </div>
     </div>
   )
-}
-
-// Debounce utility
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null
-  return (...args: Parameters<T>) => {
-    if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => func(...args), wait)
-  }
 }

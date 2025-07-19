@@ -296,15 +296,17 @@ class OMDBService {
     })
   }
 
-  // Convertir un film/série OMDB vers le format de l'app
+  // ✅ CONVERTIR UN FILM/SÉRIE OMDB VERS LE FORMAT DE L'APP - CORRIGÉ
   convertToAppFormat(item: OMDBMovie): any {
     const isMovie = item.Type === 'movie'
     const isSeries = item.Type === 'series'
+    const director = item.Director && item.Director !== 'N/A' ? item.Director : 'Unknown Director'
     
     return {
       id: `movie-${item.imdbID}`,
       title: item.Title,
-      director: item.Director || 'Unknown Director',
+      director: director,          // ✅ Propriété spécifique aux films
+      author: director,            // ✅ Pour compatibilité avec getCreator
       year: parseInt(item.Year) || new Date().getFullYear(),
       rating: item.imdbRating ? Number((parseFloat(item.imdbRating) / 2).toFixed(1)) : 0,
       genre: item.Genre?.split(',')[0]?.trim() || 'Unknown',

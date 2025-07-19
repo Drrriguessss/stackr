@@ -21,6 +21,7 @@ export interface ContentItem {
   author?: string      // Pour les livres
   artist?: string      // Pour la musique
   director?: string    // Pour les films
+  developer?: string   // ✅ NOUVEAU: Pour les jeux
   
   // Données spécifiques aux jeux (RAWG API)
   background_image?: string
@@ -72,6 +73,7 @@ export interface LibraryItem {
   author?: string      // Pour les livres
   artist?: string      // Pour la musique
   director?: string    // Pour les films
+  developer?: string   // ✅ NOUVEAU: Pour les jeux
   
   // Données spécifiques aux jeux (RAWG API)
   background_image?: string
