@@ -378,10 +378,17 @@ export default function SearchModal({
         return []
       }
 
-      // ✅ CONVERSION CORRECTE
+      // ✅ CONVERSION CORRECTE AVEC DÉVELOPPEURS
       const convertedGames = games.map(game => {
         const converted = rawgService.convertToAppFormat(game)
-        console.log('🎮 Converted game:', converted.title, `(${converted.year}) - Category: ${converted.category}`)
+        
+        // ✅ ASSURER QUE LE DÉVELOPPEUR EST BIEN MAPPÉ
+        if (game.developers && game.developers.length > 0) {
+          converted.author = game.developers[0].name
+          converted.developers = game.developers
+        }
+        
+        console.log('🎮 Converted game:', converted.title, `by ${converted.author} (${converted.year}) - Category: ${converted.category}`)
         return converted
       })
 
@@ -408,10 +415,16 @@ export default function SearchModal({
         return []
       }
 
-      // ✅ CONVERSION CORRECTE
+      // ✅ CONVERSION CORRECTE AVEC RÉALISATEURS
       const convertedMovies = movies.slice(0, 12).map(movie => {
         const converted = omdbService.convertToAppFormat(movie)
-        console.log('🎬 Converted movie:', converted.title, `(${converted.year}) - Category: ${converted.category}`)
+        
+        // ✅ ASSURER QUE LE RÉALISATEUR EST BIEN MAPPÉ
+        if (movie.Director && movie.Director !== 'N/A') {
+          converted.director = movie.Director
+        }
+        
+        console.log('🎬 Converted movie:', converted.title, `by ${converted.director} (${converted.year}) - Category: ${converted.category}`)
         return converted
       })
 
@@ -645,6 +658,23 @@ export default function SearchModal({
   }
 
   const getCreator = (result: SearchResult) => {
+    // Pour les jeux, utiliser le développeur
+    if (result.category === 'games') {
+      return result.author || result.developers?.[0]?.name || 'Unknown Developer'
+    }
+    // Pour les films, utiliser le réalisateur
+    if (result.category === 'movies') {
+      return result.director || 'Unknown Director'
+    }
+    // Pour la musique, utiliser l'artiste
+    if (result.category === 'music') {
+      return result.artist || 'Unknown Artist'
+    }
+    // Pour les livres, utiliser l'auteur
+    if (result.category === 'books') {
+      return result.author || 'Unknown Author'
+    }
+    
     return result.author || result.artist || result.director || 'Unknown'
   }
 
