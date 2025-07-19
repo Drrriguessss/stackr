@@ -29,48 +29,58 @@ class RAWGService {
   private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
   private readonly baseURL = 'https://api.rawg.io/api'
   
-  // ✅ RECHERCHE PRINCIPALE AVEC STRATÉGIE MULTI-DATES
+  // ✅ RECHERCHE PRINCIPALE AVEC STRATÉGIE PLUS CIBLÉE
   async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
     try {
-      console.log('🎮 RAWG: Starting enhanced search for:', query, 'pageSize:', pageSize)
+      console.log('🎮 RAWG: Starting targeted search for:', query, 'pageSize:', pageSize)
       
       const allResults: RAWGGame[] = []
       
-      // ✅ STRATÉGIE 1: Recherche standard avec tous les jeux
-      const standardResults = await this.performStandardSearch(query, pageSize)
+      // ✅ STRATÉGIE 1: Recherche standard (prioritaire)
+      const standardResults = await this.performStandardSearch(query, Math.min(pageSize, 15))
       allResults.push(...standardResults)
       
-      // ✅ STRATÉGIE 2: Recherche spécifique pour jeux futurs/récents (2024-2026)
-      const currentYear = new Date().getFullYear()
-      const nextYear = currentYear + 1
+      // ✅ STRATÉGIE 2: Recherche spécifique pour jeux récents SEULEMENT si peu de résultats
+      if (allResults.length < 8) {
+        const currentYear = new Date().getFullYear()
+        const recentResults = await this.searchGamesByDateRange(query, currentYear, currentYear + 2)
+        allResults.push(...recentResults)
+      }
       
-      const recentResults = await this.searchGamesByDateRange(query, currentYear, nextYear + 1)
-      allResults.push(...recentResults)
-      
-      // ✅ STRATÉGIE 3: Recherche pour jeux à venir (dates futures)
-      const upcomingResults = await this.searchUpcomingGames(query)
-      allResults.push(...upcomingResults)
-      
-      // ✅ STRATÉGIE 4: Recherche spécifique pour franchises connues
-      if (this.isKnownFranchise(query)) {
+      // ✅ STRATÉGIE 3: Recherche franchise SEULEMENT pour les franchises connues
+      if (this.isKnownFranchise(query) && allResults.length < 10) {
         const franchiseResults = await this.searchFranchiseGames(query)
-        allResults.push(...franchiseResults)
+        allResults.push(...franchiseResults.slice(0, 5)) // Limiter le bruit
       }
       
       // Supprimer les doublons
       const uniqueResults = this.removeDuplicates(allResults)
       
-      // Enrichir avec les détails complets
-      const enrichedResults = await this.enrichWithDetails(uniqueResults.slice(0, Math.min(pageSize, 15)))
+      // ✅ FILTRAGE PLUS STRICT DE PERTINENCE
+      const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2)
+      const relevantResults = uniqueResults.filter(game => {
+        const gameName = game.name.toLowerCase()
+        
+        // Le jeu doit contenir au moins un mot significatif de la recherche
+        return queryWords.some(word => 
+          gameName.includes(word) ||
+          game.developers?.some(dev => dev.name.toLowerCase().includes(word))
+        )
+      })
       
-      // ✅ TRIER PAR PERTINENCE ET DATE (PLUS RÉCENT EN PREMIER)
+      console.log(`🎮 RAWG: Filtered from ${uniqueResults.length} to ${relevantResults.length} relevant games`)
+      
+      // Enrichir avec les détails complets (moins de jeux = plus rapide)
+      const enrichedResults = await this.enrichWithDetails(relevantResults.slice(0, Math.min(pageSize, 12)))
+      
+      // ✅ TRIER PAR PERTINENCE ET DATE
       const sortedResults = this.sortByRelevanceAndDate(enrichedResults, query)
       
-      console.log('🎮 RAWG: Final enhanced results count:', sortedResults.length)
+      console.log('🎮 RAWG: Final targeted results count:', sortedResults.length)
       return sortedResults
       
     } catch (error) {
-      console.error('🎮 RAWG: Enhanced search failed:', error)
+      console.error('🎮 RAWG: Targeted search failed:', error)
       throw error
     }
   }

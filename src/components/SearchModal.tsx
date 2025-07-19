@@ -137,13 +137,13 @@ export default function SearchModal({
     return creator
   }
 
-  // ✅ RECHERCHE JEUX AVEC DÉVELOPPEURS ASSURÉS ET JEUX RÉCENTS
+  // ✅ RECHERCHE JEUX AVEC FILTRAGE STRICT DE PERTINENCE
   const searchGames = async (query: string): Promise<SearchResult[]> => {
     console.log('🎮 [SearchModal] Starting ENHANCED games search for:', query)
     
     try {
       // ✅ UTILISE LA NOUVELLE MÉTHODE searchGames AMÉLIORÉE
-      const games = await rawgService.searchGames(query, 15) // Plus de résultats pour couvrir les jeux récents
+      const games = await rawgService.searchGames(query, 20) // Plus de résultats pour filtrer
       console.log('🎮 [SearchModal] RAWG returned', games.length, 'games with enhanced search')
       
       if (!games || games.length === 0) {
@@ -151,11 +151,30 @@ export default function SearchModal({
         return []
       }
 
+      // ✅ FILTRAGE STRICT DE PERTINENCE AVANT CONVERSION
+      const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2)
+      
+      const relevantGames = games.filter(game => {
+        const gameName = game.name.toLowerCase()
+        
+        // Vérifier si le nom du jeu contient au moins un mot-clé significatif de la recherche
+        const hasRelevantMatch = queryWords.some(word => 
+          gameName.includes(word) || 
+          game.developers?.some(dev => dev.name.toLowerCase().includes(word)) ||
+          game.publishers?.some(pub => pub.name.toLowerCase().includes(word))
+        )
+        
+        console.log(`🎮 [SearchModal] Filtering "${game.name}": ${hasRelevantMatch ? 'KEEP' : 'REJECT'}`)
+        return hasRelevantMatch
+      })
+
+      console.log(`🎮 [SearchModal] Filtered from ${games.length} to ${relevantGames.length} relevant games`)
+
       // ✅ CONVERSION AVEC VÉRIFICATION STRICTE DES DÉVELOPPEURS
-      const convertedGames = games.map(game => {
+      const convertedGames = relevantGames.map(game => {
         const converted = rawgService.convertToAppFormat(game)
         
-        console.log('🎮 [SearchModal] Converted game:', {
+        console.log('🎮 [SearchModal] Converted relevant game:', {
           title: converted.title,
           developer: converted.developer,
           author: converted.author,
@@ -182,14 +201,21 @@ export default function SearchModal({
         if (aExactMatch && !bExactMatch) return -1
         if (!aExactMatch && bExactMatch) return 1
         
-        // 2. Correspondance partielle du titre (contient le mot-clé)
-        const aTitleContains = a.title.toLowerCase().includes(queryLower)
-        const bTitleContains = b.title.toLowerCase().includes(queryLower)
+        // 2. Correspondance partielle forte du titre (tous les mots-clés présents)
+        const aStrongMatch = queryWords.every(word => a.title.toLowerCase().includes(word))
+        const bStrongMatch = queryWords.every(word => b.title.toLowerCase().includes(word))
+        
+        if (aStrongMatch && !bStrongMatch) return -1
+        if (!aStrongMatch && bStrongMatch) return 1
+        
+        // 3. Correspondance partielle du titre (au moins un mot-clé)
+        const aTitleContains = queryWords.some(word => a.title.toLowerCase().includes(word))
+        const bTitleContains = queryWords.some(word => b.title.toLowerCase().includes(word))
         
         if (aTitleContains && !bTitleContains) return -1
         if (!aTitleContains && bTitleContains) return 1
         
-        // 3. Pour les jeux qui matchent le titre, prioriser les récents
+        // 4. Pour les jeux qui matchent le titre, prioriser les récents
         if (aTitleContains && bTitleContains) {
           const currentYear = new Date().getFullYear()
           const aIsRecent = a.year >= currentYear
@@ -202,23 +228,28 @@ export default function SearchModal({
           if (a.year !== b.year) return b.year - a.year
         }
         
-        // 4. Correspondance développeur/auteur
-        const aDeveloperMatch = (a.developer || a.author || '').toLowerCase().includes(queryLower)
-        const bDeveloperMatch = (b.developer || b.author || '').toLowerCase().includes(queryLower)
+        // 5. Correspondance développeur/auteur
+        const aDeveloperMatch = queryWords.some(word => 
+          (a.developer || a.author || '').toLowerCase().includes(word)
+        )
+        const bDeveloperMatch = queryWords.some(word =>
+          (b.developer || b.author || '').toLowerCase().includes(word)
+        )
         
         if (aDeveloperMatch && !bDeveloperMatch) return -1
         if (!aDeveloperMatch && bDeveloperMatch) return 1
         
-        // 5. Tri final par rating
+        // 6. Tri final par rating
         return (b.rating || 0) - (a.rating || 0)
       })
 
-      console.log('✅ [SearchModal] Games search complete - sorted by recency:')
-      sortedGames.slice(0, 5).forEach((game, i) => {
-        console.log(`  ${i + 1}. ${game.title} (${game.year}) ${game.year >= 2024 ? '🔥 RECENT' : ''}`)
+      console.log('✅ [SearchModal] Games search complete - sorted by relevance then recency:')
+      sortedGames.slice(0, 8).forEach((game, i) => {
+        const isRelevant = queryWords.some(word => game.title.toLowerCase().includes(word))
+        console.log(`  ${i + 1}. ${game.title} (${game.year}) ${game.year >= 2024 ? '🔥' : ''} ${isRelevant ? '✅' : '❌'}`)
       })
 
-      return sortedGames
+      return sortedGames.slice(0, 12) // Limiter aux 12 meilleurs résultats
 
     } catch (error) {
       console.error('❌ [SearchModal] Enhanced games search failed:', error)
