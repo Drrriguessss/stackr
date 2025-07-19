@@ -678,25 +678,18 @@ export default function Home() {
   }
 
   const renderLibraryContent = () => (
-    <div className="bg-white min-h-screen">
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
-      </div>
-      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
-        <LibrarySection 
-          library={library}
-          onAddToLibrary={handleAddToLibrary}
-          onUpdateItem={handleUpdateItem}
-          onDeleteItem={handleDeleteItem}
-          onOpenGameDetail={handleOpenGameDetail}
-          onOpenMovieDetail={handleOpenMovieDetail}
-          onOpenBookDetail={handleOpenBookDetail}
-          onOpenMusicDetail={handleOpenMusicDetail}
-          onOpenSearch={handleOpenSearch}
-        />
-      </div>
-    </div>
-  )
+  <LibrarySection 
+    library={library}
+    onAddToLibrary={handleAddToLibrary}
+    onUpdateItem={handleUpdateItem}
+    onDeleteItem={handleDeleteItem}
+    onOpenGameDetail={handleOpenGameDetail}
+    onOpenMovieDetail={handleOpenMovieDetail}
+    onOpenBookDetail={handleOpenBookDetail}
+    onOpenMusicDetail={handleOpenMusicDetail}
+    onOpenSearch={handleOpenSearch}
+  />
+)
 
   const renderDiscoverContent = () => (
     <DiscoverPage

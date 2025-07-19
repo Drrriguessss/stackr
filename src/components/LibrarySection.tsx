@@ -459,12 +459,17 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Nouveau header avec titre et icônes */}
+      {/* Header sticky avec titre et icônes */}
       <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
         <div className="px-4 sm:px-6 py-4">
-          {/* Titre avec icônes */}
+          {/* Titre avec nombre d'items et icônes */}
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
+            <div className="flex items-center space-x-3">
+              <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
+              <span className="text-lg text-gray-500">
+                ({filteredAndSortedLibrary.length} item{filteredAndSortedLibrary.length !== 1 ? 's' : ''})
+              </span>
+            </div>
             
             <div className="flex items-center space-x-3">
               {/* Icône recherche locale */}
@@ -596,10 +601,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
               )}
             </div>
             
-            {/* Compteur d'items */}
-            <span className="text-sm text-gray-500">
-              {filteredAndSortedLibrary.length} item{filteredAndSortedLibrary.length !== 1 ? 's' : ''}
-            </span>
+            {/* Compteur d'items déplacé dans le bouton "Sorted by" */}
           </div>
         </div>
 
