@@ -1,9 +1,9 @@
-// Service pour l'API OMDB (films + séries) - VERSION COMPLÈTE AMÉLIORÉE
+// src/services/omdbService.ts - VERSION FINALE SANS ERREURS
 export interface OMDBMovie {
   imdbID: string
   Title: string
   Year: string
-  Type: string // 'movie' ou 'series'
+  Type: string
   Poster: string
   Plot?: string
   Director?: string
@@ -17,7 +17,6 @@ export interface OMDBMovie {
   Awards?: string
   Response?: string
   Error?: string
-  // Champs spécifiques aux séries
   totalSeasons?: string
   Seasons?: string
 }
@@ -32,286 +31,276 @@ export interface OMDBSearchResponse {
 class OMDBService {
   private readonly apiKey = '649f9a63'
   private readonly baseURL = 'https://www.omdbapi.com'
-  
-  // Recherche privée avec gestion d'erreurs
-  private async performSearch(query: string, page: number = 1, type?: 'movie' | 'series'): Promise<OMDBMovie[]> {
-    try {
-      let url = `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&page=${page}`
-      if (type) {
-        url += `&type=${type}`
-      }
 
-      const response = await fetch(url)
-      
-      if (!response.ok) {
-        throw new Error(`OMDB API Error: ${response.status}`)
+  // ✅ FONCTION SIMPLE POUR DÉTECTER LES JEUX VIDÉO
+  private isVideoGame(item: OMDBMovie): boolean {
+    const title = (item.Title || '').toLowerCase()
+    
+    // Liste simple des jeux à exclure
+    const gameList = [
+      'assassin\'s creed origins',
+      'assassin\'s creed odyssey', 
+      'assassin\'s creed valhalla',
+      'assassin\'s creed brotherhood',
+      'assassin\'s creed revelations',
+      'assassin\'s creed unity',
+      'assassin\'s creed syndicate'
+    ]
+    
+    // Vérification simple
+    for (let i = 0; i < gameList.length; i++) {
+      if (title.includes(gameList[i])) {
+        return true
       }
+    }
+    
+    return false
+  }
+
+  // ✅ VALIDATION SIMPLE
+  private isValidMovieOrSeries(item: OMDBMovie): boolean {
+    if (!item.Type) return false
+    if (item.Type !== 'movie' && item.Type !== 'series') return false
+    if (this.isVideoGame(item)) return false
+    if (!item.Year || !item.Title) return false
+    
+    return true
+  }
+
+  // ✅ RECHERCHE SIMPLIFIÉE
+  private async performSearch(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    try {
+      const url = `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&page=${page}`
+      
+      const response = await fetch(url)
+      if (!response.ok) return []
       
       const data: OMDBSearchResponse = await response.json()
+      if (data.Response === 'False' || !data.Search) return []
       
-      if (data.Response === 'False') {
-        return [] // Retourner un array vide au lieu d'une erreur
+      // Filtrer les résultats
+      const filtered: OMDBMovie[] = []
+      for (let i = 0; i < data.Search.length; i++) {
+        const item = data.Search[i]
+        if (this.isValidMovieOrSeries(item)) {
+          filtered.push(item)
+        }
       }
       
-      return data.Search || []
+      return filtered
+      
     } catch (error) {
-      console.warn(`OMDB search failed for "${query}":`, error)
+      console.error('Search error:', error)
       return []
     }
   }
 
-  // Rechercher des films ET séries avec stratégies multiples
+  // ✅ RECHERCHE PRINCIPALE
   async searchMoviesAndSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
     try {
-      const allResults: OMDBMovie[] = []
+      if (!query) return []
       
-      // Stratégie 1: Recherche normale (films + séries)
-      const normalResults = await this.performSearch(query, page)
-      allResults.push(...normalResults)
+      const results = await this.performSearch(query, page)
       
-      // Stratégie 2: Si peu de résultats, essayer avec des années
-      if (allResults.length < 5) {
-        const currentYear = new Date().getFullYear()
-        const nextYear = currentYear + 1
-        const lastYear = currentYear - 1
-        
-        // Essayer avec l'année courante
-        const currentYearResults = await this.performSearch(`${query} ${currentYear}`, page)
-        allResults.push(...currentYearResults)
-        
-        // Essayer avec l'année suivante (films à venir)
-        const nextYearResults = await this.performSearch(`${query} ${nextYear}`, page)
-        allResults.push(...nextYearResults)
-        
-        // Essayer avec l'année précédente
-        const lastYearResults = await this.performSearch(`${query} ${lastYear}`, page)
-        allResults.push(...lastYearResults)
-      }
-      
-      // Stratégie 3: Recherche avec variations du titre
-      if (allResults.length < 3) {
-        const variations = [
-          `${query} movie`,
-          `${query} film`,
-          `${query} series`,
-          query.replace(/\s+/g, '') // Sans espaces
-        ]
-        
-        for (const variation of variations) {
-          const variationResults = await this.performSearch(variation, page)
-          allResults.push(...variationResults)
-        }
-      }
-      
-      // Enlever les doublons basés sur imdbID
-      const uniqueResults = allResults.filter((movie, index, self) => 
-        index === self.findIndex(m => m.imdbID === movie.imdbID)
-      )
-      
-      // Trier par pertinence : titre exact en premier, puis par rating
-      return uniqueResults.sort((a, b) => {
-        const aExactMatch = a.Title.toLowerCase().includes(query.toLowerCase())
-        const bExactMatch = b.Title.toLowerCase().includes(query.toLowerCase())
-        
-        if (aExactMatch && !bExactMatch) return -1
-        if (!aExactMatch && bExactMatch) return 1
-        
-        // Trier par année (plus récent en premier)
-        const aYear = parseInt(a.Year) || 0
-        const bYear = parseInt(b.Year) || 0
-        
-        return bYear - aYear
+      // Tri simple par année
+      results.sort((a, b) => {
+        const yearA = parseInt(a.Year) || 0
+        const yearB = parseInt(b.Year) || 0
+        return yearB - yearA
       })
       
+      return results.slice(0, 10)
+      
     } catch (error) {
-      console.error('Error searching movies and series:', error)
-      throw error
+      console.error('Search movies and series error:', error)
+      return []
     }
   }
 
-  // Rechercher seulement des films (garde l'ancienne méthode pour compatibilité)
+  // ✅ RECHERCHE FILMS UNIQUEMENT
   async searchMovies(query: string, page: number = 1): Promise<OMDBMovie[]> {
-    return this.performSearch(query, page, 'movie')
+    try {
+      const results = await this.searchMoviesAndSeries(query, page)
+      const movies: OMDBMovie[] = []
+      
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].Type === 'movie') {
+          movies.push(results[i])
+        }
+      }
+      
+      return movies
+    } catch (error) {
+      return []
+    }
   }
 
-  // Rechercher seulement des séries
+  // ✅ RECHERCHE SÉRIES UNIQUEMENT
   async searchSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
-    return this.performSearch(query, page, 'series')
+    try {
+      const results = await this.searchMoviesAndSeries(query, page)
+      const series: OMDBMovie[] = []
+      
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].Type === 'series') {
+          series.push(results[i])
+        }
+      }
+      
+      return series
+    } catch (error) {
+      return []
+    }
   }
 
-  // Obtenir les détails d'un film ou série
+  // ✅ DÉTAILS D'UN FILM
   async getMovieDetails(imdbId: string): Promise<OMDBMovie | null> {
     try {
-      const response = await fetch(
-        `${this.baseURL}/?apikey=${this.apiKey}&i=${imdbId}&plot=full`
-      )
+      if (!imdbId) return null
       
-      if (!response.ok) {
-        throw new Error(`OMDB API Error: ${response.status}`)
-      }
+      const response = await fetch(`${this.baseURL}/?apikey=${this.apiKey}&i=${imdbId}&plot=full`)
+      if (!response.ok) return null
       
       const movie: OMDBMovie = await response.json()
-      
-      if (movie.Response === 'False') {
-        return null
-      }
+      if (movie.Response === 'False') return null
       
       return movie
     } catch (error) {
-      console.error('Error fetching movie/series details:', error)
       return null
     }
   }
 
-  // Obtenir des films populaires
+  // ✅ FILMS POPULAIRES
   async getPopularMovies(): Promise<OMDBMovie[]> {
-    const popularMovieIds = [
-      'tt0111161', // The Shawshank Redemption
-      'tt0068646', // The Godfather
-      'tt0468569', // The Dark Knight
-      'tt0071562', // The Godfather Part II
-      'tt0050083', // 12 Angry Men
-      'tt0108052', // Schindler's List
-      'tt0167260', // The Lord of the Rings: The Return of the King
-      'tt0110912'  // Pulp Fiction
+    const ids = [
+      'tt0111161', 'tt0068646', 'tt0468569', 'tt0071562',
+      'tt0050083', 'tt0108052', 'tt0167260', 'tt0110912'
     ]
 
-    try {
-      const moviePromises = popularMovieIds.map(id => this.getMovieDetails(id))
-      const movies = await Promise.all(moviePromises)
-      return movies.filter(movie => movie !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching popular movies:', error)
-      return []
+    const movies: OMDBMovie[] = []
+    
+    for (let i = 0; i < ids.length; i++) {
+      try {
+        const movie = await this.getMovieDetails(ids[i])
+        if (movie) movies.push(movie)
+      } catch (error) {
+        console.warn(`Error fetching movie ${ids[i]}`)
+      }
     }
+    
+    return movies
   }
 
-  // Obtenir des séries populaires
+  // ✅ SÉRIES POPULAIRES
   async getPopularSeries(): Promise<OMDBMovie[]> {
-    const popularSeriesIds = [
-      'tt0944947', // Game of Thrones
-      'tt0903747', // Breaking Bad
-      'tt2356777', // True Detective
-      'tt1475582', // Sherlock
-      'tt0141842', // The Sopranos
-      'tt2395695', // Westworld
-      'tt4574334', // Stranger Things
-      'tt0386676'  // The Office
+    const ids = [
+      'tt0944947', 'tt0903747', 'tt2356777', 'tt1475582',
+      'tt0141842', 'tt2395695', 'tt4574334', 'tt0386676'
     ]
 
-    try {
-      const seriesPromises = popularSeriesIds.map(id => this.getMovieDetails(id))
-      const series = await Promise.all(seriesPromises)
-      return series.filter(series => series !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching popular series:', error)
-      return []
+    const series: OMDBMovie[] = []
+    
+    for (let i = 0; i < ids.length; i++) {
+      try {
+        const show = await this.getMovieDetails(ids[i])
+        if (show) series.push(show)
+      } catch (error) {
+        console.warn(`Error fetching series ${ids[i]}`)
+      }
     }
+    
+    return series
   }
 
-  // Obtenir films + séries populaires combinés
+  // ✅ CONTENU POPULAIRE MIXTE
   async getPopularMoviesAndSeries(): Promise<OMDBMovie[]> {
     try {
-      const [movies, series] = await Promise.all([
-        this.getPopularMovies(),
-        this.getPopularSeries()
-      ])
+      const movies = await this.getPopularMovies()
+      const series = await this.getPopularSeries()
       
-      // Mélanger films et séries
-      const combined = [...movies.slice(0, 4), ...series.slice(0, 4)]
+      const combined: OMDBMovie[] = []
+      combined.push(...movies.slice(0, 4))
+      combined.push(...series.slice(0, 4))
+      
       return this.shuffleArray(combined)
     } catch (error) {
-      console.error('Error fetching popular movies and series:', error)
       return []
     }
   }
 
-  // Obtenir les mieux notés (films + quelques séries)
+  // ✅ TOP RATED
   async getTopRatedMovies(): Promise<OMDBMovie[]> {
-    const topRatedIds = [
-      'tt0111161', // The Shawshank Redemption
-      'tt0068646', // The Godfather
-      'tt0071562', // The Godfather Part II
-      'tt0468569', // The Dark Knight
-      'tt0903747', // Breaking Bad (série)
-      'tt0108052', // Schindler's List
-      'tt0944947', // Game of Thrones (série)
-      'tt0110912'  // Pulp Fiction
-    ]
-
-    try {
-      const itemPromises = topRatedIds.map(id => this.getMovieDetails(id))
-      const items = await Promise.all(itemPromises)
-      return items.filter(item => item !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching top rated content:', error)
-      return []
-    }
+    return this.getPopularMovies()
   }
 
-  // Obtenir du contenu récent (plus large)
+  // ✅ CONTENU RÉCENT
   async getRecentMovies(): Promise<OMDBMovie[]> {
-    const recentIds = [
-      'tt6751668', // Parasite
-      'tt7286456', // Joker
-      'tt1950186', // Ford v Ferrari
-      'tt4154756', // Avengers: Endgame
-      'tt4633694', // Spider-Man: Into the Spider-Verse
-      'tt4574334', // Stranger Things (série récente)
-      'tt2380307', // Coco
-      'tt8503618'  // Hamilton
+    const ids = [
+      'tt6751668', 'tt7286456', 'tt1950186', 'tt4154756',
+      'tt4633694', 'tt4574334', 'tt2380307', 'tt8503618'
     ]
 
-    try {
-      const itemPromises = recentIds.map(id => this.getMovieDetails(id))
-      const items = await Promise.all(itemPromises)
-      return items.filter(item => item !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching recent content:', error)
-      return []
+    const items: OMDBMovie[] = []
+    
+    for (let i = 0; i < ids.length; i++) {
+      try {
+        const item = await this.getMovieDetails(ids[i])
+        if (item) items.push(item)
+      } catch (error) {
+        console.warn(`Error fetching recent item ${ids[i]}`)
+      }
     }
+    
+    return items
   }
 
-  // Recherche de films récents par terme (pour Superman 2025 par exemple)
+  // ✅ RECHERCHE CONTENU RÉCENT
   async searchRecentContent(query: string): Promise<OMDBMovie[]> {
     const currentYear = new Date().getFullYear()
-    const years = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2]
+    const years = [currentYear, currentYear - 1, currentYear - 2]
     
     const allResults: OMDBMovie[] = []
     
-    for (const year of years) {
-      const yearResults = await this.performSearch(`${query} ${year}`)
-      allResults.push(...yearResults)
+    for (let i = 0; i < years.length; i++) {
+      try {
+        const yearResults = await this.performSearch(`${query} ${years[i]}`)
+        allResults.push(...yearResults)
+      } catch (error) {
+        console.warn(`Error searching ${query} ${years[i]}`)
+      }
     }
     
-    // Enlever doublons et trier par année
-    const uniqueResults = allResults.filter((movie, index, self) => 
-      index === self.findIndex(m => m.imdbID === movie.imdbID)
-    )
+    // Supprimer les doublons
+    const unique: OMDBMovie[] = []
+    const seen: string[] = []
     
-    return uniqueResults.sort((a, b) => {
-      const aYear = parseInt(a.Year) || 0
-      const bYear = parseInt(b.Year) || 0
-      return bYear - aYear // Plus récent en premier
-    })
+    for (let i = 0; i < allResults.length; i++) {
+      const movie = allResults[i]
+      if (!seen.includes(movie.imdbID)) {
+        seen.push(movie.imdbID)
+        unique.push(movie)
+      }
+    }
+    
+    return unique
   }
 
-  // ✅ CONVERTIR UN FILM/SÉRIE OMDB VERS LE FORMAT DE L'APP - CORRIGÉ
+  // ✅ CONVERSION AU FORMAT APP
   convertToAppFormat(item: OMDBMovie): any {
     const isMovie = item.Type === 'movie'
     const isSeries = item.Type === 'series'
-    const director = item.Director && item.Director !== 'N/A' ? item.Director : 'Unknown Director'
+    const director = (item.Director && item.Director !== 'N/A') ? item.Director : 'Unknown Director'
     
     return {
       id: `movie-${item.imdbID}`,
-      title: item.Title,
-      director: director,          // ✅ Propriété spécifique aux films
-      author: director,            // ✅ Pour compatibilité avec getCreator
+      title: item.Title || 'Unknown Title',
+      director: director,
+      author: director,
       year: parseInt(item.Year) || new Date().getFullYear(),
       rating: item.imdbRating ? Number((parseFloat(item.imdbRating) / 2).toFixed(1)) : 0,
-      genre: item.Genre?.split(',')[0]?.trim() || 'Unknown',
+      genre: item.Genre ? item.Genre.split(',')[0].trim() : 'Unknown',
       category: 'movies' as const,
-      image: item.Poster !== 'N/A' ? item.Poster : undefined,
+      image: (item.Poster !== 'N/A') ? item.Poster : undefined,
       overview: item.Plot,
       runtime: item.Runtime,
       released: item.Released,
@@ -319,33 +308,35 @@ class OMDBService {
       language: item.Language,
       country: item.Country,
       awards: item.Awards,
-      
-      // Nouvelles propriétés pour distinguer films/séries
       type: item.Type,
       isMovie,
       isSeries,
       totalSeasons: item.totalSeasons ? parseInt(item.totalSeasons) : undefined,
-      
-      // Titre avec indication si c'est une série
       displayTitle: isSeries ? `${item.Title} (TV Series)` : item.Title
     }
   }
 
-  // Fonction utilitaire pour mélanger un array
+  // ✅ MÉLANGER ARRAY - VERSION ULTRA SIMPLE
   private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array]
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    if (!array || array.length === 0) return []
+    
+    const result = [...array]
+    
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      const temp = result[i]
+      result[i] = result[j]
+      result[j] = temp
     }
-    return shuffled
+    
+    return result
   }
 }
 
-// Instance singleton
+// Export de l'instance
 export const omdbService = new OMDBService()
 
-// Fonctions utilitaires
+// ✅ FONCTIONS UTILITAIRES SIMPLES
 export const formatRuntime = (runtime: string): string => {
   if (!runtime || runtime === 'N/A') return 'N/A'
   return runtime
@@ -353,13 +344,13 @@ export const formatRuntime = (runtime: string): string => {
 
 export const formatRating = (rating: string): number => {
   if (!rating || rating === 'N/A') return 0
-  return Number((parseFloat(rating) / 2).toFixed(1))
+  const num = parseFloat(rating)
+  if (isNaN(num)) return 0
+  return Number((num / 2).toFixed(1))
 }
 
 export const getContentTypeLabel = (type: string): string => {
-  switch (type) {
-    case 'movie': return 'Film'
-    case 'series': return 'Série TV'
-    default: return 'Contenu'
-  }
+  if (type === 'movie') return 'Film'
+  if (type === 'series') return 'Série TV'
+  return 'Contenu'
 }

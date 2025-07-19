@@ -2056,477 +2056,6 @@ export class LibraryService {
 export default LibraryService
 </file>
 
-<file path="src/services/musicService.ts">
-// Service pour l'API iTunes/Apple Music - VERSION MOBILE OPTIMISÉE
-export interface iTunesAlbum {
-  collectionId: number
-  artistId: number
-  collectionName: string
-  artistName: string
-  collectionCensoredName?: string
-  artistViewUrl?: string
-  collectionViewUrl?: string
-  artworkUrl30?: string
-  artworkUrl60?: string
-  artworkUrl100?: string
-  collectionPrice?: number
-  collectionExplicitness?: string
-  trackCount?: number
-  copyright?: string
-  country?: string
-  currency?: string
-  releaseDate?: string
-  primaryGenreName?: string
-  collectionType?: string
-  wrapperType: string
-  kind?: string
-}
-
-export interface iTunesSearchResponse {
-  resultCount: number
-  results: iTunesAlbum[]
-}
-
-class MusicService {
-  private readonly baseURL = 'https://itunes.apple.com'
-  
-  // 🔧 DÉTECTION MOBILE pour utiliser des stratégies différentes
-  private isMobile(): boolean {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  }
-
-  // 🔧 STRATÉGIE MOBILE : Données statiques enrichies
-  private getMobileAlbumDatabase(): iTunesAlbum[] {
-    return [
-      // Taylor Swift
-      {
-        collectionId: 1440935467,
-        artistId: 159260351,
-        collectionName: "Midnights",
-        artistName: "Taylor Swift",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/18/93/6f/18936ff8-d3ac-4f66-96af-8c6c35e5a63d/22UMGIM86640.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 11.99,
-        trackCount: 13,
-        copyright: "℗ 2022 Taylor Swift",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2022-10-21T07:00:00Z",
-        primaryGenreName: "Pop",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      {
-        collectionId: 1584791944,
-        artistId: 159260351,
-        collectionName: "folklore",
-        artistName: "Taylor Swift",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/0f/58/54/0f585482-8998-be0a-9565-2dfc81a64558/20UMGIM58208.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 9.99,
-        trackCount: 16,
-        copyright: "℗ 2020 Taylor Swift",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2020-07-24T07:00:00Z",
-        primaryGenreName: "Alternative",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      {
-        collectionId: 1584791945,
-        artistId: 159260351,
-        collectionName: "1989 (Taylor's Version)",
-        artistName: "Taylor Swift",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/69/4e/c0/694ec029-bef2-8339-a5e8-5f8d8bb5b4ad/23UMGIM78793.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 12.99,
-        trackCount: 21,
-        copyright: "℗ 2023 Taylor Swift",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2023-10-27T07:00:00Z",
-        primaryGenreName: "Pop",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // Drake
-      {
-        collectionId: 1613933476,
-        artistId: 271256,
-        collectionName: "Certified Lover Boy",
-        artistName: "Drake",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/99/5c/5b/995c5b67-7e5a-8ccb-7a36-d1a9d0e96567/21UMGIM93841.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 11.99,
-        trackCount: 21,
-        copyright: "℗ 2021 OVO Sound/Republic Records",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2021-09-03T07:00:00Z",
-        primaryGenreName: "Hip-Hop/Rap",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      {
-        collectionId: 1613933477,
-        artistId: 271256,
-        collectionName: "Scorpion",
-        artistName: "Drake",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/8b/77/37/8b7737db-22a9-5f17-df0e-b7cf6fdea41e/18UMGIM53115.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 10.99,
-        trackCount: 25,
-        copyright: "℗ 2018 Cash Money Records Inc.",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2018-06-29T07:00:00Z",
-        primaryGenreName: "Hip-Hop/Rap",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // Billie Eilish
-      {
-        collectionId: 1718827596,
-        artistId: 1065981054,
-        collectionName: "Happier Than Ever",
-        artistName: "Billie Eilish",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/53/d4/72/53d472f8-e6e0-8151-4cb7-96d2e2d78d13/21UMGIM53763.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 9.99,
-        trackCount: 16,
-        copyright: "℗ 2021 Darkroom/Interscope Records",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2021-07-30T07:00:00Z",
-        primaryGenreName: "Alternative",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // Olivia Rodrigo
-      {
-        collectionId: 1565554746,
-        artistId: 1419227,
-        collectionName: "SOUR",
-        artistName: "Olivia Rodrigo",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/53/b8/d0/53b8d0c0-df2e-45c6-ce8b-23fa5e8e8fce/21UMGIM32397.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 8.99,
-        trackCount: 11,
-        copyright: "℗ 2021 Olivia Rodrigo, under exclusive license to Geffen Records",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2021-05-21T07:00:00Z",
-        primaryGenreName: "Pop",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // Dua Lipa
-      {
-        collectionId: 1499378314,
-        artistId: 1081833261,
-        collectionName: "Future Nostalgia",
-        artistName: "Dua Lipa",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/5f/3d/f3/5f3df3f5-0d6b-9c4c-e1e7-8a5e5b5c8d7a/20UMGIM20245.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 9.99,
-        trackCount: 11,
-        copyright: "℗ 2020 Dua Lipa Limited",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2020-03-27T07:00:00Z",
-        primaryGenreName: "Pop",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // Bad Bunny
-      {
-        collectionId: 1615584599,
-        artistId: 1180068085,
-        collectionName: "Un Verano Sin Ti",
-        artistName: "Bad Bunny",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/5a/77/83/5a7783c8-4c35-0b9e-cd83-88d7b6c5b7a8/22UMGIM43758.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 12.99,
-        trackCount: 23,
-        copyright: "℗ 2022 Rimas Entertainment",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2022-05-06T07:00:00Z",
-        primaryGenreName: "Reggaeton",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // The Weeknd
-      {
-        collectionId: 1440935468,
-        artistId: 479756766,
-        collectionName: "After Hours",
-        artistName: "The Weeknd",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/d4/6c/35/d46c35a8-3b36-1e42-a8a6-d73136c8fcb4/20UMGIM08955.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 11.99,
-        trackCount: 14,
-        copyright: "℗ 2020 The Weeknd XO, Inc.",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2020-03-20T07:00:00Z",
-        primaryGenreName: "R&B/Soul",
-        collectionType: "Album",
-        wrapperType: "collection"
-      }
-    ]
-  }
-
-  // 🔧 RECHERCHE HYBRIDE : API + données statiques
-  async searchAlbums(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
-    const cleanQuery = query.trim().toLowerCase()
-    
-    if (!cleanQuery) {
-      console.warn('Empty query after cleaning')
-      return []
-    }
-
-    console.log('🎵 Music search for:', cleanQuery, 'Mobile:', this.isMobile())
-
-    // 1. TOUJOURS commencer par la recherche dans les données locales
-    const localResults = this.searchLocalDatabase(cleanQuery, limit)
-    console.log('🎵 Local results found:', localResults.length)
-
-    // 2. Sur mobile, privilégier les données locales
-    if (this.isMobile()) {
-      console.log('🎵 Mobile detected, using local database')
-      if (localResults.length > 0) {
-        return this.sortByReleaseDate(localResults).slice(0, limit)
-      }
-    }
-
-    // 3. Sur desktop, essayer l'API puis fallback sur local
-    try {
-      const url = `${this.baseURL}/search?term=${encodeURIComponent(cleanQuery)}&media=music&entity=album&limit=${limit}&country=US`
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        // Timeout plus court sur mobile
-        signal: AbortSignal.timeout(this.isMobile() ? 3000 : 8000)
-      })
-      
-      if (!response.ok) {
-        throw new Error(`iTunes API Error: ${response.status}`)
-      }
-      
-      const data: iTunesSearchResponse = await response.json()
-      
-      if (data.results && data.results.length > 0) {
-        const albums = data.results.filter(item => 
-          item.wrapperType === 'collection' && 
-          item.collectionType && 
-          item.collectionName
-        )
-        
-        console.log('🎵 API results:', albums.length)
-        // Combiner résultats API + locaux et trier par date
-        const combined = [...albums, ...localResults]
-        const unique = this.removeDuplicates(combined)
-        return this.sortByReleaseDate(unique).slice(0, limit)
-      }
-    } catch (error) {
-      console.warn('🎵 API failed, using local results:', error)
-    }
-
-    // 4. Fallback : retourner les résultats locaux triés
-    return this.sortByReleaseDate(localResults).slice(0, limit)
-  }
-
-  // 🔧 RECHERCHE DANS LA BASE LOCALE
-  private searchLocalDatabase(query: string, limit: number): iTunesAlbum[] {
-    const database = this.getMobileAlbumDatabase()
-    const queryLower = query.toLowerCase()
-    
-    return database.filter(album => 
-      album.collectionName.toLowerCase().includes(queryLower) ||
-      album.artistName.toLowerCase().includes(queryLower) ||
-      album.primaryGenreName?.toLowerCase().includes(queryLower)
-    )
-  }
-
-  // 🔧 TRI PAR DATE DE SORTIE (PLUS RÉCENT EN PREMIER)
-  private sortByReleaseDate(albums: iTunesAlbum[]): iTunesAlbum[] {
-    return albums.sort((a, b) => {
-      const dateA = new Date(a.releaseDate || '1970-01-01').getTime()
-      const dateB = new Date(b.releaseDate || '1970-01-01').getTime()
-      return dateB - dateA // Plus récent en premier
-    })
-  }
-
-  // 🔧 SUPPRESSION DES DOUBLONS
-  private removeDuplicates(albums: iTunesAlbum[]): iTunesAlbum[] {
-    const seen = new Set()
-    return albums.filter(album => {
-      const key = `${album.artistName}-${album.collectionName}`.toLowerCase()
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-  }
-
-  // Obtenir les détails d'un album
-  async getAlbumDetails(albumId: string): Promise<iTunesAlbum | null> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/lookup?id=${albumId}&entity=album`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`iTunes API Error: ${response.status}`)
-      }
-      
-      const data: iTunesSearchResponse = await response.json()
-      return data.results?.[0] || null
-    } catch (error) {
-      console.error('Error fetching album details:', error)
-      return null
-    }
-  }
-
-  // 🔧 ALBUMS POPULAIRES avec tri par date
-  async getPopularAlbums(): Promise<iTunesAlbum[]> {
-    const database = this.getMobileAlbumDatabase()
-    return this.sortByReleaseDate(database).slice(0, 8)
-  }
-
-  // Obtenir des albums bien notés
-  async getTopRatedAlbums(): Promise<iTunesAlbum[]> {
-    const database = this.getMobileAlbumDatabase()
-    // Filtrer les albums avec de bonnes notes (simulation)
-    const topRated = database.filter(album => 
-      album.primaryGenreName !== 'Reggaeton' // Exemple de filtre
-    )
-    return this.sortByReleaseDate(topRated).slice(0, 8)
-  }
-
-  // Obtenir des nouveautés
-  async getNewReleases(): Promise<iTunesAlbum[]> {
-    const database = this.getMobileAlbumDatabase()
-    // Filtrer les albums récents (2020+)
-    const recent = database.filter(album => {
-      const year = new Date(album.releaseDate || '1970').getFullYear()
-      return year >= 2020
-    })
-    return this.sortByReleaseDate(recent).slice(0, 8)
-  }
-
-  // Obtenir la meilleure image disponible
-  getBestImageURL(album: iTunesAlbum, preferredSize: 'small' | 'medium' | 'large' = 'medium'): string | null {
-    const sizePreferences = {
-      small: ['artworkUrl60', 'artworkUrl30', 'artworkUrl100'],
-      medium: ['artworkUrl100', 'artworkUrl60', 'artworkUrl30'],
-      large: ['artworkUrl100', 'artworkUrl60', 'artworkUrl30']
-    }
-
-    const preferences = sizePreferences[preferredSize]
-    
-    for (const size of preferences) {
-      const url = album[size as keyof iTunesAlbum] as string
-      if (url) {
-        // Augmenter la résolution si possible
-        return url.replace('100x100', '300x300').replace('60x60', '300x300').replace('30x30', '300x300')
-      }
-    }
-
-    return null
-  }
-
-  // Extraire l'année de release
-  getReleasedYear(album: iTunesAlbum): number {
-    if (!album.releaseDate) return new Date().getFullYear()
-    return new Date(album.releaseDate).getFullYear()
-  }
-
-  // Nettoyer le nom de l'album
-  cleanAlbumName(name: string): string {
-    if (!name) return ''
-    return name
-      .replace(/\(Explicit\)/gi, '')
-      .replace(/\(Clean\)/gi, '')
-      .replace(/\(Deluxe\)/gi, '(Deluxe)')
-      .trim()
-  }
-
-  // Convertir un album iTunes vers le format de l'app
-  convertToAppFormat(album: iTunesAlbum): any {
-    return {
-      id: `music-${album.collectionId}`,
-      title: this.cleanAlbumName(album.collectionName || 'Unknown Album'),
-      artist: album.artistName || 'Unknown Artist',
-      year: this.getReleasedYear(album),
-      rating: 0,
-      genre: album.primaryGenreName || 'Unknown',
-      category: 'music' as const,
-      image: this.getBestImageURL(album, 'medium'),
-      
-      // Données spécifiques à la musique
-      trackCount: album.trackCount || 0,
-      copyright: album.copyright,
-      collectionPrice: album.collectionPrice,
-      currency: album.currency,
-      country: album.country,
-      releaseDate: album.releaseDate,
-      collectionViewUrl: album.collectionViewUrl,
-      artistViewUrl: album.artistViewUrl,
-      collectionType: album.collectionType || 'Album'
-    }
-  }
-
-  // Obtenir des albums par artiste
-  async getAlbumsByArtist(artistName: string, limit: number = 10): Promise<iTunesAlbum[]> {
-    return this.searchAlbums(artistName, limit)
-  }
-
-  // Obtenir des albums similaires basés sur le genre
-  async getSimilarAlbums(album: iTunesAlbum, limit: number = 6): Promise<iTunesAlbum[]> {
-    try {
-      const genre = album.primaryGenreName || 'pop'
-      const albums = await this.searchAlbums(genre, limit + 5)
-      
-      // Filtrer l'album actuel et retourner les autres
-      return albums
-        .filter(a => a.collectionId !== album.collectionId)
-        .slice(0, limit)
-    } catch (error) {
-      console.error('Error fetching similar albums:', error)
-      return []
-    }
-  }
-}
-
-// Instance singleton
-export const musicService = new MusicService()
-
-// Fonctions utilitaires
-export const formatTrackCount = (trackCount: number): string => {
-  if (!trackCount) return 'Unknown'
-  return `${trackCount} track${trackCount !== 1 ? 's' : ''}`
-}
-
-export const formatPrice = (price: number, currency: string): string => {
-  if (!price || !currency) return 'Price not available'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'USD'
-  }).format(price)
-}
-
-export const formatDuration = (trackCount: number): string => {
-  if (!trackCount) return 'Unknown duration'
-  
-  // Estimation approximative : 3.5 minutes par track en moyenne
-  const averageTrackDuration = 3.5
-  const totalMinutes = Math.round(trackCount * averageTrackDuration)
-  
-  if (totalMinutes < 60) return `~${totalMinutes} min`
-  
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  
-  return `~${hours}h ${minutes}m`
-}
-</file>
-
 <file path="src/services/omdbService.ts">
 // Service pour l'API OMDB (films + séries) - VERSION COMPLÈTE AMÉLIORÉE
 export interface OMDBMovie {
@@ -4383,87 +3912,6 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
 }
 </file>
 
-<file path="src/lib/supabase.ts">
-// src/lib/supabase.ts
-import { createClient } from '@supabase/supabase-js'
-
-// Variables d'environnement chargées de manière sécurisée
-
-// Utilisation des variables d'environnement pour la sécurité
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-// Vérification que les variables d'environnement sont bien définies
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
-}
-
-// Créer le client Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false
-  }
-})
-
-// Test de connexion
-export const testSupabaseConnection = async () => {
-  try {
-    const { data, error } = await supabase.from('library_items').select('*').limit(1)
-    if (error && error.code !== 'PGRST116') {
-      console.error('❌ Supabase connection error:', error)
-      return false
-    }
-    console.log('✅ Supabase connected successfully!')
-    return true
-  } catch (error) {
-    console.error('❌ Supabase connection failed:', error)
-    return false
-  }
-}
-</file>
-
-<file path="src/components/CategoryTabs.tsx">
-'use client'
-
-interface CategoryTabsProps {
-  activeTab: string
-  onTabChange: (tab: string) => void
-}
-
-export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
-  const tabs = [
-    { id: 'books', name: 'Books' },
-    { id: 'games', name: 'Games' },
-    { id: 'movies', name: 'Films & TV' },
-    { id: 'music', name: 'Music' },
-  ]
-
-  return (
-    <div className="flex w-full border-b border-gray-200 mb-0">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onTabChange(tab.id)}
-          className={`flex-1 pb-3 pt-2 text-sm font-medium transition-colors relative text-center whitespace-nowrap ${
-            activeTab === tab.id
-              ? 'text-gray-900'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          {tab.name}
-          {/* Soulignement pour l'onglet actif */}
-          {activeTab === tab.id && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
-          )}
-        </button>
-      ))}
-    </div>
-  )
-}
-</file>
-
 <file path="src/data/sampleContent.ts">
 import type { ContentItem } from '@/types'
 
@@ -4839,6 +4287,468 @@ export const sampleContent = {
       category: 'books' as const
     }
   ]
+}
+</file>
+
+<file path="src/lib/supabase.ts">
+// src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js'
+
+// Variables d'environnement chargées de manière sécurisée
+
+// Utilisation des variables d'environnement pour la sécurité
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Vérification que les variables d'environnement sont bien définies
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
+}
+
+// Créer le client Supabase
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+})
+
+// Test de connexion
+export const testSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('library_items').select('*').limit(1)
+    if (error && error.code !== 'PGRST116') {
+      console.error('❌ Supabase connection error:', error)
+      return false
+    }
+    console.log('✅ Supabase connected successfully!')
+    return true
+  } catch (error) {
+    console.error('❌ Supabase connection failed:', error)
+    return false
+  }
+}
+</file>
+
+<file path="src/services/musicService.ts">
+// Service pour l'API iTunes/Apple Music - VERSION API COMPLÈTE CORRIGÉE
+export interface iTunesAlbum {
+  collectionId: number
+  artistId: number
+  collectionName: string
+  artistName: string
+  collectionCensoredName?: string
+  artistViewUrl?: string
+  collectionViewUrl?: string
+  artworkUrl30?: string
+  artworkUrl60?: string
+  artworkUrl100?: string
+  collectionPrice?: number
+  collectionExplicitness?: string
+  trackCount?: number
+  copyright?: string
+  country?: string
+  currency?: string
+  releaseDate?: string
+  primaryGenreName?: string
+  collectionType?: string
+  wrapperType: string
+  kind?: string
+}
+
+export interface iTunesSearchResponse {
+  resultCount: number
+  results: iTunesAlbum[]
+}
+
+class MusicService {
+  private readonly baseURL = 'https://itunes.apple.com'
+  
+  // 🔧 RECHERCHE API PURE AVEC GESTION CORS
+  async searchAlbums(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
+    const cleanQuery = query.trim()
+    
+    if (!cleanQuery || cleanQuery.length < 2) {
+      console.warn('🎵 Query too short:', cleanQuery)
+      return []
+    }
+
+    console.log('🎵 iTunes API search for:', cleanQuery, 'Limit:', limit)
+
+    try {
+      // 🔧 URL avec paramètres optimisés pour mobile
+      const url = `${this.baseURL}/search?` + new URLSearchParams({
+        term: cleanQuery,
+        media: 'music',
+        entity: 'album',
+        limit: Math.min(limit, 200).toString(),
+        country: 'US',
+        explicit: 'Yes'
+      }).toString()
+
+      console.log('🎵 iTunes URL:', url)
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          // 🔧 Headers pour contourner CORS sur mobile
+          'User-Agent': 'Mozilla/5.0 (compatible; Music Search)',
+        },
+        // 🔧 Pas de credentials pour éviter CORS
+        mode: 'cors',
+        cache: 'default',
+        // 🔧 Timeout plus long pour mobile
+        signal: AbortSignal.timeout(10000)
+      })
+      
+      console.log('🎵 iTunes response status:', response.status)
+      
+      if (!response.ok) {
+        console.error('🎵 iTunes API Error:', response.status, response.statusText)
+        return []
+      }
+      
+      const data: iTunesSearchResponse = await response.json()
+      console.log('🎵 iTunes raw response:', data)
+      
+      if (!data.results || data.results.length === 0) {
+        console.log('🎵 No results from iTunes API')
+        return []
+      }
+
+      // 🔧 Filtrage strict des albums seulement
+      const albums = data.results.filter(item => {
+        const isValidAlbum = (
+          item.wrapperType === 'collection' &&
+          item.collectionType === 'Album' &&
+          item.collectionName &&
+          item.artistName &&
+          item.collectionId
+        )
+        
+        if (!isValidAlbum) {
+          console.log('🎵 Filtered out invalid item:', item)
+        }
+        
+        return isValidAlbum
+      })
+      
+      console.log('🎵 Filtered albums count:', albums.length)
+      albums.slice(0, 5).forEach((album, i) => {
+        console.log(`🎵 ${i+1}. ${album.artistName} - ${album.collectionName} (${album.collectionId})`)
+      })
+      
+      // 🔧 Tri par pertinence et date
+      const sortedAlbums = this.sortByRelevanceAndDate(albums, cleanQuery)
+      
+      return sortedAlbums.slice(0, limit)
+      
+    } catch (err) {
+      console.error('🎵 iTunes API search failed:', err)
+      
+      // 🔧 Diagnostic détaillé de l'erreur avec type safety
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        console.error('🎵 Network error - likely CORS or connectivity issue')
+      } else if (err instanceof Error && err.name === 'AbortError') {
+        console.error('🎵 Request timeout')
+      } else if (err instanceof Error) {
+        console.error('🎵 Error message:', err.message)
+      } else {
+        console.error('🎵 Unknown error type:', err)
+      }
+      
+      return []
+    }
+  }
+
+  // 🔧 TRI PAR PERTINENCE PUIS PAR DATE
+  private sortByRelevanceAndDate(albums: iTunesAlbum[], query: string): iTunesAlbum[] {
+    const queryLower = query.toLowerCase()
+    
+    return albums.sort((a, b) => {
+      // 1. Correspondance exacte du nom d'artiste
+      const aArtistExact = a.artistName.toLowerCase() === queryLower
+      const bArtistExact = b.artistName.toLowerCase() === queryLower
+      
+      if (aArtistExact && !bArtistExact) return -1
+      if (!aArtistExact && bArtistExact) return 1
+      
+      // 2. Correspondance exacte du titre d'album
+      const aAlbumExact = a.collectionName.toLowerCase() === queryLower
+      const bAlbumExact = b.collectionName.toLowerCase() === queryLower
+      
+      if (aAlbumExact && !bAlbumExact) return -1
+      if (!aAlbumExact && bAlbumExact) return 1
+      
+      // 3. Correspondance partielle d'artiste
+      const aArtistMatch = a.artistName.toLowerCase().includes(queryLower)
+      const bArtistMatch = b.artistName.toLowerCase().includes(queryLower)
+      
+      if (aArtistMatch && !bArtistMatch) return -1
+      if (!aArtistMatch && bArtistMatch) return 1
+      
+      // 4. Correspondance partielle d'album
+      const aAlbumMatch = a.collectionName.toLowerCase().includes(queryLower)
+      const bAlbumMatch = b.collectionName.toLowerCase().includes(queryLower)
+      
+      if (aAlbumMatch && !bAlbumMatch) return -1
+      if (!aAlbumMatch && bAlbumMatch) return 1
+      
+      // 5. Date de sortie (plus récent en premier)
+      const aYear = new Date(a.releaseDate || '1970').getFullYear()
+      const bYear = new Date(b.releaseDate || '1970').getFullYear()
+      
+      return bYear - aYear
+    })
+  }
+
+  // 🔧 MÉTHODE ALTERNATIVE AVEC PROXY CORS
+  async searchAlbumsWithProxy(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
+    try {
+      // Option 1: Utiliser un proxy CORS si l'API iTunes est bloquée
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(
+        `${this.baseURL}/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=${limit}`
+      )}`
+      
+      console.log('🎵 Using CORS proxy:', proxyUrl)
+      
+      const response = await fetch(proxyUrl)
+      const data = await response.json()
+      const iTunesData = JSON.parse(data.contents)
+      
+      return iTunesData.results || []
+      
+    } catch (err) {
+      console.error('🎵 Proxy search failed:', err)
+      return []
+    }
+  }
+
+  // Test de connectivité iTunes
+  async testItunesConnectivity(): Promise<boolean> {
+    try {
+      console.log('🎵 Testing iTunes API connectivity...')
+      
+      const testUrl = `${this.baseURL}/search?term=test&media=music&entity=album&limit=1`
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000)
+      })
+      
+      const isConnected = response.ok
+      console.log('🎵 iTunes API connectivity:', isConnected ? 'OK' : 'FAILED')
+      
+      return isConnected
+      
+    } catch (err) {
+      console.error('🎵 iTunes connectivity test failed:', err)
+      return false
+    }
+  }
+
+  // Obtenir les détails d'un album
+  async getAlbumDetails(albumId: string): Promise<iTunesAlbum | null> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/lookup?id=${albumId}&entity=album`,
+        { signal: AbortSignal.timeout(8000) }
+      )
+      
+      if (!response.ok) {
+        throw new Error(`iTunes API Error: ${response.status}`)
+      }
+      
+      const data: iTunesSearchResponse = await response.json()
+      return data.results?.[0] || null
+    } catch (err) {
+      console.error('Error fetching album details:', err)
+      return null
+    }
+  }
+
+  // Albums populaires (utilise l'API pour de vrais résultats)
+  async getPopularAlbums(): Promise<iTunesAlbum[]> {
+    try {
+      // Rechercher les artistes populaires actuels
+      const popularArtists = ['Taylor Swift', 'Drake', 'Billie Eilish', 'The Weeknd']
+      
+      const allAlbums: iTunesAlbum[] = []
+      
+      for (const artist of popularArtists) {
+        try {
+          const albums = await this.searchAlbums(artist, 3)
+          allAlbums.push(...albums.slice(0, 2)) // 2 albums par artiste
+        } catch (err) {
+          console.warn(`Failed to get albums for ${artist}:`, err)
+        }
+      }
+      
+      return allAlbums.slice(0, 8)
+      
+    } catch (err) {
+      console.error('Error getting popular albums:', err)
+      return []
+    }
+  }
+
+  async getTopRatedAlbums(): Promise<iTunesAlbum[]> {
+    // Recherche d'albums classiques bien notés
+    return this.searchAlbums('greatest albums of all time', 8)
+  }
+
+  async getNewReleases(): Promise<iTunesAlbum[]> {
+    // Recherche d'albums récents
+    const currentYear = new Date().getFullYear()
+    return this.searchAlbums(`new albums ${currentYear}`, 8)
+  }
+
+  getBestImageURL(album: iTunesAlbum, preferredSize: 'small' | 'medium' | 'large' = 'medium'): string | null {
+    const sizePreferences = {
+      small: ['artworkUrl60', 'artworkUrl30', 'artworkUrl100'],
+      medium: ['artworkUrl100', 'artworkUrl60', 'artworkUrl30'],
+      large: ['artworkUrl100', 'artworkUrl60', 'artworkUrl30']
+    }
+
+    const preferences = sizePreferences[preferredSize]
+    
+    for (const size of preferences) {
+      const url = album[size as keyof iTunesAlbum] as string
+      if (url) {
+        // Améliorer la qualité de l'image
+        return url.replace('100x100', '400x400').replace('60x60', '400x400').replace('30x30', '400x400')
+      }
+    }
+
+    return null
+  }
+
+  getReleasedYear(album: iTunesAlbum): number {
+    if (!album.releaseDate) return new Date().getFullYear()
+    return new Date(album.releaseDate).getFullYear()
+  }
+
+  cleanAlbumName(name: string): string {
+    if (!name) return ''
+    return name
+      .replace(/\(Explicit\)/gi, '')
+      .replace(/\(Clean\)/gi, '')
+      .replace(/\(Deluxe\)/gi, '(Deluxe)')
+      .trim()
+  }
+
+  convertToAppFormat(album: iTunesAlbum): any {
+    return {
+      id: `music-${album.collectionId}`,
+      title: this.cleanAlbumName(album.collectionName || 'Unknown Album'),
+      artist: album.artistName || 'Unknown Artist',
+      year: this.getReleasedYear(album),
+      rating: 0,
+      genre: album.primaryGenreName || 'Unknown',
+      category: 'music' as const,
+      image: this.getBestImageURL(album, 'medium'),
+      
+      trackCount: album.trackCount || 0,
+      copyright: album.copyright,
+      collectionPrice: album.collectionPrice,
+      currency: album.currency,
+      country: album.country,
+      releaseDate: album.releaseDate,
+      collectionViewUrl: album.collectionViewUrl,
+      artistViewUrl: album.artistViewUrl,
+      collectionType: album.collectionType || 'Album'
+    }
+  }
+
+  async getAlbumsByArtist(artistName: string, limit: number = 10): Promise<iTunesAlbum[]> {
+    return this.searchAlbums(artistName, limit)
+  }
+
+  async getSimilarAlbums(album: iTunesAlbum, limit: number = 6): Promise<iTunesAlbum[]> {
+    try {
+      const genre = album.primaryGenreName || album.artistName
+      const albums = await this.searchAlbums(genre, limit + 5)
+      
+      return albums
+        .filter(a => a.collectionId !== album.collectionId)
+        .slice(0, limit)
+    } catch (err) {
+      console.error('Error fetching similar albums:', err)
+      return []
+    }
+  }
+}
+
+export const musicService = new MusicService()
+
+// Fonctions utilitaires
+export const formatTrackCount = (trackCount: number): string => {
+  if (!trackCount) return 'Unknown'
+  return `${trackCount} track${trackCount !== 1 ? 's' : ''}`
+}
+
+export const formatPrice = (price: number, currency: string): string => {
+  if (!price || !currency) return 'Price not available'
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency || 'USD'
+  }).format(price)
+}
+
+export const formatDuration = (trackCount: number): string => {
+  if (!trackCount) return 'Unknown duration'
+  
+  const averageTrackDuration = 3.5
+  const totalMinutes = Math.round(trackCount * averageTrackDuration)
+  
+  if (totalMinutes < 60) return `~${totalMinutes} min`
+  
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  
+  return `~${hours}h ${minutes}m`
+}
+</file>
+
+<file path="src/components/CategoryTabs.tsx">
+'use client'
+
+interface CategoryTabsProps {
+  activeTab: string
+  onTabChange: (tab: string) => void
+}
+
+export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
+  const tabs = [
+    { id: 'books', name: 'Books' },
+    { id: 'games', name: 'Games' },
+    { id: 'movies', name: 'Films & TV' },
+    { id: 'music', name: 'Music' },
+  ]
+
+  return (
+    <div className="flex w-full border-b border-gray-200 mb-0">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex-1 pb-3 pt-2 text-sm font-medium transition-colors relative text-center whitespace-nowrap ${
+            activeTab === tab.id
+              ? 'text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          {tab.name}
+          {/* Soulignement pour l'onglet actif */}
+          {activeTab === tab.id && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+          )}
+        </button>
+      ))}
+    </div>
+  )
 }
 </file>
 
@@ -8510,812 +8420,6 @@ export default function ContentCard({
 }
 </file>
 
-<file path="src/app/page.tsx">
-'use client'
-import { useState, useEffect } from 'react'
-import { Search } from 'lucide-react'
-import CategoryTabs from '@/components/CategoryTabs'
-import ContentSection from '@/components/ContentSection'
-import LibrarySection from '@/components/LibrarySection'
-import GameDetailModal from '@/components/GameDetailModal'
-import MovieDetailModal from '@/components/MovieDetailModal'
-import BookDetailModal from '@/components/BookDetailModal'
-import MusicDetailModal from '@/components/MusicDetailModal'
-import SearchModal from '@/components/SearchModal'
-import BottomNavigation from '@/components/BottomNavigation'
-import RoadmapPage from '@/components/RoadmapPage'
-import DiscoverPage from '@/components/DiscoverPage'
-import { sampleContent } from '@/data/sampleContent'
-import { omdbService } from '@/services/omdbService'
-import { googleBooksService } from '@/services/googleBooksService'
-import { musicService } from '@/services/musicService'
-import { rawgService } from '@/services/rawgService'
-import { LibraryService } from '@/services/libraryService'
-import { normalizeId, idsMatch } from '@/utils/idNormalizer'
-import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
-
-export default function Home() {
-  const [activeTab, setActiveTab] = useState<MediaCategory>('games')
-  const [activeMainTab, setActiveMainTab] = useState('home')
-  const [library, setLibrary] = useState<LibraryItem[]>([])
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
-  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
-  const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
-  const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  
-  // State pour le contenu dynamique des jeux
-  const [gameContent, setGameContent] = useState<{
-    popular: ContentItem[]
-    topRated: ContentItem[]
-    newReleases: ContentItem[]
-  }>({
-    popular: [],
-    topRated: [],
-    newReleases: []
-  })
-  const [gamesLoading, setGamesLoading] = useState(false)
-  
-  // State pour le contenu dynamique des films
-  const [movieContent, setMovieContent] = useState<{
-    popular: ContentItem[]
-    topRated: ContentItem[]
-    recent: ContentItem[]
-  }>({
-    popular: [],
-    topRated: [],
-    recent: []
-  })
-  const [moviesLoading, setMoviesLoading] = useState(false)
-
-  // State pour le contenu dynamique des livres
-  const [bookContent, setBookContent] = useState<{
-    fiction: ContentItem[]
-    nonFiction: ContentItem[]
-    newReleases: ContentItem[]
-  }>({
-    fiction: [],
-    nonFiction: [],
-    newReleases: []
-  })
-  const [booksLoading, setBooksLoading] = useState(false)
-
-  // State pour le contenu dynamique de la musique
-  const [musicContent, setMusicContent] = useState<{
-    popular: ContentItem[]
-    topRated: ContentItem[]
-    newReleases: ContentItem[]
-  }>({
-    popular: [],
-    topRated: [],
-    newReleases: []
-  })
-  const [musicLoading, setMusicLoading] = useState(false)
-
-  // User reviews state
-  const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
-
-  // Charger la bibliothèque au démarrage
-  useEffect(() => {
-    const loadSavedLibrary = async () => {
-      try {
-        const savedLibrary = await LibraryService.getLibrary()
-        setLibrary(savedLibrary)
-        
-        // Test optionnel de connexion Supabase
-        await LibraryService.testSupabaseConnection()
-      } catch (error) {
-        console.error('Error loading saved library:', error)
-      }
-    }
-    loadSavedLibrary()
-  }, [])
-
-  // Charger le contenu selon la catégorie active
-  useEffect(() => {
-    if (activeTab === 'games') {
-      loadGameContent()
-    } else if (activeTab === 'movies') {
-      loadMovieContent()
-    } else if (activeTab === 'books') {
-      loadBookContent()
-    } else if (activeTab === 'music') {
-      loadMusicContent()
-    }
-  }, [activeTab])
-
-  const loadGameContent = async () => {
-    try {
-      setGamesLoading(true)
-
-      const [popularGames, topRatedGames, newReleaseGames] = await Promise.all([
-        rawgService.getPopularGames().then(games => 
-          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
-        ),
-        rawgService.getTopRatedGames().then(games => 
-          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
-        ),
-        rawgService.getNewReleases().then(games => 
-          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
-        )
-      ])
-
-      setGameContent({
-        popular: popularGames,
-        topRated: topRatedGames,
-        newReleases: newReleaseGames
-      })
-    } catch (error) {
-      console.error('Error loading game content:', error)
-      
-      // Fallback vers les données statiques
-      setGameContent({
-        popular: sampleContent.games.slice(0, 4),
-        topRated: sampleContent.games.slice(4, 8),
-        newReleases: sampleContent.games.slice(0, 4)
-      })
-    } finally {
-      setGamesLoading(false)
-    }
-  }
-
-  const loadMovieContent = async () => {
-    try {
-      setMoviesLoading(true)
-
-      const [popularMovies, topRatedMovies, recentMovies] = await Promise.all([
-        omdbService.getPopularMovies().then(movies => 
-          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
-        ),
-        omdbService.getTopRatedMovies().then(movies => 
-          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
-        ),
-        omdbService.getRecentMovies().then(movies => 
-          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
-        )
-      ])
-
-      setMovieContent({
-        popular: popularMovies,
-        topRated: topRatedMovies,
-        recent: recentMovies
-      })
-    } catch (error) {
-      console.error('Error loading movie content:', error)
-      
-      // Fallback vers les données statiques
-      setMovieContent({
-        popular: sampleContent.movies.slice(0, 4),
-        topRated: sampleContent.movies.slice(4, 8),
-        recent: sampleContent.movies.slice(0, 4)
-      })
-    } finally {
-      setMoviesLoading(false)
-    }
-  }
-
-  const loadBookContent = async () => {
-    try {
-      setBooksLoading(true)
-
-      const [fictionBooks, nonFictionBooks, newReleaseBooks] = await Promise.all([
-        googleBooksService.getFictionBooks().then(books => 
-          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
-        ),
-        googleBooksService.getNonFictionBooks().then(books => 
-          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
-        ),
-        googleBooksService.getNewReleases().then(books => 
-          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
-        )
-      ])
-
-      setBookContent({
-        fiction: fictionBooks,
-        nonFiction: nonFictionBooks,
-        newReleases: newReleaseBooks
-      })
-    } catch (error) {
-      console.error('Error loading book content:', error)
-      
-      // Fallback vers les données statiques
-      setBookContent({
-        fiction: sampleContent.books.slice(0, 4),
-        nonFiction: sampleContent.books.slice(4, 8),
-        newReleases: sampleContent.books.slice(0, 4)
-      })
-    } finally {
-      setBooksLoading(false)
-    }
-  }
-
-  const loadMusicContent = async () => {
-    try {
-      setMusicLoading(true)
-
-      const [popularAlbums, topRatedAlbums, newReleaseAlbums] = await Promise.all([
-        musicService.getPopularAlbums().then(albums => 
-          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
-        ),
-        musicService.getTopRatedAlbums().then(albums => 
-          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
-        ),
-        musicService.getNewReleases().then(albums => 
-          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
-        )
-      ])
-
-      setMusicContent({
-        popular: popularAlbums,
-        topRated: topRatedAlbums,
-        newReleases: newReleaseAlbums
-      })
-    } catch (error) {
-      console.error('Error loading music content:', error)
-      
-      // Fallback vers les données statiques
-      setMusicContent({
-        popular: sampleContent.music.slice(0, 4),
-        topRated: sampleContent.music.slice(4, 8),
-        newReleases: sampleContent.music.slice(0, 4)
-      })
-    } finally {
-      setMusicLoading(false)
-    }
-  }
-
-  // Fonction modifiée pour ajouter à la bibliothèque avec Supabase
-  const handleAddToLibrary = async (item: any, status: MediaStatus) => {
-    const normalizedId = normalizeId(item.id)
-    
-    const newItem: LibraryItem = {
-      id: normalizedId,
-      title: item.title,
-      category: item.category || activeTab,
-      status,
-      addedAt: new Date().toISOString(),
-      year: item.year || new Date().getFullYear(),
-      rating: item.rating || 0,
-      image: item.image || item.background_image,
-      author: item.author,
-      artist: item.artist,
-      director: item.director,
-      genre: item.genre
-    }
-
-    // Sauvegarder avec le service
-    const success = await LibraryService.addToLibrary(newItem, status)
-    
-    if (success) {
-      // Mettre à jour l'état local
-      setLibrary(prev => {
-        const existingIndex = prev.findIndex((libItem: LibraryItem) => 
-          idsMatch(libItem.id, normalizedId)
-        )
-        
-        if (existingIndex !== -1) {
-          const updated = [...prev]
-          updated[existingIndex] = { 
-            ...updated[existingIndex], 
-            status, 
-            addedAt: new Date().toISOString() 
-          }
-          return updated
-        }
-        
-        return [newItem, ...prev] // Ajouter en premier
-      })
-    }
-  }
-
-  const handleUpdateItem = async (id: string, updates: Partial<LibraryItem>) => {
-    const success = await LibraryService.updateLibraryItem(id, updates)
-    
-    if (success) {
-      setLibrary(prev =>
-        prev.map(item =>
-          idsMatch(item.id, id)
-            ? { ...item, ...updates }
-            : item
-        )
-      )
-    }
-  }
-
-  const handleDeleteItem = async (id: string) => {
-    const success = await LibraryService.removeFromLibrary(id)
-    
-    if (success) {
-      setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
-    }
-  }
-
-  const handleOpenGameDetail = (gameId: string) => {
-    const normalizedGameId = normalizeId(gameId)
-    setSelectedGameId(normalizedGameId)
-  }
-
-  const handleOpenMovieDetail = (movieId: string) => {
-    const normalizedMovieId = normalizeId(movieId)
-    setSelectedMovieId(normalizedMovieId)
-  }
-
-  const handleOpenBookDetail = (bookId: string) => {
-    const normalizedBookId = normalizeId(bookId)
-    setSelectedBookId(normalizedBookId)
-  }
-
-  const handleOpenMusicDetail = (musicId: string) => {
-    const normalizedMusicId = normalizeId(musicId)
-    setSelectedMusicId(normalizedMusicId)
-  }
-
-  const handleOpenSearch = () => {
-    setIsSearchOpen(true)
-  }
-
-  const handleReviewSubmit = (reviewData: any) => {
-    const currentItemId = selectedGameId || selectedMovieId || selectedBookId || selectedMusicId
-    if (!currentItemId) return
-
-    const newReview: Review = {
-      id: Date.now(),
-      username: "CurrentUser",
-      rating: reviewData.rating,
-      review: reviewData.review,
-      date: new Date().toISOString().split('T')[0]
-    }
-
-    setUserReviews(prev => ({
-      ...prev,
-      [currentItemId]: [...(prev[currentItemId] || []), newReview]
-    }))
-  }
-
-  // Générer des reviews pour différentes plateformes
-  const generateSteamReviews = (gameId: number): Review[] => {
-    const reviewTemplates = [
-      { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
-      { rating: 4, text: "Great storyline and graphics. Minor bugs but overall excellent experience.", author: "GameReviewer", helpful: 89 },
-      { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
-      { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
-      { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 }
-    ]
-
-    const seed = gameId
-    const selectedReviews = []
-    const numReviews = 5
-
-    for (let i = 0; i < numReviews; i++) {
-      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length
-      const template = reviewTemplates[index]
-      
-      const gameSpecificVariations = {
-        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
-        daysAgo: (seed * i * 3) % 180 + 1,
-      }
-      
-      selectedReviews.push({
-        id: `steam_${gameId}_${i}`,
-        username: template.author,
-        rating: template.rating,
-        text: template.text,
-        helpful: gameSpecificVariations.helpful,
-        date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
-          .toISOString().split('T')[0],
-        platform: 'Steam'
-      })
-    }
-
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
-  }
-
-  const generateGoodreadsReviews = (bookId: string): Review[] => {
-    const reviewTemplates = [
-      { rating: 5, text: "Absolutely loved this book! Couldn't put it down. The characters were so well developed and the plot was engaging throughout.", author: "BookLover", helpful: 156 },
-      { rating: 4, text: "Really enjoyed this read. Great writing style and interesting themes. A few slow parts but overall fantastic.", author: "AvidReader", helpful: 89 },
-      { rating: 5, text: "One of my favorite books this year! Beautiful prose and such an emotional journey. Highly recommend!", author: "BookwormLife", helpful: 234 },
-      { rating: 3, text: "Good book but not amazing. The story was decent but felt a bit predictable at times.", author: "CasualReader", helpful: 45 },
-      { rating: 4, text: "Solid storytelling and great character development. Would definitely read more from this author.", author: "LitCritic", helpful: 112 }
-    ]
-
-    const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    const selectedReviews = []
-    
-    for (let i = 0; i < 5; i++) {
-      const index = (seed * 11 + i * 17) % reviewTemplates.length
-      const template = reviewTemplates[index]
-      
-      const bookSpecificVariations = {
-        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
-        daysAgo: (seed * i * 4) % 90 + 1,
-      }
-      
-      selectedReviews.push({
-        id: `goodreads_${bookId}_${i}`,
-        username: template.author,
-        rating: template.rating,
-        text: template.text,
-        helpful: bookSpecificVariations.helpful,
-        date: new Date(Date.now() - bookSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
-          .toISOString().split('T')[0],
-        platform: 'Goodreads'
-      })
-    }
-
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
-  }
-
-  const generateIMDBReviews = (movieId: string): Review[] => {
-    const reviewTemplates = [
-      { rating: 5, text: "A masterpiece! Brilliant acting and cinematography. This film will be remembered for years.", author: "CinemaLover", helpful: 89 },
-      { rating: 4, text: "Excellent storytelling and character development. Minor pacing issues but overall fantastic.", author: "FilmCritic", helpful: 156 },
-      { rating: 5, text: "One of the best films I've seen. Perfect blend of drama and emotion. Highly recommended!", author: "MovieBuff", helpful: 234 },
-      { rating: 3, text: "Good but not great. Some brilliant moments but overall feels uneven.", author: "CasualViewer", helpful: 45 },
-      { rating: 4, text: "Strong performances and great direction. A solid addition to the genre.", author: "FilmStudent", helpful: 78 }
-    ]
-
-    const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    const selectedReviews = []
-    
-    for (let i = 0; i < 5; i++) {
-      const index = (seed * 13 + i * 19) % reviewTemplates.length
-      const template = reviewTemplates[index]
-      
-      const movieSpecificVariations = {
-        helpful: Math.max(1, template.helpful + (seed * i % 40) - 20),
-        daysAgo: (seed * i * 2) % 120 + 1,
-      }
-      
-      selectedReviews.push({
-        id: `imdb_${movieId}_${i}`,
-        username: template.author,
-        rating: template.rating,
-        text: template.text,
-        helpful: movieSpecificVariations.helpful,
-        date: new Date(Date.now() - movieSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
-          .toISOString().split('T')[0],
-        platform: 'IMDb'
-      })
-    }
-
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
-  }
-
-  const generateSpotifyReviews = (musicId: string): Review[] => {
-    const reviewTemplates = [
-      { rating: 5, text: "This album is absolutely phenomenal! Every track is a masterpiece. Can't stop listening!", author: "MusicLover99", helpful: 201 },
-      { rating: 4, text: "Really solid album with great production. A few tracks could be stronger but overall fantastic.", author: "IndieHead", helpful: 134 },
-      { rating: 5, text: "Pure genius! The way they blend genres is incredible. This will be on repeat for months.", author: "VinylCollector", helpful: 187 },
-      { rating: 3, text: "Good but not groundbreaking. Some nice moments but doesn't live up to the hype.", author: "CasualListener", helpful: 67 },
-      { rating: 4, text: "Excellent songwriting and vocals. The production quality is top-notch throughout.", author: "AudioPhile", helpful: 145 }
-    ]
-
-    const seed = musicId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    const selectedReviews = []
-    
-    for (let i = 0; i < 5; i++) {
-      const index = (seed * 7 + i * 11) % reviewTemplates.length
-      const template = reviewTemplates[index]
-      
-      const musicSpecificVariations = {
-        helpful: Math.max(1, template.helpful + (seed * i % 60) - 30),
-        daysAgo: (seed * i * 5) % 200 + 1,
-      }
-      
-      selectedReviews.push({
-        id: `spotify_${musicId}_${i}`,
-        username: template.author,
-        rating: template.rating,
-        text: template.text,
-        helpful: musicSpecificVariations.helpful,
-        date: new Date(Date.now() - musicSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
-          .toISOString().split('T')[0],
-        platform: 'Music Community'
-      })
-    }
-
-    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
-  }
-
-  const getSections = () => {
-    if (activeTab === 'games') {
-      return [
-        { title: 'Popular this week', items: gameContent.popular },
-        { title: 'Top rated of all time', items: gameContent.topRated },
-        { title: 'New releases', items: gameContent.newReleases }
-      ]
-    }
-    
-    if (activeTab === 'movies') {
-      return [
-        { title: 'Popular classics', items: movieContent.popular },
-        { title: 'Top rated of all time', items: movieContent.topRated },
-        { title: 'Recent favorites', items: movieContent.recent }
-      ]
-    }
-    
-    if (activeTab === 'books') {
-      return [
-        { title: 'Fiction favorites', items: bookContent.fiction },
-        { title: 'Non-fiction highlights', items: bookContent.nonFiction },
-        { title: 'New releases', items: bookContent.newReleases }
-      ]
-    }
-
-    if (activeTab === 'music') {
-      return [
-        { title: 'Popular albums', items: musicContent.popular },
-        { title: 'Classic masterpieces', items: musicContent.topRated },
-        { title: 'Latest releases', items: musicContent.newReleases }
-      ]
-    }
-    
-    const allContent = getCurrentContent()
-    const popularItems = allContent.slice(0, 4)
-    const topRatedItems = allContent.slice(4, 8) 
-    const editorPicksItems = allContent.slice(0, 4)
-
-    const sectionConfig = {
-      games: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Top rated of all time', items: topRatedItems },
-        { title: "Editor's Choice", items: editorPicksItems }
-      ],
-      music: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Top albums', items: topRatedItems },
-        { title: 'Hidden gems', items: editorPicksItems }
-      ],
-      books: [
-        { title: 'Popular this week', items: popularItems },
-        { title: 'Bestsellers', items: topRatedItems },
-        { title: 'Must reads', items: editorPicksItems }
-      ]
-    }
-
-    return sectionConfig[activeTab] || sectionConfig.games
-  }
-
-  const getCurrentContent = (): ContentItem[] => {
-    switch (activeTab) {
-      case 'games': return sampleContent.games
-      case 'movies': return sampleContent.movies
-      case 'music': return sampleContent.music
-      case 'books': return sampleContent.books
-      default: return sampleContent.games
-    }
-  }
-
-  // Rendu selon l'onglet principal actif
-  const renderMainContent = () => {
-    switch (activeMainTab) {
-      case 'home':
-        return renderHomeContent()
-      case 'library':
-        return renderLibraryContent()
-      case 'discover':
-        return renderDiscoverContent()
-      case 'search':
-        return renderSearchContent()
-      case 'roadmap':
-        return <RoadmapPage onBack={() => setActiveMainTab('home')} />
-      default:
-        return renderHomeContent()
-    }
-  }
-
-  const renderHomeContent = () => {
-    const sections = getSections()
-    
-    return (
-      <div className="bg-white">
-        {/* Header fixe avec arrière-plan gris */}
-        <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
-          {/* Barre de recherche étendue */}
-          <div className="flex items-center justify-between px-4 sm:px-6 py-4">
-            <div className="flex-1 max-w-2xl mx-auto">
-              <div 
-                className="relative cursor-pointer"
-                onClick={() => setIsSearchOpen(true)}
-              >
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
-                  <span>Search...</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center ml-4">
-              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600 text-sm font-medium">👤</span>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Onglets de catégories */}
-          <div className="px-4 sm:px-6">
-            <CategoryTabs 
-              activeTab={activeTab} 
-              onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
-            />
-          </div>
-        </div>
-        
-        {/* Contenu scrollable avec loading state */}
-        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
-          {(gamesLoading && activeTab === 'games') || 
-           (moviesLoading && activeTab === 'movies') || 
-           (booksLoading && activeTab === 'books') || 
-           (musicLoading && activeTab === 'music') ? (
-            <div className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="mb-8">
-                  <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
-                  <div className="flex space-x-4 overflow-x-auto pb-4">
-                    {[1, 2, 3, 4].map((j) => (
-                      <div key={j} className="flex-shrink-0 w-32">
-                        <div className="w-32 h-40 bg-gray-200 rounded-lg animate-pulse mb-3"></div>
-                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
-                        <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-6 sm:space-y-8">
-              {sections.map((section, index) => (
-                <ContentSection
-                  key={`${activeTab}-${index}`}
-                  title={section.title}
-                  items={section.items}
-                  category={activeTab}
-                  onAddToLibrary={handleAddToLibrary}
-                  onDeleteItem={handleDeleteItem} // ✅ AJOUT NOUVELLE PROP
-                  library={library}
-                  onOpenGameDetail={handleOpenGameDetail}
-                  onOpenMovieDetail={handleOpenMovieDetail}
-                  onOpenBookDetail={handleOpenBookDetail}
-                  onOpenMusicDetail={handleOpenMusicDetail}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  const renderLibraryContent = () => (
-    <div className="bg-white min-h-screen">
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
-      </div>
-      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
-        <LibrarySection 
-          library={library}
-          onAddToLibrary={handleAddToLibrary}
-          onUpdateItem={handleUpdateItem}
-          onDeleteItem={handleDeleteItem}
-          onOpenGameDetail={handleOpenGameDetail}
-          onOpenMovieDetail={handleOpenMovieDetail}
-          onOpenBookDetail={handleOpenBookDetail}
-          onOpenMusicDetail={handleOpenMusicDetail}
-          onOpenSearch={handleOpenSearch}
-        />
-      </div>
-    </div>
-  )
-
-  const renderDiscoverContent = () => (
-    <DiscoverPage
-      onAddToLibrary={handleAddToLibrary}
-      onDeleteItem={handleDeleteItem} // ✅ AJOUT NOUVELLE PROP
-      onOpenGameDetail={handleOpenGameDetail}
-      onOpenMovieDetail={handleOpenMovieDetail}
-      onOpenBookDetail={handleOpenBookDetail}
-      onOpenMusicDetail={handleOpenMusicDetail}
-      library={library}
-    />
-  )
-
-  const renderSearchContent = () => (
-    <div className="bg-white min-h-screen">
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Search</h1>
-      </div>
-      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
-        <div 
-          className="bg-gray-50 rounded-xl p-4 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
-          onClick={() => setIsSearchOpen(true)}
-        >
-          <div className="flex items-center space-x-3">
-            <Search className="text-gray-400" size={20} />
-            <span className="text-gray-500">Search games, movies, music, books...</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  return (
-    <div className="min-h-screen bg-white">
-      {renderMainContent()}
-
-      {/* Bottom Navigation */}
-      <BottomNavigation 
-        activeTab={activeMainTab} 
-        onTabChange={setActiveMainTab} 
-      />
-
-      {/* ✅ MODALS AVEC onDeleteItem AJOUTÉ */}
-      <GameDetailModal
-        isOpen={!!selectedGameId}
-        onClose={() => setSelectedGameId(null)}
-        gameId={selectedGameId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem} // ✅ AJOUT
-        library={library}
-        userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
-        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
-
-      <MovieDetailModal
-        isOpen={!!selectedMovieId}
-        onClose={() => setSelectedMovieId(null)}
-        movieId={selectedMovieId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem} // ✅ AJOUT
-        library={library}
-        userReviews={selectedMovieId ? userReviews[selectedMovieId] || [] : []}
-        imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
-
-      <BookDetailModal
-        isOpen={!!selectedBookId}
-        onClose={() => setSelectedBookId(null)}
-        bookId={selectedBookId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem} // ✅ AJOUT
-        library={library}
-        userReviews={selectedBookId ? userReviews[selectedBookId] || [] : []}
-        goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
-
-      <MusicDetailModal
-        isOpen={!!selectedMusicId}
-        onClose={() => setSelectedMusicId(null)}
-        albumId={selectedMusicId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem} // ✅ AJOUT
-        library={library}
-        userReviews={selectedMusicId ? userReviews[selectedMusicId] || [] : []}
-        spotifyReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
-
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenGameDetail={handleOpenGameDetail}
-        onOpenMovieDetail={handleOpenMovieDetail}
-        onOpenBookDetail={handleOpenBookDetail}
-        onOpenMusicDetail={handleOpenMusicDetail}
-        library={library}
-      />
-    </div>
-  )
-}
-</file>
-
 <file path="src/components/GameDetailModal.tsx">
 'use client'
 import { useState, useEffect, useRef } from 'react'
@@ -10261,8 +9365,814 @@ export default function GameDetailModal({
 }
 </file>
 
+<file path="src/app/page.tsx">
+'use client'
+import { useState, useEffect } from 'react'
+import { Search } from 'lucide-react'
+import CategoryTabs from '@/components/CategoryTabs'
+import ContentSection from '@/components/ContentSection'
+import LibrarySection from '@/components/LibrarySection'
+import GameDetailModal from '@/components/GameDetailModal'
+import MovieDetailModal from '@/components/MovieDetailModal'
+import BookDetailModal from '@/components/BookDetailModal'
+import MusicDetailModal from '@/components/MusicDetailModal'
+import SearchModal from '@/components/SearchModal'
+import BottomNavigation from '@/components/BottomNavigation'
+import RoadmapPage from '@/components/RoadmapPage'
+import DiscoverPage from '@/components/DiscoverPage'
+import { sampleContent } from '@/data/sampleContent'
+import { omdbService } from '@/services/omdbService'
+import { googleBooksService } from '@/services/googleBooksService'
+import { musicService } from '@/services/musicService'
+import { rawgService } from '@/services/rawgService'
+import { LibraryService } from '@/services/libraryService'
+import { normalizeId, idsMatch } from '@/utils/idNormalizer'
+import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<MediaCategory>('games')
+  const [activeMainTab, setActiveMainTab] = useState('home')
+  const [library, setLibrary] = useState<LibraryItem[]>([])
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
+  const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  
+  // State pour le contenu dynamique des jeux
+  const [gameContent, setGameContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    newReleases: []
+  })
+  const [gamesLoading, setGamesLoading] = useState(false)
+  
+  // State pour le contenu dynamique des films
+  const [movieContent, setMovieContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    recent: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    recent: []
+  })
+  const [moviesLoading, setMoviesLoading] = useState(false)
+
+  // State pour le contenu dynamique des livres
+  const [bookContent, setBookContent] = useState<{
+    fiction: ContentItem[]
+    nonFiction: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    fiction: [],
+    nonFiction: [],
+    newReleases: []
+  })
+  const [booksLoading, setBooksLoading] = useState(false)
+
+  // State pour le contenu dynamique de la musique
+  const [musicContent, setMusicContent] = useState<{
+    popular: ContentItem[]
+    topRated: ContentItem[]
+    newReleases: ContentItem[]
+  }>({
+    popular: [],
+    topRated: [],
+    newReleases: []
+  })
+  const [musicLoading, setMusicLoading] = useState(false)
+
+  // User reviews state
+  const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
+
+  // Charger la bibliothèque au démarrage
+  useEffect(() => {
+    const loadSavedLibrary = async () => {
+      try {
+        const savedLibrary = await LibraryService.getLibrary()
+        setLibrary(savedLibrary)
+        
+        // Test optionnel de connexion Supabase
+        await LibraryService.testSupabaseConnection()
+      } catch (error) {
+        console.error('Error loading saved library:', error)
+      }
+    }
+    loadSavedLibrary()
+  }, [])
+
+  // Charger le contenu selon la catégorie active
+  useEffect(() => {
+    if (activeTab === 'games') {
+      loadGameContent()
+    } else if (activeTab === 'movies') {
+      loadMovieContent()
+    } else if (activeTab === 'books') {
+      loadBookContent()
+    } else if (activeTab === 'music') {
+      loadMusicContent()
+    }
+  }, [activeTab])
+
+  const loadGameContent = async () => {
+    try {
+      setGamesLoading(true)
+
+      const [popularGames, topRatedGames, newReleaseGames] = await Promise.all([
+        rawgService.getPopularGames().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        ),
+        rawgService.getTopRatedGames().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        ),
+        rawgService.getNewReleases().then(games => 
+          games.slice(0, 8).map(game => rawgService.convertToAppFormat(game))
+        )
+      ])
+
+      setGameContent({
+        popular: popularGames,
+        topRated: topRatedGames,
+        newReleases: newReleaseGames
+      })
+    } catch (error) {
+      console.error('Error loading game content:', error)
+      
+      // Fallback vers les données statiques
+      setGameContent({
+        popular: sampleContent.games.slice(0, 4),
+        topRated: sampleContent.games.slice(4, 8),
+        newReleases: sampleContent.games.slice(0, 4)
+      })
+    } finally {
+      setGamesLoading(false)
+    }
+  }
+
+  const loadMovieContent = async () => {
+    try {
+      setMoviesLoading(true)
+
+      const [popularMovies, topRatedMovies, recentMovies] = await Promise.all([
+        omdbService.getPopularMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        ),
+        omdbService.getTopRatedMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        ),
+        omdbService.getRecentMovies().then(movies => 
+          movies.slice(0, 8).map(movie => omdbService.convertToAppFormat(movie))
+        )
+      ])
+
+      setMovieContent({
+        popular: popularMovies,
+        topRated: topRatedMovies,
+        recent: recentMovies
+      })
+    } catch (error) {
+      console.error('Error loading movie content:', error)
+      
+      // Fallback vers les données statiques
+      setMovieContent({
+        popular: sampleContent.movies.slice(0, 4),
+        topRated: sampleContent.movies.slice(4, 8),
+        recent: sampleContent.movies.slice(0, 4)
+      })
+    } finally {
+      setMoviesLoading(false)
+    }
+  }
+
+  const loadBookContent = async () => {
+    try {
+      setBooksLoading(true)
+
+      const [fictionBooks, nonFictionBooks, newReleaseBooks] = await Promise.all([
+        googleBooksService.getFictionBooks().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        ),
+        googleBooksService.getNonFictionBooks().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        ),
+        googleBooksService.getNewReleases().then(books => 
+          books.slice(0, 8).map(book => googleBooksService.convertToAppFormat(book))
+        )
+      ])
+
+      setBookContent({
+        fiction: fictionBooks,
+        nonFiction: nonFictionBooks,
+        newReleases: newReleaseBooks
+      })
+    } catch (error) {
+      console.error('Error loading book content:', error)
+      
+      // Fallback vers les données statiques
+      setBookContent({
+        fiction: sampleContent.books.slice(0, 4),
+        nonFiction: sampleContent.books.slice(4, 8),
+        newReleases: sampleContent.books.slice(0, 4)
+      })
+    } finally {
+      setBooksLoading(false)
+    }
+  }
+
+  const loadMusicContent = async () => {
+    try {
+      setMusicLoading(true)
+
+      const [popularAlbums, topRatedAlbums, newReleaseAlbums] = await Promise.all([
+        musicService.getPopularAlbums().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        ),
+        musicService.getTopRatedAlbums().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        ),
+        musicService.getNewReleases().then(albums => 
+          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
+        )
+      ])
+
+      setMusicContent({
+        popular: popularAlbums,
+        topRated: topRatedAlbums,
+        newReleases: newReleaseAlbums
+      })
+    } catch (error) {
+      console.error('Error loading music content:', error)
+      
+      // Fallback vers les données statiques
+      setMusicContent({
+        popular: sampleContent.music.slice(0, 4),
+        topRated: sampleContent.music.slice(4, 8),
+        newReleases: sampleContent.music.slice(0, 4)
+      })
+    } finally {
+      setMusicLoading(false)
+    }
+  }
+
+  // Fonction modifiée pour ajouter à la bibliothèque avec Supabase
+  const handleAddToLibrary = async (item: any, status: MediaStatus) => {
+    const normalizedId = normalizeId(item.id)
+    
+    const newItem: LibraryItem = {
+      id: normalizedId,
+      title: item.title,
+      category: item.category || activeTab,
+      status,
+      addedAt: new Date().toISOString(),
+      year: item.year || new Date().getFullYear(),
+      rating: item.rating || 0,
+      image: item.image || item.background_image,
+      author: item.author,
+      artist: item.artist,
+      director: item.director,
+      genre: item.genre
+    }
+
+    // Sauvegarder avec le service
+    const success = await LibraryService.addToLibrary(newItem, status)
+    
+    if (success) {
+      // Mettre à jour l'état local
+      setLibrary(prev => {
+        const existingIndex = prev.findIndex((libItem: LibraryItem) => 
+          idsMatch(libItem.id, normalizedId)
+        )
+        
+        if (existingIndex !== -1) {
+          const updated = [...prev]
+          updated[existingIndex] = { 
+            ...updated[existingIndex], 
+            status, 
+            addedAt: new Date().toISOString() 
+          }
+          return updated
+        }
+        
+        return [newItem, ...prev] // Ajouter en premier
+      })
+    }
+  }
+
+  const handleUpdateItem = async (id: string, updates: Partial<LibraryItem>) => {
+    const success = await LibraryService.updateLibraryItem(id, updates)
+    
+    if (success) {
+      setLibrary(prev =>
+        prev.map(item =>
+          idsMatch(item.id, id)
+            ? { ...item, ...updates }
+            : item
+        )
+      )
+    }
+  }
+
+  const handleDeleteItem = async (id: string) => {
+    const success = await LibraryService.removeFromLibrary(id)
+    
+    if (success) {
+      setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
+    }
+  }
+
+  const handleOpenGameDetail = (gameId: string) => {
+    const normalizedGameId = normalizeId(gameId)
+    setSelectedGameId(normalizedGameId)
+  }
+
+  const handleOpenMovieDetail = (movieId: string) => {
+    const normalizedMovieId = normalizeId(movieId)
+    setSelectedMovieId(normalizedMovieId)
+  }
+
+  const handleOpenBookDetail = (bookId: string) => {
+    const normalizedBookId = normalizeId(bookId)
+    setSelectedBookId(normalizedBookId)
+  }
+
+  const handleOpenMusicDetail = (musicId: string) => {
+    const normalizedMusicId = normalizeId(musicId)
+    setSelectedMusicId(normalizedMusicId)
+  }
+
+  const handleOpenSearch = () => {
+    setIsSearchOpen(true)
+  }
+
+  const handleReviewSubmit = (reviewData: any) => {
+    const currentItemId = selectedGameId || selectedMovieId || selectedBookId || selectedMusicId
+    if (!currentItemId) return
+
+    const newReview: Review = {
+      id: Date.now(),
+      username: "CurrentUser",
+      rating: reviewData.rating,
+      review: reviewData.review,
+      date: new Date().toISOString().split('T')[0]
+    }
+
+    setUserReviews(prev => ({
+      ...prev,
+      [currentItemId]: [...(prev[currentItemId] || []), newReview]
+    }))
+  }
+
+  // Générer des reviews pour différentes plateformes
+  const generateSteamReviews = (gameId: number): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "Absolutely incredible! Best game I've played this year. The graphics and gameplay are top-notch.", author: "SteamMaster", helpful: 124 },
+      { rating: 4, text: "Great storyline and graphics. Minor bugs but overall excellent experience.", author: "GameReviewer", helpful: 89 },
+      { rating: 5, text: "Perfect RPG experience. Hours of entertainment guaranteed. Highly recommended!", author: "RPGLover", helpful: 156 },
+      { rating: 3, text: "Good but could use more content. Worth it on sale, not at full price.", author: "CasualGamer", helpful: 45 },
+      { rating: 4, text: "Solid experience overall. Great value for money. Some performance issues on older hardware.", author: "ValueHunter", helpful: 78 }
+    ]
+
+    const seed = gameId
+    const selectedReviews = []
+    const numReviews = 5
+
+    for (let i = 0; i < numReviews; i++) {
+      const index = (seed * 17 + i * 23 + gameId * 7) % reviewTemplates.length
+      const template = reviewTemplates[index]
+      
+      const gameSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
+        daysAgo: (seed * i * 3) % 180 + 1,
+      }
+      
+      selectedReviews.push({
+        id: `steam_${gameId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: gameSpecificVariations.helpful,
+        date: new Date(Date.now() - gameSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Steam'
+      })
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
+
+  const generateGoodreadsReviews = (bookId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "Absolutely loved this book! Couldn't put it down. The characters were so well developed and the plot was engaging throughout.", author: "BookLover", helpful: 156 },
+      { rating: 4, text: "Really enjoyed this read. Great writing style and interesting themes. A few slow parts but overall fantastic.", author: "AvidReader", helpful: 89 },
+      { rating: 5, text: "One of my favorite books this year! Beautiful prose and such an emotional journey. Highly recommend!", author: "BookwormLife", helpful: 234 },
+      { rating: 3, text: "Good book but not amazing. The story was decent but felt a bit predictable at times.", author: "CasualReader", helpful: 45 },
+      { rating: 4, text: "Solid storytelling and great character development. Would definitely read more from this author.", author: "LitCritic", helpful: 112 }
+    ]
+
+    const seed = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 11 + i * 17) % reviewTemplates.length
+      const template = reviewTemplates[index]
+      
+      const bookSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 50) - 25),
+        daysAgo: (seed * i * 4) % 90 + 1,
+      }
+      
+      selectedReviews.push({
+        id: `goodreads_${bookId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: bookSpecificVariations.helpful,
+        date: new Date(Date.now() - bookSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Goodreads'
+      })
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
+
+  const generateIMDBReviews = (movieId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "A masterpiece! Brilliant acting and cinematography. This film will be remembered for years.", author: "CinemaLover", helpful: 89 },
+      { rating: 4, text: "Excellent storytelling and character development. Minor pacing issues but overall fantastic.", author: "FilmCritic", helpful: 156 },
+      { rating: 5, text: "One of the best films I've seen. Perfect blend of drama and emotion. Highly recommended!", author: "MovieBuff", helpful: 234 },
+      { rating: 3, text: "Good but not great. Some brilliant moments but overall feels uneven.", author: "CasualViewer", helpful: 45 },
+      { rating: 4, text: "Strong performances and great direction. A solid addition to the genre.", author: "FilmStudent", helpful: 78 }
+    ]
+
+    const seed = movieId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 13 + i * 19) % reviewTemplates.length
+      const template = reviewTemplates[index]
+      
+      const movieSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 40) - 20),
+        daysAgo: (seed * i * 2) % 120 + 1,
+      }
+      
+      selectedReviews.push({
+        id: `imdb_${movieId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: movieSpecificVariations.helpful,
+        date: new Date(Date.now() - movieSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'IMDb'
+      })
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
+
+  const generateSpotifyReviews = (musicId: string): Review[] => {
+    const reviewTemplates = [
+      { rating: 5, text: "This album is absolutely phenomenal! Every track is a masterpiece. Can't stop listening!", author: "MusicLover99", helpful: 201 },
+      { rating: 4, text: "Really solid album with great production. A few tracks could be stronger but overall fantastic.", author: "IndieHead", helpful: 134 },
+      { rating: 5, text: "Pure genius! The way they blend genres is incredible. This will be on repeat for months.", author: "VinylCollector", helpful: 187 },
+      { rating: 3, text: "Good but not groundbreaking. Some nice moments but doesn't live up to the hype.", author: "CasualListener", helpful: 67 },
+      { rating: 4, text: "Excellent songwriting and vocals. The production quality is top-notch throughout.", author: "AudioPhile", helpful: 145 }
+    ]
+
+    const seed = musicId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const selectedReviews = []
+    
+    for (let i = 0; i < 5; i++) {
+      const index = (seed * 7 + i * 11) % reviewTemplates.length
+      const template = reviewTemplates[index]
+      
+      const musicSpecificVariations = {
+        helpful: Math.max(1, template.helpful + (seed * i % 60) - 30),
+        daysAgo: (seed * i * 5) % 200 + 1,
+      }
+      
+      selectedReviews.push({
+        id: `spotify_${musicId}_${i}`,
+        username: template.author,
+        rating: template.rating,
+        text: template.text,
+        helpful: musicSpecificVariations.helpful,
+        date: new Date(Date.now() - musicSpecificVariations.daysAgo * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0],
+        platform: 'Music Community'
+      })
+    }
+
+    return selectedReviews.sort((a, b) => (b.helpful || 0) - (a.helpful || 0))
+  }
+
+  const getSections = () => {
+    if (activeTab === 'games') {
+      return [
+        { title: 'Popular this week', items: gameContent.popular },
+        { title: 'Top rated of all time', items: gameContent.topRated },
+        { title: 'New releases', items: gameContent.newReleases }
+      ]
+    }
+    
+    if (activeTab === 'movies') {
+      return [
+        { title: 'Popular classics', items: movieContent.popular },
+        { title: 'Top rated of all time', items: movieContent.topRated },
+        { title: 'Recent favorites', items: movieContent.recent }
+      ]
+    }
+    
+    if (activeTab === 'books') {
+      return [
+        { title: 'Fiction favorites', items: bookContent.fiction },
+        { title: 'Non-fiction highlights', items: bookContent.nonFiction },
+        { title: 'New releases', items: bookContent.newReleases }
+      ]
+    }
+
+    if (activeTab === 'music') {
+      return [
+        { title: 'Popular albums', items: musicContent.popular },
+        { title: 'Classic masterpieces', items: musicContent.topRated },
+        { title: 'Latest releases', items: musicContent.newReleases }
+      ]
+    }
+    
+    const allContent = getCurrentContent()
+    const popularItems = allContent.slice(0, 4)
+    const topRatedItems = allContent.slice(4, 8) 
+    const editorPicksItems = allContent.slice(0, 4)
+
+    const sectionConfig = {
+      games: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Top rated of all time', items: topRatedItems },
+        { title: "Editor's Choice", items: editorPicksItems }
+      ],
+      music: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Top albums', items: topRatedItems },
+        { title: 'Hidden gems', items: editorPicksItems }
+      ],
+      books: [
+        { title: 'Popular this week', items: popularItems },
+        { title: 'Bestsellers', items: topRatedItems },
+        { title: 'Must reads', items: editorPicksItems }
+      ]
+    }
+
+    return sectionConfig[activeTab] || sectionConfig.games
+  }
+
+  const getCurrentContent = (): ContentItem[] => {
+    switch (activeTab) {
+      case 'games': return sampleContent.games
+      case 'movies': return sampleContent.movies
+      case 'music': return sampleContent.music
+      case 'books': return sampleContent.books
+      default: return sampleContent.games
+    }
+  }
+
+  // Rendu selon l'onglet principal actif
+  const renderMainContent = () => {
+    switch (activeMainTab) {
+      case 'home':
+        return renderHomeContent()
+      case 'library':
+        return renderLibraryContent()
+      case 'discover':
+        return renderDiscoverContent()
+      case 'search':
+        return renderSearchContent()
+      case 'roadmap':
+        return <RoadmapPage onBack={() => setActiveMainTab('home')} />
+      default:
+        return renderHomeContent()
+    }
+  }
+
+  const renderHomeContent = () => {
+    const sections = getSections()
+    
+    return (
+      <div className="bg-white">
+        {/* Header fixe avec arrière-plan gris */}
+        <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
+          {/* Barre de recherche étendue */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4">
+            <div className="flex-1 max-w-2xl mx-auto">
+              <div 
+                className="relative cursor-pointer"
+                onClick={() => setIsSearchOpen(true)}
+              >
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
+                  <span>Search...</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center ml-4">
+              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 text-sm font-medium">👤</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Onglets de catégories */}
+          <div className="px-4 sm:px-6">
+            <CategoryTabs 
+              activeTab={activeTab} 
+              onTabChange={(tab) => setActiveTab(tab as MediaCategory)} 
+            />
+          </div>
+        </div>
+        
+        {/* Contenu scrollable avec loading state */}
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24">
+          {(gamesLoading && activeTab === 'games') || 
+           (moviesLoading && activeTab === 'movies') || 
+           (booksLoading && activeTab === 'books') || 
+           (musicLoading && activeTab === 'music') ? (
+            <div className="space-y-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="mb-8">
+                  <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
+                  <div className="flex space-x-4 overflow-x-auto pb-4">
+                    {[1, 2, 3, 4].map((j) => (
+                      <div key={j} className="flex-shrink-0 w-32">
+                        <div className="w-32 h-40 bg-gray-200 rounded-lg animate-pulse mb-3"></div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6 sm:space-y-8">
+              {sections.map((section, index) => (
+                <ContentSection
+                  key={`${activeTab}-${index}`}
+                  title={section.title}
+                  items={section.items}
+                  category={activeTab}
+                  onAddToLibrary={handleAddToLibrary}
+                  onDeleteItem={handleDeleteItem} // ✅ AJOUT NOUVELLE PROP
+                  library={library}
+                  onOpenGameDetail={handleOpenGameDetail}
+                  onOpenMovieDetail={handleOpenMovieDetail}
+                  onOpenBookDetail={handleOpenBookDetail}
+                  onOpenMusicDetail={handleOpenMusicDetail}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderLibraryContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <LibrarySection 
+          library={library}
+          onAddToLibrary={handleAddToLibrary}
+          onUpdateItem={handleUpdateItem}
+          onDeleteItem={handleDeleteItem}
+          onOpenGameDetail={handleOpenGameDetail}
+          onOpenMovieDetail={handleOpenMovieDetail}
+          onOpenBookDetail={handleOpenBookDetail}
+          onOpenMusicDetail={handleOpenMusicDetail}
+          onOpenSearch={handleOpenSearch}
+        />
+      </div>
+    </div>
+  )
+
+  const renderDiscoverContent = () => (
+    <DiscoverPage
+      onAddToLibrary={handleAddToLibrary}
+      onDeleteItem={handleDeleteItem} // ✅ AJOUT NOUVELLE PROP
+      onOpenGameDetail={handleOpenGameDetail}
+      onOpenMovieDetail={handleOpenMovieDetail}
+      onOpenBookDetail={handleOpenBookDetail}
+      onOpenMusicDetail={handleOpenMusicDetail}
+      library={library}
+    />
+  )
+
+  const renderSearchContent = () => (
+    <div className="bg-white min-h-screen">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Search</h1>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
+        <div 
+          className="bg-gray-50 rounded-xl p-4 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+          onClick={() => setIsSearchOpen(true)}
+        >
+          <div className="flex items-center space-x-3">
+            <Search className="text-gray-400" size={20} />
+            <span className="text-gray-500">Search games, movies, music, books...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen bg-white">
+      {renderMainContent()}
+
+      {/* Bottom Navigation */}
+      <BottomNavigation 
+        activeTab={activeMainTab} 
+        onTabChange={setActiveMainTab} 
+      />
+
+      {/* ✅ MODALS AVEC onDeleteItem AJOUTÉ */}
+      <GameDetailModal
+        isOpen={!!selectedGameId}
+        onClose={() => setSelectedGameId(null)}
+        gameId={selectedGameId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        onDeleteItem={handleDeleteItem} // ✅ AJOUT
+        library={library}
+        userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
+        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <MovieDetailModal
+        isOpen={!!selectedMovieId}
+        onClose={() => setSelectedMovieId(null)}
+        movieId={selectedMovieId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        onDeleteItem={handleDeleteItem} // ✅ AJOUT
+        library={library}
+        userReviews={selectedMovieId ? userReviews[selectedMovieId] || [] : []}
+        imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <BookDetailModal
+        isOpen={!!selectedBookId}
+        onClose={() => setSelectedBookId(null)}
+        bookId={selectedBookId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        onDeleteItem={handleDeleteItem} // ✅ AJOUT
+        library={library}
+        userReviews={selectedBookId ? userReviews[selectedBookId] || [] : []}
+        goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <MusicDetailModal
+        isOpen={!!selectedMusicId}
+        onClose={() => setSelectedMusicId(null)}
+        albumId={selectedMusicId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        onDeleteItem={handleDeleteItem} // ✅ AJOUT
+        library={library}
+        userReviews={selectedMusicId ? userReviews[selectedMusicId] || [] : []}
+        spotifyReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
+
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenGameDetail={handleOpenGameDetail}
+        onOpenMovieDetail={handleOpenMovieDetail}
+        onOpenBookDetail={handleOpenBookDetail}
+        onOpenMusicDetail={handleOpenMusicDetail}
+        library={library}
+      />
+    </div>
+  )
+}
+</file>
+
 <file path="src/components/SearchModal.tsx">
-// src/components/SearchModal.tsx - ENTIÈREMENT RÉÉCRIT
+// src/components/SearchModal.tsx - COMPLET AVEC INTERFACE MOBILE OPTIMISÉE
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
@@ -10551,16 +10461,14 @@ export default function SearchModal({
         )
       }
 
-      // 🎵 RECHERCHE MUSIQUE AVEC FORCE API
+      // 🎵 RECHERCHE MUSIQUE
       if (category === 'all' || category === 'music') {
         const searchMusicWithCategory = async (): Promise<SearchResult[]> => {
           console.log('🎵 [SearchModal] Starting music search for:', searchQuery, 'Category filter:', category)
           
           try {
-            // ✅ FORCER L'API si on filtre spécifiquement sur "music"
-            const forceAPI = category === 'music'
-            const albums = await musicService.searchAlbums(searchQuery, 20, forceAPI)
-            console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums (forceAPI:', forceAPI, ')')
+            const albums = await musicService.searchAlbums(searchQuery, 20)
+            console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums')
             
             if (!albums || albums.length === 0) {
               return []
@@ -10611,12 +10519,12 @@ export default function SearchModal({
       results.forEach(({ category: searchCategory, results: categoryResults }) => {
         console.log(`📊 [SearchModal] ${searchCategory.toUpperCase()} results:`, categoryResults.length)
         
-                              categoryResults.forEach((result, index) => {
-                        if (index < 3) { // Log seulement les 3 premiers pour éviter le spam
-                          const creator = getCreator(result)
-                          console.log(`  ${index + 1}. ${result.title} (${result.year}) by ${creator}`)
-                        }
-                      })
+        categoryResults.forEach((result, index) => {
+          if (index < 3) { // Log seulement les 3 premiers pour éviter le spam
+            const creator = getCreator(result)
+            console.log(`  ${index + 1}. ${result.title} (${result.year}) by ${creator}`)
+          }
+        })
         
         allResults.push(...categoryResults)
       })
@@ -10650,10 +10558,10 @@ export default function SearchModal({
       })
 
       console.log('🎯 [SearchModal] FINAL RESULTS:', allResults.length, 'total')
-              allResults.slice(0, 10).forEach((result, index) => {
-                const creator = getCreator(result)
-                console.log(`${index + 1}. ${result.title} (${result.year}) by ${creator} - ${result.category.toUpperCase()}`)
-              })
+      allResults.slice(0, 10).forEach((result, index) => {
+        const creator = getCreator(result)
+        console.log(`${index + 1}. ${result.title} (${result.year}) by ${creator} - ${result.category.toUpperCase()}`)
+      })
 
       // Cache des résultats
       const cacheKey = `${category}-${searchQuery.toLowerCase()}`
@@ -10990,9 +10898,9 @@ export default function SearchModal({
             </div>
           )}
 
-          {/* Liste des résultats */}
+          {/* Liste des résultats OPTIMISÉE MOBILE */}
           {!loading && !error && results.length > 0 && (
-            <div className="p-4 space-y-2">
+            <div className="p-4 space-y-3">
               {results.map((result, index) => {
                 const categoryInfo = getCategoryInfo(result.category)
                 const isSelected = index === selectedIndex
@@ -11005,15 +10913,15 @@ export default function SearchModal({
                 return (
                   <div
                     key={result.id}
-                    className={`flex items-center space-x-4 p-3 rounded-lg transition-all cursor-pointer border ${
+                    className={`flex items-start space-x-3 p-4 rounded-xl transition-all cursor-pointer border ${
                       isSelected 
                         ? 'bg-blue-50 border-blue-200' 
                         : 'hover:bg-gray-50 border-transparent'
                     }`}
                     onClick={() => handleSelectResult(result)}
                   >
-                    {/* Image */}
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                    {/* Image plus grande pour mobile */}
+                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200 shadow-sm">
                       {result.image ? (
                         <img
                           src={result.image}
@@ -11025,127 +10933,137 @@ export default function SearchModal({
                           }}
                         />
                       ) : null}
-                      <div className={`w-full h-full flex items-center justify-center text-lg ${result.image ? 'hidden' : ''}`}>
+                      <div className={`w-full h-full flex items-center justify-center text-xl ${result.image ? 'hidden' : ''}`}>
                         {categoryInfo.icon}
                       </div>
                     </div>
 
-                    {/* Contenu */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="text-gray-900 font-medium truncate flex-1">
+                    {/* Contenu avec titres complets */}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      {/* Titre complet sans truncate */}
+                      <div className="space-y-1">
+                        <h3 className="text-gray-900 font-semibold text-base leading-tight">
                           {result.title}
                           {result.isSeries && (
-                            <span className="ml-2 text-purple-600 text-xs"> • TV Series</span>
+                            <span className="ml-2 text-purple-600 text-sm"> • TV Series</span>
                           )}
                           {result.year >= 2024 && (
                             <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">NEW</span>
                           )}
                         </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${categoryInfo.color} flex-shrink-0`}>
-                          {result.category === 'movies' ? (result.isSeries ? 'TV' : 'Film') : result.category}
-                        </span>
+                        
+                        {/* Créateur complet sans truncate */}
+                        <p className="text-gray-600 text-sm font-medium leading-tight" title={creator}>
+                          {creator}
+                        </p>
                       </div>
                       
-                      {/* ✅ AFFICHAGE DU CRÉATEUR AMÉLIORÉ */}
-                      <p className="text-gray-600 text-sm truncate font-medium" title={creator}>
-                        {creator}
-                      </p>
-                      
-                      <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
-                        <span className={result.year >= 2024 ? 'font-semibold text-green-600' : result.year >= 2020 ? 'font-medium text-blue-600' : ''}>{result.year}</span>
-                        {result.genre && (
-                          <>
-                            <span>•</span>
-                            <span className="truncate">{result.genre}</span>
-                          </>
-                        )}
-                        {result.rating && result.rating > 0 && (
-                          <>
-                            <span>•</span>
-                            <div className="flex items-center">
-                              <Star size={12} className="text-yellow-500 mr-1" />
-                              <span>{result.rating}</span>
-                            </div>
-                          </>
-                        )}
-                        {result.isSeries && result.totalSeasons && (
-                          <>
-                            <span>•</span>
-                            <span>{result.totalSeasons} season{result.totalSeasons > 1 ? 's' : ''}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Boutons d'action avec feedback */}
-                    <div className="relative">
-                      {(isInLibrary || wasJustAdded) && !isAdding ? (
-                        <div className="flex items-center space-x-2 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium">
-                          <Check size={14} />
-                          <span>{getStatusDisplayLabel(libraryItem?.status || 'completed', result.category)}</span>
-                        </div>
-                      ) : isAdding ? (
-                        <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
-                          <Loader2 className="animate-spin" size={14} />
-                          <span>Adding...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowStatusPopup(result.id)
-                            }}
-                            className="bg-blue-600/90 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0 shadow-sm hover:shadow-md"
-                          >
-                            Add
-                          </button>
-
-                          {showStatusPopup === result.id && (
+                      {/* Meta informations sur une ligne */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 text-xs text-gray-500">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${categoryInfo.color} flex-shrink-0`}>
+                            {result.category === 'movies' ? (result.isSeries ? 'TV' : 'Film') : result.category}
+                          </span>
+                          
+                          <span className={result.year >= 2024 ? 'font-semibold text-green-600' : result.year >= 2020 ? 'font-medium text-blue-600' : ''}>
+                            {result.year}
+                          </span>
+                          
+                          {result.genre && (
                             <>
-                              <div 
-                                className="fixed inset-0 z-[99998]"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowStatusPopup(null)
-                                }}
-                              />
-                              
-                              <div 
-                                className={`absolute right-0 top-full mt-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-gray-200 py-2 min-w-44 z-[99999] overflow-hidden transition-all duration-300 ${
-                                  fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                                }`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {getStatusOptions(result.category).map((option) => (
-                                  <button
-                                    key={option.value}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleStatusSelect(result, option.value)
-                                    }}
-                                    className={`w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-50 border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between ${
-                                      selectedStatus === option.value 
-                                        ? 'bg-green-50 border-green-500 text-green-700' 
-                                        : 'text-gray-700 hover:text-gray-900'
-                                    }`}
-                                  >
-                                    <span className="font-medium transition-colors">
-                                      {option.label}
-                                    </span>
-                                    {selectedStatus === option.value ? (
-                                      <Check className="text-green-600" size={14} />
-                                    ) : (
-                                      <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-600" size={14} />
-                                    )}
-                                  </button>
-                                ))}
+                              <span>•</span>
+                              <span className="truncate max-w-20">{result.genre}</span>
+                            </>
+                          )}
+                          
+                          {result.rating && result.rating > 0 && (
+                            <>
+                              <span>•</span>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 mr-1" />
+                                <span>{result.rating}</span>
                               </div>
                             </>
                           )}
-                        </>
-                      )}
+                          
+                          {result.isSeries && result.totalSeasons && (
+                            <>
+                              <span>•</span>
+                              <span>{result.totalSeasons} season{result.totalSeasons > 1 ? 's' : ''}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Boutons d'action repositionnés */}
+                      <div className="flex justify-end">
+                        {(isInLibrary || wasJustAdded) && !isAdding ? (
+                          <div className="flex items-center space-x-2 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium">
+                            <Check size={14} />
+                            <span>{getStatusDisplayLabel(libraryItem?.status || 'completed', result.category)}</span>
+                          </div>
+                        ) : isAdding ? (
+                          <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
+                            <Loader2 className="animate-spin" size={14} />
+                            <span>Adding...</span>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setShowStatusPopup(result.id)
+                              }}
+                              className="bg-blue-600/90 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0 shadow-sm hover:shadow-md"
+                            >
+                              Add
+                            </button>
+
+                            {showStatusPopup === result.id && (
+                              <>
+                                <div 
+                                  className="fixed inset-0 z-[99998]"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setShowStatusPopup(null)
+                                  }}
+                                />
+                                
+                                <div 
+                                  className={`absolute right-0 top-full mt-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-gray-200 py-2 min-w-44 z-[99999] overflow-hidden transition-all duration-300 ${
+                                    fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                                  }`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {getStatusOptions(result.category).map((option) => (
+                                    <button
+                                      key={option.value}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleStatusSelect(result, option.value)
+                                      }}
+                                      className={`w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-50 border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between ${
+                                        selectedStatus === option.value 
+                                          ? 'bg-green-50 border-green-500 text-green-700' 
+                                          : 'text-gray-700 hover:text-gray-900'
+                                      }`}
+                                    >
+                                      <span className="font-medium transition-colors">
+                                        {option.label}
+                                      </span>
+                                      {selectedStatus === option.value ? (
+                                        <Check className="text-green-600" size={14} />
+                                      ) : (
+                                        <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-600" size={14} />
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
