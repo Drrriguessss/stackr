@@ -50,6 +50,11 @@ export default function SearchModal({
   // Sécurité : Assurer que library est toujours un array
   const safeLibrary = Array.isArray(library) ? library : []
 
+  // 🔧 DÉTECTION MOBILE
+  const isMobile = (): boolean => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  }
+
   // Focus input when modal opens
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -278,34 +283,48 @@ export default function SearchModal({
         allResults.push(...categoryResults)
       })
 
-      // 🎯 NOUVEAU TRI AMÉLIORÉ POUR SUPERMAN 2025
+      // 🔧 TRI AMÉLIORÉ PAR DATE (PLUS RÉCENT EN PREMIER) POUR TOUTES LES CATÉGORIES
       allResults.sort((a, b) => {
-        // 1. Superman 2025 spécifique en premier
+        // 1. Cas spéciaux : Superman 2025 ou contenu très récent en premier
         const aIsSuperman2025 = a.title.toLowerCase().includes('superman') && a.year >= 2024
         const bIsSuperman2025 = b.title.toLowerCase().includes('superman') && b.year >= 2024
         
         if (aIsSuperman2025 && !bIsSuperman2025) return -1
         if (!aIsSuperman2025 && bIsSuperman2025) return 1
         
-        // 2. Correspondance exacte du titre
+        // 2. Correspondance exacte du titre (priorité absolue)
         const aTitleMatch = a.title.toLowerCase().includes(searchQuery.toLowerCase())
         const bTitleMatch = b.title.toLowerCase().includes(searchQuery.toLowerCase())
         
         if (aTitleMatch && !bTitleMatch) return -1
         if (!aTitleMatch && bTitleMatch) return 1
         
-        // 3. Films/séries plus récents en premier
+        // 3. **NOUVEAU** : Tri par année (PLUS RÉCENT EN PREMIER)
         const yearDiff = (b.year || 0) - (a.year || 0)
         if (yearDiff !== 0) return yearDiff
         
-        // 4. Meilleur rating en dernier
+        // 4. Si même année, trier par catégorie (priorité: movies > games > music > books)
+        const categoryPriority = { movies: 4, games: 3, music: 2, books: 1 }
+        const aCatPriority = categoryPriority[a.category as keyof typeof categoryPriority] || 0
+        const bCatPriority = categoryPriority[b.category as keyof typeof categoryPriority] || 0
+        
+        if (aCatPriority !== bCatPriority) {
+          return bCatPriority - aCatPriority
+        }
+        
+        // 5. En dernier recours : meilleur rating
         return (b.rating || 0) - (a.rating || 0)
+      })
+
+      // 🔧 LOGS DE DÉBOGAGE POUR VÉRIFIER LE TRI
+      console.log('🎯 FINAL RESULTS SORTED BY DATE (most recent first):')
+      allResults.slice(0, 5).forEach((result, index) => {
+        console.log(`${index + 1}. ${result.title} (${result.year}) - ${result.category}`)
       })
 
       const cacheKey = `${category}-${searchQuery.toLowerCase()}`
       searchCache.set(cacheKey, allResults)
 
-      console.log('🎯 FINAL RESULTS AFTER SORT:', allResults.slice(0, 3).map(r => `${r.title} (${r.year})`))
       setResults(allResults)
 
       if (errors.length > 0 && allResults.length === 0) {
@@ -320,17 +339,17 @@ export default function SearchModal({
     }
   }
 
-  // API Search functions
+  // 🔧 RECHERCHE JEUX avec tri par date de sortie - FIXED TYPESCRIPT ERROR
   const searchGames = async (query: string): Promise<SearchResult[]> => {
-    const url = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=8`
-    const response = await fetchWithTimeout(url)
+    const url = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=8&ordering=-released`
+    const response = await fetchWithTimeout(url, isMobile() ? 5000 : 8000)
     const data = await response.json()
     
     if (!data.results) {
       throw new Error('No games data received')
     }
 
-    return data.results.map((game: any) => ({
+    const games = data.results.map((game: any) => ({
       id: `game-${game.id}`,
       title: game.name || 'Unknown Game',
       author: game.developers?.[0]?.name || 'Unknown Developer',
@@ -340,9 +359,12 @@ export default function SearchModal({
       category: 'games' as const,
       image: game.background_image
     }))
+
+    console.log('🎮 Games results:', games.length, '- Sample years:', games.slice(0, 3).map((g: any) => g.year))
+    return games
   }
 
-  // 🎯 FONCTION SUPER AMÉLIORÉE : Recherche films + séries avec priorité Superman 2025
+  // 🔧 RECHERCHE FILMS/SÉRIES avec tri par année
   const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
     try {
       console.log('🔍 SearchModal: Recherche films/séries pour:', query)
@@ -358,7 +380,6 @@ export default function SearchModal({
       if (query.toLowerCase().includes('superman')) {
         console.log('🎬 Recherche spéciale Superman récent...')
         
-        // Recherche directe avec année 2025
         try {
           const recentSuperman = await omdbService.searchRecentContent('superman')
           console.log('🎯 Superman récent trouvé:', recentSuperman.length, 'items')
@@ -367,7 +388,6 @@ export default function SearchModal({
           console.warn('⚠️ Recherche récente Superman échouée:', recentError)
         }
         
-        // Recherche avec titre exact "Superman" + année 2025
         try {
           const response = await fetch(`https://www.omdbapi.com/?apikey=649f9a63&s=superman&y=2025`)
           const data = await response.json()
@@ -378,18 +398,6 @@ export default function SearchModal({
         } catch (directError) {
           console.warn('⚠️ Recherche directe Superman 2025 échouée:', directError)
         }
-        
-        // Recherche avec ID spécifique tt5950044
-        try {
-          const response = await fetch(`https://www.omdbapi.com/?apikey=649f9a63&i=tt5950044`)
-          const data = await response.json()
-          if (data.Response === 'True') {
-            console.log('🎯 Superman tt5950044 trouvé!', data.Title)
-            allMovieResults.push(data)
-          }
-        } catch (idError) {
-          console.warn('⚠️ Recherche ID Superman échouée:', idError)
-        }
       }
       
       // 3. Enlever les doublons
@@ -397,13 +405,19 @@ export default function SearchModal({
         index === self.findIndex(m => m.imdbID === movie.imdbID)
       )
       
-      console.log('📊 Résultats uniques après déduplication:', uniqueResults.length)
+      // 4. Trier par année (plus récent en premier) AVANT la conversion
+      const sortedResults = uniqueResults.sort((a, b) => {
+        const yearA = parseInt(a.Year) || 0
+        const yearB = parseInt(b.Year) || 0
+        return yearB - yearA
+      })
       
-      // 4. Formatter et retourner
-      const formatted = uniqueResults.slice(0, 12).map(item => {
+      console.log('📊 Movies sorted by year:', sortedResults.slice(0, 3).map((m: any) => `${m.Title} (${m.Year})`))
+      
+      // 5. Formatter et retourner
+      const formatted = sortedResults.slice(0, 12).map((item: any) => {
         const converted = omdbService.convertToAppFormat(item)
         
-        // Debug spécial pour Superman
         if (item.Title && item.Title.toLowerCase().includes('superman')) {
           console.log('🎬 SUPERMAN CONVERTI:', item.Title, item.Year, '→', converted.title, converted.year)
         }
@@ -420,12 +434,11 @@ export default function SearchModal({
     }
   }
 
-  // 🔧 FONCTION DE RECHERCHE MUSIQUE CORRIGÉE
+  // 🔧 RECHERCHE MUSIQUE OPTIMISÉE MOBILE
   const searchMusic = async (query: string): Promise<SearchResult[]> => {
     try {
-      console.log('🎵 SearchModal: Starting music search for:', query)
+      console.log('🎵 SearchModal: Starting music search for:', query, 'Mobile:', isMobile())
       
-      // Nettoyer la requête
       const cleanQuery = query.trim()
       if (!cleanQuery) {
         console.warn('🎵 Empty query for music search')
@@ -442,14 +455,17 @@ export default function SearchModal({
       }
 
       console.log('🎵 SearchModal: Converting albums to app format...')
-      const converted = albums.map(album => {
+      const converted = albums.map((album: any) => {
         const formatted = musicService.convertToAppFormat(album)
-        console.log('🎵 SearchModal: Converted album:', formatted.title, 'by', formatted.artist)
+        console.log('🎵 SearchModal: Converted album:', formatted.title, 'by', formatted.artist, `(${formatted.year})`)
         return formatted
       })
 
-      console.log('🎵 SearchModal: Final music results:', converted.length)
-      return converted
+      // Trier par année (plus récent en premier)
+      const sorted = converted.sort((a, b) => (b.year || 0) - (a.year || 0))
+      console.log('🎵 SearchModal: Music sorted by year:', sorted.slice(0, 3).map((s: any) => `${s.title} (${s.year})`))
+
+      return sorted
 
     } catch (error) {
       console.error('🎵 SearchModal: Music search error:', error)
@@ -460,6 +476,16 @@ export default function SearchModal({
         return [
           {
             id: 'music-fallback-1',
+            title: '1989 (Taylor\'s Version)',
+            artist: 'Taylor Swift',
+            year: 2023,
+            rating: 4.7,
+            genre: 'Pop',
+            category: 'music' as const,
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/69/4e/c0/694ec029-bef2-8339-a5e8-5f8d8bb5b4ad/23UMGIM78793.rgb.jpg/300x300bb.jpg'
+          },
+          {
+            id: 'music-fallback-2',
             title: 'Midnights',
             artist: 'Taylor Swift',
             year: 2022,
@@ -469,7 +495,7 @@ export default function SearchModal({
             image: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/18/93/6f/18936ff8-d3ac-4f66-96af-8c6c35e5a63d/22UMGIM86640.rgb.jpg/300x300bb.jpg'
           },
           {
-            id: 'music-fallback-2',
+            id: 'music-fallback-3',
             title: 'folklore',
             artist: 'Taylor Swift', 
             year: 2020,
@@ -483,7 +509,7 @@ export default function SearchModal({
         console.log('🎵 SearchModal: Using Drake fallback')
         return [
           {
-            id: 'music-fallback-3',
+            id: 'music-fallback-4',
             title: 'Certified Lover Boy',
             artist: 'Drake',
             year: 2021,
@@ -500,12 +526,23 @@ export default function SearchModal({
     }
   }
 
+  // 🔧 RECHERCHE LIVRES avec tri par date
   const searchBooks = async (query: string): Promise<SearchResult[]> => {
     try {
+      console.log('📚 SearchModal: Starting books search for:', query)
+      
       const books = await googleBooksService.searchBooks(query, 8)
-      return books.map(book => googleBooksService.convertToAppFormat(book))
+      console.log('📚 SearchModal: Got books from service:', books.length)
+      
+      const converted = books.map((book: any) => googleBooksService.convertToAppFormat(book))
+      
+      // Trier par année (plus récent en premier)
+      const sorted = converted.sort((a, b) => (b.year || 0) - (a.year || 0))
+      console.log('📚 Books sorted by year:', sorted.slice(0, 3).map((b: any) => `${b.title} (${b.year})`))
+      
+      return sorted
     } catch (error) {
-      console.error('Google Books search failed:', error)
+      console.error('📚 Google Books search failed:', error)
       throw error
     }
   }
@@ -668,7 +705,7 @@ export default function SearchModal({
             <div className="flex items-center justify-center py-8">
               <div className="flex items-center space-x-2 text-gray-600">
                 <Loader2 className="animate-spin" size={20} />
-                <span>Searching...</span>
+                <span>Searching{isMobile() ? ' (mobile mode)' : ''}...</span>
               </div>
             </div>
           )}
@@ -730,8 +767,8 @@ export default function SearchModal({
                           {result.isSeries && (
                             <span className="ml-2 text-purple-600 text-xs"> • TV Series</span>
                           )}
-                          {/* Indicateur NEW pour films 2024+ */}
-                          {result.category === 'movies' && result.year >= 2024 && (
+                          {/* Indicateur NEW pour contenu 2024+ */}
+                          {result.year >= 2024 && (
                             <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">NEW</span>
                           )}
                         </h3>
@@ -741,7 +778,7 @@ export default function SearchModal({
                       </div>
                       <p className="text-gray-600 text-sm truncate">{getCreator(result)}</p>
                       <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
-                        <span className={result.year >= 2024 ? 'font-semibold text-green-600' : ''}>{result.year}</span>
+                        <span className={result.year >= 2024 ? 'font-semibold text-green-600' : result.year >= 2020 ? 'font-medium text-blue-600' : ''}>{result.year}</span>
                         {result.genre && (
                           <>
                             <span>•</span>
@@ -846,7 +883,7 @@ export default function SearchModal({
         {/* Footer hint */}
         {results.length > 0 && (
           <div className="px-4 py-2 border-t border-gray-100 text-xs text-gray-500 flex items-center justify-between">
-            <span>Use ↑↓ to navigate, Enter to select</span>
+            <span>Use ↑↓ to navigate, Enter to select{isMobile() ? ' • Mobile optimized' : ''}</span>
             <span>{results.length} result{results.length !== 1 ? 's' : ''}</span>
           </div>
         )}
