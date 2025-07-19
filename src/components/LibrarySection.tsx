@@ -420,7 +420,7 @@ const LibrarySection = () => {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Header grisé unifié */}
+      {/* Header grisé unifié - EXACTEMENT comme la page Home - UN SEUL HEADER */}
       <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
         <div className="px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
@@ -440,88 +440,88 @@ const LibrarySection = () => {
               <Search size={20} className="text-gray-600" />
             </button>
           </div>
+
+          {/* Barre de recherche locale dans le header */}
+          <div className="mt-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search your library..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white text-gray-900 pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Filtres de catégories et statut dans le header */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              {/* Boutons de catégories */}
+              <div className="flex items-center space-x-2">
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'games', label: 'Games' },
+                  { key: 'movies', label: 'Movies' },
+                  { key: 'music', label: 'Music' },
+                  { key: 'books', label: 'Books' }
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveCategory(key)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      activeCategory === key
+                        ? 'bg-gray-900 text-white'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Menu déroulant de statut */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                  className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
+                >
+                  <span>{getStatusLabel(activeStatus as MediaStatus)}</span>
+                  <ChevronDown size={14} />
+                </button>
+                
+                {showStatusDropdown && (
+                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
+                    {[
+                      { key: 'all', label: 'All' },
+                      { key: 'want-to-play', label: 'Wishlist' },
+                      { key: 'currently-playing', label: 'In Progress' },
+                      { key: 'completed', label: 'Completed' },
+                      { key: 'paused', label: 'Paused' },
+                      { key: 'dropped', label: 'Dropped' }
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          setActiveStatus(key)
+                          setShowStatusDropdown(false)
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Contenu principal */}
       <div className="bg-white">
-        {/* Barre de recherche locale */}
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-            <input
-              type="text"
-              placeholder="Search your library..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white text-gray-900 pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Filtres de catégories et statut */}
-        <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            {/* Boutons de catégories */}
-            <div className="flex items-center space-x-2">
-              {[
-                { key: 'all', label: 'All' },
-                { key: 'games', label: 'Games' },
-                { key: 'movies', label: 'Movies' },
-                { key: 'music', label: 'Music' },
-                { key: 'books', label: 'Books' }
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveCategory(key)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeCategory === key
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Menu déroulant de statut */}
-            <div className="relative">
-              <button
-                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
-              >
-                <span>{getStatusLabel(activeStatus as MediaStatus)}</span>
-                <ChevronDown size={14} />
-              </button>
-              
-              {showStatusDropdown && (
-                <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
-                  {[
-                    { key: 'all', label: 'All' },
-                    { key: 'want-to-play', label: 'Wishlist' },
-                    { key: 'currently-playing', label: 'In Progress' },
-                    { key: 'completed', label: 'Completed' },
-                    { key: 'paused', label: 'Paused' },
-                    { key: 'dropped', label: 'Dropped' }
-                  ].map(({ key, label }) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setActiveStatus(key)
-                        setShowStatusDropdown(false)
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Bouton "Sorted by" */}
         <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
           <div className="relative inline-block">
