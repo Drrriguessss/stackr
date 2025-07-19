@@ -97,6 +97,18 @@ class RAWGService {
       this.cacheResults(cacheKey, filteredResults)
       
       console.log(`🎮 [RAWG] Found ${filteredResults.length} relevant games`)
+      
+      // 📱 LOG SPÉCIAL MOBILE pour debug
+      if (filteredResults.length > 0) {
+        console.log('🎮 [RAWG] Top 5 results for mobile:')
+        filteredResults.slice(0, 5).forEach((game, i) => {
+          const year = game.released ? new Date(game.released).getFullYear() : 0
+          const relevanceIndicator = game.name.toLowerCase().includes(cleanQuery.toLowerCase()) ? '🎯' : ''
+          const recentIndicator = year >= 2023 ? '🔥' : year >= 2020 ? '⭐' : ''
+          console.log(`  ${i + 1}. ${game.name} (${year}) ${relevanceIndicator}${recentIndicator}`)
+        })
+      }
+      
       return filteredResults.slice(0, maxResults)
       
     } catch (error) {
@@ -106,39 +118,107 @@ class RAWGService {
   }
 
   /**
-   * Recherche multi-étapes pour capturer tous les résultats pertinents
+   * Recherche multi-étapes pour capturer TOUS les résultats pertinents
    */
   private async performMultiStageSearch(query: string): Promise<RAWGGame[]> {
     const allResults: RAWGGame[] = []
     const seenIds = new Set<number>()
 
-    // Étape 1: Recherche directe avec tri par pertinence
+    console.log('🎮 [RAWG] Starting comprehensive multi-stage search for:', query)
+
+    // Étape 1: Recherche large par pertinence (plus de résultats)
     const directResults = await this.fetchGamesFromAPI(query, {
       ordering: '-relevance,-released',
-      maxResults: 30
+      maxResults: 40 // Augmenté de 30 → 40
     })
-    
     this.addUniqueResults(allResults, directResults, seenIds)
+    console.log(`🎮 [RAWG] Stage 1 (relevance): ${directResults.length} games`)
 
-    // Étape 2: Recherche avec tri par date (pour les jeux récents)
+    // Étape 2: Recherche par date récente (tous les jeux récents)
     const recentResults = await this.fetchGamesFromAPI(query, {
       ordering: '-released,-rating',
-      minYear: 2020,
-      maxResults: 20
+      minYear: 2018, // Élargi de 2020 → 2018
+      maxResults: 30 // Augmenté de 20 → 30
     })
-    
     this.addUniqueResults(allResults, recentResults, seenIds)
+    console.log(`🎮 [RAWG] Stage 2 (recent): ${recentResults.length} games`)
 
-    // Étape 3: Recherche avec tri par rating (pour les classiques pertinents)
-    const topResults = await this.fetchGamesFromAPI(query, {
-      ordering: '-rating,-released',
-      maxResults: 15
+    // Étape 3: Recherche par popularité/rating
+    const popularResults = await this.fetchGamesFromAPI(query, {
+      ordering: '-rating,-metacritic',
+      maxResults: 25 // Augmenté de 15 → 25
     })
-    
-    this.addUniqueResults(allResults, topResults, seenIds)
+    this.addUniqueResults(allResults, popularResults, seenIds)
+    console.log(`🎮 [RAWG] Stage 3 (popular): ${popularResults.length} games`)
 
-    console.log(`🎮 [RAWG] Multi-stage search collected ${allResults.length} unique games`)
+    // Étape 4: NOUVELLE - Recherche élargie avec mots-clés partiels
+    if (query.length > 5) {
+      const partialResults = await this.fetchGamesFromAPI(query.split(' ')[0], {
+        ordering: '-rating,-released',
+        maxResults: 20
+      })
+      this.addUniqueResults(allResults, partialResults, seenIds)
+      console.log(`🎮 [RAWG] Stage 4 (partial): ${partialResults.length} games`)
+    }
+
+    // Étape 5: NOUVELLE - Recherche par franchise si détectée
+    const franchiseQuery = this.detectFranchise(query)
+    if (franchiseQuery && franchiseQuery !== query) {
+      const franchiseResults = await this.fetchGamesFromAPI(franchiseQuery, {
+        ordering: '-released,-rating',
+        maxResults: 15
+      })
+      this.addUniqueResults(allResults, franchiseResults, seenIds)
+      console.log(`🎮 [RAWG] Stage 5 (franchise "${franchiseQuery}"): ${franchiseResults.length} games`)
+    }
+
+    console.log(`🎮 [RAWG] Total unique games collected: ${allResults.length}`)
     return allResults
+  }
+
+  /**
+   * Détecter les franchises principales pour une recherche élargie
+   */
+  private detectFranchise(query: string): string | null {
+    const queryLower = query.toLowerCase()
+    
+    const franchises: Record<string, string> = {
+      'assassin': 'assassin\'s creed',
+      'call of duty': 'call of duty',
+      'cod': 'call of duty',
+      'battlefield': 'battlefield',
+      'elder scrolls': 'elder scrolls',
+      'skyrim': 'elder scrolls',
+      'fallout': 'fallout',
+      'witcher': 'witcher',
+      'cyberpunk': 'cyberpunk',
+      'grand theft': 'grand theft auto',
+      'gta': 'grand theft auto',
+      'fifa': 'fifa',
+      'madden': 'madden',
+      'spider': 'spider-man',
+      'spiderman': 'spider-man',
+      'batman': 'batman',
+      'zelda': 'zelda',
+      'mario': 'mario',
+      'pokemon': 'pokemon',
+      'halo': 'halo',
+      'god of war': 'god of war',
+      'uncharted': 'uncharted',
+      'final fantasy': 'final fantasy',
+      'resident evil': 'resident evil',
+      'tekken': 'tekken',
+      'street fighter': 'street fighter',
+      'mortal kombat': 'mortal kombat'
+    }
+
+    for (const [key, franchise] of Object.entries(franchises)) {
+      if (queryLower.includes(key) && queryLower !== franchise) {
+        return franchise
+      }
+    }
+
+    return null
   }
 
   /**
@@ -193,19 +273,30 @@ class RAWGService {
   }
 
   /**
-   * Filtrage intelligent et tri par pertinence
+   * Filtrage intelligent et tri par pertinence (VERSION INCLUSIVE)
    */
   private filterAndSortResults(results: RAWGGame[], query: string): RAWGGame[] {
     const queryLower = query.toLowerCase().trim()
     const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1)
     const currentYear = new Date().getFullYear()
 
-    // Filtrer les résultats pertinents
+    console.log(`🎮 [RAWG] Filtering ${results.length} games with query: "${queryLower}"`)
+
+    // ✅ FILTRAGE MOINS STRICT - Laisser passer plus de jeux
     const relevantResults = results.filter(game => {
-      return this.isGameRelevant(game, queryLower, queryWords)
+      const isRelevant = this.isGameRelevant(game, queryLower, queryWords)
+      if (!isRelevant) {
+        // Log seulement quelques rejets pour éviter le spam
+        if (Math.random() < 0.1) {
+          console.log(`🎮 [RAWG] Filtered out: ${game.name}`)
+        }
+      }
+      return isRelevant
     })
 
-    // Trier par pertinence et récence
+    console.log(`🎮 [RAWG] After filtering: ${relevantResults.length} relevant games`)
+
+    // ✅ TRI PAR SCORE DE PERTINENCE
     relevantResults.sort((a, b) => {
       const scoreA = this.calculateRelevanceScore(a, queryLower, queryWords, currentYear)
       const scoreB = this.calculateRelevanceScore(b, queryLower, queryWords, currentYear)
@@ -213,61 +304,85 @@ class RAWGService {
       return scoreB - scoreA // Score décroissant
     })
 
-    console.log(`🎮 [RAWG] Filtered ${results.length} → ${relevantResults.length} relevant games`)
-    
-    // Log des top 5 pour debug
-    relevantResults.slice(0, 5).forEach((game, i) => {
+    // ✅ LOG DÉTAILLÉ DES RÉSULTATS POUR DEBUG MOBILE
+    console.log('🎮 [RAWG] Top 10 sorted results:')
+    relevantResults.slice(0, 10).forEach((game, i) => {
       const year = game.released ? new Date(game.released).getFullYear() : 0
-      const isRecent = year >= 2023 ? '🔥' : year >= 2020 ? '⭐' : ''
-      console.log(`  ${i + 1}. ${game.name} (${year}) ${isRecent}`)
+      const score = this.calculateRelevanceScore(game, queryLower, queryWords, currentYear)
+      const relevanceIcon = game.name.toLowerCase().includes(queryLower) ? '🎯' : '📍'
+      const recentIcon = year >= 2023 ? '🔥' : year >= 2020 ? '⭐' : year >= 2015 ? '📅' : '🕰️'
+      console.log(`  ${i + 1}. ${game.name} (${year}) [Score: ${score}] ${relevanceIcon}${recentIcon}`)
     })
 
     return relevantResults
   }
 
   /**
-   * Vérifier si un jeu est pertinent pour la requête
+   * Vérifier si un jeu est pertinent pour la requête (VERSION INCLUSIVE)
    */
   private isGameRelevant(game: RAWGGame, queryLower: string, queryWords: string[]): boolean {
     const gameName = game.name.toLowerCase()
     const developers = game.developers?.map(d => d.name.toLowerCase()) || []
     const publishers = game.publishers?.map(p => p.name.toLowerCase()) || []
+    const genres = game.genres?.map(g => g.name.toLowerCase()) || []
 
-    // Correspondance exacte
+    // ✅ APPROCHE INCLUSIVE - Accepter plus de jeux, laisser le scoring décider
+
+    // 1. Correspondance exacte (toujours pertinent)
     if (gameName === queryLower) return true
 
-    // Le titre contient la requête complète
+    // 2. Le titre contient la requête complète
     if (gameName.includes(queryLower)) return true
 
-    // Le titre commence par la requête
+    // 3. Le titre commence par la requête ou un mot de la requête
     if (gameName.startsWith(queryLower)) return true
+    if (queryWords.some(word => word.length > 2 && gameName.startsWith(word))) return true
 
-    // Tous les mots de la requête sont dans le titre
-    if (queryWords.length > 1) {
-      const allWordsInTitle = queryWords.every(word => gameName.includes(word))
-      if (allWordsInTitle) return true
+    // 4. Tous les mots importants de la requête sont dans le titre
+    const importantWords = queryWords.filter(word => word.length > 2) // Ignorer "of", "the", etc.
+    if (importantWords.length > 0) {
+      const wordsInTitle = importantWords.filter(word => gameName.includes(word))
+      
+      // Si tous les mots importants sont présents
+      if (wordsInTitle.length === importantWords.length) return true
+      
+      // Si au moins 60% des mots importants sont présents
+      if (wordsInTitle.length >= Math.ceil(importantWords.length * 0.6)) return true
     }
 
-    // Majorité des mots présents (pour les requêtes longues)
-    if (queryWords.length > 2) {
-      const wordsInTitle = queryWords.filter(word => gameName.includes(word))
-      if (wordsInTitle.length >= Math.ceil(queryWords.length * 0.6)) return true
-    }
-
-    // Match développeur/éditeur avec au moins un mot du titre
+    // 5. Match développeur/éditeur avec titre partiel (plus flexible)
     const hasCreatorMatch = queryWords.some(word => 
-      developers.some(dev => dev.includes(word)) ||
-      publishers.some(pub => pub.includes(word))
+      word.length > 2 && (
+        developers.some(dev => dev.includes(word)) ||
+        publishers.some(pub => pub.includes(word))
+      )
     )
-    const hasPartialTitleMatch = queryWords.some(word => gameName.includes(word))
+    const hasAnyTitleMatch = queryWords.some(word => 
+      word.length > 2 && gameName.includes(word)
+    )
     
-    if (hasCreatorMatch && hasPartialTitleMatch) return true
+    if (hasCreatorMatch && hasAnyTitleMatch) return true
+
+    // 6. NOUVEAU - Match par genre + mot-clé (pour élargir les résultats)
+    const hasGenreRelevance = genres.some(genre => 
+      queryWords.some(word => word.length > 3 && genre.includes(word))
+    )
+    if (hasGenreRelevance && hasAnyTitleMatch) return true
+
+    // 7. NOUVEAU - Match partiel sur le nom de franchise
+    const franchiseMatch = this.detectFranchise(gameName)
+    if (franchiseMatch && queryLower.includes(franchiseMatch.split(' ')[0])) return true
+
+    // 8. Pour les requêtes courtes (1-2 mots), être plus permissif
+    if (queryWords.length <= 2 && queryWords.some(word => 
+      word.length > 2 && gameName.includes(word)
+    )) return true
 
     return false
   }
 
   /**
-   * Calculer un score de pertinence pour le tri
+   * Calculer un score de pertinence pour le tri (optimisé mobile)
    */
   private calculateRelevanceScore(game: RAWGGame, queryLower: string, queryWords: string[], currentYear: number): number {
     const gameName = game.name.toLowerCase()
@@ -275,52 +390,115 @@ class RAWGService {
     
     let score = 0
 
-    // Correspondance exacte (score max)
+    // 🎯 PERTINENCE D'ABORD (scores élevés)
+    
+    // Correspondance exacte (priorité absolue)
     if (gameName === queryLower) {
-      score += 1000
+      score += 10000
     }
-    // Correspondance de séquence complète
-    else if (gameName.includes(queryLower)) {
-      score += 800
-    }
-    // Commence par la requête
+    // Titre commence par la requête (ex: "assassin's creed" pour "assassin")
     else if (gameName.startsWith(queryLower)) {
-      score += 700
+      score += 8000
     }
-    // Tous les mots présents
-    else if (queryWords.length > 1 && queryWords.every(word => gameName.includes(word))) {
-      score += 600
+    // Correspondance de séquence complète dans le titre
+    else if (gameName.includes(queryLower)) {
+      // Bonus si c'est au début du titre
+      if (gameName.indexOf(queryLower) === 0) {
+        score += 7000
+      } else {
+        score += 6000
+      }
     }
-    // Majorité des mots présents
-    else {
+    // Pour les requêtes multi-mots (ex: "assassin's creed")
+    else if (queryWords.length > 1) {
       const wordsInTitle = queryWords.filter(word => gameName.includes(word))
-      score += (wordsInTitle.length / queryWords.length) * 400
+      const matchRatio = wordsInTitle.length / queryWords.length
+      
+      // Tous les mots présents
+      if (matchRatio === 1.0) {
+        score += 5000
+      }
+      // Majorité des mots présents
+      else if (matchRatio >= 0.6) {
+        score += 3000 * matchRatio
+      }
+      // Au moins un mot clé important
+      else if (matchRatio >= 0.3) {
+        score += 1000 * matchRatio
+      }
+    }
+    // Mot unique présent
+    else if (queryWords.length === 1 && gameName.includes(queryWords[0])) {
+      score += 2000
     }
 
-    // Bonus pour les jeux récents (2023+)
-    if (releaseYear >= 2023) {
-      score += 200
+    // 🚀 BONUS RÉCENCE (scores modérés pour ne pas dominer la pertinence)
+    if (releaseYear >= 2024) {
+      score += 800  // Réduit de 200 → 800
+    } else if (releaseYear >= 2023) {
+      score += 600  // Réduit de 200 → 600  
     } else if (releaseYear >= 2020) {
-      score += 100
+      score += 300  // Réduit de 100 → 300
     } else if (releaseYear >= 2015) {
-      score += 50
+      score += 100  // Réduit de 50 → 100
     }
 
-    // Bonus pour le rating
-    if (game.rating >= 4.0) {
-      score += 50
+    // 🏆 BONUS QUALITÉ (scores légers)
+    if (game.rating >= 4.5) {
+      score += 200
+    } else if (game.rating >= 4.0) {
+      score += 150
     } else if (game.rating >= 3.5) {
-      score += 25
+      score += 100
     }
 
-    // Bonus pour la popularité
-    if (game.rating_count >= 1000) {
-      score += 30
+    // 👥 BONUS POPULARITÉ (scores légers)
+    if (game.rating_count >= 10000) {
+      score += 150
+    } else if (game.rating_count >= 1000) {
+      score += 100
     } else if (game.rating_count >= 100) {
-      score += 15
+      score += 50
+    }
+
+    // 🎮 BONUS SPÉCIAL pour les franchises principales
+    const gameNameForFranchise = gameName.replace(/[:\-–—]/g, ' ').trim()
+    
+    // Détecter les jeux principaux de franchise (pas les DLC ou spin-offs)
+    const isMainEntry = this.isMainFranchiseEntry(gameNameForFranchise, queryLower)
+    if (isMainEntry) {
+      score += 1000
     }
 
     return score
+  }
+
+  /**
+   * Détecter si c'est un jeu principal de franchise (pas un DLC/spin-off)
+   */
+  private isMainFranchiseEntry(gameName: string, query: string): boolean {
+    // Mots qui indiquent souvent des DLC ou spin-offs
+    const dlcKeywords = [
+      'dlc', 'expansion', 'discovery tour', 'freedom cry', 'dead kings',
+      'chronicles', 'liberation', 'bloodlines', 'legacy', 'season pass'
+    ]
+    
+    // Si contient des mots-clés DLC, ce n'est pas un jeu principal
+    if (dlcKeywords.some(keyword => gameName.includes(keyword))) {
+      return false
+    }
+    
+    // Pour Assassin's Creed, prioriser les jeux principaux
+    if (query.includes('assassin')) {
+      const mainACGames = [
+        'valhalla', 'odyssey', 'origins', 'syndicate', 'unity', 
+        'black flag', 'brotherhood', 'revelations', 'mirage'
+      ]
+      
+      return mainACGames.some(mainGame => gameName.includes(mainGame))
+    }
+    
+    return true // Par défaut, considérer comme jeu principal
   }
 
   /**
