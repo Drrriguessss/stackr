@@ -1,4 +1,4 @@
-// Service pour l'API iTunes/Apple Music - VERSION MOBILE OPTIMISÉE
+// Service pour l'API iTunes/Apple Music - VERSION API COMPLÈTE CORRIGÉE
 export interface iTunesAlbum {
   collectionId: number
   artistId: number
@@ -31,285 +31,196 @@ export interface iTunesSearchResponse {
 class MusicService {
   private readonly baseURL = 'https://itunes.apple.com'
   
-  // 🔧 DÉTECTION MOBILE pour utiliser des stratégies différentes
-  private isMobile(): boolean {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  }
-
-  // 🔧 STRATÉGIE MOBILE : Données statiques enrichies
-  private getMobileAlbumDatabase(): iTunesAlbum[] {
-    return [
-      // Taylor Swift
-      {
-        collectionId: 1440935467,
-        artistId: 159260351,
-        collectionName: "Midnights",
-        artistName: "Taylor Swift",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/18/93/6f/18936ff8-d3ac-4f66-96af-8c6c35e5a63d/22UMGIM86640.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 11.99,
-        trackCount: 13,
-        copyright: "℗ 2022 Taylor Swift",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2022-10-21T07:00:00Z",
-        primaryGenreName: "Pop",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      {
-        collectionId: 1584791944,
-        artistId: 159260351,
-        collectionName: "folklore",
-        artistName: "Taylor Swift",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/0f/58/54/0f585482-8998-be0a-9565-2dfc81a64558/20UMGIM58208.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 9.99,
-        trackCount: 16,
-        copyright: "℗ 2020 Taylor Swift",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2020-07-24T07:00:00Z",
-        primaryGenreName: "Alternative",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      {
-        collectionId: 1584791945,
-        artistId: 159260351,
-        collectionName: "1989 (Taylor's Version)",
-        artistName: "Taylor Swift",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/69/4e/c0/694ec029-bef2-8339-a5e8-5f8d8bb5b4ad/23UMGIM78793.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 12.99,
-        trackCount: 21,
-        copyright: "℗ 2023 Taylor Swift",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2023-10-27T07:00:00Z",
-        primaryGenreName: "Pop",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // Drake
-      {
-        collectionId: 1613933476,
-        artistId: 271256,
-        collectionName: "Certified Lover Boy",
-        artistName: "Drake",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/99/5c/5b/995c5b67-7e5a-8ccb-7a36-d1a9d0e96567/21UMGIM93841.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 11.99,
-        trackCount: 21,
-        copyright: "℗ 2021 OVO Sound/Republic Records",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2021-09-03T07:00:00Z",
-        primaryGenreName: "Hip-Hop/Rap",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      {
-        collectionId: 1613933477,
-        artistId: 271256,
-        collectionName: "Scorpion",
-        artistName: "Drake",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/8b/77/37/8b7737db-22a9-5f17-df0e-b7cf6fdea41e/18UMGIM53115.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 10.99,
-        trackCount: 25,
-        copyright: "℗ 2018 Cash Money Records Inc.",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2018-06-29T07:00:00Z",
-        primaryGenreName: "Hip-Hop/Rap",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // Billie Eilish
-      {
-        collectionId: 1718827596,
-        artistId: 1065981054,
-        collectionName: "Happier Than Ever",
-        artistName: "Billie Eilish",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/53/d4/72/53d472f8-e6e0-8151-4cb7-96d2e2d78d13/21UMGIM53763.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 9.99,
-        trackCount: 16,
-        copyright: "℗ 2021 Darkroom/Interscope Records",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2021-07-30T07:00:00Z",
-        primaryGenreName: "Alternative",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // Olivia Rodrigo
-      {
-        collectionId: 1565554746,
-        artistId: 1419227,
-        collectionName: "SOUR",
-        artistName: "Olivia Rodrigo",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/53/b8/d0/53b8d0c0-df2e-45c6-ce8b-23fa5e8e8fce/21UMGIM32397.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 8.99,
-        trackCount: 11,
-        copyright: "℗ 2021 Olivia Rodrigo, under exclusive license to Geffen Records",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2021-05-21T07:00:00Z",
-        primaryGenreName: "Pop",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // Dua Lipa
-      {
-        collectionId: 1499378314,
-        artistId: 1081833261,
-        collectionName: "Future Nostalgia",
-        artistName: "Dua Lipa",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/5f/3d/f3/5f3df3f5-0d6b-9c4c-e1e7-8a5e5b5c8d7a/20UMGIM20245.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 9.99,
-        trackCount: 11,
-        copyright: "℗ 2020 Dua Lipa Limited",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2020-03-27T07:00:00Z",
-        primaryGenreName: "Pop",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // Bad Bunny
-      {
-        collectionId: 1615584599,
-        artistId: 1180068085,
-        collectionName: "Un Verano Sin Ti",
-        artistName: "Bad Bunny",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/5a/77/83/5a7783c8-4c35-0b9e-cd83-88d7b6c5b7a8/22UMGIM43758.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 12.99,
-        trackCount: 23,
-        copyright: "℗ 2022 Rimas Entertainment",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2022-05-06T07:00:00Z",
-        primaryGenreName: "Reggaeton",
-        collectionType: "Album",
-        wrapperType: "collection"
-      },
-      // The Weeknd
-      {
-        collectionId: 1440935468,
-        artistId: 479756766,
-        collectionName: "After Hours",
-        artistName: "The Weeknd",
-        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/d4/6c/35/d46c35a8-3b36-1e42-a8a6-d73136c8fcb4/20UMGIM08955.rgb.jpg/100x100bb.jpg",
-        collectionPrice: 11.99,
-        trackCount: 14,
-        copyright: "℗ 2020 The Weeknd XO, Inc.",
-        country: "USA",
-        currency: "USD",
-        releaseDate: "2020-03-20T07:00:00Z",
-        primaryGenreName: "R&B/Soul",
-        collectionType: "Album",
-        wrapperType: "collection"
-      }
-    ]
-  }
-
-  // 🔧 RECHERCHE HYBRIDE : API + données statiques
+  // 🔧 RECHERCHE API PURE AVEC GESTION CORS
   async searchAlbums(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
-    const cleanQuery = query.trim().toLowerCase()
+    const cleanQuery = query.trim()
     
-    if (!cleanQuery) {
-      console.warn('Empty query after cleaning')
+    if (!cleanQuery || cleanQuery.length < 2) {
+      console.warn('🎵 Query too short:', cleanQuery)
       return []
     }
 
-    console.log('🎵 Music search for:', cleanQuery, 'Mobile:', this.isMobile())
+    console.log('🎵 iTunes API search for:', cleanQuery, 'Limit:', limit)
 
-    // 1. TOUJOURS commencer par la recherche dans les données locales
-    const localResults = this.searchLocalDatabase(cleanQuery, limit)
-    console.log('🎵 Local results found:', localResults.length)
-
-    // 2. Sur mobile, privilégier les données locales
-    if (this.isMobile()) {
-      console.log('🎵 Mobile detected, using local database')
-      if (localResults.length > 0) {
-        return this.sortByReleaseDate(localResults).slice(0, limit)
-      }
-    }
-
-    // 3. Sur desktop, essayer l'API puis fallback sur local
     try {
-      const url = `${this.baseURL}/search?term=${encodeURIComponent(cleanQuery)}&media=music&entity=album&limit=${limit}&country=US`
-      
+      // 🔧 URL avec paramètres optimisés pour mobile
+      const url = `${this.baseURL}/search?` + new URLSearchParams({
+        term: cleanQuery,
+        media: 'music',
+        entity: 'album',
+        limit: Math.min(limit, 200).toString(),
+        country: 'US',
+        explicit: 'Yes'
+      }).toString()
+
+      console.log('🎵 iTunes URL:', url)
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          // 🔧 Headers pour contourner CORS sur mobile
+          'User-Agent': 'Mozilla/5.0 (compatible; Music Search)',
         },
-        // Timeout plus court sur mobile
-        signal: AbortSignal.timeout(this.isMobile() ? 3000 : 8000)
+        // 🔧 Pas de credentials pour éviter CORS
+        mode: 'cors',
+        cache: 'default',
+        // 🔧 Timeout plus long pour mobile
+        signal: AbortSignal.timeout(10000)
       })
       
+      console.log('🎵 iTunes response status:', response.status)
+      
       if (!response.ok) {
-        throw new Error(`iTunes API Error: ${response.status}`)
+        console.error('🎵 iTunes API Error:', response.status, response.statusText)
+        return []
       }
       
       const data: iTunesSearchResponse = await response.json()
+      console.log('🎵 iTunes raw response:', data)
       
-      if (data.results && data.results.length > 0) {
-        const albums = data.results.filter(item => 
-          item.wrapperType === 'collection' && 
-          item.collectionType && 
-          item.collectionName
+      if (!data.results || data.results.length === 0) {
+        console.log('🎵 No results from iTunes API')
+        return []
+      }
+
+      // 🔧 Filtrage strict des albums seulement
+      const albums = data.results.filter(item => {
+        const isValidAlbum = (
+          item.wrapperType === 'collection' &&
+          item.collectionType === 'Album' &&
+          item.collectionName &&
+          item.artistName &&
+          item.collectionId
         )
         
-        console.log('🎵 API results:', albums.length)
-        // Combiner résultats API + locaux et trier par date
-        const combined = [...albums, ...localResults]
-        const unique = this.removeDuplicates(combined)
-        return this.sortByReleaseDate(unique).slice(0, limit)
+        if (!isValidAlbum) {
+          console.log('🎵 Filtered out invalid item:', item)
+        }
+        
+        return isValidAlbum
+      })
+      
+      console.log('🎵 Filtered albums count:', albums.length)
+      albums.slice(0, 5).forEach((album, i) => {
+        console.log(`🎵 ${i+1}. ${album.artistName} - ${album.collectionName} (${album.collectionId})`)
+      })
+      
+      // 🔧 Tri par pertinence et date
+      const sortedAlbums = this.sortByRelevanceAndDate(albums, cleanQuery)
+      
+      return sortedAlbums.slice(0, limit)
+      
+    } catch (err) {
+      console.error('🎵 iTunes API search failed:', err)
+      
+      // 🔧 Diagnostic détaillé de l'erreur avec type safety
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        console.error('🎵 Network error - likely CORS or connectivity issue')
+      } else if (err instanceof Error && err.name === 'AbortError') {
+        console.error('🎵 Request timeout')
+      } else if (err instanceof Error) {
+        console.error('🎵 Error message:', err.message)
+      } else {
+        console.error('🎵 Unknown error type:', err)
       }
-    } catch (error) {
-      console.warn('🎵 API failed, using local results:', error)
+      
+      return []
     }
-
-    // 4. Fallback : retourner les résultats locaux triés
-    return this.sortByReleaseDate(localResults).slice(0, limit)
   }
 
-  // 🔧 RECHERCHE DANS LA BASE LOCALE
-  private searchLocalDatabase(query: string, limit: number): iTunesAlbum[] {
-    const database = this.getMobileAlbumDatabase()
+  // 🔧 TRI PAR PERTINENCE PUIS PAR DATE
+  private sortByRelevanceAndDate(albums: iTunesAlbum[], query: string): iTunesAlbum[] {
     const queryLower = query.toLowerCase()
     
-    return database.filter(album => 
-      album.collectionName.toLowerCase().includes(queryLower) ||
-      album.artistName.toLowerCase().includes(queryLower) ||
-      album.primaryGenreName?.toLowerCase().includes(queryLower)
-    )
-  }
-
-  // 🔧 TRI PAR DATE DE SORTIE (PLUS RÉCENT EN PREMIER)
-  private sortByReleaseDate(albums: iTunesAlbum[]): iTunesAlbum[] {
     return albums.sort((a, b) => {
-      const dateA = new Date(a.releaseDate || '1970-01-01').getTime()
-      const dateB = new Date(b.releaseDate || '1970-01-01').getTime()
-      return dateB - dateA // Plus récent en premier
+      // 1. Correspondance exacte du nom d'artiste
+      const aArtistExact = a.artistName.toLowerCase() === queryLower
+      const bArtistExact = b.artistName.toLowerCase() === queryLower
+      
+      if (aArtistExact && !bArtistExact) return -1
+      if (!aArtistExact && bArtistExact) return 1
+      
+      // 2. Correspondance exacte du titre d'album
+      const aAlbumExact = a.collectionName.toLowerCase() === queryLower
+      const bAlbumExact = b.collectionName.toLowerCase() === queryLower
+      
+      if (aAlbumExact && !bAlbumExact) return -1
+      if (!aAlbumExact && bAlbumExact) return 1
+      
+      // 3. Correspondance partielle d'artiste
+      const aArtistMatch = a.artistName.toLowerCase().includes(queryLower)
+      const bArtistMatch = b.artistName.toLowerCase().includes(queryLower)
+      
+      if (aArtistMatch && !bArtistMatch) return -1
+      if (!aArtistMatch && bArtistMatch) return 1
+      
+      // 4. Correspondance partielle d'album
+      const aAlbumMatch = a.collectionName.toLowerCase().includes(queryLower)
+      const bAlbumMatch = b.collectionName.toLowerCase().includes(queryLower)
+      
+      if (aAlbumMatch && !bAlbumMatch) return -1
+      if (!aAlbumMatch && bAlbumMatch) return 1
+      
+      // 5. Date de sortie (plus récent en premier)
+      const aYear = new Date(a.releaseDate || '1970').getFullYear()
+      const bYear = new Date(b.releaseDate || '1970').getFullYear()
+      
+      return bYear - aYear
     })
   }
 
-  // 🔧 SUPPRESSION DES DOUBLONS
-  private removeDuplicates(albums: iTunesAlbum[]): iTunesAlbum[] {
-    const seen = new Set()
-    return albums.filter(album => {
-      const key = `${album.artistName}-${album.collectionName}`.toLowerCase()
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+  // 🔧 MÉTHODE ALTERNATIVE AVEC PROXY CORS
+  async searchAlbumsWithProxy(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
+    try {
+      // Option 1: Utiliser un proxy CORS si l'API iTunes est bloquée
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(
+        `${this.baseURL}/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=${limit}`
+      )}`
+      
+      console.log('🎵 Using CORS proxy:', proxyUrl)
+      
+      const response = await fetch(proxyUrl)
+      const data = await response.json()
+      const iTunesData = JSON.parse(data.contents)
+      
+      return iTunesData.results || []
+      
+    } catch (err) {
+      console.error('🎵 Proxy search failed:', err)
+      return []
+    }
+  }
+
+  // Test de connectivité iTunes
+  async testItunesConnectivity(): Promise<boolean> {
+    try {
+      console.log('🎵 Testing iTunes API connectivity...')
+      
+      const testUrl = `${this.baseURL}/search?term=test&media=music&entity=album&limit=1`
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000)
+      })
+      
+      const isConnected = response.ok
+      console.log('🎵 iTunes API connectivity:', isConnected ? 'OK' : 'FAILED')
+      
+      return isConnected
+      
+    } catch (err) {
+      console.error('🎵 iTunes connectivity test failed:', err)
+      return false
+    }
   }
 
   // Obtenir les détails d'un album
   async getAlbumDetails(albumId: string): Promise<iTunesAlbum | null> {
     try {
       const response = await fetch(
-        `${this.baseURL}/lookup?id=${albumId}&entity=album`
+        `${this.baseURL}/lookup?id=${albumId}&entity=album`,
+        { signal: AbortSignal.timeout(8000) }
       )
       
       if (!response.ok) {
@@ -318,40 +229,48 @@ class MusicService {
       
       const data: iTunesSearchResponse = await response.json()
       return data.results?.[0] || null
-    } catch (error) {
-      console.error('Error fetching album details:', error)
+    } catch (err) {
+      console.error('Error fetching album details:', err)
       return null
     }
   }
 
-  // 🔧 ALBUMS POPULAIRES avec tri par date
+  // Albums populaires (utilise l'API pour de vrais résultats)
   async getPopularAlbums(): Promise<iTunesAlbum[]> {
-    const database = this.getMobileAlbumDatabase()
-    return this.sortByReleaseDate(database).slice(0, 8)
+    try {
+      // Rechercher les artistes populaires actuels
+      const popularArtists = ['Taylor Swift', 'Drake', 'Billie Eilish', 'The Weeknd']
+      
+      const allAlbums: iTunesAlbum[] = []
+      
+      for (const artist of popularArtists) {
+        try {
+          const albums = await this.searchAlbums(artist, 3)
+          allAlbums.push(...albums.slice(0, 2)) // 2 albums par artiste
+        } catch (err) {
+          console.warn(`Failed to get albums for ${artist}:`, err)
+        }
+      }
+      
+      return allAlbums.slice(0, 8)
+      
+    } catch (err) {
+      console.error('Error getting popular albums:', err)
+      return []
+    }
   }
 
-  // Obtenir des albums bien notés
   async getTopRatedAlbums(): Promise<iTunesAlbum[]> {
-    const database = this.getMobileAlbumDatabase()
-    // Filtrer les albums avec de bonnes notes (simulation)
-    const topRated = database.filter(album => 
-      album.primaryGenreName !== 'Reggaeton' // Exemple de filtre
-    )
-    return this.sortByReleaseDate(topRated).slice(0, 8)
+    // Recherche d'albums classiques bien notés
+    return this.searchAlbums('greatest albums of all time', 8)
   }
 
-  // Obtenir des nouveautés
   async getNewReleases(): Promise<iTunesAlbum[]> {
-    const database = this.getMobileAlbumDatabase()
-    // Filtrer les albums récents (2020+)
-    const recent = database.filter(album => {
-      const year = new Date(album.releaseDate || '1970').getFullYear()
-      return year >= 2020
-    })
-    return this.sortByReleaseDate(recent).slice(0, 8)
+    // Recherche d'albums récents
+    const currentYear = new Date().getFullYear()
+    return this.searchAlbums(`new albums ${currentYear}`, 8)
   }
 
-  // Obtenir la meilleure image disponible
   getBestImageURL(album: iTunesAlbum, preferredSize: 'small' | 'medium' | 'large' = 'medium'): string | null {
     const sizePreferences = {
       small: ['artworkUrl60', 'artworkUrl30', 'artworkUrl100'],
@@ -364,21 +283,19 @@ class MusicService {
     for (const size of preferences) {
       const url = album[size as keyof iTunesAlbum] as string
       if (url) {
-        // Augmenter la résolution si possible
-        return url.replace('100x100', '300x300').replace('60x60', '300x300').replace('30x30', '300x300')
+        // Améliorer la qualité de l'image
+        return url.replace('100x100', '400x400').replace('60x60', '400x400').replace('30x30', '400x400')
       }
     }
 
     return null
   }
 
-  // Extraire l'année de release
   getReleasedYear(album: iTunesAlbum): number {
     if (!album.releaseDate) return new Date().getFullYear()
     return new Date(album.releaseDate).getFullYear()
   }
 
-  // Nettoyer le nom de l'album
   cleanAlbumName(name: string): string {
     if (!name) return ''
     return name
@@ -388,7 +305,6 @@ class MusicService {
       .trim()
   }
 
-  // Convertir un album iTunes vers le format de l'app
   convertToAppFormat(album: iTunesAlbum): any {
     return {
       id: `music-${album.collectionId}`,
@@ -400,7 +316,6 @@ class MusicService {
       category: 'music' as const,
       image: this.getBestImageURL(album, 'medium'),
       
-      // Données spécifiques à la musique
       trackCount: album.trackCount || 0,
       copyright: album.copyright,
       collectionPrice: album.collectionPrice,
@@ -413,29 +328,25 @@ class MusicService {
     }
   }
 
-  // Obtenir des albums par artiste
   async getAlbumsByArtist(artistName: string, limit: number = 10): Promise<iTunesAlbum[]> {
     return this.searchAlbums(artistName, limit)
   }
 
-  // Obtenir des albums similaires basés sur le genre
   async getSimilarAlbums(album: iTunesAlbum, limit: number = 6): Promise<iTunesAlbum[]> {
     try {
-      const genre = album.primaryGenreName || 'pop'
+      const genre = album.primaryGenreName || album.artistName
       const albums = await this.searchAlbums(genre, limit + 5)
       
-      // Filtrer l'album actuel et retourner les autres
       return albums
         .filter(a => a.collectionId !== album.collectionId)
         .slice(0, limit)
-    } catch (error) {
-      console.error('Error fetching similar albums:', error)
+    } catch (err) {
+      console.error('Error fetching similar albums:', err)
       return []
     }
   }
 }
 
-// Instance singleton
 export const musicService = new MusicService()
 
 // Fonctions utilitaires
@@ -455,7 +366,6 @@ export const formatPrice = (price: number, currency: string): string => {
 export const formatDuration = (trackCount: number): string => {
   if (!trackCount) return 'Unknown duration'
   
-  // Estimation approximative : 3.5 minutes par track en moyenne
   const averageTrackDuration = 3.5
   const totalMinutes = Math.round(trackCount * averageTrackDuration)
   
