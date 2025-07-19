@@ -218,33 +218,6 @@ export default function SearchModal({
     }
   }
 
-  // 🎵 RECHERCHE MUSIQUE
-  const searchMusic = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎵 [SearchModal] Starting music search for:', query)
-    
-    try {
-      const albums = await musicService.searchAlbums(query, 20)
-      console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums')
-      
-      if (!albums || albums.length === 0) {
-        return []
-      }
-
-      const convertedAlbums = albums.map(album => {
-        const converted = musicService.convertToAppFormat(album)
-        console.log('🎵 [SearchModal] Converted album:', converted.title, 'by', converted.artist)
-        return converted
-      })
-
-      console.log('✅ [SearchModal] Music conversion complete:', convertedAlbums.length, 'results')
-      return convertedAlbums
-
-    } catch (error) {
-      console.error('❌ [SearchModal] Music search failed:', error)
-      throw error
-    }
-  }
-
   // 📚 RECHERCHE LIVRES
   const searchBooks = async (query: string): Promise<SearchResult[]> => {
     console.log('📚 [SearchModal] Starting books search for:', query)
@@ -314,10 +287,37 @@ export default function SearchModal({
         )
       }
 
-      // 🎵 RECHERCHE MUSIQUE
+      // 🎵 RECHERCHE MUSIQUE AVEC FORCE API
       if (category === 'all' || category === 'music') {
+  const searchMusicWithCategory = async (): Promise<SearchResult[]> => {
+    console.log('🎵 [SearchModal] Starting music search for:', searchQuery, 'Category filter:', category)
+    
+    try {
+      // ✅ CORRECTION : searchAlbums n'accepte que 2 paramètres
+      const albums = await musicService.searchAlbums(searchQuery, 20) // ✅ CORRIGÉ
+      console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums')
+            
+            if (!albums || albums.length === 0) {
+              return []
+            }
+
+            const convertedAlbums = albums.map(album => {
+              const converted = musicService.convertToAppFormat(album)
+              console.log('🎵 [SearchModal] Converted album:', converted.title, 'by', converted.artist)
+              return converted
+            })
+
+            console.log('✅ [SearchModal] Music conversion complete:', convertedAlbums.length, 'results')
+            return convertedAlbums
+
+          } catch (error) {
+            console.error('❌ [SearchModal] Music search failed:', error)
+            throw error
+          }
+        }
+
         searchPromises.push(
-          searchMusic(searchQuery)
+          searchMusicWithCategory()
             .then(results => ({ category: 'music', results }))
             .catch(err => {
               console.error('❌ [SearchModal] Music search failed:', err)
