@@ -151,47 +151,69 @@ export default function SearchModal({
         return []
       }
 
-      // ✅ FILTRAGE ULTRA STRICT DE PERTINENCE AVANT CONVERSION
+      // ✅ FILTRAGE INTELLIGENT DE PERTINENCE AVANT CONVERSION
       const queryLower = query.toLowerCase().trim()
       const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1) // Garder les mots de 2+ lettres
       
       console.log('🎮 [SearchModal] Query words to match:', queryWords)
+      console.log('🎮 [SearchModal] Full query:', queryLower)
       
       const relevantGames = games.filter(game => {
         const gameName = game.name.toLowerCase()
         const developerNames = game.developers?.map(dev => dev.name.toLowerCase()) || []
         const publisherNames = game.publishers?.map(pub => pub.name.toLowerCase()) || []
         
-        // ✅ LOGIQUE ULTRA STRICTE : TOUS les mots-clés doivent être présents
-        const allWordsInTitle = queryWords.every(word => gameName.includes(word))
+        // ✅ LOGIQUE ÉQUILIBRÉE : Plusieurs niveaux de correspondance
         
-        // Alternative : au moins un match exact de séquence dans le titre
+        // 1. Correspondance exacte complète (priorité max)
+        const exactMatch = gameName === queryLower
+        
+        // 2. Correspondance de séquence complète dans le titre
         const hasSequenceMatch = gameName.includes(queryLower)
         
-        // Match développeur/éditeur (moins strict pour les créateurs)
+        // 3. TOUS les mots-clés importants présents (pour requêtes multi-mots)
+        const allWordsInTitle = queryWords.length > 1 ? 
+          queryWords.every(word => gameName.includes(word)) : 
+          gameName.includes(queryWords[0]) // Pour un seul mot, juste vérifier qu'il est présent
+        
+        // 4. Au moins la moitié des mots-clés présents (pour flexibilité)
+        const majorityWordsMatch = queryWords.length > 2 ?
+          queryWords.filter(word => gameName.includes(word)).length >= Math.ceil(queryWords.length / 2) :
+          false
+        
+        // 5. Match développeur/éditeur avec mots du titre
         const hasCreatorMatch = queryWords.some(word => 
           developerNames.some(dev => dev.includes(word)) ||
           publisherNames.some(pub => pub.includes(word))
         )
+        const hasPartialTitleMatch = queryWords.some(word => gameName.includes(word))
         
-        // ✅ CRITÈRES STRICTS : 
-        // 1. Soit TOUS les mots sont dans le titre
-        // 2. Soit la séquence complète est dans le titre  
-        // 3. Soit c'est un match exact de créateur ET au moins un mot du titre
-        const isRelevant = allWordsInTitle || hasSequenceMatch || 
-          (hasCreatorMatch && queryWords.some(word => gameName.includes(word)))
+        // 6. Correspondance début de titre (pour les séries)
+        const startsWithQuery = gameName.startsWith(queryLower)
+        
+        // ✅ CRITÈRES DE PERTINENCE (du plus strict au plus flexible) : 
+        const isRelevant = exactMatch ||           // Correspondance exacte
+          hasSequenceMatch ||                      // Séquence complète présente
+          startsWithQuery ||                       // Commence par la requête
+          allWordsInTitle ||                       // Tous les mots présents
+          majorityWordsMatch ||                    // Majorité des mots présents
+          (hasCreatorMatch && hasPartialTitleMatch) // Match créateur + titre partiel
         
         console.log(`🎮 [SearchModal] "${game.name}":`, {
+          exactMatch,
+          hasSequenceMatch,
+          startsWithQuery,
           allWordsInTitle,
-          hasSequenceMatch, 
+          majorityWordsMatch,
           hasCreatorMatch,
+          hasPartialTitleMatch,
           isRelevant: isRelevant ? 'KEEP' : 'REJECT'
         })
         
         return isRelevant
       })
 
-      console.log(`🎮 [SearchModal] STRICT FILTERING: ${games.length} → ${relevantGames.length} games`)
+      console.log(`🎮 [SearchModal] INTELLIGENT FILTERING: ${games.length} → ${relevantGames.length} games`)
 
       // ✅ CONVERSION AVEC VÉRIFICATION STRICTE DES DÉVELOPPEURS
       const convertedGames = relevantGames.map(game => {
