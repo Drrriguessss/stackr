@@ -137,23 +137,34 @@ export default function SearchModal({
     return creator
   }
 
-  // ✅ RECHERCHE JEUX AVEC FILTRAGE ULTRA STRICT DE PERTINENCE
+  // ✅ RECHERCHE JEUX AVEC DIAGNOSTIC COMPLET
   const searchGames = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎮 [SearchModal] Starting ENHANCED games search for:', query)
+    console.log('🎮 [SearchModal] Starting DIAGNOSTIC games search for:', query)
     
     try {
-      // ✅ UTILISE LA NOUVELLE MÉTHODE searchGames AMÉLIORÉE
-      const games = await rawgService.searchGames(query, 20) // Plus de résultats pour filtrer
-      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games with enhanced search')
+      // ✅ TEST DE CONNECTIVITÉ D'ABORD
+      console.log('🎮 [SearchModal] Testing RAWG connection...')
+      const connectionTest = await rawgService.testConnection()
+      
+      if (!connectionTest.success) {
+        console.error('🎮 [SearchModal] RAWG API unavailable:', connectionTest.message)
+        throw new Error(`RAWG API unavailable: ${connectionTest.message}`)
+      }
+      
+      console.log('🎮 [SearchModal] RAWG connection OK:', connectionTest.message)
+      
+      // ✅ RECHERCHE AVEC LE SERVICE CORRIGÉ
+      const games = await rawgService.searchGames(query, 20)
+      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games')
       
       if (!games || games.length === 0) {
-        console.log('🎮 [SearchModal] No games found with enhanced search')
+        console.log('🎮 [SearchModal] No games found, checking if API is working...')
         return []
       }
 
       // ✅ FILTRAGE INTELLIGENT DE PERTINENCE AVANT CONVERSION
       const queryLower = query.toLowerCase().trim()
-      const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1) // Garder les mots de 2+ lettres
+      const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1)
       
       console.log('🎮 [SearchModal] Query words to match:', queryWords)
       console.log('🎮 [SearchModal] Full query:', queryLower)

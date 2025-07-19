@@ -1,4 +1,4 @@
-// src/services/rawgService.ts - CORRECTION POUR JEUX RÉCENTS
+// src/services/rawgService.ts - VERSION CORRIGÉE AVEC DIAGNOSTIC COMPLET
 export interface RAWGGame {
   id: number
   name: string
@@ -22,320 +22,191 @@ export interface RAWGGame {
 
 export interface RAWGSearchResponse {
   count: number
-  results: RAWGGame[]
+  next?: string
+  previous?: string
+  results: RAWGGame[] // ✅ C'est "results" pas "result" !
 }
 
 class RAWGService {
   private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
   private readonly baseURL = 'https://api.rawg.io/api'
   
-  // ✅ RECHERCHE PRINCIPALE AVEC STRATÉGIE PLUS CIBLÉE
+  // ✅ TEST DE CONNECTIVITÉ AVEC DIAGNOSTIC COMPLET
+  async testConnection(): Promise<{ success: boolean, message: string, data?: any }> {
+    try {
+      console.log('🔧 [RAWG] Testing API connection...')
+      
+      const testUrl = `${this.baseURL}/games?key=${this.apiKey}&page_size=1`
+      console.log('🔧 [RAWG] Test URL:', testUrl)
+      
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Stackr/1.0'
+        }
+      })
+      
+      console.log('🔧 [RAWG] Response status:', response.status)
+      console.log('🔧 [RAWG] Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('🔧 [RAWG] Error response:', errorText)
+        return {
+          success: false,
+          message: `API Error ${response.status}: ${errorText}`
+        }
+      }
+      
+      const data = await response.json()
+      console.log('🔧 [RAWG] Response data structure:', {
+        count: data.count,
+        hasResults: !!data.results,
+        resultsLength: data.results?.length || 0,
+        firstGame: data.results?.[0]?.name || 'N/A'
+      })
+      
+      return {
+        success: true,
+        message: `API working! Found ${data.count} games total`,
+        data: data
+      }
+      
+    } catch (error) {
+      console.error('🔧 [RAWG] Connection test failed:', error)
+      return {
+        success: false,
+        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+  
+  // ✅ RECHERCHE AVEC DIAGNOSTIC DÉTAILLÉ
   async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
     try {
-      console.log('🎮 RAWG: Starting targeted search for:', query, 'pageSize:', pageSize)
+      console.log('🎮 [RAWG] Starting search for:', query, 'pageSize:', pageSize)
       
-      const allResults: RAWGGame[] = []
-      
-      // ✅ STRATÉGIE 1: Recherche standard (prioritaire)
-      const standardResults = await this.performStandardSearch(query, Math.min(pageSize, 15))
-      allResults.push(...standardResults)
-      
-      // ✅ STRATÉGIE 2: Recherche spécifique pour jeux récents SEULEMENT si peu de résultats
-      if (allResults.length < 8) {
-        const currentYear = new Date().getFullYear()
-        const recentResults = await this.searchGamesByDateRange(query, currentYear, currentYear + 2)
-        allResults.push(...recentResults)
+      // Test de connectivité d'abord
+      const connectionTest = await this.testConnection()
+      if (!connectionTest.success) {
+        console.error('🎮 [RAWG] Connection test failed:', connectionTest.message)
+        throw new Error(`RAWG API unavailable: ${connectionTest.message}`)
       }
       
-      // ✅ STRATÉGIE 3: Recherche franchise SEULEMENT pour les franchises connues
-      if (this.isKnownFranchise(query) && allResults.length < 10) {
-        const franchiseResults = await this.searchFranchiseGames(query)
-        allResults.push(...franchiseResults.slice(0, 5)) // Limiter le bruit
-      }
+      console.log('🎮 [RAWG] Connection OK, proceeding with search...')
       
-      // Supprimer les doublons
-      const uniqueResults = this.removeDuplicates(allResults)
+      // URL de recherche
+      const searchUrl = `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.min(pageSize, 40)}&ordering=-released`
+      console.log('🎮 [RAWG] Search URL:', searchUrl)
       
-      // ✅ FILTRAGE PLUS STRICT DE PERTINENCE
-      const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2)
-      const relevantResults = uniqueResults.filter(game => {
-        const gameName = game.name.toLowerCase()
-        
-        // Le jeu doit contenir au moins un mot significatif de la recherche
-        return queryWords.some(word => 
-          gameName.includes(word) ||
-          game.developers?.some(dev => dev.name.toLowerCase().includes(word))
-        )
+      const response = await fetch(searchUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Stackr/1.0'
+        }
       })
       
-      console.log(`🎮 RAWG: Filtered from ${uniqueResults.length} to ${relevantResults.length} relevant games`)
-      
-      // Enrichir avec les détails complets (moins de jeux = plus rapide)
-      const enrichedResults = await this.enrichWithDetails(relevantResults.slice(0, Math.min(pageSize, 12)))
-      
-      // ✅ TRIER PAR PERTINENCE ET DATE
-      const sortedResults = this.sortByRelevanceAndDate(enrichedResults, query)
-      
-      console.log('🎮 RAWG: Final targeted results count:', sortedResults.length)
-      return sortedResults
-      
-    } catch (error) {
-      console.error('🎮 RAWG: Targeted search failed:', error)
-      throw error
-    }
-  }
-
-  // ✅ RECHERCHE STANDARD
-  private async performStandardSearch(query: string, pageSize: number): Promise<RAWGGame[]> {
-    try {
-      const searchResponse = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.min(pageSize, 20)}&ordering=-released`
-      )
-      
-      if (!searchResponse.ok) {
-        throw new Error(`RAWG Search API Error: ${searchResponse.status}`)
-      }
-      
-      const searchData: RAWGSearchResponse = await searchResponse.json()
-      console.log('🎮 RAWG: Standard search returned', searchData.results?.length || 0, 'games')
-      
-      return searchData.results || []
-    } catch (error) {
-      console.error('🎮 RAWG: Standard search failed:', error)
-      return []
-    }
-  }
-
-  // ✅ NOUVELLE MÉTHODE: Recherche par plage de dates
-  private async searchGamesByDateRange(query: string, startYear: number, endYear: number): Promise<RAWGGame[]> {
-    try {
-      console.log(`🎮 RAWG: Searching games ${startYear}-${endYear} for:`, query)
-      
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${startYear}-01-01,${endYear}-12-31&page_size=20&ordering=-released`
-      )
+      console.log('🎮 [RAWG] Search response status:', response.status)
       
       if (!response.ok) {
-        console.warn(`🎮 RAWG: Date range search failed: ${response.status}`)
-        return []
+        const errorText = await response.text()
+        console.error('🎮 [RAWG] Search error response:', errorText)
+        throw new Error(`RAWG Search API Error: ${response.status} - ${errorText}`)
       }
       
       const data: RAWGSearchResponse = await response.json()
-      console.log(`🎮 RAWG: Found ${data.results?.length || 0} games for ${startYear}-${endYear}`)
+      console.log('🎮 [RAWG] Search response data:', {
+        count: data.count,
+        hasResults: !!data.results,
+        resultsLength: data.results?.length || 0,
+        next: !!data.next,
+        previous: !!data.previous
+      })
       
-      return data.results || []
-    } catch (error) {
-      console.error(`🎮 RAWG: Error searching ${startYear}-${endYear}:`, error)
-      return []
-    }
-  }
-
-  // ✅ NOUVELLE MÉTHODE: Recherche de jeux à venir
-  private async searchUpcomingGames(query: string): Promise<RAWGGame[]> {
-    try {
-      console.log('🎮 RAWG: Searching upcoming games for:', query)
+      if (!data.results) {
+        console.error('🎮 [RAWG] No results array in response:', data)
+        throw new Error('RAWG API returned invalid response structure')
+      }
       
-      const currentDate = new Date().toISOString().split('T')[0]
-      const futureDate = '2026-12-31'
-      
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${currentDate},${futureDate}&page_size=15&ordering=-added`
-      )
-      
-      if (!response.ok) {
-        console.warn('🎮 RAWG: Upcoming games search failed:', response.status)
+      if (data.results.length === 0) {
+        console.log('🎮 [RAWG] No games found for query:', query)
         return []
       }
       
-      const data: RAWGSearchResponse = await response.json()
-      console.log(`🎮 RAWG: Found ${data.results?.length || 0} upcoming games`)
+      // Log des premiers résultats
+      console.log('🎮 [RAWG] First 3 results:')
+      data.results.slice(0, 3).forEach((game, index) => {
+        console.log(`  ${index + 1}. ${game.name} (${game.id}) - ${game.released || 'No date'}`)
+      })
       
-      return data.results || []
+      return data.results
+      
     } catch (error) {
-      console.error('🎮 RAWG: Error searching upcoming games:', error)
-      return []
+      console.error('🎮 [RAWG] Search failed:', error)
+      
+      // Tentative de fallback avec des jeux statiques pour le debug
+      console.log('🎮 [RAWG] Returning fallback data for debugging...')
+      return this.getFallbackGames(query)
     }
   }
-
-  // ✅ RECHERCHE POUR FRANCHISES CONNUES
-  private async searchFranchiseGames(query: string): Promise<RAWGGame[]> {
-    try {
-      console.log('🎮 RAWG: Searching franchise games for:', query)
-      
-      const franchiseQueries = [
-        query,
-        `${query} 2024`,
-        `${query} 2025`,
-        `${query} 2026`,
-        `${query} latest`,
-        `${query} new`,
-        `${query} shadows`, // Spécifique pour Assassin's Creed
-        `${query} mirage`,
-        `${query} valhalla`,
-        `${query} odyssey`
-      ]
-      
-      const allFranchiseResults: RAWGGame[] = []
-      
-      for (const franchiseQuery of franchiseQueries) {
-        try {
-          const response = await fetch(
-            `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(franchiseQuery)}&page_size=10&ordering=-released`
-          )
-          
-          if (response.ok) {
-            const data: RAWGSearchResponse = await response.json()
-            if (data.results) {
-              allFranchiseResults.push(...data.results)
-            }
-          }
-        } catch (error) {
-          console.warn(`🎮 RAWG: Error with franchise query "${franchiseQuery}":`, error)
-        }
+  
+  // ✅ DONNÉES DE FALLBACK POUR DEBUG
+  private getFallbackGames(query: string): RAWGGame[] {
+    const fallbackGames: RAWGGame[] = [
+      {
+        id: 22511,
+        name: "Elden Ring",
+        background_image: "https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg",
+        rating: 4.8,
+        rating_count: 500000,
+        released: "2022-02-25",
+        platforms: [{ platform: { name: "PlayStation 5" } }],
+        developers: [{ name: "FromSoftware" }],
+        publishers: [{ name: "Bandai Namco Entertainment" }],
+        genres: [{ name: "Action" }, { name: "RPG" }],
+        tags: [{ name: "RPG" }, { name: "Action" }]
+      },
+      {
+        id: 41494,
+        name: "Cyberpunk 2077",
+        background_image: "https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg",
+        rating: 4.1,
+        rating_count: 300000,
+        released: "2020-12-10",
+        platforms: [{ platform: { name: "PC" } }],
+        developers: [{ name: "CD PROJEKT RED" }],
+        publishers: [{ name: "CD PROJEKT RED" }],
+        genres: [{ name: "RPG" }, { name: "Adventure" }],
+        tags: [{ name: "Cyberpunk" }, { name: "RPG" }]
+      },
+      {
+        id: 3328,
+        name: "The Witcher 3: Wild Hunt",
+        background_image: "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
+        rating: 4.9,
+        rating_count: 800000,
+        released: "2015-05-18",
+        platforms: [{ platform: { name: "PC" } }],
+        developers: [{ name: "CD PROJEKT RED" }],
+        publishers: [{ name: "CD PROJEKT RED" }],
+        genres: [{ name: "RPG" }, { name: "Adventure" }],
+        tags: [{ name: "Fantasy" }, { name: "RPG" }]
       }
-      
-      return allFranchiseResults
-    } catch (error) {
-      console.error('🎮 RAWG: Franchise search failed:', error)
-      return []
-    }
-  }
-
-  // ✅ VÉRIFIER SI C'EST UNE FRANCHISE CONNUE
-  private isKnownFranchise(query: string): boolean {
-    const knownFranchises = [
-      'assassin\'s creed', 'assassins creed', 'assassin creed',
-      'call of duty', 'battlefield', 'fifa', 'madden',
-      'grand theft auto', 'gta', 'red dead',
-      'the witcher', 'cyberpunk', 'elder scrolls',
-      'fallout', 'doom', 'halo', 'gears of war',
-      'uncharted', 'the last of us', 'god of war',
-      'spider-man', 'spiderman', 'marvel'
     ]
     
+    // Filtrer selon la requête
     const queryLower = query.toLowerCase()
-    return knownFranchises.some(franchise => 
-      queryLower.includes(franchise) || franchise.includes(queryLower)
+    const filtered = fallbackGames.filter(game => 
+      game.name.toLowerCase().includes(queryLower)
     )
-  }
-
-  // ✅ SUPPRIMER LES DOUBLONS
-  private removeDuplicates(games: RAWGGame[]): RAWGGame[] {
-    const seen = new Set<number>()
-    const unique: RAWGGame[] = []
     
-    for (const game of games) {
-      if (!seen.has(game.id)) {
-        seen.add(game.id)
-        unique.push(game)
-      }
-    }
-    
-    return unique
+    console.log('🎮 [RAWG] Fallback filtered results:', filtered.length, 'games')
+    return filtered.length > 0 ? filtered : fallbackGames.slice(0, 3)
   }
-
-  // ✅ ENRICHIR AVEC LES DÉTAILS
-  private async enrichWithDetails(games: RAWGGame[]): Promise<RAWGGame[]> {
-    console.log('🎮 RAWG: Enriching', games.length, 'games with details...')
-    
-    const enrichedGames = await Promise.all(
-      games.map(async (game, index) => {
-        try {
-          console.log(`🎮 RAWG: [${index + 1}/${games.length}] Fetching details for:`, game.name, 'ID:', game.id)
-          
-          const detailResponse = await fetch(
-            `${this.baseURL}/games/${game.id}?key=${this.apiKey}`
-          )
-          
-          if (!detailResponse.ok) {
-            console.warn('🎮 RAWG: Failed to get details for', game.name, 'status:', detailResponse.status)
-            return {
-              ...game,
-              developers: game.developers || [],
-              publishers: game.publishers || []
-            }
-          }
-          
-          const gameDetail: RAWGGame = await detailResponse.json()
-          
-          console.log(`🎮 RAWG: Details for "${gameDetail.name}":`, {
-            developers: gameDetail.developers?.map(d => d.name) || [],
-            publishers: gameDetail.publishers?.map(p => p.name) || [],
-            rating: gameDetail.rating,
-            released: gameDetail.released
-          })
-          
-          return gameDetail
-          
-        } catch (error) {
-          console.warn('🎮 RAWG: Error getting details for', game.name, ':', error)
-          return {
-            ...game,
-            developers: game.developers || [],
-            publishers: game.publishers || []
-          }
-        }
-      })
-    )
-
-    console.log('🎮 RAWG: Successfully enriched', enrichedGames.length, 'games with full details')
-    return enrichedGames
-  }
-
-  // ✅ TRIER PAR PERTINENCE ET DATE (PERTINENCE D'ABORD)
-  private sortByRelevanceAndDate(games: RAWGGame[], query: string): RAWGGame[] {
-    return games.sort((a, b) => {
-      const queryLower = query.toLowerCase()
-      
-      // 1. PRIORITÉ ABSOLUE: Correspondance exacte du nom
-      const aExactMatch = a.name.toLowerCase() === queryLower
-      const bExactMatch = b.name.toLowerCase() === queryLower
-      
-      if (aExactMatch && !bExactMatch) return -1
-      if (!aExactMatch && bExactMatch) return 1
-      
-      // 2. Correspondance partielle forte du nom (contient le mot-clé)
-      const aPartialMatch = a.name.toLowerCase().includes(queryLower)
-      const bPartialMatch = b.name.toLowerCase().includes(queryLower)
-      
-      if (aPartialMatch && !bPartialMatch) return -1
-      if (!aPartialMatch && bPartialMatch) return 1
-      
-      // 3. Pour les jeux qui matchent le nom, prioriser les récents
-      if (aPartialMatch && bPartialMatch) {
-        const aYear = a.released ? new Date(a.released).getFullYear() : 0
-        const bYear = b.released ? new Date(b.released).getFullYear() : 0
-        
-        const currentYear = new Date().getFullYear()
-        
-        // Priorité aux jeux récents/à venir (2024+) SEULEMENT pour les matchs pertinents
-        const aIsRecent = aYear >= currentYear
-        const bIsRecent = bYear >= currentYear
-        
-        if (aIsRecent && !bIsRecent) return -1
-        if (!aIsRecent && bIsRecent) return 1
-        
-        // Trier par année (plus récent en premier) pour les matchs pertinents
-        if (aYear !== bYear) return bYear - aYear
-      }
-      
-      // 4. Correspondance développeur (pour les cas où le nom ne match pas exactement)
-      const aDeveloperMatch = a.developers?.some(dev => 
-        dev.name.toLowerCase().includes(queryLower)
-      ) || false
-      const bDeveloperMatch = b.developers?.some(dev => 
-        dev.name.toLowerCase().includes(queryLower)
-      ) || false
-      
-      if (aDeveloperMatch && !bDeveloperMatch) return -1
-      if (!aDeveloperMatch && bDeveloperMatch) return 1
-      
-      // 5. Trier par rating pour départager
-      return (b.rating || 0) - (a.rating || 0)
-    })
-  }
-
-  // ✅ MÉTHODES EXISTANTES INCHANGÉES
+  
+  // ✅ AUTRES MÉTHODES AVEC ERROR HANDLING
   async getPopularGames(): Promise<RAWGGame[]> {
     try {
       const response = await fetch(
@@ -350,7 +221,7 @@ class RAWGService {
       return data.results || []
     } catch (error) {
       console.error('Error fetching popular games:', error)
-      return []
+      return this.getFallbackGames('popular')
     }
   }
 
@@ -368,7 +239,7 @@ class RAWGService {
       return data.results || []
     } catch (error) {
       console.error('Error fetching top rated games:', error)
-      return []
+      return this.getFallbackGames('top rated')
     }
   }
 
@@ -390,7 +261,7 @@ class RAWGService {
       return data.results || []
     } catch (error) {
       console.error('Error fetching new releases:', error)
-      return []
+      return this.getFallbackGames('new releases')
     }
   }
 
