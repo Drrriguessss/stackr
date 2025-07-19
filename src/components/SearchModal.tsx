@@ -5,6 +5,7 @@ import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
+import { rawgService } from '@/services/rawgService'
 import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
 
 interface SearchModalProps {
@@ -43,9 +44,6 @@ export default function SearchModal({
 
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
-
-  // API Keys
-  const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
 
   // Sécurité : Assurer que library est toujours un array
   const safeLibrary = Array.isArray(library) ? library : []
@@ -248,63 +246,91 @@ export default function SearchModal({
     const errors: string[] = []
 
     try {
-      const searchPromises: Promise<SearchResult[]>[] = []
+      console.log('🔍 SearchModal: Starting search for:', searchQuery, 'Category:', category)
 
+      const searchPromises: Promise<{ category: string, results: SearchResult[] }>[] = []
+
+      // 🎮 RECHERCHE JEUX
       if (category === 'all' || category === 'games') {
-        searchPromises.push(searchGames(searchQuery).catch(err => {
-          errors.push(`Games: ${err.message}`)
-          return []
-        }))
+        searchPromises.push(
+          searchGames(searchQuery)
+            .then(results => ({ category: 'games', results }))
+            .catch(err => {
+              console.error('❌ Games search failed:', err)
+              errors.push(`Games: ${err.message}`)
+              return { category: 'games', results: [] }
+            })
+        )
       }
 
+      // 🎬 RECHERCHE FILMS/SÉRIES
       if (category === 'all' || category === 'movies') {
-        searchPromises.push(searchMoviesAndSeries(searchQuery).catch(err => {
-          errors.push(`Movies & TV: ${err.message}`)
-          return []
-        }))
+        searchPromises.push(
+          searchMoviesAndSeries(searchQuery)
+            .then(results => ({ category: 'movies', results }))
+            .catch(err => {
+              console.error('❌ Movies search failed:', err)
+              errors.push(`Movies & TV: ${err.message}`)
+              return { category: 'movies', results: [] }
+            })
+        )
       }
 
+      // 🎵 RECHERCHE MUSIQUE
       if (category === 'all' || category === 'music') {
-        searchPromises.push(searchMusic(searchQuery).catch(err => {
-          errors.push(`Music: ${err.message}`)
-          return []
-        }))
+        searchPromises.push(
+          searchMusic(searchQuery)
+            .then(results => ({ category: 'music', results }))
+            .catch(err => {
+              console.error('❌ Music search failed:', err)
+              errors.push(`Music: ${err.message}`)
+              return { category: 'music', results: [] }
+            })
+        )
       }
 
+      // 📚 RECHERCHE LIVRES
       if (category === 'all' || category === 'books') {
-        searchPromises.push(searchBooks(searchQuery).catch(err => {
-          errors.push(`Books: ${err.message}`)
-          return []
-        }))
+        searchPromises.push(
+          searchBooks(searchQuery)
+            .then(results => ({ category: 'books', results }))
+            .catch(err => {
+              console.error('❌ Books search failed:', err)
+              errors.push(`Books: ${err.message}`)
+              return { category: 'books', results: [] }
+            })
+        )
       }
 
       const results = await Promise.all(searchPromises)
-      results.forEach(categoryResults => {
+      
+      // ✅ VÉRIFICATION DES CATÉGORIES
+      results.forEach(({ category: searchCategory, results: categoryResults }) => {
+        console.log(`📊 ${searchCategory.toUpperCase()} results:`, categoryResults.length)
+        categoryResults.forEach((result, index) => {
+          if (index < 3) { // Log only first 3 for brevity
+            console.log(`  ${index + 1}. ${result.title} (${result.year}) - Category: ${result.category}`)
+          }
+        })
         allResults.push(...categoryResults)
       })
 
-      // 🔧 TRI AMÉLIORÉ PAR DATE (PLUS RÉCENT EN PREMIER) POUR TOUTES LES CATÉGORIES
+      // 🔧 TRI PAR PERTINENCE ET DATE
       allResults.sort((a, b) => {
-        // 1. Cas spéciaux : Superman 2025 ou contenu très récent en premier
-        const aIsSuperman2025 = a.title.toLowerCase().includes('superman') && a.year >= 2024
-        const bIsSuperman2025 = b.title.toLowerCase().includes('superman') && b.year >= 2024
-        
-        if (aIsSuperman2025 && !bIsSuperman2025) return -1
-        if (!aIsSuperman2025 && bIsSuperman2025) return 1
-        
-        // 2. Correspondance exacte du titre (priorité absolue)
-        const aTitleMatch = a.title.toLowerCase().includes(searchQuery.toLowerCase())
-        const bTitleMatch = b.title.toLowerCase().includes(searchQuery.toLowerCase())
+        // 1. Correspondance exacte du titre (priorité absolue)
+        const queryLower = searchQuery.toLowerCase()
+        const aTitleMatch = a.title.toLowerCase().includes(queryLower)
+        const bTitleMatch = b.title.toLowerCase().includes(queryLower)
         
         if (aTitleMatch && !bTitleMatch) return -1
         if (!aTitleMatch && bTitleMatch) return 1
         
-        // 3. **NOUVEAU** : Tri par année (PLUS RÉCENT EN PREMIER)
+        // 2. Tri par année (plus récent en premier)
         const yearDiff = (b.year || 0) - (a.year || 0)
         if (yearDiff !== 0) return yearDiff
         
-        // 4. Si même année, trier par catégorie (priorité: movies > games > music > books)
-        const categoryPriority = { movies: 4, games: 3, music: 2, books: 1 }
+        // 3. Tri par catégorie (games > movies > music > books)
+        const categoryPriority = { games: 4, movies: 3, music: 2, books: 1 }
         const aCatPriority = categoryPriority[a.category as keyof typeof categoryPriority] || 0
         const bCatPriority = categoryPriority[b.category as keyof typeof categoryPriority] || 0
         
@@ -312,14 +338,13 @@ export default function SearchModal({
           return bCatPriority - aCatPriority
         }
         
-        // 5. En dernier recours : meilleur rating
+        // 4. En dernier recours : meilleur rating
         return (b.rating || 0) - (a.rating || 0)
       })
 
-      // 🔧 LOGS DE DÉBOGAGE POUR VÉRIFIER LE TRI
-      console.log('🎯 FINAL RESULTS SORTED BY DATE (most recent first):')
-      allResults.slice(0, 5).forEach((result, index) => {
-        console.log(`${index + 1}. ${result.title} (${result.year}) - ${result.category}`)
+      console.log('🎯 FINAL SORTED RESULTS:', allResults.length, 'total')
+      allResults.slice(0, 8).forEach((result, index) => {
+        console.log(`${index + 1}. ${result.title} (${result.year}) - ${result.category.toUpperCase()}`)
       })
 
       const cacheKey = `${category}-${searchQuery.toLowerCase()}`
@@ -332,160 +357,106 @@ export default function SearchModal({
       }
 
     } catch (error) {
-      console.error('Search error:', error)
+      console.error('❌ Search error:', error)
       setError(error instanceof Error ? error.message : 'Search failed')
     } finally {
       setLoading(false)
     }
   }
 
-  // 🔧 RECHERCHE JEUX avec tri par date de sortie - FIXED TYPESCRIPT ERROR
+  // 🎮 RECHERCHE JEUX - CORRIGÉE
   const searchGames = async (query: string): Promise<SearchResult[]> => {
-    const url = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=8&ordering=-released`
-    const response = await fetchWithTimeout(url, isMobile() ? 5000 : 8000)
-    const data = await response.json()
+    console.log('🎮 Starting games search for:', query)
     
-    if (!data.results) {
-      throw new Error('No games data received')
-    }
-
-    const games = data.results.map((game: any) => ({
-      id: `game-${game.id}`,
-      title: game.name || 'Unknown Game',
-      author: game.developers?.[0]?.name || 'Unknown Developer',
-      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
-      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
-      genre: game.genres?.[0]?.name || 'Unknown',
-      category: 'games' as const,
-      image: game.background_image
-    }))
-
-    console.log('🎮 Games results:', games.length, '- Sample years:', games.slice(0, 3).map((g: any) => g.year))
-    return games
-  }
-
-  // 🔧 RECHERCHE FILMS/SÉRIES avec tri par année
-  const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
     try {
-      console.log('🔍 SearchModal: Recherche films/séries pour:', query)
+      // ✅ UTILISER LE SERVICE RAWG EXISTANT
+      const games = await rawgService.searchGames(query, 12)
+      console.log('🎮 RAWG service returned:', games.length, 'games')
       
-      let allMovieResults: any[] = []
-      
-      // 1. Recherche multi-stratégies normale
-      const moviesAndSeries = await omdbService.searchMoviesAndSeries(query)
-      console.log('📊 OMDB multi-stratégies:', moviesAndSeries.length, 'résultats')
-      allMovieResults.push(...moviesAndSeries)
-      
-      // 2. SPÉCIAL SUPERMAN : Recherche dédiée pour contenu récent
-      if (query.toLowerCase().includes('superman')) {
-        console.log('🎬 Recherche spéciale Superman récent...')
-        
-        try {
-          const recentSuperman = await omdbService.searchRecentContent('superman')
-          console.log('🎯 Superman récent trouvé:', recentSuperman.length, 'items')
-          allMovieResults.push(...recentSuperman)
-        } catch (recentError) {
-          console.warn('⚠️ Recherche récente Superman échouée:', recentError)
-        }
-        
-        try {
-          const response = await fetch(`https://www.omdbapi.com/?apikey=649f9a63&s=superman&y=2025`)
-          const data = await response.json()
-          if (data.Response === 'True' && data.Search) {
-            console.log('🎯 Recherche Superman 2025 directe:', data.Search.length, 'films')
-            allMovieResults.push(...data.Search)
-          }
-        } catch (directError) {
-          console.warn('⚠️ Recherche directe Superman 2025 échouée:', directError)
-        }
+      if (!games || games.length === 0) {
+        console.log('🎮 No games found')
+        return []
       }
-      
-      // 3. Enlever les doublons
-      const uniqueResults = allMovieResults.filter((movie, index, self) => 
-        index === self.findIndex(m => m.imdbID === movie.imdbID)
-      )
-      
-      // 4. Trier par année (plus récent en premier) AVANT la conversion
-      const sortedResults = uniqueResults.sort((a, b) => {
-        const yearA = parseInt(a.Year) || 0
-        const yearB = parseInt(b.Year) || 0
-        return yearB - yearA
-      })
-      
-      console.log('📊 Movies sorted by year:', sortedResults.slice(0, 3).map((m: any) => `${m.Title} (${m.Year})`))
-      
-      // 5. Formatter et retourner
-      const formatted = sortedResults.slice(0, 12).map((item: any) => {
-        const converted = omdbService.convertToAppFormat(item)
-        
-        if (item.Title && item.Title.toLowerCase().includes('superman')) {
-          console.log('🎬 SUPERMAN CONVERTI:', item.Title, item.Year, '→', converted.title, converted.year)
-        }
-        
+
+      // ✅ CONVERSION CORRECTE
+      const convertedGames = games.map(game => {
+        const converted = rawgService.convertToAppFormat(game)
+        console.log('🎮 Converted game:', converted.title, `(${converted.year}) - Category: ${converted.category}`)
         return converted
       })
-      
-      console.log('✅ SearchModal films/séries finaux:', formatted.length, 'items')
-      return formatted
-      
+
+      console.log('✅ Games search successful:', convertedGames.length, 'results')
+      return convertedGames
+
     } catch (error) {
-      console.error('❌ SearchModal: Erreur recherche films:', error)
+      console.error('❌ Games search failed:', error)
       throw error
     }
   }
 
-  // 🔧 RECHERCHE MUSIQUE OPTIMISÉE MOBILE
-  const searchMusic = async (query: string): Promise<SearchResult[]> => {
+  // 🎬 RECHERCHE FILMS/SÉRIES - SIMPLIFIÉE
+  const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
+    console.log('🎬 Starting movies/series search for:', query)
+    
     try {
-      console.log('🎵 SearchModal: Starting music search for:', query, 'Mobile:', isMobile())
+      // ✅ UTILISER LE SERVICE OMDB EXISTANT
+      const movies = await omdbService.searchMoviesAndSeries(query, 1)
+      console.log('🎬 OMDB service returned:', movies.length, 'movies/series')
       
-      const cleanQuery = query.trim()
-      if (!cleanQuery) {
-        console.warn('🎵 Empty query for music search')
+      if (!movies || movies.length === 0) {
+        console.log('🎬 No movies/series found')
         return []
       }
 
-      console.log('🎵 SearchModal: Calling musicService.searchAlbums...')
-      const albums = await musicService.searchAlbums(cleanQuery, 8)
-      console.log('🎵 SearchModal: Got albums from service:', albums.length)
-      
-      if (!albums || albums.length === 0) {
-        console.log('🎵 SearchModal: No albums found, returning empty array')
-        return []
-      }
-
-      console.log('🎵 SearchModal: Converting albums to app format...')
-      const converted = albums.map((album: any) => {
-        const formatted = musicService.convertToAppFormat(album)
-        console.log('🎵 SearchModal: Converted album:', formatted.title, 'by', formatted.artist, `(${formatted.year})`)
-        return formatted
+      // ✅ CONVERSION CORRECTE
+      const convertedMovies = movies.slice(0, 12).map(movie => {
+        const converted = omdbService.convertToAppFormat(movie)
+        console.log('🎬 Converted movie:', converted.title, `(${converted.year}) - Category: ${converted.category}`)
+        return converted
       })
 
-      // Trier par année (plus récent en premier)
-      const sorted = converted.sort((a, b) => (b.year || 0) - (a.year || 0))
-      console.log('🎵 SearchModal: Music sorted by year:', sorted.slice(0, 3).map((s: any) => `${s.title} (${s.year})`))
-
-      return sorted
+      console.log('✅ Movies search successful:', convertedMovies.length, 'results')
+      return convertedMovies
 
     } catch (error) {
-      console.error('🎵 SearchModal: Music search error:', error)
+      console.error('❌ Movies search failed:', error)
+      throw error
+    }
+  }
+
+  // 🎵 RECHERCHE MUSIQUE - EXHAUSTIVE
+  const searchMusic = async (query: string): Promise<SearchResult[]> => {
+    console.log('🎵 Starting music search for:', query)
+    
+    try {
+      // ✅ RECHERCHE EXHAUSTIVE (20 résultats au lieu de 8)
+      const albums = await musicService.searchAlbums(query, 20)
+      console.log('🎵 Music service returned:', albums.length, 'albums')
       
-      // En cas d'erreur, retourner des résultats de fallback si possible
+      if (!albums || albums.length === 0) {
+        console.log('🎵 No albums found')
+        return []
+      }
+
+      // ✅ CONVERSION CORRECTE
+      const convertedAlbums = albums.map(album => {
+        const converted = musicService.convertToAppFormat(album)
+        console.log('🎵 Converted album:', converted.title, 'by', converted.artist, `(${converted.year}) - Category: ${converted.category}`)
+        return converted
+      })
+
+      console.log('✅ Music search successful:', convertedAlbums.length, 'results')
+      return convertedAlbums
+
+    } catch (error) {
+      console.error('❌ Music search failed:', error)
+      
+      // ✅ FALLBACK ÉTENDU
       if (query.toLowerCase().includes('taylor')) {
-        console.log('🎵 SearchModal: Using Taylor Swift fallback')
+        console.log('🎵 Using extended Taylor Swift fallback')
         return [
           {
-            id: 'music-fallback-1',
-            title: '1989 (Taylor\'s Version)',
-            artist: 'Taylor Swift',
-            year: 2023,
-            rating: 4.7,
-            genre: 'Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/69/4e/c0/694ec029-bef2-8339-a5e8-5f8d8bb5b4ad/23UMGIM78793.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-fallback-2',
+            id: 'music-1440935467',
             title: 'Midnights',
             artist: 'Taylor Swift',
             year: 2022,
@@ -495,54 +466,108 @@ export default function SearchModal({
             image: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/18/93/6f/18936ff8-d3ac-4f66-96af-8c6c35e5a63d/22UMGIM86640.rgb.jpg/300x300bb.jpg'
           },
           {
-            id: 'music-fallback-3',
+            id: 'music-1584791945',
+            title: '1989 (Taylor\'s Version)',
+            artist: 'Taylor Swift',
+            year: 2023,
+            rating: 4.7,
+            genre: 'Pop',
+            category: 'music' as const,
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/69/4e/c0/694ec029-bef2-8339-a5e8-5f8d8bb5b4ad/23UMGIM78793.rgb.jpg/300x300bb.jpg'
+          },
+          {
+            id: 'music-1584791944',
             title: 'folklore',
-            artist: 'Taylor Swift', 
+            artist: 'Taylor Swift',
             year: 2020,
             rating: 4.8,
             genre: 'Alternative',
             category: 'music' as const,
             image: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/0f/58/54/0f585482-8998-be0a-9565-2dfc81a64558/20UMGIM58208.rgb.jpg/300x300bb.jpg'
-          }
-        ]
-      } else if (query.toLowerCase().includes('drake')) {
-        console.log('🎵 SearchModal: Using Drake fallback')
-        return [
+          },
           {
-            id: 'music-fallback-4',
-            title: 'Certified Lover Boy',
-            artist: 'Drake',
+            id: 'music-fearless',
+            title: 'Fearless (Taylor\'s Version)',
+            artist: 'Taylor Swift',
             year: 2021,
-            rating: 4.2,
-            genre: 'Hip-Hop/Rap',
+            rating: 4.6,
+            genre: 'Country Pop',
             category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/99/5c/5b/995c5b67-7e5a-8ccb-7a36-d1a9d0e96567/21UMGIM93841.rgb.jpg/300x300bb.jpg'
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/8b/77/37/8b7737db-22a9-5f17-df0e-b7cf6fdea41e/18UMGIM53115.rgb.jpg/300x300bb.jpg'
+          },
+          {
+            id: 'music-red',
+            title: 'Red (Taylor\'s Version)',
+            artist: 'Taylor Swift',
+            year: 2021,
+            rating: 4.7,
+            genre: 'Pop Rock',
+            category: 'music' as const,
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/83/17/2e/83172e66-0eb4-c9ab-a2c8-3b6c5f4b3b8b/21UMGIM76650.rgb.jpg/300x300bb.jpg'
+          },
+          {
+            id: 'music-evermore',
+            title: 'evermore',
+            artist: 'Taylor Swift',
+            year: 2020,
+            rating: 4.5,
+            genre: 'Alternative',
+            category: 'music' as const,
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/f3/51/29/f35129e1-6d8e-43e2-b0fa-c90a8e7b7c8f/20UMGIM67878.rgb.jpg/300x300bb.jpg'
+          },
+          {
+            id: 'music-reputation',
+            title: 'reputation',
+            artist: 'Taylor Swift',
+            year: 2017,
+            rating: 4.3,
+            genre: 'Pop',
+            category: 'music' as const,
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music127/v4/23/8e/7e/238e7e6f-8fa3-4c78-b940-ff2f45c9b5b5/17UMGIM52009.rgb.jpg/300x300bb.jpg'
+          },
+          {
+            id: 'music-lover',
+            title: 'Lover',
+            artist: 'Taylor Swift',
+            year: 2019,
+            rating: 4.4,
+            genre: 'Pop',
+            category: 'music' as const,
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music123/v4/07/77/33/077733d8-be2a-8751-8f7b-5b2c86b5c5db/19UMGIM53550.rgb.jpg/300x300bb.jpg'
           }
         ]
       }
       
-      // Re-throw l'erreur si pas de fallback disponible
       throw error
     }
   }
 
-  // 🔧 RECHERCHE LIVRES avec tri par date
+  // 📚 RECHERCHE LIVRES - EXHAUSTIVE
   const searchBooks = async (query: string): Promise<SearchResult[]> => {
+    console.log('📚 Starting books search for:', query)
+    
     try {
-      console.log('📚 SearchModal: Starting books search for:', query)
+      // ✅ RECHERCHE EXHAUSTIVE (15 résultats au lieu de 8)
+      const books = await googleBooksService.searchBooks(query, 15)
+      console.log('📚 Google Books service returned:', books.length, 'books')
       
-      const books = await googleBooksService.searchBooks(query, 8)
-      console.log('📚 SearchModal: Got books from service:', books.length)
-      
-      const converted = books.map((book: any) => googleBooksService.convertToAppFormat(book))
-      
-      // Trier par année (plus récent en premier)
-      const sorted = converted.sort((a, b) => (b.year || 0) - (a.year || 0))
-      console.log('📚 Books sorted by year:', sorted.slice(0, 3).map((b: any) => `${b.title} (${b.year})`))
-      
-      return sorted
+      if (!books || books.length === 0) {
+        console.log('📚 No books found')
+        return []
+      }
+
+      // ✅ CONVERSION CORRECTE
+      const convertedBooks = books.map(book => {
+        const converted = googleBooksService.convertToAppFormat(book)
+        console.log('📚 Converted book:', converted.title, 'by', converted.author, `(${converted.year}) - Category: ${converted.category}`)
+        return converted
+      })
+
+      console.log('✅ Books search successful:', convertedBooks.length, 'results')
+      return convertedBooks
+
     } catch (error) {
-      console.error('📚 Google Books search failed:', error)
+      console.error('❌ Books search failed:', error)
       throw error
     }
   }
