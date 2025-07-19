@@ -1,4 +1,4 @@
-// src/services/libraryService.ts
+// src/services/libraryService.ts - VERSION COMPLÈTE CORRIGÉE
 import { supabase } from '@/lib/supabase'
 import type { LibraryItem, MediaStatus } from '@/types'
 
@@ -37,12 +37,36 @@ export class LibraryService {
             author: item.author,
             artist: item.artist,
             director: item.director,
+            developer: item.developer, // ✅ AJOUTÉ
             genre: item.genre,
             userRating: item.user_rating,
             progress: item.progress,
             notes: item.notes,
             dateStarted: item.date_started,
-            dateCompleted: item.date_completed
+            dateCompleted: item.date_completed,
+            
+            // ✅ NOUVELLES PROPRIÉTÉS depuis Supabase
+            developers: item.developers ? JSON.parse(item.developers) : [],
+            publishers: item.publishers ? JSON.parse(item.publishers) : [],
+            genres: item.genres ? JSON.parse(item.genres) : [],
+            background_image: item.background_image,
+            released: item.released,
+            
+            // Films/séries
+            type: item.type,
+            isMovie: item.is_movie,
+            isSeries: item.is_series,
+            totalSeasons: item.total_seasons,
+            displayTitle: item.display_title,
+            overview: item.overview,
+            runtime: item.runtime,
+            actors: item.actors,
+            language: item.language,
+            country: item.country,
+            awards: item.awards,
+            
+            // Infos additionnelles
+            additionalInfo: item.additional_info ? JSON.parse(item.additional_info) : undefined
           }))
           
           // Synchroniser avec localStorage comme backup
@@ -65,7 +89,7 @@ export class LibraryService {
     }
   }
 
-  // Ajouter à la bibliothèque
+  // ✅ FONCTION ADDTOLIBRARY COMPLÈTEMENT RÉÉCRITE
   static async addToLibrary(item: any, status: MediaStatus): Promise<boolean> {
     try {
       // Vérifier si on est côté client
@@ -73,6 +97,7 @@ export class LibraryService {
         return false
       }
 
+      // ✅ CRÉER L'ITEM AVEC TOUTES LES DONNÉES API
       const newItem: LibraryItem = {
         id: item.id,
         title: item.title,
@@ -85,7 +110,28 @@ export class LibraryService {
         author: item.author,
         artist: item.artist,
         director: item.director,
-        genre: item.genre
+        developer: item.developer, // ✅ Préserver le developer
+        genre: item.genre,
+        
+        // ✅ PRÉSERVER LES DONNÉES COMPLÈTES DE L'API
+        developers: item.developers || [], // Array des développeurs RAWG
+        publishers: item.publishers || [], // Array des publishers RAWG
+        genres: item.genres || [],
+        background_image: item.background_image,
+        released: item.released,
+        
+        // Pour les films/séries
+        type: item.type,
+        isMovie: item.isMovie,
+        isSeries: item.isSeries,
+        totalSeasons: item.totalSeasons,
+        displayTitle: item.displayTitle,
+        overview: item.overview,
+        runtime: item.runtime,
+        actors: item.actors,
+        language: item.language,
+        country: item.country,
+        awards: item.awards
       }
 
       // Essayer Supabase d'abord
@@ -104,14 +150,35 @@ export class LibraryService {
             author: newItem.author,
             artist: newItem.artist,
             director: newItem.director,
-            genre: newItem.genre
+            developer: newItem.developer, // ✅ Ajouter developer
+            genre: newItem.genre,
+            
+            // ✅ NOUVELLES COLONNES Supabase (JSON pour arrays)
+            developers: JSON.stringify(newItem.developers),
+            publishers: JSON.stringify(newItem.publishers),
+            genres: JSON.stringify(newItem.genres),
+            background_image: newItem.background_image,
+            released: newItem.released,
+            
+            // Films/séries
+            type: newItem.type,
+            is_movie: newItem.isMovie,
+            is_series: newItem.isSeries,
+            total_seasons: newItem.totalSeasons,
+            display_title: newItem.displayTitle,
+            overview: newItem.overview,
+            runtime: newItem.runtime,
+            actors: newItem.actors,
+            language: newItem.language,
+            country: newItem.country,
+            awards: newItem.awards
           }, {
             onConflict: 'id'
           })
           .select()
 
         if (!error) {
-          console.log('➕ Added to Supabase:', newItem.title)
+          console.log('➕ Added to Supabase with complete data:', newItem.title)
           
           // Synchroniser localStorage
           const library = await this.getLibraryFromLocalStorage()
@@ -132,20 +199,20 @@ export class LibraryService {
         console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)
       }
 
-      // Fallback vers localStorage
+      // Fallback vers localStorage avec toutes les données
       const library = await this.getLibraryFromLocalStorage()
       const existingIndex = library.findIndex(libItem => libItem.id === newItem.id)
       
       if (existingIndex !== -1) {
         library[existingIndex] = { ...library[existingIndex], ...newItem }
-        console.log('📝 Updated item in localStorage:', newItem.title)
+        console.log('📝 Updated item in localStorage with complete data:', newItem.title)
       } else {
         library.unshift(newItem)
-        console.log('➕ Added new item to localStorage:', newItem.title)
+        console.log('➕ Added new item to localStorage with complete data:', newItem.title)
       }
 
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
-      console.log('💾 Library saved! Total items:', library.length)
+      console.log('💾 Library saved with complete API data! Total items:', library.length)
       return true
 
     } catch (error) {
@@ -173,6 +240,7 @@ export class LibraryService {
         if (updates.notes !== undefined) updateData.notes = updates.notes
         if (updates.dateStarted) updateData.date_started = updates.dateStarted
         if (updates.dateCompleted) updateData.date_completed = updates.dateCompleted
+        if (updates.additionalInfo) updateData.additional_info = JSON.stringify(updates.additionalInfo)
         
         // Auto-set dates based on status
         if (updates.status === 'currently-playing' && !updateData.date_started) {
@@ -372,12 +440,35 @@ export class LibraryService {
               author: item.author,
               artist: item.artist,
               director: item.director,
+              developer: item.developer, // ✅ AJOUTÉ
               genre: item.genre,
               user_rating: item.userRating,
               progress: item.progress,
               notes: item.notes,
               date_started: item.dateStarted,
-              date_completed: item.dateCompleted
+              date_completed: item.dateCompleted,
+              
+              // ✅ NOUVELLES DONNÉES
+              developers: JSON.stringify(item.developers || []),
+              publishers: JSON.stringify(item.publishers || []),
+              genres: JSON.stringify(item.genres || []),
+              background_image: item.background_image,
+              released: item.released,
+              
+              // Films/séries
+              type: item.type,
+              is_movie: item.isMovie,
+              is_series: item.isSeries,
+              total_seasons: item.totalSeasons,
+              display_title: item.displayTitle,
+              overview: item.overview,
+              runtime: item.runtime,
+              actors: item.actors,
+              language: item.language,
+              country: item.country,
+              awards: item.awards,
+              
+              additional_info: JSON.stringify(item.additionalInfo || {})
             }, {
               onConflict: 'id'
             })

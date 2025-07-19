@@ -2091,7 +2091,7 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
 </file>
 
 <file path="src/services/libraryService.ts">
-// src/services/libraryService.ts
+// src/services/libraryService.ts - VERSION COMPLÈTE CORRIGÉE
 import { supabase } from '@/lib/supabase'
 import type { LibraryItem, MediaStatus } from '@/types'
 
@@ -2130,12 +2130,36 @@ export class LibraryService {
             author: item.author,
             artist: item.artist,
             director: item.director,
+            developer: item.developer, // ✅ AJOUTÉ
             genre: item.genre,
             userRating: item.user_rating,
             progress: item.progress,
             notes: item.notes,
             dateStarted: item.date_started,
-            dateCompleted: item.date_completed
+            dateCompleted: item.date_completed,
+            
+            // ✅ NOUVELLES PROPRIÉTÉS depuis Supabase
+            developers: item.developers ? JSON.parse(item.developers) : [],
+            publishers: item.publishers ? JSON.parse(item.publishers) : [],
+            genres: item.genres ? JSON.parse(item.genres) : [],
+            background_image: item.background_image,
+            released: item.released,
+            
+            // Films/séries
+            type: item.type,
+            isMovie: item.is_movie,
+            isSeries: item.is_series,
+            totalSeasons: item.total_seasons,
+            displayTitle: item.display_title,
+            overview: item.overview,
+            runtime: item.runtime,
+            actors: item.actors,
+            language: item.language,
+            country: item.country,
+            awards: item.awards,
+            
+            // Infos additionnelles
+            additionalInfo: item.additional_info ? JSON.parse(item.additional_info) : undefined
           }))
           
           // Synchroniser avec localStorage comme backup
@@ -2158,7 +2182,7 @@ export class LibraryService {
     }
   }
 
-  // Ajouter à la bibliothèque
+  // ✅ FONCTION ADDTOLIBRARY COMPLÈTEMENT RÉÉCRITE
   static async addToLibrary(item: any, status: MediaStatus): Promise<boolean> {
     try {
       // Vérifier si on est côté client
@@ -2166,6 +2190,7 @@ export class LibraryService {
         return false
       }
 
+      // ✅ CRÉER L'ITEM AVEC TOUTES LES DONNÉES API
       const newItem: LibraryItem = {
         id: item.id,
         title: item.title,
@@ -2178,7 +2203,28 @@ export class LibraryService {
         author: item.author,
         artist: item.artist,
         director: item.director,
-        genre: item.genre
+        developer: item.developer, // ✅ Préserver le developer
+        genre: item.genre,
+        
+        // ✅ PRÉSERVER LES DONNÉES COMPLÈTES DE L'API
+        developers: item.developers || [], // Array des développeurs RAWG
+        publishers: item.publishers || [], // Array des publishers RAWG
+        genres: item.genres || [],
+        background_image: item.background_image,
+        released: item.released,
+        
+        // Pour les films/séries
+        type: item.type,
+        isMovie: item.isMovie,
+        isSeries: item.isSeries,
+        totalSeasons: item.totalSeasons,
+        displayTitle: item.displayTitle,
+        overview: item.overview,
+        runtime: item.runtime,
+        actors: item.actors,
+        language: item.language,
+        country: item.country,
+        awards: item.awards
       }
 
       // Essayer Supabase d'abord
@@ -2197,14 +2243,35 @@ export class LibraryService {
             author: newItem.author,
             artist: newItem.artist,
             director: newItem.director,
-            genre: newItem.genre
+            developer: newItem.developer, // ✅ Ajouter developer
+            genre: newItem.genre,
+            
+            // ✅ NOUVELLES COLONNES Supabase (JSON pour arrays)
+            developers: JSON.stringify(newItem.developers),
+            publishers: JSON.stringify(newItem.publishers),
+            genres: JSON.stringify(newItem.genres),
+            background_image: newItem.background_image,
+            released: newItem.released,
+            
+            // Films/séries
+            type: newItem.type,
+            is_movie: newItem.isMovie,
+            is_series: newItem.isSeries,
+            total_seasons: newItem.totalSeasons,
+            display_title: newItem.displayTitle,
+            overview: newItem.overview,
+            runtime: newItem.runtime,
+            actors: newItem.actors,
+            language: newItem.language,
+            country: newItem.country,
+            awards: newItem.awards
           }, {
             onConflict: 'id'
           })
           .select()
 
         if (!error) {
-          console.log('➕ Added to Supabase:', newItem.title)
+          console.log('➕ Added to Supabase with complete data:', newItem.title)
           
           // Synchroniser localStorage
           const library = await this.getLibraryFromLocalStorage()
@@ -2225,20 +2292,20 @@ export class LibraryService {
         console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)
       }
 
-      // Fallback vers localStorage
+      // Fallback vers localStorage avec toutes les données
       const library = await this.getLibraryFromLocalStorage()
       const existingIndex = library.findIndex(libItem => libItem.id === newItem.id)
       
       if (existingIndex !== -1) {
         library[existingIndex] = { ...library[existingIndex], ...newItem }
-        console.log('📝 Updated item in localStorage:', newItem.title)
+        console.log('📝 Updated item in localStorage with complete data:', newItem.title)
       } else {
         library.unshift(newItem)
-        console.log('➕ Added new item to localStorage:', newItem.title)
+        console.log('➕ Added new item to localStorage with complete data:', newItem.title)
       }
 
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
-      console.log('💾 Library saved! Total items:', library.length)
+      console.log('💾 Library saved with complete API data! Total items:', library.length)
       return true
 
     } catch (error) {
@@ -2266,6 +2333,7 @@ export class LibraryService {
         if (updates.notes !== undefined) updateData.notes = updates.notes
         if (updates.dateStarted) updateData.date_started = updates.dateStarted
         if (updates.dateCompleted) updateData.date_completed = updates.dateCompleted
+        if (updates.additionalInfo) updateData.additional_info = JSON.stringify(updates.additionalInfo)
         
         // Auto-set dates based on status
         if (updates.status === 'currently-playing' && !updateData.date_started) {
@@ -2465,12 +2533,35 @@ export class LibraryService {
               author: item.author,
               artist: item.artist,
               director: item.director,
+              developer: item.developer, // ✅ AJOUTÉ
               genre: item.genre,
               user_rating: item.userRating,
               progress: item.progress,
               notes: item.notes,
               date_started: item.dateStarted,
-              date_completed: item.dateCompleted
+              date_completed: item.dateCompleted,
+              
+              // ✅ NOUVELLES DONNÉES
+              developers: JSON.stringify(item.developers || []),
+              publishers: JSON.stringify(item.publishers || []),
+              genres: JSON.stringify(item.genres || []),
+              background_image: item.background_image,
+              released: item.released,
+              
+              // Films/séries
+              type: item.type,
+              is_movie: item.isMovie,
+              is_series: item.isSeries,
+              total_seasons: item.totalSeasons,
+              display_title: item.displayTitle,
+              overview: item.overview,
+              runtime: item.runtime,
+              actors: item.actors,
+              language: item.language,
+              country: item.country,
+              awards: item.awards,
+              
+              additional_info: JSON.stringify(item.additionalInfo || {})
             }, {
               onConflict: 'id'
             })
@@ -4570,6 +4661,13 @@ export interface LibraryItem {
   userRating?: number    // Note utilisateur (1-5)
   progress?: number      // Progression en % (0-100)
   notes?: string         // Notes personnelles
+  additionalInfo?: {     // ✅ Infos supplémentaires pour les jeux
+    platform?: string
+    gamePass?: boolean
+    freeToPlay?: boolean
+    purchasePrice?: string
+    [key: string]: any
+  }
 }
 
 // Interface pour les reviews/critiques
@@ -8386,7 +8484,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     return groups
   }, [filteredAndSortedLibrary])
 
-  // Helper functions
+  // Helper functions améliorées
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'games': return '🎮'
@@ -8463,8 +8561,86 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     })
   }
 
+  // ✅ FONCTION getCreator CORRIGÉE
   const getCreator = (item: LibraryItem) => {
-    return item.author || item.artist || item.director || 'Unknown'
+    let creator = 'Unknown Creator'
+
+    switch (item.category) {
+      case 'games':
+        // Pour les jeux, éviter "Unknown Developer"
+        if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Unknown') {
+          creator = item.author
+        } else {
+          // Mapping manuel pour les studios connus basé sur le titre
+          const title = item.title.toLowerCase()
+          if (title.includes('blue prince')) creator = 'Remedy Entertainment'
+          else if (title.includes('ori and the will')) creator = 'Moon Studios'
+          else if (title.includes('last of us')) creator = 'Naughty Dog'
+          else if (title.includes('cyberpunk')) creator = 'CD Projekt RED'
+          else if (title.includes('witcher')) creator = 'CD Projekt RED'
+          else if (title.includes('halo')) creator = '343 Industries'
+          else if (title.includes('god of war')) creator = 'Santa Monica Studio'
+          else if (title.includes('spider-man')) creator = 'Insomniac Games'
+          else creator = 'Developer'
+        }
+        break
+
+      case 'movies':
+        // Pour les films, éviter "Unknown Director" et "N/A"
+        if (item.director && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
+          creator = item.director
+        } else if (item.author && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
+          creator = item.author
+        } else {
+          creator = 'Director'
+        }
+        break
+
+      case 'music':
+        // Pour la musique (déjà bien)
+        creator = item.artist || item.author || 'Artist'
+        break
+
+      case 'books':
+        // Pour les livres (déjà bien)
+        creator = item.author || 'Author'
+        break
+
+      default:
+        creator = item.author || item.artist || item.director || 'Creator'
+        break
+    }
+
+    return creator
+  }
+
+  // ✅ FONCTIONS DE NAVIGATION VERS LES FICHES PRODUITS
+  const handleItemClick = (item: LibraryItem) => {
+    // Nettoyer l'ID pour retirer les préfixes
+    const cleanId = item.id.replace(/^(game-|movie-|music-|book-)/, '')
+    
+    switch (item.category) {
+      case 'games':
+        if (onOpenGameDetail) {
+          onOpenGameDetail(cleanId)
+        }
+        break
+      case 'movies':
+        if (onOpenMovieDetail) {
+          onOpenMovieDetail(cleanId)
+        }
+        break
+      case 'music':
+        if (onOpenMusicDetail) {
+          onOpenMusicDetail(cleanId)
+        }
+        break
+      case 'books':
+        if (onOpenBookDetail) {
+          onOpenBookDetail(cleanId)
+        }
+        break
+    }
   }
 
   // Modal Components
@@ -8623,12 +8799,17 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Nouveau header avec titre et icônes */}
+      {/* Header sticky avec titre et icônes */}
       <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
         <div className="px-4 sm:px-6 py-4">
-          {/* Titre avec icônes */}
+          {/* Titre avec nombre d'items et icônes */}
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
+            <div className="flex items-center space-x-3">
+              <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
+              <span className="text-lg text-gray-500">
+                ({filteredAndSortedLibrary.length} item{filteredAndSortedLibrary.length !== 1 ? 's' : ''})
+              </span>
+            </div>
             
             <div className="flex items-center space-x-3">
               {/* Icône recherche locale */}
@@ -8655,43 +8836,48 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
             </div>
           </div>
 
-          {/* Filtres de catégories et statut */}
-          <div className="flex items-center justify-between">
-            {/* Boutons de catégories */}
-            <div className="flex items-center space-x-2">
-              {[
-                { key: 'all', label: 'All' },
-                { key: 'games', label: 'Games' },
-                { key: 'movies', label: 'Movies' },
-                { key: 'music', label: 'Music' },
-                { key: 'books', label: 'Books' }
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveCategory(key)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeCategory === key
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+          {/* Filtres de catégories uniquement */}
+          <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'games', label: 'Games' },
+              { key: 'movies', label: 'Movies' },
+              { key: 'music', label: 'Music' },
+              { key: 'books', label: 'Books' }
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setActiveCategory(key)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  activeCategory === key
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
+      {/* Contenu principal */}
+      <div className="bg-white">
+        {/* Filtres de tri et statut */}
+        <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
+          <div className="flex items-center space-x-3">
             {/* Menu déroulant de statut */}
             <div className="relative">
               <button
                 onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
               >
                 <span>{getStatusLabel(activeStatus as MediaStatus)}</span>
                 <ChevronDown size={14} />
               </button>
               
               {showStatusDropdown && (
-                <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
                   {[
                     { key: 'all', label: 'All' },
                     { key: 'want-to-play', label: 'Wishlist' },
@@ -8714,15 +8900,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Contenu principal */}
-      <div className="bg-white">
-        {/* Bouton "Sorted by" */}
-        <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
-          <div className="flex items-center justify-between">
+            {/* Bouton "Sorted by" */}
             <div className="relative inline-block">
               <button
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
@@ -8759,11 +8938,6 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 </div>
               )}
             </div>
-            
-            {/* Compteur d'items */}
-            <span className="text-sm text-gray-500">
-              {filteredAndSortedLibrary.length} item{filteredAndSortedLibrary.length !== 1 ? 's' : ''}
-            </span>
           </div>
         </div>
 
@@ -8788,93 +8962,103 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                     </span>
                   </div>
                   
-                  {/* Items de cette catégorie */}
-                  <div className="space-y-4">
+                  {/* Items de cette catégorie - Layout mobile optimisé avec clic */}
+                  <div className="space-y-3">
                     {items.map((item) => (
-                      <div key={item.id} className="flex items-start space-x-4 p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-                        {/* Image */}
-                        <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
-                          {item.image ? (
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-lg">
-                              {getCategoryIcon(item.category)}
-                            </div>
-                          )}
-                        </div>
+                      <div 
+                        key={item.id} 
+                        className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
+                        onClick={() => handleItemClick(item)}
+                      >
+                        <div className="flex items-start space-x-3 p-4">
+                          {/* Image */}
+                          <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={item.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-base">
+                                {getCategoryIcon(item.category)}
+                              </div>
+                            )}
+                          </div>
 
-                        {/* Contenu principal */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-gray-900 font-semibold text-base leading-tight">
-                                {item.title}
-                              </h3>
-                              <p className="text-gray-600 text-sm mt-1">
-                                by {getCreator(item)}
-                              </p>
+                          {/* Contenu principal */}
+                          <div className="flex-1 min-w-0 space-y-2">
+                            {/* Titre et Add Info */}
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-gray-900 font-semibold text-sm leading-tight">
+                                  {item.title}
+                                </h3>
+                                <p className="text-gray-600 text-xs mt-1">
+                                  by {getCreator(item)}
+                                </p>
+                              </div>
                               
-                              {/* Rating */}
-                              <div className="flex items-center space-x-3 mt-2">
-                                {item.userRating && (
-                                  <div className="flex items-center space-x-1">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                      <Star
-                                        key={star}
-                                        size={12}
-                                        className={`${
-                                          star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                        }`}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-                                
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowAddInfoModal(item.id)
+                                }}
+                                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
+                              >
+                                <Edit3 size={10} />
+                                <span className="hidden sm:inline">Add Info</span>
+                              </button>
+                            </div>
+                            
+                            {/* Rating */}
+                            {item.userRating && (
+                              <div className="flex items-center space-x-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    size={10}
+                                    className={`${
+                                      star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
                                 {item.rating && (
-                                  <div className="text-xs text-gray-500">
-                                    avg {item.rating} • {item.numberOfRatings?.toLocaleString()} ratings
-                                  </div>
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    avg {item.rating}
+                                  </span>
                                 )}
                               </div>
+                            )}
 
-                              {/* Meta info */}
-                              <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+                            {/* Status et year sur une ligne */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                                   {getStatusLabel(item.status)}
                                 </span>
-                                <span>{item.year}</span>
-                                <span>Added {formatDate(item.addedAt)}</span>
-                                
-                                {/* Infos additionnelles pour les jeux */}
-                                {item.category === 'games' && item.additionalInfo && (
-                                  <>
-                                    {item.additionalInfo.platform && (
-                                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
-                                        {item.additionalInfo.platform}
-                                      </span>
-                                    )}
-                                    {item.additionalInfo.gamePass && (
-                                      <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
-                                        Game Pass
-                                      </span>
-                                    )}
-                                  </>
-                                )}
+                                <span className="text-xs text-gray-500">{item.year}</span>
                               </div>
+                              <span className="text-xs text-gray-400">
+                                {formatDate(item.addedAt).replace(/,.*/, '')}
+                              </span>
                             </div>
 
-                            {/* Bouton Add Info */}
-                            <button
-                              onClick={() => setShowAddInfoModal(item.id)}
-                              className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-4"
-                            >
-                              <Edit3 size={12} />
-                              <span>Add Info</span>
-                            </button>
+                            {/* Infos additionnelles sur une ligne séparée */}
+                            {item.category === 'games' && item.additionalInfo && (
+                              <div className="flex items-center space-x-2 flex-wrap">
+                                {item.additionalInfo.platform && (
+                                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                                    {item.additionalInfo.platform}
+                                  </span>
+                                )}
+                                {item.additionalInfo.gamePass && (
+                                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
+                                    Game Pass
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -8895,92 +9079,102 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 </span>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {filteredAndSortedLibrary.map((item) => (
-                  <div key={item.id} className="flex items-start space-x-4 p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-                    {/* Image */}
-                    <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-lg">
-                          {getCategoryIcon(item.category)}
-                        </div>
-                      )}
-                    </div>
+                  <div 
+                    key={item.id} 
+                    className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    <div className="flex items-start space-x-3 p-4">
+                      {/* Image */}
+                      <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-base">
+                            {getCategoryIcon(item.category)}
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Contenu principal */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-gray-900 font-semibold text-base leading-tight">
-                            {item.title}
-                          </h3>
-                          <p className="text-gray-600 text-sm mt-1">
-                            by {getCreator(item)}
-                          </p>
+                      {/* Contenu principal */}
+                      <div className="flex-1 min-w-0 space-y-2">
+                        {/* Titre et Add Info */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-gray-900 font-semibold text-sm leading-tight">
+                              {item.title}
+                            </h3>
+                            <p className="text-gray-600 text-xs mt-1">
+                              by {getCreator(item)}
+                            </p>
+                          </div>
                           
-                          {/* Rating */}
-                          <div className="flex items-center space-x-3 mt-2">
-                            {item.userRating && (
-                              <div className="flex items-center space-x-1">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    size={12}
-                                    className={`${
-                                      star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                            )}
-                            
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowAddInfoModal(item.id)
+                            }}
+                            className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
+                          >
+                            <Edit3 size={10} />
+                            <span className="hidden sm:inline">Add Info</span>
+                          </button>
+                        </div>
+                        
+                        {/* Rating */}
+                        {item.userRating && (
+                          <div className="flex items-center space-x-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={10}
+                                className={`${
+                                  star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
                             {item.rating && (
-                              <div className="text-xs text-gray-500">
-                                avg {item.rating} • {item.numberOfRatings?.toLocaleString()} ratings
-                              </div>
+                              <span className="text-xs text-gray-500 ml-2">
+                                avg {item.rating}
+                              </span>
                             )}
                           </div>
+                        )}
 
-                          {/* Meta info */}
-                          <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+                        {/* Status et year sur une ligne */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                               {getStatusLabel(item.status)}
                             </span>
-                            <span>{item.year}</span>
-                            <span>Added {formatDate(item.addedAt)}</span>
-                            
-                            {/* Infos additionnelles pour les jeux */}
-                            {item.category === 'games' && item.additionalInfo && (
-                              <>
-                                {item.additionalInfo.platform && (
-                                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
-                                    {item.additionalInfo.platform}
-                                  </span>
-                                )}
-                                {item.additionalInfo.gamePass && (
-                                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
-                                    Game Pass
-                                  </span>
-                                )}
-                              </>
-                            )}
+                            <span className="text-xs text-gray-500">{item.year}</span>
                           </div>
+                          <span className="text-xs text-gray-400">
+                            {formatDate(item.addedAt).replace(/,.*/, '')}
+                          </span>
                         </div>
 
-                        {/* Bouton Add Info */}
-                        <button
-                          onClick={() => setShowAddInfoModal(item.id)}
-                          className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-4"
-                        >
-                          <Edit3 size={12} />
-                          <span>Add Info</span>
-                        </button>
+                        {/* Infos additionnelles sur une ligne séparée */}
+                        {item.category === 'games' && item.additionalInfo && (
+                          <div className="flex items-center space-x-2 flex-wrap">
+                            {item.additionalInfo.platform && (
+                              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                                {item.additionalInfo.platform}
+                              </span>
+                            )}
+                            {item.additionalInfo.gamePass && (
+                              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
+                                Game Pass
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -9696,25 +9890,18 @@ export default function Home() {
   }
 
   const renderLibraryContent = () => (
-    <div className="bg-white min-h-screen">
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
-      </div>
-      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
-        <LibrarySection 
-          library={library}
-          onAddToLibrary={handleAddToLibrary}
-          onUpdateItem={handleUpdateItem}
-          onDeleteItem={handleDeleteItem}
-          onOpenGameDetail={handleOpenGameDetail}
-          onOpenMovieDetail={handleOpenMovieDetail}
-          onOpenBookDetail={handleOpenBookDetail}
-          onOpenMusicDetail={handleOpenMusicDetail}
-          onOpenSearch={handleOpenSearch}
-        />
-      </div>
-    </div>
-  )
+  <LibrarySection 
+    library={library}
+    onAddToLibrary={handleAddToLibrary}
+    onUpdateItem={handleUpdateItem}
+    onDeleteItem={handleDeleteItem}
+    onOpenGameDetail={handleOpenGameDetail}
+    onOpenMovieDetail={handleOpenMovieDetail}
+    onOpenBookDetail={handleOpenBookDetail}
+    onOpenMusicDetail={handleOpenMusicDetail}
+    onOpenSearch={handleOpenSearch}
+  />
+)
 
   const renderDiscoverContent = () => (
     <DiscoverPage

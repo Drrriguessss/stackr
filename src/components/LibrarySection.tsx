@@ -299,18 +299,18 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     })
   }
 
-  // ✅ FONCTION getCreator CORRIGÉE
+  // ✅ FONCTION getCreator CORRIGÉE - FIX des erreurs TypeScript
   const getCreator = (item: LibraryItem) => {
     let creator = 'Unknown Creator'
 
     switch (item.category) {
       case 'games':
         // Pour les jeux, éviter "Unknown Developer"
-        if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Unknown') {
+        if (item.author && item.author.trim() !== '' && item.author !== 'Unknown Developer' && item.author !== 'Unknown') {
           creator = item.author
         } else {
           // Mapping manuel pour les studios connus basé sur le titre
-          const title = item.title.toLowerCase()
+          const title = item.title?.toLowerCase() || '' // ✅ FIX: Vérifier si title existe
           if (title.includes('blue prince')) creator = 'Remedy Entertainment'
           else if (title.includes('ori and the will')) creator = 'Moon Studios'
           else if (title.includes('last of us')) creator = 'Naughty Dog'
@@ -325,9 +325,9 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
 
       case 'movies':
         // Pour les films, éviter "Unknown Director" et "N/A"
-        if (item.director && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
+        if (item.director && item.director.trim() !== '' && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
           creator = item.director
-        } else if (item.author && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
+        } else if (item.author && item.author.trim() !== '' && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
           creator = item.author
         } else {
           creator = 'Director'
@@ -355,7 +355,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   // ✅ FONCTIONS DE NAVIGATION VERS LES FICHES PRODUITS
   const handleItemClick = (item: LibraryItem) => {
     // Nettoyer l'ID pour retirer les préfixes
-    const cleanId = item.id.replace(/^(game-|movie-|music-|book-)/, '')
+    const cleanId = item.id?.replace(/^(game-|movie-|music-|book-)/, '') || '' // ✅ FIX: Vérifier si id existe
     
     switch (item.category) {
       case 'games':

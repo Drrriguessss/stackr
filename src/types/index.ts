@@ -150,6 +150,13 @@ export interface LibraryItem {
   userRating?: number    // Note utilisateur (1-5)
   progress?: number      // Progression en % (0-100)
   notes?: string         // Notes personnelles
+  additionalInfo?: {     // ✅ Infos supplémentaires pour les jeux
+    platform?: string
+    gamePass?: boolean
+    freeToPlay?: boolean
+    purchasePrice?: string
+    [key: string]: any
+  }
 }
 
 // Interface pour les reviews/critiques
