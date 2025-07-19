@@ -1,4 +1,4 @@
-// src/components/SearchModal.tsx - ENTIÈREMENT RÉÉCRIT
+// src/components/SearchModal.tsx - COMPLET AVEC INTERFACE MOBILE OPTIMISÉE
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
@@ -287,15 +287,14 @@ export default function SearchModal({
         )
       }
 
-      // 🎵 RECHERCHE MUSIQUE AVEC FORCE API
+      // 🎵 RECHERCHE MUSIQUE
       if (category === 'all' || category === 'music') {
-  const searchMusicWithCategory = async (): Promise<SearchResult[]> => {
-    console.log('🎵 [SearchModal] Starting music search for:', searchQuery, 'Category filter:', category)
-    
-    try {
-      // ✅ CORRECTION : searchAlbums n'accepte que 2 paramètres
-      const albums = await musicService.searchAlbums(searchQuery, 20) // ✅ CORRIGÉ
-      console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums')
+        const searchMusicWithCategory = async (): Promise<SearchResult[]> => {
+          console.log('🎵 [SearchModal] Starting music search for:', searchQuery, 'Category filter:', category)
+          
+          try {
+            const albums = await musicService.searchAlbums(searchQuery, 20)
+            console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums')
             
             if (!albums || albums.length === 0) {
               return []
@@ -346,12 +345,12 @@ export default function SearchModal({
       results.forEach(({ category: searchCategory, results: categoryResults }) => {
         console.log(`📊 [SearchModal] ${searchCategory.toUpperCase()} results:`, categoryResults.length)
         
-                              categoryResults.forEach((result, index) => {
-                        if (index < 3) { // Log seulement les 3 premiers pour éviter le spam
-                          const creator = getCreator(result)
-                          console.log(`  ${index + 1}. ${result.title} (${result.year}) by ${creator}`)
-                        }
-                      })
+        categoryResults.forEach((result, index) => {
+          if (index < 3) { // Log seulement les 3 premiers pour éviter le spam
+            const creator = getCreator(result)
+            console.log(`  ${index + 1}. ${result.title} (${result.year}) by ${creator}`)
+          }
+        })
         
         allResults.push(...categoryResults)
       })
@@ -385,10 +384,10 @@ export default function SearchModal({
       })
 
       console.log('🎯 [SearchModal] FINAL RESULTS:', allResults.length, 'total')
-              allResults.slice(0, 10).forEach((result, index) => {
-                const creator = getCreator(result)
-                console.log(`${index + 1}. ${result.title} (${result.year}) by ${creator} - ${result.category.toUpperCase()}`)
-              })
+      allResults.slice(0, 10).forEach((result, index) => {
+        const creator = getCreator(result)
+        console.log(`${index + 1}. ${result.title} (${result.year}) by ${creator} - ${result.category.toUpperCase()}`)
+      })
 
       // Cache des résultats
       const cacheKey = `${category}-${searchQuery.toLowerCase()}`
@@ -725,9 +724,9 @@ export default function SearchModal({
             </div>
           )}
 
-          {/* Liste des résultats */}
+          {/* Liste des résultats OPTIMISÉE MOBILE */}
           {!loading && !error && results.length > 0 && (
-            <div className="p-4 space-y-2">
+            <div className="p-4 space-y-3">
               {results.map((result, index) => {
                 const categoryInfo = getCategoryInfo(result.category)
                 const isSelected = index === selectedIndex
@@ -740,15 +739,15 @@ export default function SearchModal({
                 return (
                   <div
                     key={result.id}
-                    className={`flex items-center space-x-4 p-3 rounded-lg transition-all cursor-pointer border ${
+                    className={`flex items-start space-x-3 p-4 rounded-xl transition-all cursor-pointer border ${
                       isSelected 
                         ? 'bg-blue-50 border-blue-200' 
                         : 'hover:bg-gray-50 border-transparent'
                     }`}
                     onClick={() => handleSelectResult(result)}
                   >
-                    {/* Image */}
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                    {/* Image plus grande pour mobile */}
+                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200 shadow-sm">
                       {result.image ? (
                         <img
                           src={result.image}
@@ -760,127 +759,137 @@ export default function SearchModal({
                           }}
                         />
                       ) : null}
-                      <div className={`w-full h-full flex items-center justify-center text-lg ${result.image ? 'hidden' : ''}`}>
+                      <div className={`w-full h-full flex items-center justify-center text-xl ${result.image ? 'hidden' : ''}`}>
                         {categoryInfo.icon}
                       </div>
                     </div>
 
-                    {/* Contenu */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="text-gray-900 font-medium truncate flex-1">
+                    {/* Contenu avec titres complets */}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      {/* Titre complet sans truncate */}
+                      <div className="space-y-1">
+                        <h3 className="text-gray-900 font-semibold text-base leading-tight">
                           {result.title}
                           {result.isSeries && (
-                            <span className="ml-2 text-purple-600 text-xs"> • TV Series</span>
+                            <span className="ml-2 text-purple-600 text-sm"> • TV Series</span>
                           )}
                           {result.year >= 2024 && (
                             <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">NEW</span>
                           )}
                         </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${categoryInfo.color} flex-shrink-0`}>
-                          {result.category === 'movies' ? (result.isSeries ? 'TV' : 'Film') : result.category}
-                        </span>
+                        
+                        {/* Créateur complet sans truncate */}
+                        <p className="text-gray-600 text-sm font-medium leading-tight" title={creator}>
+                          {creator}
+                        </p>
                       </div>
                       
-                      {/* ✅ AFFICHAGE DU CRÉATEUR AMÉLIORÉ */}
-                      <p className="text-gray-600 text-sm truncate font-medium" title={creator}>
-                        {creator}
-                      </p>
-                      
-                      <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
-                        <span className={result.year >= 2024 ? 'font-semibold text-green-600' : result.year >= 2020 ? 'font-medium text-blue-600' : ''}>{result.year}</span>
-                        {result.genre && (
-                          <>
-                            <span>•</span>
-                            <span className="truncate">{result.genre}</span>
-                          </>
-                        )}
-                        {result.rating && result.rating > 0 && (
-                          <>
-                            <span>•</span>
-                            <div className="flex items-center">
-                              <Star size={12} className="text-yellow-500 mr-1" />
-                              <span>{result.rating}</span>
-                            </div>
-                          </>
-                        )}
-                        {result.isSeries && result.totalSeasons && (
-                          <>
-                            <span>•</span>
-                            <span>{result.totalSeasons} season{result.totalSeasons > 1 ? 's' : ''}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Boutons d'action avec feedback */}
-                    <div className="relative">
-                      {(isInLibrary || wasJustAdded) && !isAdding ? (
-                        <div className="flex items-center space-x-2 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium">
-                          <Check size={14} />
-                          <span>{getStatusDisplayLabel(libraryItem?.status || 'completed', result.category)}</span>
-                        </div>
-                      ) : isAdding ? (
-                        <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
-                          <Loader2 className="animate-spin" size={14} />
-                          <span>Adding...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowStatusPopup(result.id)
-                            }}
-                            className="bg-blue-600/90 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0 shadow-sm hover:shadow-md"
-                          >
-                            Add
-                          </button>
-
-                          {showStatusPopup === result.id && (
+                      {/* Meta informations sur une ligne */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 text-xs text-gray-500">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${categoryInfo.color} flex-shrink-0`}>
+                            {result.category === 'movies' ? (result.isSeries ? 'TV' : 'Film') : result.category}
+                          </span>
+                          
+                          <span className={result.year >= 2024 ? 'font-semibold text-green-600' : result.year >= 2020 ? 'font-medium text-blue-600' : ''}>
+                            {result.year}
+                          </span>
+                          
+                          {result.genre && (
                             <>
-                              <div 
-                                className="fixed inset-0 z-[99998]"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowStatusPopup(null)
-                                }}
-                              />
-                              
-                              <div 
-                                className={`absolute right-0 top-full mt-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-gray-200 py-2 min-w-44 z-[99999] overflow-hidden transition-all duration-300 ${
-                                  fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                                }`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {getStatusOptions(result.category).map((option) => (
-                                  <button
-                                    key={option.value}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleStatusSelect(result, option.value)
-                                    }}
-                                    className={`w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-50 border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between ${
-                                      selectedStatus === option.value 
-                                        ? 'bg-green-50 border-green-500 text-green-700' 
-                                        : 'text-gray-700 hover:text-gray-900'
-                                    }`}
-                                  >
-                                    <span className="font-medium transition-colors">
-                                      {option.label}
-                                    </span>
-                                    {selectedStatus === option.value ? (
-                                      <Check className="text-green-600" size={14} />
-                                    ) : (
-                                      <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-600" size={14} />
-                                    )}
-                                  </button>
-                                ))}
+                              <span>•</span>
+                              <span className="truncate max-w-20">{result.genre}</span>
+                            </>
+                          )}
+                          
+                          {result.rating && result.rating > 0 && (
+                            <>
+                              <span>•</span>
+                              <div className="flex items-center">
+                                <Star size={12} className="text-yellow-500 mr-1" />
+                                <span>{result.rating}</span>
                               </div>
                             </>
                           )}
-                        </>
-                      )}
+                          
+                          {result.isSeries && result.totalSeasons && (
+                            <>
+                              <span>•</span>
+                              <span>{result.totalSeasons} season{result.totalSeasons > 1 ? 's' : ''}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Boutons d'action repositionnés */}
+                      <div className="flex justify-end">
+                        {(isInLibrary || wasJustAdded) && !isAdding ? (
+                          <div className="flex items-center space-x-2 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium">
+                            <Check size={14} />
+                            <span>{getStatusDisplayLabel(libraryItem?.status || 'completed', result.category)}</span>
+                          </div>
+                        ) : isAdding ? (
+                          <div className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
+                            <Loader2 className="animate-spin" size={14} />
+                            <span>Adding...</span>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setShowStatusPopup(result.id)
+                              }}
+                              className="bg-blue-600/90 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0 shadow-sm hover:shadow-md"
+                            >
+                              Add
+                            </button>
+
+                            {showStatusPopup === result.id && (
+                              <>
+                                <div 
+                                  className="fixed inset-0 z-[99998]"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setShowStatusPopup(null)
+                                  }}
+                                />
+                                
+                                <div 
+                                  className={`absolute right-0 top-full mt-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-gray-200 py-2 min-w-44 z-[99999] overflow-hidden transition-all duration-300 ${
+                                    fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                                  }`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {getStatusOptions(result.category).map((option) => (
+                                    <button
+                                      key={option.value}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleStatusSelect(result, option.value)
+                                      }}
+                                      className={`w-full text-left px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-50 border-l-2 border-transparent hover:border-blue-500 flex items-center justify-between ${
+                                        selectedStatus === option.value 
+                                          ? 'bg-green-50 border-green-500 text-green-700' 
+                                          : 'text-gray-700 hover:text-gray-900'
+                                      }`}
+                                    >
+                                      <span className="font-medium transition-colors">
+                                        {option.label}
+                                      </span>
+                                      {selectedStatus === option.value ? (
+                                        <Check className="text-green-600" size={14} />
+                                      ) : (
+                                        <Check className="opacity-0 group-hover:opacity-100 transition-opacity text-green-600" size={14} />
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
