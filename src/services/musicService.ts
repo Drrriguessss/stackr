@@ -1,4 +1,4 @@
-// Service pour l'API iTunes/Apple Music - VERSION API COMPLÈTE CORRIGÉE
+// src/services/musicService.ts - VERSION CORRIGÉE POUR ARTISTES
 export interface iTunesAlbum {
   collectionId: number
   artistId: number
@@ -31,6 +31,161 @@ export interface iTunesSearchResponse {
 class MusicService {
   private readonly baseURL = 'https://itunes.apple.com'
   
+  /**
+   * ✅ FONCTION CORRIGÉE : Obtenir le vrai artiste
+   */
+  private getCorrectArtist(album: iTunesAlbum): string {
+    console.log('🎵 Getting artist for:', album.collectionName)
+    console.log('🎵 Raw artist:', album.artistName)
+
+    // 1. Artiste principal de l'API
+    if (album.artistName && album.artistName.trim() !== '' && album.artistName !== 'Unknown' && album.artistName !== 'Various Artists') {
+      console.log('🎵 ✅ Found artist from API:', album.artistName)
+      return album.artistName
+    }
+
+    // 2. Mapping manuel pour les artistes/albums populaires
+    const albumLower = (album.collectionName || '').toLowerCase()
+    const mappings: { [key: string]: string } = {
+      // Albums classiques
+      "abbey road": "The Beatles",
+      "sgt. pepper": "The Beatles", 
+      "revolver": "The Beatles",
+      "white album": "The Beatles",
+      "let it be": "The Beatles",
+      "help!": "The Beatles",
+      "rubber soul": "The Beatles",
+      
+      // Hip Hop / Rap
+      "good kid m.a.a.d city": "Kendrick Lamar",
+      "to pimp a butterfly": "Kendrick Lamar",
+      "damn": "Kendrick Lamar",
+      "mr. morale": "Kendrick Lamar",
+      "the chronic": "Dr. Dre",
+      "2001": "Dr. Dre",
+      "illmatic": "Nas",
+      "ready to die": "The Notorious B.I.G.",
+      "life after death": "The Notorious B.I.G.",
+      "the blueprint": "Jay-Z",
+      "reasonable doubt": "Jay-Z",
+      "the black album": "Jay-Z",
+      "graduation": "Kanye West",
+      "my beautiful dark twisted fantasy": "Kanye West",
+      "college dropout": "Kanye West",
+      "late registration": "Kanye West",
+      "astroworld": "Travis Scott",
+      "rodeo": "Travis Scott",
+      "scorpion": "Drake",
+      "take care": "Drake",
+      "nothing was the same": "Drake",
+      "views": "Drake",
+      
+      // Pop / Contemporary
+      "thriller": "Michael Jackson",
+      "bad": "Michael Jackson",
+      "off the wall": "Michael Jackson",
+      "21": "Adele",
+      "25": "Adele",
+      "30": "Adele",
+      "folklore": "Taylor Swift",
+      "evermore": "Taylor Swift",
+      "midnights": "Taylor Swift",
+      "lover": "Taylor Swift",
+      "reputation": "Taylor Swift",
+      "1989": "Taylor Swift",
+      "red": "Taylor Swift",
+      "speak now": "Taylor Swift",
+      "fearless": "Taylor Swift",
+      "taylor swift": "Taylor Swift",
+      "lemonade": "Beyoncé",
+      "renaissance": "Beyoncé",
+      "dangerously in love": "Beyoncé",
+      "i am... sasha fierce": "Beyoncé",
+      "after hours": "The Weeknd",
+      "dawn fm": "The Weeknd",
+      "beauty behind the madness": "The Weeknd",
+      "starboy": "The Weeknd",
+      "blinding lights": "The Weeknd",
+      "sour": "Olivia Rodrigo",
+      "positions": "Ariana Grande",
+      "thank u, next": "Ariana Grande",
+      "sweetener": "Ariana Grande",
+      
+      // Rock / Alternative
+      "nevermind": "Nirvana",
+      "in utero": "Nirvana",
+      "bleach": "Nirvana",
+      "ok computer": "Radiohead",
+      "kid a": "Radiohead",
+      "the bends": "Radiohead",
+      "in rainbows": "Radiohead",
+      "hail to the thief": "Radiohead",
+      "dark side of the moon": "Pink Floyd",
+      "the wall": "Pink Floyd",
+      "wish you were here": "Pink Floyd",
+      "animals": "Pink Floyd",
+      "meddle": "Pink Floyd",
+      "led zeppelin iv": "Led Zeppelin",
+      "houses of the holy": "Led Zeppelin",
+      "physical graffiti": "Led Zeppelin",
+      "bohemian rhapsody": "Queen",
+      "a night at the opera": "Queen",
+      "news of the world": "Queen",
+      "greatest hits": "Queen",
+      
+      // Electronic / Dance
+      "random access memories": "Daft Punk",
+      "discovery": "Daft Punk",
+      "homework": "Daft Punk",
+      "human after all": "Daft Punk",
+      "cross": "Justice",
+      "woman": "Justice",
+      "since i left you": "The Avalanches",
+      "wildflower": "The Avalanches",
+      
+      // R&B / Soul
+      "what's going on": "Marvin Gaye",
+      "let's get it on": "Marvin Gaye",
+      "i want you": "Marvin Gaye",
+      "songs in the key of life": "Stevie Wonder",
+      "innervisions": "Stevie Wonder",
+      "talking book": "Stevie Wonder",
+      "channel orange": "Frank Ocean",
+      "blonde": "Frank Ocean",
+      "blond": "Frank Ocean",
+      "nostalgia ultra": "Frank Ocean",
+      
+      // Jazz / Classical
+      "kind of blue": "Miles Davis",
+      "bitches brew": "Miles Davis",
+      "a love supreme": "John Coltrane",
+      "giant steps": "John Coltrane",
+      "blue train": "John Coltrane",
+      "time out": "Dave Brubeck",
+      "mingus ah um": "Charles Mingus",
+      
+      // Country / Folk
+      "at folsom prison": "Johnny Cash",
+      "american recordings": "Johnny Cash",
+      "the man comes around": "Johnny Cash",
+      "rumours": "Fleetwood Mac",
+      "tusk": "Fleetwood Mac",
+      "hotel california": "Eagles",
+      "their greatest hits": "Eagles"
+    }
+
+    // Chercher correspondances exactes puis partielles
+    for (const [keyword, artist] of Object.entries(mappings)) {
+      if (albumLower.includes(keyword) || albumLower === keyword) {
+        console.log('🎵 📋 Found artist via mapping:', artist, 'for keyword:', keyword)
+        return artist
+      }
+    }
+
+    console.log('🎵 ❌ No artist found, using fallback')
+    return "Artist" // ✅ Éviter "Unknown Artist"
+  }
+
   // 🔧 RECHERCHE API PURE AVEC GESTION CORS
   async searchAlbums(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
     const cleanQuery = query.trim()
@@ -171,28 +326,6 @@ class MusicService {
     })
   }
 
-  // 🔧 MÉTHODE ALTERNATIVE AVEC PROXY CORS
-  async searchAlbumsWithProxy(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
-    try {
-      // Option 1: Utiliser un proxy CORS si l'API iTunes est bloquée
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(
-        `${this.baseURL}/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=${limit}`
-      )}`
-      
-      console.log('🎵 Using CORS proxy:', proxyUrl)
-      
-      const response = await fetch(proxyUrl)
-      const data = await response.json()
-      const iTunesData = JSON.parse(data.contents)
-      
-      return iTunesData.results || []
-      
-    } catch (err) {
-      console.error('🎵 Proxy search failed:', err)
-      return []
-    }
-  }
-
   // Test de connectivité iTunes
   async testItunesConnectivity(): Promise<boolean> {
     try {
@@ -305,11 +438,19 @@ class MusicService {
       .trim()
   }
 
+  /**
+   * ✅ CONVERSION AU FORMAT APP AVEC ARTISTE CORRECT
+   */
   convertToAppFormat(album: iTunesAlbum): any {
+    const artist = this.getCorrectArtist(album) // ✅ UTILISE LA FONCTION CORRIGÉE
+    
+    console.log('🎵 Converting album:', album.collectionName, 'Artist:', artist)
+    
     return {
       id: `music-${album.collectionId}`,
       title: this.cleanAlbumName(album.collectionName || 'Unknown Album'),
-      artist: album.artistName || 'Unknown Artist',
+      artist: artist,  // ✅ UTILISÉ directement
+      author: artist,  // ✅ UTILISÉ pour compatibilité
       year: this.getReleasedYear(album),
       rating: 0,
       genre: album.primaryGenreName || 'Unknown',
@@ -369,10 +510,11 @@ export const formatDuration = (trackCount: number): string => {
   const averageTrackDuration = 3.5
   const totalMinutes = Math.round(trackCount * averageTrackDuration)
   
-  if (totalMinutes < 60) return `~${totalMinutes} min`
+  if (totalMinutes < 60) return `~${totalMinutes} min read`
   
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
+  const hours = Math.round(totalMinutes / 60)
+  if (hours < 24) return `~${hours}h read`
   
-  return `~${hours}h ${minutes}m`
+  const days = Math.round(hours / 24)
+  return `~${days} days read`
 }

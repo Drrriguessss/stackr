@@ -1126,7 +1126,7 @@ export const sampleContent = {
 </file>
 
 <file path="src/services/googleBooksService.ts">
-// Service pour l'API Google Books
+// src/services/googleBooksService.ts - VERSION CORRIGÉE POUR AUTEURS
 export interface GoogleBook {
   id: string
   volumeInfo: {
@@ -1186,7 +1186,96 @@ export interface GoogleBooksSearchResponse {
 class GoogleBooksService {
   private readonly baseURL = 'https://www.googleapis.com/books/v1/volumes'
   
-  // Rechercher des livres
+  /**
+   * ✅ FONCTION CORRIGÉE : Obtenir le vrai auteur
+   */
+  private getCorrectAuthor(book: GoogleBook): string {
+    console.log('📚 Getting author for:', book.volumeInfo.title)
+    console.log('📚 Raw authors:', book.volumeInfo.authors)
+
+    // 1. Auteur principal de l'API
+    if (book.volumeInfo.authors && book.volumeInfo.authors.length > 0) {
+      const mainAuthor = book.volumeInfo.authors[0]
+      if (mainAuthor && mainAuthor.trim() !== '' && mainAuthor !== 'Unknown') {
+        console.log('📚 ✅ Found author from API:', mainAuthor)
+        return mainAuthor
+      }
+    }
+
+    // 2. Mapping manuel pour les livres/auteurs populaires
+    const titleLower = book.volumeInfo.title.toLowerCase()
+    const mappings: { [key: string]: string } = {
+      // Fiction populaire
+      "harry potter and the philosopher's stone": "J.K. Rowling",
+      "harry potter and the sorcerer's stone": "J.K. Rowling",
+      "harry potter": "J.K. Rowling",
+      "the hobbit": "J.R.R. Tolkien",
+      "the lord of the rings": "J.R.R. Tolkien",
+      "a song of ice and fire": "George R.R. Martin",
+      "game of thrones": "George R.R. Martin",
+      "1984": "George Orwell",
+      "animal farm": "George Orwell",
+      "pride and prejudice": "Jane Austen",
+      "to kill a mockingbird": "Harper Lee",
+      "the great gatsby": "F. Scott Fitzgerald",
+      "the catcher in the rye": "J.D. Salinger",
+      "dune": "Frank Herbert",
+      
+      // Non-fiction / Business / Développement personnel
+      "atomic habits": "James Clear",
+      "the 7 habits of highly effective people": "Stephen R. Covey",
+      "thinking fast and slow": "Daniel Kahneman",
+      "sapiens": "Yuval Noah Harari",
+      "homo deus": "Yuval Noah Harari",
+      "21 lessons for the 21st century": "Yuval Noah Harari",
+      "the lean startup": "Eric Ries",
+      "zero to one": "Peter Thiel",
+      "good to great": "Jim Collins",
+      "the art of war": "Sun Tzu",
+      "the power of now": "Eckhart Tolle",
+      
+      // Science et technologie
+      "a brief history of time": "Stephen Hawking",
+      "the universe in a nutshell": "Stephen Hawking",
+      "the code book": "Simon Singh",
+      "freakonomics": "Steven D. Levitt",
+      "the tipping point": "Malcolm Gladwell",
+      "outliers": "Malcolm Gladwell",
+      "blink": "Malcolm Gladwell",
+      
+      // Romans récents populaires
+      "where the crawdads sing": "Delia Owens",
+      "the silent patient": "Alex Michaelides",
+      "it starts with us": "Colleen Hoover",
+      "it ends with us": "Colleen Hoover",
+      "the love hypothesis": "Ali Hazelwood",
+      "project hail mary": "Andy Weir",
+      "the martian": "Andy Weir",
+      "ready player one": "Ernest Cline",
+      "the midnight library": "Matt Haig",
+      
+      // Classiques de la littérature
+      "to the lighthouse": "Virginia Woolf",
+      "ulysses": "James Joyce",
+      "one hundred years of solitude": "Gabriel García Márquez",
+      "the brothers karamazov": "Fyodor Dostoevsky",
+      "crime and punishment": "Fyodor Dostoevsky",
+      "war and peace": "Leo Tolstoy",
+      "anna karenina": "Leo Tolstoy"
+    }
+
+    // Chercher correspondances exactes puis partielles
+    for (const [keyword, author] of Object.entries(mappings)) {
+      if (titleLower.includes(keyword) || titleLower === keyword) {
+        console.log('📚 📋 Found author via mapping:', author, 'for keyword:', keyword)
+        return author
+      }
+    }
+
+    console.log('📚 ❌ No author found, using fallback')
+    return "Author" // ✅ Éviter "Unknown Author"
+  }
+
   async searchBooks(query: string, maxResults: number = 20): Promise<GoogleBook[]> {
     try {
       const response = await fetch(
@@ -1205,7 +1294,6 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir les détails d'un livre
   async getBookDetails(bookId: string): Promise<GoogleBook | null> {
     try {
       const response = await fetch(
@@ -1224,7 +1312,6 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir des livres populaires par catégorie
   async getBooksByCategory(category: string, maxResults: number = 20): Promise<GoogleBook[]> {
     try {
       const response = await fetch(
@@ -1243,7 +1330,6 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir des bestsellers (simulation avec des livres populaires)
   async getBestsellerBooks(): Promise<GoogleBook[]> {
     try {
       const response = await fetch(
@@ -1262,17 +1348,14 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir des livres de fiction populaires
   async getFictionBooks(): Promise<GoogleBook[]> {
     return this.getBooksByCategory('fiction')
   }
 
-  // Obtenir des livres de non-fiction populaires
   async getNonFictionBooks(): Promise<GoogleBook[]> {
     return this.getBooksByCategory('biography')
   }
 
-  // Obtenir des nouveautés
   async getNewReleases(): Promise<GoogleBook[]> {
     try {
       const currentYear = new Date().getFullYear()
@@ -1292,12 +1375,10 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir la meilleure image disponible
   getBestImageURL(book: GoogleBook, preferredSize: 'small' | 'medium' | 'large' = 'medium'): string | null {
     const imageLinks = book.volumeInfo.imageLinks
     if (!imageLinks) return null
 
-    // Ordre de préférence pour chaque taille
     const sizePreferences = {
       small: ['thumbnail', 'smallThumbnail', 'small', 'medium'],
       medium: ['small', 'medium', 'thumbnail', 'large'],
@@ -1309,7 +1390,6 @@ class GoogleBooksService {
     for (const size of preferences) {
       const url = imageLinks[size as keyof typeof imageLinks]
       if (url) {
-        // Convertir en HTTPS et augmenter la qualité si possible
         return url.replace('http://', 'https://').replace('&edge=curl', '')
       }
     }
@@ -1317,12 +1397,10 @@ class GoogleBooksService {
     return null
   }
 
-  // Extraire l'ISBN d'un livre
   getISBN(book: GoogleBook): string | null {
     const identifiers = book.volumeInfo.industryIdentifiers
     if (!identifiers) return null
 
-    // Préférer ISBN_13, puis ISBN_10
     const isbn13 = identifiers.find(id => id.type === 'ISBN_13')
     if (isbn13) return isbn13.identifier
 
@@ -1332,21 +1410,18 @@ class GoogleBooksService {
     return null
   }
 
-  // Extraire l'année de publication
   getPublicationYear(book: GoogleBook): number {
     const publishedDate = book.volumeInfo.publishedDate
     if (!publishedDate) return new Date().getFullYear()
 
-    // publishedDate peut être "YYYY", "YYYY-MM", ou "YYYY-MM-DD"
     const year = parseInt(publishedDate.split('-')[0])
     return isNaN(year) ? new Date().getFullYear() : year
   }
 
-  // Nettoyer la description (enlever les balises HTML)
   cleanDescription(description: string): string {
     if (!description) return ''
     return description
-      .replace(/<[^>]*>/g, '') // Enlever les balises HTML
+      .replace(/<[^>]*>/g, '')
       .replace(/&quot;/g, '"')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
@@ -1354,32 +1429,36 @@ class GoogleBooksService {
       .trim()
   }
 
-  // Convertir un livre Google Books vers le format de l'app
+  /**
+   * ✅ CONVERSION AU FORMAT APP AVEC AUTEUR CORRECT
+   */
   convertToAppFormat(book: GoogleBook): any {
-    const volumeInfo = book.volumeInfo
+    const author = this.getCorrectAuthor(book) // ✅ UTILISE LA FONCTION CORRIGÉE
+    
+    console.log('📚 Converting book:', book.volumeInfo.title, 'Author:', author)
     
     return {
       id: `book-${book.id}`,
-      title: volumeInfo.title || 'Unknown Title',
-      author: volumeInfo.authors?.[0] || 'Unknown Author',
+      title: book.volumeInfo.title || 'Unknown Title',
+      author: author, // ✅ UTILISÉ directement
       year: this.getPublicationYear(book),
-      rating: volumeInfo.averageRating ? Number(volumeInfo.averageRating.toFixed(1)) : 0,
-      genre: volumeInfo.categories?.[0]?.split(' / ')[0] || 'Unknown',
+      rating: book.volumeInfo.averageRating ? Number(book.volumeInfo.averageRating.toFixed(1)) : 0,
+      genre: book.volumeInfo.categories?.[0]?.split(' / ')[0] || 'Unknown',
       category: 'books' as const,
       image: this.getBestImageURL(book, 'medium'),
       
       // Données spécifiques aux livres
-      subtitle: volumeInfo.subtitle,
-      description: this.cleanDescription(volumeInfo.description || ''),
-      publisher: volumeInfo.publisher,
-      publishedDate: volumeInfo.publishedDate,
-      pageCount: volumeInfo.pageCount,
+      subtitle: book.volumeInfo.subtitle,
+      description: this.cleanDescription(book.volumeInfo.description || ''),
+      publisher: book.volumeInfo.publisher,
+      publishedDate: book.volumeInfo.publishedDate,
+      pageCount: book.volumeInfo.pageCount,
       isbn: this.getISBN(book),
-      language: volumeInfo.language,
-      ratingsCount: volumeInfo.ratingsCount,
-      previewLink: volumeInfo.previewLink,
-      infoLink: volumeInfo.infoLink,
-      canonicalVolumeLink: volumeInfo.canonicalVolumeLink,
+      language: book.volumeInfo.language,
+      ratingsCount: book.volumeInfo.ratingsCount,
+      previewLink: book.volumeInfo.previewLink,
+      infoLink: book.volumeInfo.infoLink,
+      canonicalVolumeLink: book.volumeInfo.canonicalVolumeLink,
       
       // Informations de vente
       isEbook: book.saleInfo?.isEbook || false,
@@ -1394,7 +1473,6 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir des livres recommandés basés sur un auteur
   async getBooksByAuthor(author: string, maxResults: number = 10): Promise<GoogleBook[]> {
     try {
       const response = await fetch(
@@ -1413,13 +1491,11 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir des livres similaires basés sur la catégorie
   async getSimilarBooks(book: GoogleBook, maxResults: number = 6): Promise<GoogleBook[]> {
     try {
       const category = book.volumeInfo.categories?.[0] || 'fiction'
       const books = await this.getBooksByCategory(category, maxResults + 5)
       
-      // Filtrer le livre actuel et retourner les autres
       return books
         .filter(b => b.id !== book.id)
         .slice(0, maxResults)
@@ -1430,10 +1506,8 @@ class GoogleBooksService {
   }
 }
 
-// Instance singleton
 export const googleBooksService = new GoogleBooksService()
 
-// Fonctions utilitaires
 export const formatPageCount = (pageCount: number): string => {
   if (!pageCount) return 'Unknown'
   return `${pageCount} pages`
@@ -1451,7 +1525,6 @@ export const formatPublisher = (publisher: string, publishedDate: string): strin
 export const getReadingTime = (pageCount: number): string => {
   if (!pageCount) return 'Unknown'
   
-  // Estimation : 250 mots par page, 200 mots par minute
   const wordsPerPage = 250
   const wordsPerMinute = 200
   const totalWords = pageCount * wordsPerPage
@@ -2088,505 +2161,6 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
     </>
   )
 }
-</file>
-
-<file path="src/services/libraryService.ts">
-// src/services/libraryService.ts - VERSION COMPLÈTE CORRIGÉE
-import { supabase } from '@/lib/supabase'
-import type { LibraryItem, MediaStatus } from '@/types'
-
-export class LibraryService {
-  // Clé pour localStorage (fallback)
-  private static STORAGE_KEY = 'stackr_library'
-
-  // Récupérer la bibliothèque (Supabase + fallback localStorage)
-  static async getLibrary(): Promise<LibraryItem[]> {
-    try {
-      // Vérifier si on est côté client
-      if (typeof window === 'undefined') {
-        return []
-      }
-
-      // Essayer Supabase d'abord
-      try {
-        const { data, error } = await supabase
-          .from('library_items')
-          .select('*')
-          .order('added_at', { ascending: false })
-
-        if (!error && data) {
-          console.log('📚 Library loaded from Supabase:', data.length, 'items')
-          
-          // Convertir les données Supabase au format LibraryItem
-          const convertedItems: LibraryItem[] = data.map(item => ({
-            id: item.id,
-            title: item.title,
-            category: item.category,
-            status: item.status,
-            addedAt: item.added_at,
-            year: item.year,
-            rating: item.rating,
-            image: item.image,
-            author: item.author,
-            artist: item.artist,
-            director: item.director,
-            developer: item.developer, // ✅ AJOUTÉ
-            genre: item.genre,
-            userRating: item.user_rating,
-            progress: item.progress,
-            notes: item.notes,
-            dateStarted: item.date_started,
-            dateCompleted: item.date_completed,
-            
-            // ✅ NOUVELLES PROPRIÉTÉS depuis Supabase
-            developers: item.developers ? JSON.parse(item.developers) : [],
-            publishers: item.publishers ? JSON.parse(item.publishers) : [],
-            genres: item.genres ? JSON.parse(item.genres) : [],
-            background_image: item.background_image,
-            released: item.released,
-            
-            // Films/séries
-            type: item.type,
-            isMovie: item.is_movie,
-            isSeries: item.is_series,
-            totalSeasons: item.total_seasons,
-            displayTitle: item.display_title,
-            overview: item.overview,
-            runtime: item.runtime,
-            actors: item.actors,
-            language: item.language,
-            country: item.country,
-            awards: item.awards,
-            
-            // Infos additionnelles
-            additionalInfo: item.additional_info ? JSON.parse(item.additional_info) : undefined
-          }))
-          
-          // Synchroniser avec localStorage comme backup
-          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(convertedItems))
-          return convertedItems
-        }
-      } catch (supabaseError) {
-        console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)
-      }
-
-      // Fallback vers localStorage
-      const stored = localStorage.getItem(this.STORAGE_KEY)
-      const items = stored ? JSON.parse(stored) : []
-      console.log('📚 Library loaded from localStorage:', items.length, 'items')
-      return items
-
-    } catch (error) {
-      console.error('❌ Error loading library:', error)
-      return []
-    }
-  }
-
-  // ✅ FONCTION ADDTOLIBRARY COMPLÈTEMENT RÉÉCRITE
-  static async addToLibrary(item: any, status: MediaStatus): Promise<boolean> {
-    try {
-      // Vérifier si on est côté client
-      if (typeof window === 'undefined') {
-        return false
-      }
-
-      // ✅ CRÉER L'ITEM AVEC TOUTES LES DONNÉES API
-      const newItem: LibraryItem = {
-        id: item.id,
-        title: item.title,
-        category: item.category,
-        status,
-        addedAt: new Date().toISOString(),
-        year: item.year || new Date().getFullYear(),
-        rating: item.rating || 0,
-        image: item.image || item.background_image,
-        author: item.author,
-        artist: item.artist,
-        director: item.director,
-        developer: item.developer, // ✅ Préserver le developer
-        genre: item.genre,
-        
-        // ✅ PRÉSERVER LES DONNÉES COMPLÈTES DE L'API
-        developers: item.developers || [], // Array des développeurs RAWG
-        publishers: item.publishers || [], // Array des publishers RAWG
-        genres: item.genres || [],
-        background_image: item.background_image,
-        released: item.released,
-        
-        // Pour les films/séries
-        type: item.type,
-        isMovie: item.isMovie,
-        isSeries: item.isSeries,
-        totalSeasons: item.totalSeasons,
-        displayTitle: item.displayTitle,
-        overview: item.overview,
-        runtime: item.runtime,
-        actors: item.actors,
-        language: item.language,
-        country: item.country,
-        awards: item.awards
-      }
-
-      // Essayer Supabase d'abord
-      try {
-        const { data, error } = await supabase
-          .from('library_items')
-          .upsert({
-            id: newItem.id,
-            title: newItem.title,
-            category: newItem.category,
-            status: newItem.status,
-            added_at: newItem.addedAt,
-            year: newItem.year,
-            rating: newItem.rating,
-            image: newItem.image,
-            author: newItem.author,
-            artist: newItem.artist,
-            director: newItem.director,
-            developer: newItem.developer, // ✅ Ajouter developer
-            genre: newItem.genre,
-            
-            // ✅ NOUVELLES COLONNES Supabase (JSON pour arrays)
-            developers: JSON.stringify(newItem.developers),
-            publishers: JSON.stringify(newItem.publishers),
-            genres: JSON.stringify(newItem.genres),
-            background_image: newItem.background_image,
-            released: newItem.released,
-            
-            // Films/séries
-            type: newItem.type,
-            is_movie: newItem.isMovie,
-            is_series: newItem.isSeries,
-            total_seasons: newItem.totalSeasons,
-            display_title: newItem.displayTitle,
-            overview: newItem.overview,
-            runtime: newItem.runtime,
-            actors: newItem.actors,
-            language: newItem.language,
-            country: newItem.country,
-            awards: newItem.awards
-          }, {
-            onConflict: 'id'
-          })
-          .select()
-
-        if (!error) {
-          console.log('➕ Added to Supabase with complete data:', newItem.title)
-          
-          // Synchroniser localStorage
-          const library = await this.getLibraryFromLocalStorage()
-          const existingIndex = library.findIndex(libItem => libItem.id === newItem.id)
-          
-          if (existingIndex !== -1) {
-            library[existingIndex] = newItem
-          } else {
-            library.unshift(newItem)
-          }
-          
-          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
-          return true
-        } else {
-          console.error('Supabase error:', error)
-        }
-      } catch (supabaseError) {
-        console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)
-      }
-
-      // Fallback vers localStorage avec toutes les données
-      const library = await this.getLibraryFromLocalStorage()
-      const existingIndex = library.findIndex(libItem => libItem.id === newItem.id)
-      
-      if (existingIndex !== -1) {
-        library[existingIndex] = { ...library[existingIndex], ...newItem }
-        console.log('📝 Updated item in localStorage with complete data:', newItem.title)
-      } else {
-        library.unshift(newItem)
-        console.log('➕ Added new item to localStorage with complete data:', newItem.title)
-      }
-
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
-      console.log('💾 Library saved with complete API data! Total items:', library.length)
-      return true
-
-    } catch (error) {
-      console.error('❌ Error adding to library:', error)
-      return false
-    }
-  }
-
-  // Mettre à jour un item
-  static async updateLibraryItem(itemId: string, updates: Partial<LibraryItem>): Promise<boolean> {
-    try {
-      // Vérifier si on est côté client
-      if (typeof window === 'undefined') {
-        return false
-      }
-
-      // Essayer Supabase d'abord
-      try {
-        const updateData: any = {}
-        
-        // Mapper les champs LibraryItem vers les champs de la base
-        if (updates.status) updateData.status = updates.status
-        if (updates.userRating !== undefined) updateData.user_rating = updates.userRating
-        if (updates.progress !== undefined) updateData.progress = updates.progress
-        if (updates.notes !== undefined) updateData.notes = updates.notes
-        if (updates.dateStarted) updateData.date_started = updates.dateStarted
-        if (updates.dateCompleted) updateData.date_completed = updates.dateCompleted
-        if (updates.additionalInfo) updateData.additional_info = JSON.stringify(updates.additionalInfo)
-        
-        // Auto-set dates based on status
-        if (updates.status === 'currently-playing' && !updateData.date_started) {
-          updateData.date_started = new Date().toISOString()
-        }
-        if (updates.status === 'completed' && !updateData.date_completed) {
-          updateData.date_completed = new Date().toISOString()
-        }
-
-        const { error } = await supabase
-          .from('library_items')
-          .update(updateData)
-          .eq('id', itemId)
-
-        if (!error) {
-          console.log('📝 Updated item in Supabase:', itemId)
-        } else {
-          console.error('Supabase update error:', error)
-        }
-      } catch (supabaseError) {
-        console.log('⚠️ Supabase unavailable for update:', supabaseError)
-      }
-
-      // Mise à jour localStorage (toujours faire)
-      const library = await this.getLibraryFromLocalStorage()
-      const itemIndex = library.findIndex(item => item.id === itemId)
-      
-      if (itemIndex === -1) {
-        console.warn('⚠️ Item not found for update:', itemId)
-        return false
-      }
-
-      // Appliquer les mises à jour
-      library[itemIndex] = { ...library[itemIndex], ...updates }
-      
-      // Auto-set dates based on status
-      if (updates.status === 'currently-playing' && !library[itemIndex].dateStarted) {
-        library[itemIndex].dateStarted = new Date().toISOString()
-      }
-      if (updates.status === 'completed' && !library[itemIndex].dateCompleted) {
-        library[itemIndex].dateCompleted = new Date().toISOString()
-      }
-
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
-      console.log('📝 Updated library item:', library[itemIndex].title)
-      return true
-
-    } catch (error) {
-      console.error('❌ Error updating library item:', error)
-      return false
-    }
-  }
-
-  // Supprimer un item
-  static async removeFromLibrary(itemId: string): Promise<boolean> {
-    try {
-      // Vérifier si on est côté client
-      if (typeof window === 'undefined') {
-        return false
-      }
-
-      // Essayer Supabase d'abord
-      try {
-        const { error } = await supabase
-          .from('library_items')
-          .delete()
-          .eq('id', itemId)
-
-        if (!error) {
-          console.log('🗑️ Removed from Supabase:', itemId)
-        } else {
-          console.error('Supabase delete error:', error)
-        }
-      } catch (supabaseError) {
-        console.log('⚠️ Supabase unavailable for deletion:', supabaseError)
-      }
-
-      // Suppression localStorage (toujours faire)
-      const library = await this.getLibraryFromLocalStorage()
-      const itemToRemove = library.find(item => item.id === itemId)
-      
-      if (!itemToRemove) {
-        console.warn('⚠️ Item not found for deletion:', itemId)
-        return false
-      }
-
-      const filteredLibrary = library.filter(item => item.id !== itemId)
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredLibrary))
-      console.log('🗑️ Removed from library:', itemToRemove.title)
-      return true
-
-    } catch (error) {
-      console.error('❌ Error removing from library:', error)
-      return false
-    }
-  }
-
-  // Méthode helper pour récupérer uniquement localStorage
-  private static async getLibraryFromLocalStorage(): Promise<LibraryItem[]> {
-    try {
-      if (typeof window === 'undefined') return []
-      const stored = localStorage.getItem(this.STORAGE_KEY)
-      return stored ? JSON.parse(stored) : []
-    } catch (error) {
-      console.error('Error reading localStorage:', error)
-      return []
-    }
-  }
-
-  // Statistiques de la bibliothèque
-  static async getLibraryStats() {
-    try {
-      const library = await this.getLibrary()
-      const stats = {
-        total: library.length,
-        byStatus: {} as Record<MediaStatus, number>,
-        byCategory: {} as Record<string, number>
-      }
-
-      library.forEach(item => {
-        // Stats par statut
-        stats.byStatus[item.status] = (stats.byStatus[item.status] || 0) + 1
-        // Stats par catégorie
-        stats.byCategory[item.category] = (stats.byCategory[item.category] || 0) + 1
-      })
-
-      console.log('📊 Library stats:', stats)
-      return stats
-    } catch (error) {
-      console.error('❌ Error getting library stats:', error)
-      return { total: 0, byStatus: {} as any, byCategory: {} }
-    }
-  }
-
-  // Test de connexion Supabase
-  static async testSupabaseConnection(): Promise<boolean> {
-    try {
-      const { data, error } = await supabase.from('library_items').select('count').limit(1)
-      
-      if (error && error.code === 'PGRST116') {
-        console.log('ℹ️ Supabase connected but tables not created yet - run the SQL setup!')
-        return false
-      }
-      if (error) {
-        console.error('❌ Supabase error:', error.message)
-        return false
-      }
-      
-      console.log('✅ Supabase fully operational!')
-      return true
-    } catch (error) {
-      console.log('ℹ️ Supabase connection failed, using localStorage fallback')
-      return false
-    }
-  }
-
-  // Migrer localStorage vers Supabase
-  static async migrateToSupabase(): Promise<boolean> {
-    try {
-      // Vérifier la connexion Supabase
-      const isConnected = await this.testSupabaseConnection()
-      if (!isConnected) {
-        console.log('ℹ️ Cannot migrate: Supabase not available')
-        return false
-      }
-
-      // Récupérer les données localStorage
-      const localData = localStorage.getItem(this.STORAGE_KEY)
-      if (!localData) {
-        console.log('ℹ️ No local data to migrate')
-        return true
-      }
-
-      const localLibrary: LibraryItem[] = JSON.parse(localData)
-      if (localLibrary.length === 0) {
-        console.log('ℹ️ No local library to migrate')
-        return true
-      }
-
-      console.log('🔄 Starting migration of', localLibrary.length, 'items...')
-
-      // Migrer chaque item
-      let migrated = 0
-      for (const item of localLibrary) {
-        try {
-          const { error } = await supabase
-            .from('library_items')
-            .upsert({
-              id: item.id,
-              title: item.title,
-              category: item.category,
-              status: item.status,
-              added_at: item.addedAt,
-              year: item.year,
-              rating: item.rating,
-              image: item.image,
-              author: item.author,
-              artist: item.artist,
-              director: item.director,
-              developer: item.developer, // ✅ AJOUTÉ
-              genre: item.genre,
-              user_rating: item.userRating,
-              progress: item.progress,
-              notes: item.notes,
-              date_started: item.dateStarted,
-              date_completed: item.dateCompleted,
-              
-              // ✅ NOUVELLES DONNÉES
-              developers: JSON.stringify(item.developers || []),
-              publishers: JSON.stringify(item.publishers || []),
-              genres: JSON.stringify(item.genres || []),
-              background_image: item.background_image,
-              released: item.released,
-              
-              // Films/séries
-              type: item.type,
-              is_movie: item.isMovie,
-              is_series: item.isSeries,
-              total_seasons: item.totalSeasons,
-              display_title: item.displayTitle,
-              overview: item.overview,
-              runtime: item.runtime,
-              actors: item.actors,
-              language: item.language,
-              country: item.country,
-              awards: item.awards,
-              
-              additional_info: JSON.stringify(item.additionalInfo || {})
-            }, {
-              onConflict: 'id'
-            })
-          
-          if (!error) {
-            migrated++
-          } else {
-            console.error('Error migrating item:', item.title, error)
-          }
-        } catch (itemError) {
-          console.error('Error migrating item:', item.title, itemError)
-        }
-      }
-
-      console.log(`✅ Migration completed! ${migrated}/${localLibrary.length} items migrated`)
-      return true
-    } catch (error) {
-      console.error('❌ Migration error:', error)
-      return false
-    }
-  }
-}
-
-// Export par défaut de la classe
-export default LibraryService
 </file>
 
 <file path="src/components/DiscoverPage.tsx">
@@ -3728,6 +3302,505 @@ export const testSupabaseConnection = async () => {
 }
 </file>
 
+<file path="src/services/libraryService.ts">
+// src/services/libraryService.ts - VERSION COMPLÈTE CORRIGÉE
+import { supabase } from '@/lib/supabase'
+import type { LibraryItem, MediaStatus } from '@/types'
+
+export class LibraryService {
+  // Clé pour localStorage (fallback)
+  private static STORAGE_KEY = 'stackr_library'
+
+  // Récupérer la bibliothèque (Supabase + fallback localStorage)
+  static async getLibrary(): Promise<LibraryItem[]> {
+    try {
+      // Vérifier si on est côté client
+      if (typeof window === 'undefined') {
+        return []
+      }
+
+      // Essayer Supabase d'abord
+      try {
+        const { data, error } = await supabase
+          .from('library_items')
+          .select('*')
+          .order('added_at', { ascending: false })
+
+        if (!error && data) {
+          console.log('📚 Library loaded from Supabase:', data.length, 'items')
+          
+          // Convertir les données Supabase au format LibraryItem
+          const convertedItems: LibraryItem[] = data.map(item => ({
+            id: item.id,
+            title: item.title,
+            category: item.category,
+            status: item.status,
+            addedAt: item.added_at,
+            year: item.year,
+            rating: item.rating,
+            image: item.image,
+            author: item.author,
+            artist: item.artist,
+            director: item.director,
+            developer: item.developer, // ✅ AJOUTÉ
+            genre: item.genre,
+            userRating: item.user_rating,
+            progress: item.progress,
+            notes: item.notes,
+            dateStarted: item.date_started,
+            dateCompleted: item.date_completed,
+            
+            // ✅ NOUVELLES PROPRIÉTÉS depuis Supabase
+            developers: item.developers ? JSON.parse(item.developers) : [],
+            publishers: item.publishers ? JSON.parse(item.publishers) : [],
+            genres: item.genres ? JSON.parse(item.genres) : [],
+            background_image: item.background_image,
+            released: item.released,
+            
+            // Films/séries
+            type: item.type,
+            isMovie: item.is_movie,
+            isSeries: item.is_series,
+            totalSeasons: item.total_seasons,
+            displayTitle: item.display_title,
+            overview: item.overview,
+            runtime: item.runtime,
+            actors: item.actors,
+            language: item.language,
+            country: item.country,
+            awards: item.awards,
+            
+            // Infos additionnelles
+            additionalInfo: item.additional_info ? JSON.parse(item.additional_info) : undefined
+          }))
+          
+          // Synchroniser avec localStorage comme backup
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(convertedItems))
+          return convertedItems
+        }
+      } catch (supabaseError) {
+        console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)
+      }
+
+      // Fallback vers localStorage
+      const stored = localStorage.getItem(this.STORAGE_KEY)
+      const items = stored ? JSON.parse(stored) : []
+      console.log('📚 Library loaded from localStorage:', items.length, 'items')
+      return items
+
+    } catch (error) {
+      console.error('❌ Error loading library:', error)
+      return []
+    }
+  }
+
+  // ✅ FONCTION ADDTOLIBRARY COMPLÈTEMENT RÉÉCRITE
+  static async addToLibrary(item: any, status: MediaStatus): Promise<boolean> {
+    try {
+      // Vérifier si on est côté client
+      if (typeof window === 'undefined') {
+        return false
+      }
+
+      // ✅ CRÉER L'ITEM AVEC TOUTES LES DONNÉES API
+      const newItem: LibraryItem = {
+        id: item.id,
+        title: item.title,
+        category: item.category,
+        status,
+        addedAt: new Date().toISOString(),
+        year: item.year || new Date().getFullYear(),
+        rating: item.rating || 0,
+        image: item.image || item.background_image,
+        author: item.author,
+        artist: item.artist,
+        director: item.director,
+        developer: item.developer, // ✅ Préserver le developer
+        genre: item.genre,
+        
+        // ✅ PRÉSERVER LES DONNÉES COMPLÈTES DE L'API
+        developers: item.developers || [], // Array des développeurs RAWG
+        publishers: item.publishers || [], // Array des publishers RAWG
+        genres: item.genres || [],
+        background_image: item.background_image,
+        released: item.released,
+        
+        // Pour les films/séries
+        type: item.type,
+        isMovie: item.isMovie,
+        isSeries: item.isSeries,
+        totalSeasons: item.totalSeasons,
+        displayTitle: item.displayTitle,
+        overview: item.overview,
+        runtime: item.runtime,
+        actors: item.actors,
+        language: item.language,
+        country: item.country,
+        awards: item.awards
+      }
+
+      // Essayer Supabase d'abord
+      try {
+        const { data, error } = await supabase
+          .from('library_items')
+          .upsert({
+            id: newItem.id,
+            title: newItem.title,
+            category: newItem.category,
+            status: newItem.status,
+            added_at: newItem.addedAt,
+            year: newItem.year,
+            rating: newItem.rating,
+            image: newItem.image,
+            author: newItem.author,
+            artist: newItem.artist,
+            director: newItem.director,
+            developer: newItem.developer, // ✅ Ajouter developer
+            genre: newItem.genre,
+            
+            // ✅ NOUVELLES COLONNES Supabase (JSON pour arrays)
+            developers: JSON.stringify(newItem.developers),
+            publishers: JSON.stringify(newItem.publishers),
+            genres: JSON.stringify(newItem.genres),
+            background_image: newItem.background_image,
+            released: newItem.released,
+            
+            // Films/séries
+            type: newItem.type,
+            is_movie: newItem.isMovie,
+            is_series: newItem.isSeries,
+            total_seasons: newItem.totalSeasons,
+            display_title: newItem.displayTitle,
+            overview: newItem.overview,
+            runtime: newItem.runtime,
+            actors: newItem.actors,
+            language: newItem.language,
+            country: newItem.country,
+            awards: newItem.awards
+          }, {
+            onConflict: 'id'
+          })
+          .select()
+
+        if (!error) {
+          console.log('➕ Added to Supabase with complete data:', newItem.title)
+          
+          // Synchroniser localStorage
+          const library = await this.getLibraryFromLocalStorage()
+          const existingIndex = library.findIndex(libItem => libItem.id === newItem.id)
+          
+          if (existingIndex !== -1) {
+            library[existingIndex] = newItem
+          } else {
+            library.unshift(newItem)
+          }
+          
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+          return true
+        } else {
+          console.error('Supabase error:', error)
+        }
+      } catch (supabaseError) {
+        console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)
+      }
+
+      // Fallback vers localStorage avec toutes les données
+      const library = await this.getLibraryFromLocalStorage()
+      const existingIndex = library.findIndex(libItem => libItem.id === newItem.id)
+      
+      if (existingIndex !== -1) {
+        library[existingIndex] = { ...library[existingIndex], ...newItem }
+        console.log('📝 Updated item in localStorage with complete data:', newItem.title)
+      } else {
+        library.unshift(newItem)
+        console.log('➕ Added new item to localStorage with complete data:', newItem.title)
+      }
+
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+      console.log('💾 Library saved with complete API data! Total items:', library.length)
+      return true
+
+    } catch (error) {
+      console.error('❌ Error adding to library:', error)
+      return false
+    }
+  }
+
+  // Mettre à jour un item
+  static async updateLibraryItem(itemId: string, updates: Partial<LibraryItem>): Promise<boolean> {
+    try {
+      // Vérifier si on est côté client
+      if (typeof window === 'undefined') {
+        return false
+      }
+
+      // Essayer Supabase d'abord
+      try {
+        const updateData: any = {}
+        
+        // Mapper les champs LibraryItem vers les champs de la base
+        if (updates.status) updateData.status = updates.status
+        if (updates.userRating !== undefined) updateData.user_rating = updates.userRating
+        if (updates.progress !== undefined) updateData.progress = updates.progress
+        if (updates.notes !== undefined) updateData.notes = updates.notes
+        if (updates.dateStarted) updateData.date_started = updates.dateStarted
+        if (updates.dateCompleted) updateData.date_completed = updates.dateCompleted
+        if (updates.additionalInfo) updateData.additional_info = JSON.stringify(updates.additionalInfo)
+        
+        // Auto-set dates based on status
+        if (updates.status === 'currently-playing' && !updateData.date_started) {
+          updateData.date_started = new Date().toISOString()
+        }
+        if (updates.status === 'completed' && !updateData.date_completed) {
+          updateData.date_completed = new Date().toISOString()
+        }
+
+        const { error } = await supabase
+          .from('library_items')
+          .update(updateData)
+          .eq('id', itemId)
+
+        if (!error) {
+          console.log('📝 Updated item in Supabase:', itemId)
+        } else {
+          console.error('Supabase update error:', error)
+        }
+      } catch (supabaseError) {
+        console.log('⚠️ Supabase unavailable for update:', supabaseError)
+      }
+
+      // Mise à jour localStorage (toujours faire)
+      const library = await this.getLibraryFromLocalStorage()
+      const itemIndex = library.findIndex(item => item.id === itemId)
+      
+      if (itemIndex === -1) {
+        console.warn('⚠️ Item not found for update:', itemId)
+        return false
+      }
+
+      // Appliquer les mises à jour
+      library[itemIndex] = { ...library[itemIndex], ...updates }
+      
+      // Auto-set dates based on status
+      if (updates.status === 'currently-playing' && !library[itemIndex].dateStarted) {
+        library[itemIndex].dateStarted = new Date().toISOString()
+      }
+      if (updates.status === 'completed' && !library[itemIndex].dateCompleted) {
+        library[itemIndex].dateCompleted = new Date().toISOString()
+      }
+
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+      console.log('📝 Updated library item:', library[itemIndex].title)
+      return true
+
+    } catch (error) {
+      console.error('❌ Error updating library item:', error)
+      return false
+    }
+  }
+
+  // Supprimer un item
+  static async removeFromLibrary(itemId: string): Promise<boolean> {
+    try {
+      // Vérifier si on est côté client
+      if (typeof window === 'undefined') {
+        return false
+      }
+
+      // Essayer Supabase d'abord
+      try {
+        const { error } = await supabase
+          .from('library_items')
+          .delete()
+          .eq('id', itemId)
+
+        if (!error) {
+          console.log('🗑️ Removed from Supabase:', itemId)
+        } else {
+          console.error('Supabase delete error:', error)
+        }
+      } catch (supabaseError) {
+        console.log('⚠️ Supabase unavailable for deletion:', supabaseError)
+      }
+
+      // Suppression localStorage (toujours faire)
+      const library = await this.getLibraryFromLocalStorage()
+      const itemToRemove = library.find(item => item.id === itemId)
+      
+      if (!itemToRemove) {
+        console.warn('⚠️ Item not found for deletion:', itemId)
+        return false
+      }
+
+      const filteredLibrary = library.filter(item => item.id !== itemId)
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredLibrary))
+      console.log('🗑️ Removed from library:', itemToRemove.title)
+      return true
+
+    } catch (error) {
+      console.error('❌ Error removing from library:', error)
+      return false
+    }
+  }
+
+  // Méthode helper pour récupérer uniquement localStorage
+  private static async getLibraryFromLocalStorage(): Promise<LibraryItem[]> {
+    try {
+      if (typeof window === 'undefined') return []
+      const stored = localStorage.getItem(this.STORAGE_KEY)
+      return stored ? JSON.parse(stored) : []
+    } catch (error) {
+      console.error('Error reading localStorage:', error)
+      return []
+    }
+  }
+
+  // Statistiques de la bibliothèque
+  static async getLibraryStats() {
+    try {
+      const library = await this.getLibrary()
+      const stats = {
+        total: library.length,
+        byStatus: {} as Record<MediaStatus, number>,
+        byCategory: {} as Record<string, number>
+      }
+
+      library.forEach(item => {
+        // Stats par statut
+        stats.byStatus[item.status] = (stats.byStatus[item.status] || 0) + 1
+        // Stats par catégorie
+        stats.byCategory[item.category] = (stats.byCategory[item.category] || 0) + 1
+      })
+
+      console.log('📊 Library stats:', stats)
+      return stats
+    } catch (error) {
+      console.error('❌ Error getting library stats:', error)
+      return { total: 0, byStatus: {} as any, byCategory: {} }
+    }
+  }
+
+  // Test de connexion Supabase
+  static async testSupabaseConnection(): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.from('library_items').select('count').limit(1)
+      
+      if (error && error.code === 'PGRST116') {
+        console.log('ℹ️ Supabase connected but tables not created yet - run the SQL setup!')
+        return false
+      }
+      if (error) {
+        console.error('❌ Supabase error:', error.message)
+        return false
+      }
+      
+      console.log('✅ Supabase fully operational!')
+      return true
+    } catch (error) {
+      console.log('ℹ️ Supabase connection failed, using localStorage fallback')
+      return false
+    }
+  }
+
+  // Migrer localStorage vers Supabase
+  static async migrateToSupabase(): Promise<boolean> {
+    try {
+      // Vérifier la connexion Supabase
+      const isConnected = await this.testSupabaseConnection()
+      if (!isConnected) {
+        console.log('ℹ️ Cannot migrate: Supabase not available')
+        return false
+      }
+
+      // Récupérer les données localStorage
+      const localData = localStorage.getItem(this.STORAGE_KEY)
+      if (!localData) {
+        console.log('ℹ️ No local data to migrate')
+        return true
+      }
+
+      const localLibrary: LibraryItem[] = JSON.parse(localData)
+      if (localLibrary.length === 0) {
+        console.log('ℹ️ No local library to migrate')
+        return true
+      }
+
+      console.log('🔄 Starting migration of', localLibrary.length, 'items...')
+
+      // Migrer chaque item
+      let migrated = 0
+      for (const item of localLibrary) {
+        try {
+          const { error } = await supabase
+            .from('library_items')
+            .upsert({
+              id: item.id,
+              title: item.title,
+              category: item.category,
+              status: item.status,
+              added_at: item.addedAt,
+              year: item.year,
+              rating: item.rating,
+              image: item.image,
+              author: item.author,
+              artist: item.artist,
+              director: item.director,
+              developer: item.developer, // ✅ AJOUTÉ
+              genre: item.genre,
+              user_rating: item.userRating,
+              progress: item.progress,
+              notes: item.notes,
+              date_started: item.dateStarted,
+              date_completed: item.dateCompleted,
+              
+              // ✅ NOUVELLES DONNÉES
+              developers: JSON.stringify(item.developers || []),
+              publishers: JSON.stringify(item.publishers || []),
+              genres: JSON.stringify(item.genres || []),
+              background_image: item.background_image,
+              released: item.released,
+              
+              // Films/séries
+              type: item.type,
+              is_movie: item.isMovie,
+              is_series: item.isSeries,
+              total_seasons: item.totalSeasons,
+              display_title: item.displayTitle,
+              overview: item.overview,
+              runtime: item.runtime,
+              actors: item.actors,
+              language: item.language,
+              country: item.country,
+              awards: item.awards,
+              
+              additional_info: JSON.stringify(item.additionalInfo || {})
+            }, {
+              onConflict: 'id'
+            })
+          
+          if (!error) {
+            migrated++
+          } else {
+            console.error('Error migrating item:', item.title, error)
+          }
+        } catch (itemError) {
+          console.error('Error migrating item:', item.title, itemError)
+        }
+      }
+
+      console.log(`✅ Migration completed! ${migrated}/${localLibrary.length} items migrated`)
+      return true
+    } catch (error) {
+      console.error('❌ Migration error:', error)
+      return false
+    }
+  }
+}
+
+// Export par défaut de la classe
+export default LibraryService
+</file>
+
 <file path="src/services/musicService.ts">
 // Service pour l'API iTunes/Apple Music - VERSION API COMPLÈTE CORRIGÉE
 export interface iTunesAlbum {
@@ -4110,7 +4183,7 @@ export const formatDuration = (trackCount: number): string => {
 </file>
 
 <file path="src/services/omdbService.ts">
-// src/services/omdbService.ts - VERSION FINALE SANS ERREURS
+// src/services/omdbService.ts - VERSION CORRIGÉE POUR DIRECTEURS
 export interface OMDBMovie {
   imdbID: string
   Title: string
@@ -4144,11 +4217,91 @@ class OMDBService {
   private readonly apiKey = '649f9a63'
   private readonly baseURL = 'https://www.omdbapi.com'
 
-  // ✅ FONCTION SIMPLE POUR DÉTECTER LES JEUX VIDÉO
+  /**
+   * ✅ FONCTION CORRIGÉE : Obtenir le vrai directeur
+   */
+  private getCorrectDirector(movie: OMDBMovie): string {
+    console.log('🎬 Getting director for:', movie.Title)
+    console.log('🎬 Raw director:', movie.Director)
+
+    // 1. Directeur de l'API
+    if (movie.Director && movie.Director !== 'N/A' && movie.Director.trim() !== '') {
+      console.log('🎬 ✅ Found director from API:', movie.Director)
+      return movie.Director
+    }
+
+    // 2. Mapping manuel pour les films/réalisateurs connus
+    const titleLower = movie.Title.toLowerCase()
+    const mappings: { [key: string]: string } = {
+      // Films Christopher Nolan
+      "inception": "Christopher Nolan",
+      "interstellar": "Christopher Nolan", 
+      "the dark knight": "Christopher Nolan",
+      "dunkirk": "Christopher Nolan",
+      "tenet": "Christopher Nolan",
+      "oppenheimer": "Christopher Nolan",
+      
+      // Films Quentin Tarantino
+      "pulp fiction": "Quentin Tarantino",
+      "kill bill": "Quentin Tarantino",
+      "django unchained": "Quentin Tarantino",
+      "once upon a time in hollywood": "Quentin Tarantino",
+      
+      // Films Marvel/MCU
+      "avengers: endgame": "Anthony Russo, Joe Russo",
+      "avengers: infinity war": "Anthony Russo, Joe Russo",
+      "spider-man: no way home": "Jon Watts",
+      "black panther": "Ryan Coogler",
+      "guardians of the galaxy": "James Gunn",
+      
+      // Films populaires récents
+      "dune": "Denis Villeneuve",
+      "blade runner 2049": "Denis Villeneuve",
+      "the batman": "Matt Reeves",
+      "top gun: maverick": "Joseph Kosinski",
+      "everything everywhere all at once": "Daniels",
+      "avatar: the way of water": "James Cameron",
+      
+      // Séries TV populaires
+      "breaking bad": "Vince Gilligan (Creator)",
+      "game of thrones": "David Benioff, D.B. Weiss (Creators)",
+      "stranger things": "The Duffer Brothers (Creators)",
+      "the office": "Greg Daniels (Creator)",
+      "friends": "David Crane, Marta Kauffman (Creators)",
+      "house of cards": "Beau Willimon (Creator)",
+      
+      // Films classiques
+      "the godfather": "Francis Ford Coppola",
+      "the shawshank redemption": "Frank Darabont",
+      "schindler's list": "Steven Spielberg",
+      "casablanca": "Michael Curtiz",
+      "citizen kane": "Orson Welles"
+    }
+
+    // Chercher correspondances exactes puis partielles
+    for (const [keyword, director] of Object.entries(mappings)) {
+      if (titleLower.includes(keyword) || titleLower === keyword) {
+        console.log('🎬 📋 Found director via mapping:', director, 'for keyword:', keyword)
+        return director
+      }
+    }
+
+    // 3. Pour les séries, essayer de deviner le type
+    if (movie.Type === 'series') {
+      console.log('🎬 ⚠️ Series without director info, using fallback')
+      return "TV Series Creator"
+    }
+
+    console.log('🎬 ❌ No director found, using fallback')
+    return "Director" // ✅ Éviter "Unknown Director"
+  }
+
+  /**
+   * ✅ FONCTION SIMPLE POUR DÉTECTER LES JEUX VIDÉO
+   */
   private isVideoGame(item: OMDBMovie): boolean {
     const title = (item.Title || '').toLowerCase()
     
-    // Liste simple des jeux à exclure
     const gameList = [
       'assassin\'s creed origins',
       'assassin\'s creed odyssey', 
@@ -4159,7 +4312,6 @@ class OMDBService {
       'assassin\'s creed syndicate'
     ]
     
-    // Vérification simple
     for (let i = 0; i < gameList.length; i++) {
       if (title.includes(gameList[i])) {
         return true
@@ -4169,7 +4321,9 @@ class OMDBService {
     return false
   }
 
-  // ✅ VALIDATION SIMPLE
+  /**
+   * ✅ VALIDATION SIMPLE
+   */
   private isValidMovieOrSeries(item: OMDBMovie): boolean {
     if (!item.Type) return false
     if (item.Type !== 'movie' && item.Type !== 'series') return false
@@ -4179,7 +4333,9 @@ class OMDBService {
     return true
   }
 
-  // ✅ RECHERCHE SIMPLIFIÉE
+  /**
+   * ✅ RECHERCHE SIMPLIFIÉE
+   */
   private async performSearch(query: string, page: number = 1): Promise<OMDBMovie[]> {
     try {
       const url = `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&page=${page}`
@@ -4190,7 +4346,6 @@ class OMDBService {
       const data: OMDBSearchResponse = await response.json()
       if (data.Response === 'False' || !data.Search) return []
       
-      // Filtrer les résultats
       const filtered: OMDBMovie[] = []
       for (let i = 0; i < data.Search.length; i++) {
         const item = data.Search[i]
@@ -4207,14 +4362,15 @@ class OMDBService {
     }
   }
 
-  // ✅ RECHERCHE PRINCIPALE
+  /**
+   * ✅ RECHERCHE PRINCIPALE
+   */
   async searchMoviesAndSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
     try {
       if (!query) return []
       
       const results = await this.performSearch(query, page)
       
-      // Tri simple par année
       results.sort((a, b) => {
         const yearA = parseInt(a.Year) || 0
         const yearB = parseInt(b.Year) || 0
@@ -4229,7 +4385,6 @@ class OMDBService {
     }
   }
 
-  // ✅ RECHERCHE FILMS UNIQUEMENT
   async searchMovies(query: string, page: number = 1): Promise<OMDBMovie[]> {
     try {
       const results = await this.searchMoviesAndSeries(query, page)
@@ -4247,7 +4402,6 @@ class OMDBService {
     }
   }
 
-  // ✅ RECHERCHE SÉRIES UNIQUEMENT
   async searchSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
     try {
       const results = await this.searchMoviesAndSeries(query, page)
@@ -4265,7 +4419,6 @@ class OMDBService {
     }
   }
 
-  // ✅ DÉTAILS D'UN FILM
   async getMovieDetails(imdbId: string): Promise<OMDBMovie | null> {
     try {
       if (!imdbId) return null
@@ -4282,7 +4435,6 @@ class OMDBService {
     }
   }
 
-  // ✅ FILMS POPULAIRES
   async getPopularMovies(): Promise<OMDBMovie[]> {
     const ids = [
       'tt0111161', 'tt0068646', 'tt0468569', 'tt0071562',
@@ -4303,7 +4455,6 @@ class OMDBService {
     return movies
   }
 
-  // ✅ SÉRIES POPULAIRES
   async getPopularSeries(): Promise<OMDBMovie[]> {
     const ids = [
       'tt0944947', 'tt0903747', 'tt2356777', 'tt1475582',
@@ -4324,7 +4475,6 @@ class OMDBService {
     return series
   }
 
-  // ✅ CONTENU POPULAIRE MIXTE
   async getPopularMoviesAndSeries(): Promise<OMDBMovie[]> {
     try {
       const movies = await this.getPopularMovies()
@@ -4340,12 +4490,10 @@ class OMDBService {
     }
   }
 
-  // ✅ TOP RATED
   async getTopRatedMovies(): Promise<OMDBMovie[]> {
     return this.getPopularMovies()
   }
 
-  // ✅ CONTENU RÉCENT
   async getRecentMovies(): Promise<OMDBMovie[]> {
     const ids = [
       'tt6751668', 'tt7286456', 'tt1950186', 'tt4154756',
@@ -4366,7 +4514,6 @@ class OMDBService {
     return items
   }
 
-  // ✅ RECHERCHE CONTENU RÉCENT
   async searchRecentContent(query: string): Promise<OMDBMovie[]> {
     const currentYear = new Date().getFullYear()
     const years = [currentYear, currentYear - 1, currentYear - 2]
@@ -4382,7 +4529,6 @@ class OMDBService {
       }
     }
     
-    // Supprimer les doublons
     const unique: OMDBMovie[] = []
     const seen: string[] = []
     
@@ -4397,17 +4543,21 @@ class OMDBService {
     return unique
   }
 
-  // ✅ CONVERSION AU FORMAT APP
+  /**
+   * ✅ CONVERSION AU FORMAT APP AVEC DIRECTEUR CORRECT
+   */
   convertToAppFormat(item: OMDBMovie): any {
     const isMovie = item.Type === 'movie'
     const isSeries = item.Type === 'series'
-    const director = (item.Director && item.Director !== 'N/A') ? item.Director : 'Unknown Director'
+    const director = this.getCorrectDirector(item) // ✅ UTILISE LA FONCTION CORRIGÉE
+    
+    console.log('🎬 Converting movie/series:', item.Title, 'Director:', director)
     
     return {
       id: `movie-${item.imdbID}`,
       title: item.Title || 'Unknown Title',
-      director: director,
-      author: director,
+      director: director,  // ✅ UTILISÉ directement
+      author: director,    // ✅ UTILISÉ pour compatibilité
       year: parseInt(item.Year) || new Date().getFullYear(),
       rating: item.imdbRating ? Number((parseFloat(item.imdbRating) / 2).toFixed(1)) : 0,
       genre: item.Genre ? item.Genre.split(',')[0].trim() : 'Unknown',
@@ -4428,7 +4578,9 @@ class OMDBService {
     }
   }
 
-  // ✅ MÉLANGER ARRAY - VERSION ULTRA SIMPLE
+  /**
+   * ✅ MÉLANGER ARRAY - VERSION ULTRA SIMPLE
+   */
   private shuffleArray<T>(array: T[]): T[] {
     if (!array || array.length === 0) return []
     
@@ -4445,10 +4597,8 @@ class OMDBService {
   }
 }
 
-// Export de l'instance
 export const omdbService = new OMDBService()
 
-// ✅ FONCTIONS UTILITAIRES SIMPLES
 export const formatRuntime = (runtime: string): string => {
   if (!runtime || runtime === 'N/A') return 'N/A'
   return runtime
@@ -4505,187 +4655,6 @@ export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsPro
       ))}
     </div>
   )
-}
-</file>
-
-<file path="src/types/index.ts">
-// src/types/index.ts - TYPES CORRIGÉS AVEC NOUVELLES PROPRIÉTÉS
-/**
- * Types TypeScript centralisés pour toute l'application
- * Assure la cohérence des types et évite la duplication
- */
-
-// Types de base pour les médias
-export type MediaCategory = 'games' | 'movies' | 'music' | 'books'
-export type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
-
-// Interface pour les items de contenu (recherche, sections, etc.)
-export interface ContentItem {
-  id: string
-  title: string
-  year: number
-  rating?: number
-  genre?: string
-  category: MediaCategory
-  image?: string
-  
-  // Créateurs selon le type de média
-  author?: string      // Pour les livres
-  artist?: string      // Pour la musique
-  director?: string    // Pour les films
-  developer?: string   // ✅ Pour les jeux
-  
-  // ✅ NOUVELLES PROPRIÉTÉS POUR LES JEUX
-  background_image?: string
-  developers?: Array<{ name: string }>
-  publishers?: Array<{ name: string }>  // ✅ AJOUTÉ
-  genres?: Array<{ name: string }>
-  platforms?: Array<{ platform: { name: string } }>
-  released?: string
-  
-  // Propriété alternative pour les noms
-  name?: string
-  
-  // PROPRIÉTÉS pour films/séries
-  type?: string        // 'movie' ou 'series'
-  isMovie?: boolean    // true si c'est un film
-  isSeries?: boolean   // true si c'est une série TV
-  totalSeasons?: number // Nombre de saisons pour les séries
-  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
-  overview?: string    // Synopsis/description
-  runtime?: string     // Durée
-  actors?: string      // Acteurs principaux
-  language?: string    // Langue
-  country?: string     // Pays
-  awards?: string      // Récompenses
-
-  // PROPRIÉTÉS pour Discover Page
-  subtitle?: string    // Sous-titre pour hero section
-  description?: string // Description détaillée
-  trending?: string    // Pourcentage de tendance ex: "+25%"
-  status?: 'new' | 'trending' | 'hot' | undefined // Badge status
-  callToAction?: string // Texte du bouton d'action
-  stats?: {
-    users?: string      // Nombre d'utilisateurs ex: "2.5M"
-    completion?: string // Pourcentage de completion ex: "85%"
-    trending?: string   // Tendance ex: "+15%"
-    engagement?: string // Engagement ex: "92%"
-  }
-
-  // ✅ PROPRIÉTÉS SUPPLÉMENTAIRES POUR LES JEUX
-  description_raw?: string
-  metacritic?: number
-  esrb_rating?: { name: string }
-  tags?: Array<{ name: string }>
-  rating_count?: number
-  parent_platforms?: Array<{ platform: { name: string } }>
-  website?: string
-  stores?: Array<{ store: { name: string }, url: string }>
-  screenshots?: Array<{ image: string }>
-
-  // ✅ PROPRIÉTÉS SUPPLÉMENTAIRES POUR LA MUSIQUE
-  trackCount?: number
-  copyright?: string
-  collectionPrice?: number
-  currency?: string
-  collectionViewUrl?: string
-  artistViewUrl?: string
-  collectionType?: string
-
-  // ✅ PROPRIÉTÉS SUPPLÉMENTAIRES POUR LES LIVRES
-  isbn?: string
-  pageCount?: number
-  publishedDate?: string
-  publisher?: string
-  previewLink?: string
-  infoLink?: string
-  canonicalVolumeLink?: string
-  isEbook?: boolean
-  buyLink?: string
-  price?: string
-  webReaderLink?: string
-  epubAvailable?: boolean
-  pdfAvailable?: boolean
-}
-
-// ✅ Interface pour les résultats de recherche (hérite de ContentItem)
-export interface SearchResult extends ContentItem {
-  // Hérite de toutes les propriétés de ContentItem
-  // Pas besoin d'ajouter d'autres propriétés spécifiques
-}
-
-// Interface pour les items dans la bibliothèque utilisateur
-export interface LibraryItem {
-  id: string
-  title: string
-  year: number
-  rating?: number
-  genre?: string
-  category: MediaCategory
-  image?: string
-  
-  // Créateurs selon le type de média
-  author?: string      // Pour les livres
-  artist?: string      // Pour la musique
-  director?: string    // Pour les films
-  developer?: string   // ✅ Pour les jeux
-  
-  // ✅ NOUVELLES PROPRIÉTÉS POUR LES JEUX
-  background_image?: string
-  developers?: Array<{ name: string }>
-  publishers?: Array<{ name: string }>  // ✅ AJOUTÉ
-  genres?: Array<{ name: string }>
-  released?: string
-  
-  // Propriété alternative pour les noms
-  name?: string
-  
-  // PROPRIÉTÉS pour films/séries
-  type?: string        // 'movie' ou 'series'
-  isMovie?: boolean    // true si c'est un film
-  isSeries?: boolean   // true si c'est une série TV
-  totalSeasons?: number // Nombre de saisons pour les séries
-  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
-  overview?: string    // Synopsis/description
-  runtime?: string     // Durée
-  actors?: string      // Acteurs principaux
-  language?: string    // Langue
-  country?: string     // Pays
-  awards?: string      // Récompenses
-
-  // Propriétés spécifiques à la bibliothèque
-  status: MediaStatus
-  addedAt: string
-  dateStarted?: string
-  dateCompleted?: string
-  userRating?: number    // Note utilisateur (1-5)
-  progress?: number      // Progression en % (0-100)
-  notes?: string         // Notes personnelles
-  additionalInfo?: {     // ✅ Infos supplémentaires pour les jeux
-    platform?: string
-    gamePass?: boolean
-    freeToPlay?: boolean
-    purchasePrice?: string
-    [key: string]: any
-  }
-}
-
-// Interface pour les reviews/critiques
-export interface Review {
-  id: string | number
-  username: string
-  rating: number
-  text?: string
-  review?: string  // Alias pour text
-  date: string
-  helpful?: number
-  platform?: string
-}
-
-// Options de statut pour les popups
-export interface StatusOption {
-  value: MediaStatus
-  label: string
 }
 </file>
 
@@ -6454,6 +6423,187 @@ export default function GameDetailModal({
       </div>
     </div>
   )
+}
+</file>
+
+<file path="src/types/index.ts">
+// src/types/index.ts - TYPES CORRIGÉS AVEC NOUVELLES PROPRIÉTÉS
+/**
+ * Types TypeScript centralisés pour toute l'application
+ * Assure la cohérence des types et évite la duplication
+ */
+
+// Types de base pour les médias
+export type MediaCategory = 'games' | 'movies' | 'music' | 'books'
+export type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
+
+// Interface pour les items de contenu (recherche, sections, etc.)
+export interface ContentItem {
+  id: string
+  title: string
+  year: number
+  rating?: number
+  genre?: string
+  category: MediaCategory
+  image?: string
+  
+  // Créateurs selon le type de média
+  author?: string      // Pour les livres
+  artist?: string      // Pour la musique
+  director?: string    // Pour les films
+  developer?: string   // ✅ Pour les jeux
+  
+  // ✅ NOUVELLES PROPRIÉTÉS POUR LES JEUX
+  background_image?: string
+  developers?: Array<{ name: string }>
+  publishers?: Array<{ name: string }>  // ✅ AJOUTÉ
+  genres?: Array<{ name: string }>
+  platforms?: Array<{ platform: { name: string } }>
+  released?: string
+  
+  // Propriété alternative pour les noms
+  name?: string
+  
+  // PROPRIÉTÉS pour films/séries
+  type?: string        // 'movie' ou 'series'
+  isMovie?: boolean    // true si c'est un film
+  isSeries?: boolean   // true si c'est une série TV
+  totalSeasons?: number // Nombre de saisons pour les séries
+  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
+  overview?: string    // Synopsis/description
+  runtime?: string     // Durée
+  actors?: string      // Acteurs principaux
+  language?: string    // Langue
+  country?: string     // Pays
+  awards?: string      // Récompenses
+
+  // PROPRIÉTÉS pour Discover Page
+  subtitle?: string    // Sous-titre pour hero section
+  description?: string // Description détaillée
+  trending?: string    // Pourcentage de tendance ex: "+25%"
+  status?: 'new' | 'trending' | 'hot' | undefined // Badge status
+  callToAction?: string // Texte du bouton d'action
+  stats?: {
+    users?: string      // Nombre d'utilisateurs ex: "2.5M"
+    completion?: string // Pourcentage de completion ex: "85%"
+    trending?: string   // Tendance ex: "+15%"
+    engagement?: string // Engagement ex: "92%"
+  }
+
+  // ✅ PROPRIÉTÉS SUPPLÉMENTAIRES POUR LES JEUX
+  description_raw?: string
+  metacritic?: number
+  esrb_rating?: { name: string }
+  tags?: Array<{ name: string }>
+  rating_count?: number
+  parent_platforms?: Array<{ platform: { name: string } }>
+  website?: string
+  stores?: Array<{ store: { name: string }, url: string }>
+  screenshots?: Array<{ image: string }>
+
+  // ✅ PROPRIÉTÉS SUPPLÉMENTAIRES POUR LA MUSIQUE
+  trackCount?: number
+  copyright?: string
+  collectionPrice?: number
+  currency?: string
+  collectionViewUrl?: string
+  artistViewUrl?: string
+  collectionType?: string
+
+  // ✅ PROPRIÉTÉS SUPPLÉMENTAIRES POUR LES LIVRES
+  isbn?: string
+  pageCount?: number
+  publishedDate?: string
+  publisher?: string
+  previewLink?: string
+  infoLink?: string
+  canonicalVolumeLink?: string
+  isEbook?: boolean
+  buyLink?: string
+  price?: string
+  webReaderLink?: string
+  epubAvailable?: boolean
+  pdfAvailable?: boolean
+}
+
+// ✅ Interface pour les résultats de recherche (hérite de ContentItem)
+export interface SearchResult extends ContentItem {
+  // Hérite de toutes les propriétés de ContentItem
+  // Pas besoin d'ajouter d'autres propriétés spécifiques
+}
+
+// Interface pour les items dans la bibliothèque utilisateur
+export interface LibraryItem {
+  id: string
+  title: string
+  year: number
+  rating?: number
+  genre?: string
+  category: MediaCategory
+  image?: string
+  
+  // Créateurs selon le type de média
+  author?: string      // Pour les livres
+  artist?: string      // Pour la musique
+  director?: string    // Pour les films
+  developer?: string   // ✅ Pour les jeux
+  
+  // ✅ NOUVELLES PROPRIÉTÉS POUR LES JEUX
+  background_image?: string
+  developers?: Array<{ name: string }>
+  publishers?: Array<{ name: string }>  // ✅ AJOUTÉ
+  genres?: Array<{ name: string }>
+  released?: string
+  
+  // Propriété alternative pour les noms
+  name?: string
+  
+  // PROPRIÉTÉS pour films/séries
+  type?: string        // 'movie' ou 'series'
+  isMovie?: boolean    // true si c'est un film
+  isSeries?: boolean   // true si c'est une série TV
+  totalSeasons?: number // Nombre de saisons pour les séries
+  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
+  overview?: string    // Synopsis/description
+  runtime?: string     // Durée
+  actors?: string      // Acteurs principaux
+  language?: string    // Langue
+  country?: string     // Pays
+  awards?: string      // Récompenses
+
+  // Propriétés spécifiques à la bibliothèque
+  status: MediaStatus
+  addedAt: string
+  dateStarted?: string
+  dateCompleted?: string
+  userRating?: number    // Note utilisateur (1-5)
+  progress?: number      // Progression en % (0-100)
+  notes?: string         // Notes personnelles
+  additionalInfo?: {     // ✅ Infos supplémentaires pour les jeux
+    platform?: string
+    gamePass?: boolean
+    freeToPlay?: boolean
+    purchasePrice?: string
+    [key: string]: any
+  }
+}
+
+// Interface pour les reviews/critiques
+export interface Review {
+  id: string | number
+  username: string
+  rating: number
+  text?: string
+  review?: string  // Alias pour text
+  date: string
+  helpful?: number
+  platform?: string
+}
+
+// Options de statut pour les popups
+export interface StatusOption {
+  value: MediaStatus
+  label: string
 }
 </file>
 
@@ -8259,956 +8409,6 @@ export default function ContentCard({
 }
 </file>
 
-<file path="src/components/LibrarySection.tsx">
-import React, { useState, useEffect } from 'react'
-import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus } from 'lucide-react'
-
-// Types
-type MediaCategory = 'games' | 'movies' | 'music' | 'books'
-type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
-type SortOption = 'date_added' | 'date_updated' | 'title' | 'creator' | 'average_rating' | 'number_of_ratings' | 'release_year'
-
-interface LibraryItem {
-  id: string
-  title: string
-  year: number
-  rating?: number
-  genre?: string
-  category: MediaCategory
-  image?: string
-  author?: string
-  artist?: string
-  director?: string
-  status: MediaStatus
-  addedAt: string
-  dateStarted?: string
-  dateCompleted?: string
-  userRating?: number
-  progress?: number
-  notes?: string
-  numberOfRatings?: number
-  dateUpdated?: string
-  additionalInfo?: {
-    platform?: string
-    gamePass?: boolean
-    freeToPlay?: boolean
-    purchasePrice?: string
-    [key: string]: any
-  }
-}
-
-// Props interface for LibrarySection
-interface LibrarySectionProps {
-  library?: LibraryItem[]
-  onAddToLibrary?: (item: any, status: MediaStatus) => void
-  onUpdateItem?: (id: string, updates: Partial<LibraryItem>) => void
-  onDeleteItem?: (id: string) => void
-  onOpenGameDetail?: (gameId: string) => void
-  onOpenMovieDetail?: (movieId: string) => void
-  onOpenBookDetail?: (bookId: string) => void
-  onOpenMusicDetail?: (musicId: string) => void
-  onOpenSearch?: () => void
-}
-
-// Sample data
-const sampleLibrary: LibraryItem[] = [
-  {
-    id: '1',
-    title: 'Big Data: A Revolution That Will Transform How We Live, Work, and Think',
-    author: 'Viktor Mayer-Schönberger',
-    year: 2013,
-    rating: 4.2,
-    userRating: 4,
-    genre: 'Technology',
-    category: 'books',
-    status: 'want-to-play',
-    addedAt: '2025-01-15T10:00:00Z',
-    dateUpdated: '2025-01-15T10:00:00Z',
-    numberOfRatings: 3656,
-    image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1374478376i/15815598.jpg'
-  },
-  {
-    id: '2', 
-    title: 'The Buddha and the Badass: The Secret Spiritual Art of Succeeding at Work',
-    author: 'Vishen Lakhiani',
-    year: 2020,
-    rating: 3.9,
-    userRating: 3,
-    genre: 'Business',
-    category: 'books',
-    status: 'want-to-play',
-    addedAt: '2025-01-14T15:30:00Z',
-    dateUpdated: '2025-01-14T15:30:00Z',
-    numberOfRatings: 1981,
-    image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1576509232i/48855821.jpg'
-  },
-  {
-    id: '3',
-    title: 'Ori and the Will of the Wisps',
-    author: 'Moon Studios',
-    year: 2020,
-    rating: 4.8,
-    userRating: 5,
-    genre: 'Platformer',
-    category: 'games',
-    status: 'completed',
-    addedAt: '2025-01-10T12:00:00Z',
-    dateUpdated: '2025-01-12T18:00:00Z',
-    dateCompleted: '2025-01-12T18:00:00Z',
-    numberOfRatings: 12500,
-    image: 'https://media.rawg.io/media/games/718/71891291067b8bb23ad6ed6806b83881.jpg',
-    additionalInfo: {
-      platform: 'Xbox Game Pass',
-      gamePass: true,
-      freeToPlay: false,
-      purchasePrice: 'Game Pass'
-    }
-  },
-  {
-    id: '4',
-    title: 'The Last of Us Part II',
-    author: 'Naughty Dog',
-    year: 2020,
-    rating: 4.6,
-    userRating: 4,
-    genre: 'Action-Adventure',
-    category: 'games',
-    status: 'completed',
-    addedAt: '2025-01-08T09:00:00Z',
-    dateUpdated: '2025-01-11T20:30:00Z',
-    dateCompleted: '2025-01-11T20:30:00Z',
-    numberOfRatings: 89000,
-    image: 'https://media.rawg.io/media/games/d82/d82990b9c67ba0d2d09d4e6fa88885a7.jpg',
-    additionalInfo: {
-      platform: 'PlayStation 5',
-      gamePass: false,
-      freeToPlay: false,
-      purchasePrice: '€69.99'
-    }
-  }
-]
-
-const LibrarySection: React.FC<LibrarySectionProps> = ({
-  library: propLibrary = [],
-  onAddToLibrary,
-  onUpdateItem,
-  onDeleteItem,
-  onOpenGameDetail,
-  onOpenMovieDetail,
-  onOpenBookDetail,
-  onOpenMusicDetail,
-  onOpenSearch
-}) => {
-  // Use prop library or fallback to sample data
-  const [library, setLibrary] = useState<LibraryItem[]>(propLibrary.length > 0 ? propLibrary : sampleLibrary)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState<string>('all')
-  const [activeStatus, setActiveStatus] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<SortOption>('date_added')
-  const [showSortDropdown, setShowSortDropdown] = useState(false)
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
-  const [showAddInfoModal, setShowAddInfoModal] = useState<string | null>(null)
-  const [showLocalSearchModal, setShowLocalSearchModal] = useState(false)
-
-  // Update library when prop changes
-  useEffect(() => {
-    if (propLibrary.length > 0) {
-      setLibrary(propLibrary)
-    }
-  }, [propLibrary])
-
-  // Filter and sort logic
-  const filteredAndSortedLibrary = React.useMemo(() => {
-    let filtered = library.filter(item => {
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const searchable = [
-          item.title,
-          item.author,
-          item.artist,
-          item.director,
-          item.genre
-        ].filter(Boolean).join(' ').toLowerCase()
-        
-        if (!searchable.includes(query)) return false
-      }
-      
-      // Category filter
-      if (activeCategory !== 'all' && item.category !== activeCategory) return false
-      
-      // Status filter
-      if (activeStatus !== 'all' && item.status !== activeStatus) return false
-      
-      return true
-    })
-    
-    // Sort
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'date_added':
-          return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
-        case 'date_updated':
-          return new Date(b.dateUpdated || b.addedAt).getTime() - new Date(a.dateUpdated || a.addedAt).getTime()
-        case 'title':
-          return a.title.localeCompare(b.title)
-        case 'creator':
-          const aCreator = a.author || a.artist || a.director || ''
-          const bCreator = b.author || b.artist || b.director || ''
-          return aCreator.localeCompare(bCreator)
-        case 'average_rating':
-          return (b.rating || 0) - (a.rating || 0)
-        case 'number_of_ratings':
-          return (b.numberOfRatings || 0) - (a.numberOfRatings || 0)
-        case 'release_year':
-          return (b.year || 0) - (a.year || 0)
-        default:
-          return 0
-      }
-    })
-    
-    return filtered
-  }, [library, searchQuery, activeCategory, activeStatus, sortBy])
-
-  // Grouper les items par catégorie
-  const groupedLibrary = React.useMemo(() => {
-    const groups: { [key: string]: LibraryItem[] } = {}
-    
-    filteredAndSortedLibrary.forEach(item => {
-      if (!groups[item.category]) {
-        groups[item.category] = []
-      }
-      groups[item.category].push(item)
-    })
-    
-    return groups
-  }, [filteredAndSortedLibrary])
-
-  // Helper functions améliorées
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'games': return '🎮'
-      case 'movies': return '🎬'
-      case 'music': return '🎵'
-      case 'books': return '📚'
-      default: return '📚'
-    }
-  }
-
-  const getCategoryDisplayName = (category: string) => {
-    switch (category) {
-      case 'games': return 'Games'
-      case 'movies': return 'Movies'
-      case 'music': return 'Music'
-      case 'books': return 'Books'
-      default: return category
-    }
-  }
-
-  const getStatusLabel = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'Wishlist'
-      case 'currently-playing': return 'In Progress'
-      case 'completed': return 'Completed'
-      case 'paused': return 'Paused'
-      case 'dropped': return 'Dropped'
-      default: return status
-    }
-  }
-
-  const getStatusColor = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'bg-orange-100 text-orange-700'
-      case 'currently-playing': return 'bg-green-100 text-green-700'
-      case 'completed': return 'bg-blue-100 text-blue-700'
-      case 'paused': return 'bg-yellow-100 text-yellow-700'
-      case 'dropped': return 'bg-red-100 text-red-700'
-      default: return 'bg-gray-100 text-gray-700'
-    }
-  }
-
-  const getSortLabel = (sort: SortOption) => {
-    switch (sort) {
-      case 'date_added': return 'Date Added'
-      case 'date_updated': return 'Date Updated'
-      case 'title': return 'Title'
-      case 'creator': return 'Creator'
-      case 'average_rating': return 'Average Rating'
-      case 'number_of_ratings': return 'Number of Ratings'
-      case 'release_year': return 'Release Year'
-      default: return 'Date Added'
-    }
-  }
-
-  const getSortIcon = (sort: SortOption) => {
-    switch (sort) {
-      case 'date_added': return <Calendar size={14} />
-      case 'date_updated': return <Clock size={14} />
-      case 'title': return <Hash size={14} />
-      case 'creator': return <User size={14} />
-      case 'average_rating': return <Star size={14} />
-      case 'number_of_ratings': return <TrendingUp size={14} />
-      case 'release_year': return <Calendar size={14} />
-      default: return <Calendar size={14} />
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
-  }
-
-  // ✅ FONCTION getCreator CORRIGÉE
-  const getCreator = (item: LibraryItem) => {
-    let creator = 'Unknown Creator'
-
-    switch (item.category) {
-      case 'games':
-        // Pour les jeux, éviter "Unknown Developer"
-        if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Unknown') {
-          creator = item.author
-        } else {
-          // Mapping manuel pour les studios connus basé sur le titre
-          const title = item.title.toLowerCase()
-          if (title.includes('blue prince')) creator = 'Remedy Entertainment'
-          else if (title.includes('ori and the will')) creator = 'Moon Studios'
-          else if (title.includes('last of us')) creator = 'Naughty Dog'
-          else if (title.includes('cyberpunk')) creator = 'CD Projekt RED'
-          else if (title.includes('witcher')) creator = 'CD Projekt RED'
-          else if (title.includes('halo')) creator = '343 Industries'
-          else if (title.includes('god of war')) creator = 'Santa Monica Studio'
-          else if (title.includes('spider-man')) creator = 'Insomniac Games'
-          else creator = 'Developer'
-        }
-        break
-
-      case 'movies':
-        // Pour les films, éviter "Unknown Director" et "N/A"
-        if (item.director && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
-          creator = item.director
-        } else if (item.author && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
-          creator = item.author
-        } else {
-          creator = 'Director'
-        }
-        break
-
-      case 'music':
-        // Pour la musique (déjà bien)
-        creator = item.artist || item.author || 'Artist'
-        break
-
-      case 'books':
-        // Pour les livres (déjà bien)
-        creator = item.author || 'Author'
-        break
-
-      default:
-        creator = item.author || item.artist || item.director || 'Creator'
-        break
-    }
-
-    return creator
-  }
-
-  // ✅ FONCTIONS DE NAVIGATION VERS LES FICHES PRODUITS
-  const handleItemClick = (item: LibraryItem) => {
-    // Nettoyer l'ID pour retirer les préfixes
-    const cleanId = item.id.replace(/^(game-|movie-|music-|book-)/, '')
-    
-    switch (item.category) {
-      case 'games':
-        if (onOpenGameDetail) {
-          onOpenGameDetail(cleanId)
-        }
-        break
-      case 'movies':
-        if (onOpenMovieDetail) {
-          onOpenMovieDetail(cleanId)
-        }
-        break
-      case 'music':
-        if (onOpenMusicDetail) {
-          onOpenMusicDetail(cleanId)
-        }
-        break
-      case 'books':
-        if (onOpenBookDetail) {
-          onOpenBookDetail(cleanId)
-        }
-        break
-    }
-  }
-
-  // Modal Components
-  const LocalSearchModal = () => {
-    if (!showLocalSearchModal) return null
-    
-    return (
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl w-full max-w-2xl border border-gray-200 shadow-lg">
-          <div className="p-4 border-b border-gray-100">
-            <div className="flex items-center space-x-3">
-              <Search className="text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search your library..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none text-lg"
-                autoFocus
-              />
-              <button
-                onClick={() => setShowLocalSearchModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          </div>
-          <div className="p-4">
-            <p className="text-gray-500 text-center py-8">
-              {searchQuery ? `Searching for "${searchQuery}" in your library...` : 'Type to search in your library'}
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const AddInfoModal = ({ item }: { item: LibraryItem }) => {
-    const [formData, setFormData] = useState(item.additionalInfo || {})
-
-    if (item.category !== 'games') {
-      return (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
-            <div className="p-4 border-b border-gray-100">
-              <h3 className="text-gray-900 font-medium">Additional Info - {item.title}</h3>
-            </div>
-            <div className="p-4">
-              <p className="text-gray-600">Feature coming soon for {item.category}!</p>
-            </div>
-            <div className="p-4 border-t border-gray-100">
-              <button
-                onClick={() => setShowAddInfoModal(null)}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    return (
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
-          <div className="p-4 border-b border-gray-100">
-            <h3 className="text-gray-900 font-medium">Game Info - {item.title}</h3>
-          </div>
-          
-          <div className="p-4 space-y-4">
-            <div>
-              <label className="block text-gray-700 text-sm mb-2 font-medium">Platform</label>
-              <select
-                value={formData.platform || ''}
-                onChange={(e) => setFormData({...formData, platform: e.target.value})}
-                className="w-full bg-white text-gray-900 rounded-lg px-3 py-2 border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-              >
-                <option value="">Select Platform</option>
-                <option value="PlayStation 5">PlayStation 5</option>
-                <option value="Xbox Series X/S">Xbox Series X/S</option>
-                <option value="Nintendo Switch">Nintendo Switch</option>
-                <option value="PC (Steam)">PC (Steam)</option>
-                <option value="PC (Epic Games)">PC (Epic Games)</option>
-                <option value="Xbox Game Pass">Xbox Game Pass</option>
-                <option value="PlayStation Plus">PlayStation Plus</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-gray-700 text-sm mb-2 font-medium">Purchase Details</label>
-              <div className="space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.gamePass || false}
-                    onChange={(e) => setFormData({...formData, gamePass: e.target.checked})}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Game Pass / Subscription</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.freeToPlay || false}
-                    onChange={(e) => setFormData({...formData, freeToPlay: e.target.checked})}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Free to Play</span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-gray-700 text-sm mb-2 font-medium">Purchase Price</label>
-              <input
-                type="text"
-                placeholder="e.g. €59.99, Free, Game Pass"
-                value={formData.purchasePrice || ''}
-                onChange={(e) => setFormData({...formData, purchasePrice: e.target.value})}
-                className="w-full bg-white text-gray-900 rounded-lg px-3 py-2 border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="p-4 border-t border-gray-100 flex space-x-2">
-            <button
-              onClick={() => setShowAddInfoModal(null)}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                if (onUpdateItem) {
-                  onUpdateItem(item.id, { additionalInfo: formData })
-                } else {
-                  setLibrary(prev => prev.map(libItem => 
-                    libItem.id === item.id 
-                      ? { ...libItem, additionalInfo: formData }
-                      : libItem
-                  ))
-                }
-                setShowAddInfoModal(null)
-              }}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="bg-white min-h-screen">
-      {/* Header sticky avec titre et icônes */}
-      <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
-        <div className="px-4 sm:px-6 py-4">
-          {/* Titre avec nombre d'items et icônes */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
-              <span className="text-lg text-gray-500">
-                ({filteredAndSortedLibrary.length} item{filteredAndSortedLibrary.length !== 1 ? 's' : ''})
-              </span>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              {/* Icône recherche locale */}
-              <button
-                onClick={() => setShowLocalSearchModal(true)}
-                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-                title="Search in your library"
-              >
-                <Search size={20} className="text-gray-600" />
-              </button>
-              
-              {/* Icône ajout global */}
-              <button
-                onClick={() => {
-                  if (onOpenSearch) {
-                    onOpenSearch()
-                  }
-                }}
-                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-                title="Add new items to your library"
-              >
-                <Plus size={20} className="text-gray-600" />
-              </button>
-            </div>
-          </div>
-
-          {/* Filtres de catégories uniquement */}
-          <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
-            {[
-              { key: 'all', label: 'All' },
-              { key: 'games', label: 'Games' },
-              { key: 'movies', label: 'Movies' },
-              { key: 'music', label: 'Music' },
-              { key: 'books', label: 'Books' }
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setActiveCategory(key)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                  activeCategory === key
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Contenu principal */}
-      <div className="bg-white">
-        {/* Filtres de tri et statut */}
-        <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
-          <div className="flex items-center space-x-3">
-            {/* Menu déroulant de statut */}
-            <div className="relative">
-              <button
-                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
-              >
-                <span>{getStatusLabel(activeStatus as MediaStatus)}</span>
-                <ChevronDown size={14} />
-              </button>
-              
-              {showStatusDropdown && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
-                  {[
-                    { key: 'all', label: 'All' },
-                    { key: 'want-to-play', label: 'Wishlist' },
-                    { key: 'currently-playing', label: 'In Progress' },
-                    { key: 'completed', label: 'Completed' },
-                    { key: 'paused', label: 'Paused' },
-                    { key: 'dropped', label: 'Dropped' }
-                  ].map(({ key, label }) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setActiveStatus(key)
-                        setShowStatusDropdown(false)
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Bouton "Sorted by" */}
-            <div className="relative inline-block">
-              <button
-                onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm font-medium"
-              >
-                {getSortIcon(sortBy)}
-                <span>Sorted by {getSortLabel(sortBy)}</span>
-                <ChevronDown size={14} />
-              </button>
-              
-              {showSortDropdown && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
-                  {[
-                    { key: 'date_added', label: 'Date Added', icon: <Calendar size={14} /> },
-                    { key: 'date_updated', label: 'Date Updated', icon: <Clock size={14} /> },
-                    { key: 'title', label: 'Title', icon: <Hash size={14} /> },
-                    { key: 'creator', label: 'Creator', icon: <User size={14} /> },
-                    { key: 'average_rating', label: 'Average Rating', icon: <Star size={14} /> },
-                    { key: 'number_of_ratings', label: 'Number of Ratings', icon: <TrendingUp size={14} /> },
-                    { key: 'release_year', label: 'Release Year', icon: <Calendar size={14} /> }
-                  ].map(({ key, label, icon }) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setSortBy(key as SortOption)
-                        setShowSortDropdown(false)
-                      }}
-                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
-                    >
-                      {icon}
-                      <span>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Liste des items groupés par catégorie */}
-        <div className="px-4 sm:px-6 py-4 pb-24">
-          {filteredAndSortedLibrary.length === 0 ? (
-            <div className="text-center py-8 text-gray-600">
-              <p>No items found.</p>
-            </div>
-          ) : activeCategory === 'all' ? (
-            // Vue "All" - groupée par catégories
-            <div className="space-y-8">
-              {Object.entries(groupedLibrary).map(([category, items]) => (
-                <div key={category}>
-                  {/* Titre de catégorie */}
-                  <div className="flex items-center space-x-2 mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      {getCategoryDisplayName(category)}
-                    </h2>
-                    <span className="text-gray-500 text-sm">
-                      ({items.length})
-                    </span>
-                  </div>
-                  
-                  {/* Items de cette catégorie - Layout mobile optimisé avec clic */}
-                  <div className="space-y-3">
-                    {items.map((item) => (
-                      <div 
-                        key={item.id} 
-                        className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
-                        onClick={() => handleItemClick(item)}
-                      >
-                        <div className="flex items-start space-x-3 p-4">
-                          {/* Image */}
-                          <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
-                            {item.image ? (
-                              <img
-                                src={item.image}
-                                alt={item.title}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-base">
-                                {getCategoryIcon(item.category)}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Contenu principal */}
-                          <div className="flex-1 min-w-0 space-y-2">
-                            {/* Titre et Add Info */}
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="text-gray-900 font-semibold text-sm leading-tight">
-                                  {item.title}
-                                </h3>
-                                <p className="text-gray-600 text-xs mt-1">
-                                  by {getCreator(item)}
-                                </p>
-                              </div>
-                              
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowAddInfoModal(item.id)
-                                }}
-                                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
-                              >
-                                <Edit3 size={10} />
-                                <span className="hidden sm:inline">Add Info</span>
-                              </button>
-                            </div>
-                            
-                            {/* Rating */}
-                            {item.userRating && (
-                              <div className="flex items-center space-x-1">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    size={10}
-                                    className={`${
-                                      star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                    }`}
-                                  />
-                                ))}
-                                {item.rating && (
-                                  <span className="text-xs text-gray-500 ml-2">
-                                    avg {item.rating}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Status et year sur une ligne */}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                                  {getStatusLabel(item.status)}
-                                </span>
-                                <span className="text-xs text-gray-500">{item.year}</span>
-                              </div>
-                              <span className="text-xs text-gray-400">
-                                {formatDate(item.addedAt).replace(/,.*/, '')}
-                              </span>
-                            </div>
-
-                            {/* Infos additionnelles sur une ligne séparée */}
-                            {item.category === 'games' && item.additionalInfo && (
-                              <div className="flex items-center space-x-2 flex-wrap">
-                                {item.additionalInfo.platform && (
-                                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
-                                    {item.additionalInfo.platform}
-                                  </span>
-                                )}
-                                {item.additionalInfo.gamePass && (
-                                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
-                                    Game Pass
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            // Vue catégorie spécifique
-            <div>
-              <div className="flex items-center space-x-2 mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {getCategoryDisplayName(activeCategory)}
-                </h2>
-                <span className="text-gray-500 text-lg">
-                  ({filteredAndSortedLibrary.length})
-                </span>
-              </div>
-              
-              <div className="space-y-3">
-                {filteredAndSortedLibrary.map((item) => (
-                  <div 
-                    key={item.id} 
-                    className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
-                    onClick={() => handleItemClick(item)}
-                  >
-                    <div className="flex items-start space-x-3 p-4">
-                      {/* Image */}
-                      <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-base">
-                            {getCategoryIcon(item.category)}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Contenu principal */}
-                      <div className="flex-1 min-w-0 space-y-2">
-                        {/* Titre et Add Info */}
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-gray-900 font-semibold text-sm leading-tight">
-                              {item.title}
-                            </h3>
-                            <p className="text-gray-600 text-xs mt-1">
-                              by {getCreator(item)}
-                            </p>
-                          </div>
-                          
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowAddInfoModal(item.id)
-                            }}
-                            className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
-                          >
-                            <Edit3 size={10} />
-                            <span className="hidden sm:inline">Add Info</span>
-                          </button>
-                        </div>
-                        
-                        {/* Rating */}
-                        {item.userRating && (
-                          <div className="flex items-center space-x-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                size={10}
-                                className={`${
-                                  star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                }`}
-                              />
-                            ))}
-                            {item.rating && (
-                              <span className="text-xs text-gray-500 ml-2">
-                                avg {item.rating}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Status et year sur une ligne */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                              {getStatusLabel(item.status)}
-                            </span>
-                            <span className="text-xs text-gray-500">{item.year}</span>
-                          </div>
-                          <span className="text-xs text-gray-400">
-                            {formatDate(item.addedAt).replace(/,.*/, '')}
-                          </span>
-                        </div>
-
-                        {/* Infos additionnelles sur une ligne séparée */}
-                        {item.category === 'games' && item.additionalInfo && (
-                          <div className="flex items-center space-x-2 flex-wrap">
-                            {item.additionalInfo.platform && (
-                              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
-                                {item.additionalInfo.platform}
-                              </span>
-                            )}
-                            {item.additionalInfo.gamePass && (
-                              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
-                                Game Pass
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Modals */}
-      <LocalSearchModal />
-      
-      {showAddInfoModal && (
-        <AddInfoModal item={library.find(item => item.id === showAddInfoModal)!} />
-      )}
-
-      {/* Fermeture des dropdowns en cliquant à l'extérieur */}
-      {(showSortDropdown || showStatusDropdown) && (
-        <div 
-          className="fixed inset-0 z-5"
-          onClick={() => {
-            setShowSortDropdown(false)
-            setShowStatusDropdown(false)
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-export default LibrarySection
-</file>
-
 <file path="src/app/page.tsx">
 'use client'
 import { useState, useEffect } from 'react'
@@ -10008,8 +9208,958 @@ export default function Home() {
 }
 </file>
 
+<file path="src/components/LibrarySection.tsx">
+import React, { useState, useEffect } from 'react'
+import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus } from 'lucide-react'
+
+// Types
+type MediaCategory = 'games' | 'movies' | 'music' | 'books'
+type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
+type SortOption = 'date_added' | 'date_updated' | 'title' | 'creator' | 'average_rating' | 'number_of_ratings' | 'release_year'
+
+interface LibraryItem {
+  id: string
+  title: string
+  year: number
+  rating?: number
+  genre?: string
+  category: MediaCategory
+  image?: string
+  author?: string
+  artist?: string
+  director?: string
+  status: MediaStatus
+  addedAt: string
+  dateStarted?: string
+  dateCompleted?: string
+  userRating?: number
+  progress?: number
+  notes?: string
+  numberOfRatings?: number
+  dateUpdated?: string
+  additionalInfo?: {
+    platform?: string
+    gamePass?: boolean
+    freeToPlay?: boolean
+    purchasePrice?: string
+    [key: string]: any
+  }
+}
+
+// Props interface for LibrarySection
+interface LibrarySectionProps {
+  library?: LibraryItem[]
+  onAddToLibrary?: (item: any, status: MediaStatus) => void
+  onUpdateItem?: (id: string, updates: Partial<LibraryItem>) => void
+  onDeleteItem?: (id: string) => void
+  onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void
+  onOpenSearch?: () => void
+}
+
+// Sample data
+const sampleLibrary: LibraryItem[] = [
+  {
+    id: '1',
+    title: 'Big Data: A Revolution That Will Transform How We Live, Work, and Think',
+    author: 'Viktor Mayer-Schönberger',
+    year: 2013,
+    rating: 4.2,
+    userRating: 4,
+    genre: 'Technology',
+    category: 'books',
+    status: 'want-to-play',
+    addedAt: '2025-01-15T10:00:00Z',
+    dateUpdated: '2025-01-15T10:00:00Z',
+    numberOfRatings: 3656,
+    image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1374478376i/15815598.jpg'
+  },
+  {
+    id: '2', 
+    title: 'The Buddha and the Badass: The Secret Spiritual Art of Succeeding at Work',
+    author: 'Vishen Lakhiani',
+    year: 2020,
+    rating: 3.9,
+    userRating: 3,
+    genre: 'Business',
+    category: 'books',
+    status: 'want-to-play',
+    addedAt: '2025-01-14T15:30:00Z',
+    dateUpdated: '2025-01-14T15:30:00Z',
+    numberOfRatings: 1981,
+    image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1576509232i/48855821.jpg'
+  },
+  {
+    id: '3',
+    title: 'Ori and the Will of the Wisps',
+    author: 'Moon Studios',
+    year: 2020,
+    rating: 4.8,
+    userRating: 5,
+    genre: 'Platformer',
+    category: 'games',
+    status: 'completed',
+    addedAt: '2025-01-10T12:00:00Z',
+    dateUpdated: '2025-01-12T18:00:00Z',
+    dateCompleted: '2025-01-12T18:00:00Z',
+    numberOfRatings: 12500,
+    image: 'https://media.rawg.io/media/games/718/71891291067b8bb23ad6ed6806b83881.jpg',
+    additionalInfo: {
+      platform: 'Xbox Game Pass',
+      gamePass: true,
+      freeToPlay: false,
+      purchasePrice: 'Game Pass'
+    }
+  },
+  {
+    id: '4',
+    title: 'The Last of Us Part II',
+    author: 'Naughty Dog',
+    year: 2020,
+    rating: 4.6,
+    userRating: 4,
+    genre: 'Action-Adventure',
+    category: 'games',
+    status: 'completed',
+    addedAt: '2025-01-08T09:00:00Z',
+    dateUpdated: '2025-01-11T20:30:00Z',
+    dateCompleted: '2025-01-11T20:30:00Z',
+    numberOfRatings: 89000,
+    image: 'https://media.rawg.io/media/games/d82/d82990b9c67ba0d2d09d4e6fa88885a7.jpg',
+    additionalInfo: {
+      platform: 'PlayStation 5',
+      gamePass: false,
+      freeToPlay: false,
+      purchasePrice: '€69.99'
+    }
+  }
+]
+
+const LibrarySection: React.FC<LibrarySectionProps> = ({
+  library: propLibrary = [],
+  onAddToLibrary,
+  onUpdateItem,
+  onDeleteItem,
+  onOpenGameDetail,
+  onOpenMovieDetail,
+  onOpenBookDetail,
+  onOpenMusicDetail,
+  onOpenSearch
+}) => {
+  // Use prop library or fallback to sample data
+  const [library, setLibrary] = useState<LibraryItem[]>(propLibrary.length > 0 ? propLibrary : sampleLibrary)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [activeStatus, setActiveStatus] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<SortOption>('date_added')
+  const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+  const [showAddInfoModal, setShowAddInfoModal] = useState<string | null>(null)
+  const [showLocalSearchModal, setShowLocalSearchModal] = useState(false)
+
+  // Update library when prop changes
+  useEffect(() => {
+    if (propLibrary.length > 0) {
+      setLibrary(propLibrary)
+    }
+  }, [propLibrary])
+
+  // Filter and sort logic
+  const filteredAndSortedLibrary = React.useMemo(() => {
+    let filtered = library.filter(item => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        const searchable = [
+          item.title,
+          item.author,
+          item.artist,
+          item.director,
+          item.genre
+        ].filter(Boolean).join(' ').toLowerCase()
+        
+        if (!searchable.includes(query)) return false
+      }
+      
+      // Category filter
+      if (activeCategory !== 'all' && item.category !== activeCategory) return false
+      
+      // Status filter
+      if (activeStatus !== 'all' && item.status !== activeStatus) return false
+      
+      return true
+    })
+    
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date_added':
+          return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+        case 'date_updated':
+          return new Date(b.dateUpdated || b.addedAt).getTime() - new Date(a.dateUpdated || a.addedAt).getTime()
+        case 'title':
+          return a.title.localeCompare(b.title)
+        case 'creator':
+          const aCreator = a.author || a.artist || a.director || ''
+          const bCreator = b.author || b.artist || b.director || ''
+          return aCreator.localeCompare(bCreator)
+        case 'average_rating':
+          return (b.rating || 0) - (a.rating || 0)
+        case 'number_of_ratings':
+          return (b.numberOfRatings || 0) - (a.numberOfRatings || 0)
+        case 'release_year':
+          return (b.year || 0) - (a.year || 0)
+        default:
+          return 0
+      }
+    })
+    
+    return filtered
+  }, [library, searchQuery, activeCategory, activeStatus, sortBy])
+
+  // Grouper les items par catégorie
+  const groupedLibrary = React.useMemo(() => {
+    const groups: { [key: string]: LibraryItem[] } = {}
+    
+    filteredAndSortedLibrary.forEach(item => {
+      if (!groups[item.category]) {
+        groups[item.category] = []
+      }
+      groups[item.category].push(item)
+    })
+    
+    return groups
+  }, [filteredAndSortedLibrary])
+
+  // Helper functions améliorées
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'games': return '🎮'
+      case 'movies': return '🎬'
+      case 'music': return '🎵'
+      case 'books': return '📚'
+      default: return '📚'
+    }
+  }
+
+  const getCategoryDisplayName = (category: string) => {
+    switch (category) {
+      case 'games': return 'Games'
+      case 'movies': return 'Movies'
+      case 'music': return 'Music'
+      case 'books': return 'Books'
+      default: return category
+    }
+  }
+
+  const getStatusLabel = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'Wishlist'
+      case 'currently-playing': return 'In Progress'
+      case 'completed': return 'Completed'
+      case 'paused': return 'Paused'
+      case 'dropped': return 'Dropped'
+      default: return status
+    }
+  }
+
+  const getStatusColor = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'bg-orange-100 text-orange-700'
+      case 'currently-playing': return 'bg-green-100 text-green-700'
+      case 'completed': return 'bg-blue-100 text-blue-700'
+      case 'paused': return 'bg-yellow-100 text-yellow-700'
+      case 'dropped': return 'bg-red-100 text-red-700'
+      default: return 'bg-gray-100 text-gray-700'
+    }
+  }
+
+  const getSortLabel = (sort: SortOption) => {
+    switch (sort) {
+      case 'date_added': return 'Date Added'
+      case 'date_updated': return 'Date Updated'
+      case 'title': return 'Title'
+      case 'creator': return 'Creator'
+      case 'average_rating': return 'Average Rating'
+      case 'number_of_ratings': return 'Number of Ratings'
+      case 'release_year': return 'Release Year'
+      default: return 'Date Added'
+    }
+  }
+
+  const getSortIcon = (sort: SortOption) => {
+    switch (sort) {
+      case 'date_added': return <Calendar size={14} />
+      case 'date_updated': return <Clock size={14} />
+      case 'title': return <Hash size={14} />
+      case 'creator': return <User size={14} />
+      case 'average_rating': return <Star size={14} />
+      case 'number_of_ratings': return <TrendingUp size={14} />
+      case 'release_year': return <Calendar size={14} />
+      default: return <Calendar size={14} />
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
+  // ✅ FONCTION getCreator CORRIGÉE - FIX des erreurs TypeScript
+  const getCreator = (item: LibraryItem) => {
+    let creator = 'Unknown Creator'
+
+    switch (item.category) {
+      case 'games':
+        // Pour les jeux, éviter "Unknown Developer"
+        if (item.author && item.author.trim() !== '' && item.author !== 'Unknown Developer' && item.author !== 'Unknown') {
+          creator = item.author
+        } else {
+          // Mapping manuel pour les studios connus basé sur le titre
+          const title = item.title?.toLowerCase() || '' // ✅ FIX: Vérifier si title existe
+          if (title.includes('blue prince')) creator = 'Remedy Entertainment'
+          else if (title.includes('ori and the will')) creator = 'Moon Studios'
+          else if (title.includes('last of us')) creator = 'Naughty Dog'
+          else if (title.includes('cyberpunk')) creator = 'CD Projekt RED'
+          else if (title.includes('witcher')) creator = 'CD Projekt RED'
+          else if (title.includes('halo')) creator = '343 Industries'
+          else if (title.includes('god of war')) creator = 'Santa Monica Studio'
+          else if (title.includes('spider-man')) creator = 'Insomniac Games'
+          else creator = 'Developer'
+        }
+        break
+
+      case 'movies':
+        // Pour les films, éviter "Unknown Director" et "N/A"
+        if (item.director && item.director.trim() !== '' && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
+          creator = item.director
+        } else if (item.author && item.author.trim() !== '' && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
+          creator = item.author
+        } else {
+          creator = 'Director'
+        }
+        break
+
+      case 'music':
+        // Pour la musique (déjà bien)
+        creator = item.artist || item.author || 'Artist'
+        break
+
+      case 'books':
+        // Pour les livres (déjà bien)
+        creator = item.author || 'Author'
+        break
+
+      default:
+        creator = item.author || item.artist || item.director || 'Creator'
+        break
+    }
+
+    return creator
+  }
+
+  // ✅ FONCTIONS DE NAVIGATION VERS LES FICHES PRODUITS
+  const handleItemClick = (item: LibraryItem) => {
+    // Nettoyer l'ID pour retirer les préfixes
+    const cleanId = item.id?.replace(/^(game-|movie-|music-|book-)/, '') || '' // ✅ FIX: Vérifier si id existe
+    
+    switch (item.category) {
+      case 'games':
+        if (onOpenGameDetail) {
+          onOpenGameDetail(cleanId)
+        }
+        break
+      case 'movies':
+        if (onOpenMovieDetail) {
+          onOpenMovieDetail(cleanId)
+        }
+        break
+      case 'music':
+        if (onOpenMusicDetail) {
+          onOpenMusicDetail(cleanId)
+        }
+        break
+      case 'books':
+        if (onOpenBookDetail) {
+          onOpenBookDetail(cleanId)
+        }
+        break
+    }
+  }
+
+  // Modal Components
+  const LocalSearchModal = () => {
+    if (!showLocalSearchModal) return null
+    
+    return (
+      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl w-full max-w-2xl border border-gray-200 shadow-lg">
+          <div className="p-4 border-b border-gray-100">
+            <div className="flex items-center space-x-3">
+              <Search className="text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search your library..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none text-lg"
+                autoFocus
+              />
+              <button
+                onClick={() => setShowLocalSearchModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+          <div className="p-4">
+            <p className="text-gray-500 text-center py-8">
+              {searchQuery ? `Searching for "${searchQuery}" in your library...` : 'Type to search in your library'}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const AddInfoModal = ({ item }: { item: LibraryItem }) => {
+    const [formData, setFormData] = useState(item.additionalInfo || {})
+
+    if (item.category !== 'games') {
+      return (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
+            <div className="p-4 border-b border-gray-100">
+              <h3 className="text-gray-900 font-medium">Additional Info - {item.title}</h3>
+            </div>
+            <div className="p-4">
+              <p className="text-gray-600">Feature coming soon for {item.category}!</p>
+            </div>
+            <div className="p-4 border-t border-gray-100">
+              <button
+                onClick={() => setShowAddInfoModal(null)}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
+          <div className="p-4 border-b border-gray-100">
+            <h3 className="text-gray-900 font-medium">Game Info - {item.title}</h3>
+          </div>
+          
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="block text-gray-700 text-sm mb-2 font-medium">Platform</label>
+              <select
+                value={formData.platform || ''}
+                onChange={(e) => setFormData({...formData, platform: e.target.value})}
+                className="w-full bg-white text-gray-900 rounded-lg px-3 py-2 border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              >
+                <option value="">Select Platform</option>
+                <option value="PlayStation 5">PlayStation 5</option>
+                <option value="Xbox Series X/S">Xbox Series X/S</option>
+                <option value="Nintendo Switch">Nintendo Switch</option>
+                <option value="PC (Steam)">PC (Steam)</option>
+                <option value="PC (Epic Games)">PC (Epic Games)</option>
+                <option value="Xbox Game Pass">Xbox Game Pass</option>
+                <option value="PlayStation Plus">PlayStation Plus</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-gray-700 text-sm mb-2 font-medium">Purchase Details</label>
+              <div className="space-y-2">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.gamePass || false}
+                    onChange={(e) => setFormData({...formData, gamePass: e.target.checked})}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Game Pass / Subscription</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.freeToPlay || false}
+                    onChange={(e) => setFormData({...formData, freeToPlay: e.target.checked})}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Free to Play</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-gray-700 text-sm mb-2 font-medium">Purchase Price</label>
+              <input
+                type="text"
+                placeholder="e.g. €59.99, Free, Game Pass"
+                value={formData.purchasePrice || ''}
+                onChange={(e) => setFormData({...formData, purchasePrice: e.target.value})}
+                className="w-full bg-white text-gray-900 rounded-lg px-3 py-2 border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="p-4 border-t border-gray-100 flex space-x-2">
+            <button
+              onClick={() => setShowAddInfoModal(null)}
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (onUpdateItem) {
+                  onUpdateItem(item.id, { additionalInfo: formData })
+                } else {
+                  setLibrary(prev => prev.map(libItem => 
+                    libItem.id === item.id 
+                      ? { ...libItem, additionalInfo: formData }
+                      : libItem
+                  ))
+                }
+                setShowAddInfoModal(null)
+              }}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white min-h-screen">
+      {/* Header sticky avec titre et icônes */}
+      <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
+        <div className="px-4 sm:px-6 py-4">
+          {/* Titre avec nombre d'items et icônes */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
+              <span className="text-lg text-gray-500">
+                ({filteredAndSortedLibrary.length} item{filteredAndSortedLibrary.length !== 1 ? 's' : ''})
+              </span>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              {/* Icône recherche locale */}
+              <button
+                onClick={() => setShowLocalSearchModal(true)}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                title="Search in your library"
+              >
+                <Search size={20} className="text-gray-600" />
+              </button>
+              
+              {/* Icône ajout global */}
+              <button
+                onClick={() => {
+                  if (onOpenSearch) {
+                    onOpenSearch()
+                  }
+                }}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                title="Add new items to your library"
+              >
+                <Plus size={20} className="text-gray-600" />
+              </button>
+            </div>
+          </div>
+
+          {/* Filtres de catégories uniquement */}
+          <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'games', label: 'Games' },
+              { key: 'movies', label: 'Movies' },
+              { key: 'music', label: 'Music' },
+              { key: 'books', label: 'Books' }
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setActiveCategory(key)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  activeCategory === key
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Contenu principal */}
+      <div className="bg-white">
+        {/* Filtres de tri et statut */}
+        <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
+          <div className="flex items-center space-x-3">
+            {/* Menu déroulant de statut */}
+            <div className="relative">
+              <button
+                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
+              >
+                <span>{getStatusLabel(activeStatus as MediaStatus)}</span>
+                <ChevronDown size={14} />
+              </button>
+              
+              {showStatusDropdown && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'want-to-play', label: 'Wishlist' },
+                    { key: 'currently-playing', label: 'In Progress' },
+                    { key: 'completed', label: 'Completed' },
+                    { key: 'paused', label: 'Paused' },
+                    { key: 'dropped', label: 'Dropped' }
+                  ].map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setActiveStatus(key)
+                        setShowStatusDropdown(false)
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Bouton "Sorted by" */}
+            <div className="relative inline-block">
+              <button
+                onClick={() => setShowSortDropdown(!showSortDropdown)}
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm font-medium"
+              >
+                {getSortIcon(sortBy)}
+                <span>Sorted by {getSortLabel(sortBy)}</span>
+                <ChevronDown size={14} />
+              </button>
+              
+              {showSortDropdown && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
+                  {[
+                    { key: 'date_added', label: 'Date Added', icon: <Calendar size={14} /> },
+                    { key: 'date_updated', label: 'Date Updated', icon: <Clock size={14} /> },
+                    { key: 'title', label: 'Title', icon: <Hash size={14} /> },
+                    { key: 'creator', label: 'Creator', icon: <User size={14} /> },
+                    { key: 'average_rating', label: 'Average Rating', icon: <Star size={14} /> },
+                    { key: 'number_of_ratings', label: 'Number of Ratings', icon: <TrendingUp size={14} /> },
+                    { key: 'release_year', label: 'Release Year', icon: <Calendar size={14} /> }
+                  ].map(({ key, label, icon }) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setSortBy(key as SortOption)
+                        setShowSortDropdown(false)
+                      }}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
+                    >
+                      {icon}
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Liste des items groupés par catégorie */}
+        <div className="px-4 sm:px-6 py-4 pb-24">
+          {filteredAndSortedLibrary.length === 0 ? (
+            <div className="text-center py-8 text-gray-600">
+              <p>No items found.</p>
+            </div>
+          ) : activeCategory === 'all' ? (
+            // Vue "All" - groupée par catégories
+            <div className="space-y-8">
+              {Object.entries(groupedLibrary).map(([category, items]) => (
+                <div key={category}>
+                  {/* Titre de catégorie */}
+                  <div className="flex items-center space-x-2 mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {getCategoryDisplayName(category)}
+                    </h2>
+                    <span className="text-gray-500 text-sm">
+                      ({items.length})
+                    </span>
+                  </div>
+                  
+                  {/* Items de cette catégorie - Layout mobile optimisé avec clic */}
+                  <div className="space-y-3">
+                    {items.map((item) => (
+                      <div 
+                        key={item.id} 
+                        className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
+                        onClick={() => handleItemClick(item)}
+                      >
+                        <div className="flex items-start space-x-3 p-4">
+                          {/* Image */}
+                          <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={item.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-base">
+                                {getCategoryIcon(item.category)}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Contenu principal */}
+                          <div className="flex-1 min-w-0 space-y-2">
+                            {/* Titre et Add Info */}
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-gray-900 font-semibold text-sm leading-tight">
+                                  {item.title}
+                                </h3>
+                                <p className="text-gray-600 text-xs mt-1">
+                                  by {getCreator(item)}
+                                </p>
+                              </div>
+                              
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowAddInfoModal(item.id)
+                                }}
+                                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
+                              >
+                                <Edit3 size={10} />
+                                <span className="hidden sm:inline">Add Info</span>
+                              </button>
+                            </div>
+                            
+                            {/* Rating */}
+                            {item.userRating && (
+                              <div className="flex items-center space-x-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    size={10}
+                                    className={`${
+                                      star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                                {item.rating && (
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    avg {item.rating}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Status et year sur une ligne */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                                  {getStatusLabel(item.status)}
+                                </span>
+                                <span className="text-xs text-gray-500">{item.year}</span>
+                              </div>
+                              <span className="text-xs text-gray-400">
+                                {formatDate(item.addedAt).replace(/,.*/, '')}
+                              </span>
+                            </div>
+
+                            {/* Infos additionnelles sur une ligne séparée */}
+                            {item.category === 'games' && item.additionalInfo && (
+                              <div className="flex items-center space-x-2 flex-wrap">
+                                {item.additionalInfo.platform && (
+                                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                                    {item.additionalInfo.platform}
+                                  </span>
+                                )}
+                                {item.additionalInfo.gamePass && (
+                                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
+                                    Game Pass
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Vue catégorie spécifique
+            <div>
+              <div className="flex items-center space-x-2 mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {getCategoryDisplayName(activeCategory)}
+                </h2>
+                <span className="text-gray-500 text-lg">
+                  ({filteredAndSortedLibrary.length})
+                </span>
+              </div>
+              
+              <div className="space-y-3">
+                {filteredAndSortedLibrary.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    <div className="flex items-start space-x-3 p-4">
+                      {/* Image */}
+                      <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-base">
+                            {getCategoryIcon(item.category)}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Contenu principal */}
+                      <div className="flex-1 min-w-0 space-y-2">
+                        {/* Titre et Add Info */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-gray-900 font-semibold text-sm leading-tight">
+                              {item.title}
+                            </h3>
+                            <p className="text-gray-600 text-xs mt-1">
+                              by {getCreator(item)}
+                            </p>
+                          </div>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowAddInfoModal(item.id)
+                            }}
+                            className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
+                          >
+                            <Edit3 size={10} />
+                            <span className="hidden sm:inline">Add Info</span>
+                          </button>
+                        </div>
+                        
+                        {/* Rating */}
+                        {item.userRating && (
+                          <div className="flex items-center space-x-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={10}
+                                className={`${
+                                  star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
+                            {item.rating && (
+                              <span className="text-xs text-gray-500 ml-2">
+                                avg {item.rating}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Status et year sur une ligne */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                              {getStatusLabel(item.status)}
+                            </span>
+                            <span className="text-xs text-gray-500">{item.year}</span>
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {formatDate(item.addedAt).replace(/,.*/, '')}
+                          </span>
+                        </div>
+
+                        {/* Infos additionnelles sur une ligne séparée */}
+                        {item.category === 'games' && item.additionalInfo && (
+                          <div className="flex items-center space-x-2 flex-wrap">
+                            {item.additionalInfo.platform && (
+                              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                                {item.additionalInfo.platform}
+                              </span>
+                            )}
+                            {item.additionalInfo.gamePass && (
+                              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
+                                Game Pass
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modals */}
+      <LocalSearchModal />
+      
+      {showAddInfoModal && (
+        <AddInfoModal item={library.find(item => item.id === showAddInfoModal)!} />
+      )}
+
+      {/* Fermeture des dropdowns en cliquant à l'extérieur */}
+      {(showSortDropdown || showStatusDropdown) && (
+        <div 
+          className="fixed inset-0 z-5"
+          onClick={() => {
+            setShowSortDropdown(false)
+            setShowStatusDropdown(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+export default LibrarySection
+</file>
+
 <file path="src/services/rawgService.ts">
-// src/services/rawgService.ts - CORRIGÉ: Développeurs + Jeux récents 2025
+// src/services/rawgService.ts - VERSION CORRIGÉE POUR DÉVELOPPEURS
 export interface RAWGGame {
   id: number
   name: string
@@ -10043,8 +10193,94 @@ class RAWGService {
   private readonly baseURL = 'https://api.rawg.io/api'
 
   /**
-   * 🎯 RECHERCHE AMÉLIORÉE avec jeux 2025 inclus
+   * ✅ FONCTION CORRIGÉE : Obtenir le vrai développeur
    */
+  private getCorrectDeveloper(game: RAWGGame): string {
+    console.log('🎮 Getting developer for:', game.name)
+    console.log('🎮 Raw developers:', game.developers)
+    console.log('🎮 Raw publishers:', game.publishers)
+
+    // 1. Développeur principal de l'API
+    if (game.developers && game.developers.length > 0) {
+      const mainDev = game.developers[0].name
+      if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && !mainDev.includes('undefined')) {
+        console.log('🎮 ✅ Found developer from API:', mainDev)
+        return mainDev
+      }
+    }
+
+    // 2. Publisher en second recours (mais marquer comme tel)
+    if (game.publishers && game.publishers.length > 0) {
+      const mainPub = game.publishers[0].name
+      if (mainPub && mainPub.trim() !== '' && mainPub !== 'Unknown' && !mainPub.includes('undefined')) {
+        console.log('🎮 ⚠️ Using publisher as developer:', mainPub)
+        return mainPub  // On peut retirer "(Publisher)" pour simplifier
+      }
+    }
+
+    // 3. Mapping manuel pour les gros studios connus
+    const gameNameLower = game.name.toLowerCase()
+    const mappings: { [key: string]: string } = {
+      "assassin's creed origins": "Ubisoft Montreal",
+      "assassin's creed odyssey": "Ubisoft Quebec", 
+      "assassin's creed valhalla": "Ubisoft Montreal",
+      "assassin's creed": "Ubisoft",
+      "monster hunter world": "Capcom",
+      "monster hunter rise": "Capcom",
+      "monster hunter": "Capcom",
+      "call of duty modern warfare": "Infinity Ward",
+      "call of duty black ops": "Treyarch",
+      "call of duty": "Activision",
+      "the witcher 3": "CD Projekt RED",
+      "the witcher": "CD Projekt RED",
+      "cyberpunk 2077": "CD Projekt RED",
+      "cyberpunk": "CD Projekt RED",
+      "elder scrolls v": "Bethesda Game Studios",
+      "elder scrolls": "Bethesda Game Studios",
+      "fallout 4": "Bethesda Game Studios",
+      "fallout": "Bethesda Game Studios",
+      "halo infinite": "343 Industries",
+      "halo": "343 Industries",
+      "god of war": "Santa Monica Studio",
+      "spider-man": "Insomniac Games",
+      "marvel's spider-man": "Insomniac Games",
+      "zelda breath of the wild": "Nintendo EPD",
+      "zelda tears of the kingdom": "Nintendo EPD", 
+      "zelda": "Nintendo",
+      "mario": "Nintendo",
+      "ori and the will of the wisps": "Moon Studios",
+      "ori and the blind forest": "Moon Studios",
+      "ori and the": "Moon Studios",
+      "the last of us part ii": "Naughty Dog",
+      "the last of us": "Naughty Dog",
+      "last of us": "Naughty Dog",
+      "uncharted": "Naughty Dog",
+      "horizon zero dawn": "Guerrilla Games",
+      "horizon forbidden west": "Guerrilla Games",
+      "horizon": "Guerrilla Games",
+      "ghost of tsushima": "Sucker Punch Productions",
+      "baldur's gate 3": "Larian Studios",
+      "elden ring": "FromSoftware",
+      "dark souls": "FromSoftware",
+      "sekiro": "FromSoftware",
+      "bloodborne": "FromSoftware",
+      "grand theft auto v": "Rockstar North",
+      "grand theft auto": "Rockstar Games",
+      "red dead redemption": "Rockstar Games"
+    }
+
+    // Chercher d'abord les correspondances exactes, puis partielles
+    for (const [keyword, studio] of Object.entries(mappings)) {
+      if (gameNameLower.includes(keyword)) {
+        console.log('🎮 📋 Found developer via mapping:', studio, 'for keyword:', keyword)
+        return studio
+      }
+    }
+
+    console.log('🎮 ❌ No developer found, using fallback')
+    return "Developer" // ✅ Éviter "Unknown Developer"
+  }
+
   async searchGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
     console.log('🎮 Enhanced search for:', query)
     
@@ -10054,7 +10290,6 @@ class RAWGService {
     }
 
     try {
-      // ✅ INCLURE LES JEUX 2025 et futurs avec dates étendues
       const currentYear = new Date().getFullYear()
       const nextYear = currentYear + 1
       
@@ -10062,8 +10297,8 @@ class RAWGService {
         key: this.apiKey,
         search: query,
         page_size: '20',
-        dates: `2000-01-01,${nextYear}-12-31`, // ✅ Inclure 2025 et futurs
-        ordering: '-relevance' // Pertinence d'abord
+        dates: `2000-01-01,${nextYear}-12-31`,
+        ordering: '-relevance'
       }).toString()
 
       console.log('🎮 Enhanced URL with 2025 games:', url)
@@ -10101,61 +10336,11 @@ class RAWGService {
     }
   }
 
-  /**
-   * 🛠️ CORRECTION: Obtenir le vrai développeur (pas "Unknown Developer")
-   */
-  private getCorrectDeveloper(game: RAWGGame): string {
-    // ✅ 1. Développeur principal
-    if (game.developers && game.developers.length > 0) {
-      const mainDev = game.developers[0].name
-      if (mainDev && mainDev.trim() !== '') {
-        return mainDev
-      }
-    }
-
-    // ✅ 2. Publisher en second recours
-    if (game.publishers && game.publishers.length > 0) {
-      const mainPub = game.publishers[0].name
-      if (mainPub && mainPub.trim() !== '') {
-        return `${mainPub} (Publisher)`
-      }
-    }
-
-    // ✅ 3. Mapping manuel pour les gros studios connus
-    const gameNameLower = game.name.toLowerCase()
-    
-    if (gameNameLower.includes("assassin's creed")) {
-      return "Ubisoft"
-    }
-    if (gameNameLower.includes("monster hunter")) {
-      return "Capcom"
-    }
-    if (gameNameLower.includes("call of duty")) {
-      return "Activision"
-    }
-    if (gameNameLower.includes("the witcher")) {
-      return "CD Projekt RED"
-    }
-    if (gameNameLower.includes("cyberpunk")) {
-      return "CD Projekt RED"
-    }
-    if (gameNameLower.includes("elder scrolls") || gameNameLower.includes("fallout")) {
-      return "Bethesda"
-    }
-
-    return "Unknown Developer"
-  }
-
-  /**
-   * 🔄 RECHERCHE SUPPLÉMENTAIRE pour les jeux récents manqués
-   */
   async searchWithRecentGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
     console.log('🎮 Searching with recent games priority for:', query)
     
-    // ✅ Recherche normale d'abord
     const normalResults = await this.searchGames(query, maxResults)
     
-    // ✅ Recherche spécifique pour 2025 si peu de résultats récents
     const recentGames = normalResults.filter(game => {
       if (!game.released) return false
       const year = new Date(game.released).getFullYear()
@@ -10164,7 +10349,6 @@ class RAWGService {
 
     console.log(`🎮 Found ${recentGames.length} recent games (2024+) in normal search`)
 
-    // Si pas assez de jeux récents, faire une recherche spécifique 2025
     if (recentGames.length < 2) {
       console.log('🎮 Searching specifically for 2025 games...')
       
@@ -10173,8 +10357,8 @@ class RAWGService {
           key: this.apiKey,
           search: query,
           page_size: '10',
-          dates: '2024-01-01,2026-12-31', // ✅ Focus sur 2024-2026
-          ordering: '-released' // Plus récents d'abord
+          dates: '2024-01-01,2026-12-31',
+          ordering: '-released'
         }).toString()
 
         const recentResponse = await fetch(recentUrl)
@@ -10184,13 +10368,12 @@ class RAWGService {
           console.log(`🎮 Found ${recentData.results?.length || 0} additional recent games`)
           
           if (recentData.results && recentData.results.length > 0) {
-            // ✅ Combiner et dédupliquer
             const combinedResults = [...normalResults]
             const existingIds = new Set(normalResults.map(g => g.id))
             
             recentData.results.forEach((game: RAWGGame) => {
               if (!existingIds.has(game.id)) {
-                combinedResults.unshift(game) // Ajouter au début
+                combinedResults.unshift(game)
                 console.log(`🎮 ➕ Added recent game: ${game.name} (${game.released ? new Date(game.released).getFullYear() : 'TBA'})`)
               }
             })
@@ -10236,7 +10419,6 @@ class RAWGService {
 
   async getPopularGames(): Promise<RAWGGame[]> {
     try {
-      // ✅ Inclure les jeux récents dans les populaires
       const response = await fetch(
         `${this.baseURL}/games?key=${this.apiKey}&ordering=-rating&page_size=8&dates=2020-01-01,2026-12-31`
       )
@@ -10269,7 +10451,6 @@ class RAWGService {
 
   async getNewReleases(): Promise<RAWGGame[]> {
     try {
-      // ✅ Nouvelles sorties incluant 2025
       const currentYear = new Date().getFullYear()
       const response = await fetch(
         `${this.baseURL}/games?key=${this.apiKey}&ordering=-released&page_size=8&dates=${currentYear}-01-01,${currentYear + 1}-12-31`
@@ -10302,17 +10483,19 @@ class RAWGService {
   }
 
   /**
-   * ✅ CONVERSION avec développeur correct
+   * ✅ CONVERSION AVEC DÉVELOPPEUR CORRECT
    */
   convertToAppFormat(game: RAWGGame): any {
     const developer = this.getCorrectDeveloper(game)
+    
+    console.log('🎮 Converting game:', game.name, 'Developer:', developer)
     
     return {
       id: `game-${game.id}`,
       title: game.name,
       name: game.name,
-      author: developer,
-      developer: developer,
+      author: developer,      // ✅ UTILISÉ pour compatibilité
+      developer: developer,   // ✅ UTILISÉ spécifiquement pour les jeux
       year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
       rating: game.rating || 0,
       genre: game.genres?.[0]?.name || 'Unknown',
@@ -10342,16 +10525,10 @@ class RAWGService {
 }
 
 export const rawgService = new RAWGService()
-
-// ✅ UTILISER LA MÉTHODE AMÉLIORÉE DANS SearchModal
-// Dans SearchModal.tsx, remplacer :
-// const games = await rawgService.searchGames(query, 20)
-// Par :
-// const games = await rawgService.searchWithRecentGames(query, 20)
 </file>
 
 <file path="src/components/SearchModal.tsx">
-// src/components/SearchModal.tsx - VERSION COMPLÈTE CORRIGÉE
+// src/components/SearchModal.tsx - VERSION CORRIGÉE POUR AFFICHAGE DES CRÉATEURS
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
@@ -10425,38 +10602,87 @@ export default function SearchModal({
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
-  // ✅ FONCTION getCreator CORRIGÉE
-  const getCreator = (result: SearchResult) => {
-    console.log('🔍 [SearchModal] Getting creator for:', result.title)
-    console.log('🔍 [SearchModal] Category:', result.category)
+  // ✅ FONCTION getCreator UNIFIÉE ET CORRIGÉE
+  const getCreator = (result: SearchResult): string => {
+    console.log('🔍 [SearchModal] Getting creator for:', result.title, 'Category:', result.category)
+    console.log('🔍 [SearchModal] Available fields:', {
+      author: result.author,
+      artist: result.artist, 
+      director: result.director,
+      developer: result.developer
+    })
 
-    let creator = 'Unknown Creator'
+    let creator = ''
 
     switch (result.category) {
       case 'games':
-        // ✅ UTILISE LE DÉVELOPPEUR CORRIGÉ DU SERVICE
-        creator = result.developer || result.author || 'Unknown Developer'
-        console.log('🎮 [SearchModal] Game creator:', creator)
+        // ✅ PRIORITÉ: developer > author > mapping manuel
+        if (result.developer && result.developer !== 'Unknown Developer' && result.developer !== 'Developer' && result.developer !== 'Unknown') {
+          creator = result.developer
+        } else if (result.author && result.author !== 'Unknown Developer' && result.author !== 'Developer' && result.author !== 'Unknown') {
+          creator = result.author
+        } else {
+          // Mapping de secours basé sur le titre
+          const title = result.title?.toLowerCase() || ''
+          const mappings = {
+            'ori and the': 'Moon Studios',
+            'last of us': 'Naughty Dog', 
+            'cyberpunk': 'CD Projekt RED',
+            'witcher': 'CD Projekt RED',
+            'halo': '343 Industries',
+            'god of war': 'Santa Monica Studio',
+            'spider-man': 'Insomniac Games',
+            'zelda': 'Nintendo',
+            'mario': 'Nintendo',
+            'assassin\'s creed': 'Ubisoft',
+            'monster hunter': 'Capcom',
+            'call of duty': 'Activision'
+          }
+          
+          for (const [keyword, studio] of Object.entries(mappings)) {
+            if (title.includes(keyword)) {
+              creator = studio
+              break
+            }
+          }
+          
+          if (!creator) creator = 'Developer'
+        }
         break
 
       case 'movies':
-        creator = result.director || result.author || 'Unknown Director'
-        console.log('🎬 [SearchModal] Movie creator:', creator)
+        // ✅ PRIORITÉ: director > author
+        if (result.director && result.director !== 'Unknown Director' && result.director !== 'N/A' && result.director !== 'Unknown') {
+          creator = result.director
+        } else if (result.author && result.author !== 'Unknown Director' && result.author !== 'N/A' && result.author !== 'Unknown') {
+          creator = result.author
+        } else {
+          creator = 'Director'
+        }
         break
 
       case 'music':
-        creator = result.artist || result.author || 'Unknown Artist'
-        console.log('🎵 [SearchModal] Music creator:', creator)
+        // ✅ PRIORITÉ: artist > author
+        if (result.artist && result.artist !== 'Unknown Artist' && result.artist !== 'Unknown') {
+          creator = result.artist
+        } else if (result.author && result.author !== 'Unknown Artist' && result.author !== 'Unknown') {
+          creator = result.author
+        } else {
+          creator = 'Artist'
+        }
         break
 
       case 'books':
-        creator = result.author || 'Unknown Author'
-        console.log('📚 [SearchModal] Book creator:', creator)
+        // ✅ PRIORITÉ: author
+        if (result.author && result.author !== 'Unknown Author' && result.author !== 'Unknown') {
+          creator = result.author
+        } else {
+          creator = 'Author'
+        }
         break
 
       default:
-        creator = result.author || result.artist || result.director || result.developer || 'Unknown Creator'
-        console.log('❓ [SearchModal] Default creator:', creator)
+        creator = result.author || result.artist || result.director || result.developer || 'Creator'
         break
     }
 
@@ -10494,7 +10720,8 @@ export default function SearchModal({
         const converted = rawgService.convertToAppFormat(game)
         console.log('🎮 [SearchModal] Converted game:', {
           title: converted.title,
-          developer: converted.developer, // ✅ Plus "Unknown Developer"
+          developer: converted.developer,
+          author: converted.author,
           year: converted.year,
           hasImage: !!converted.image
         })
@@ -10504,7 +10731,7 @@ export default function SearchModal({
       console.log('✅ [SearchModal] Games search complete with developers:')
       convertedGames.slice(0, 8).forEach((game, i) => {
         const isRecent = game.year >= 2024 ? '🔥' : ''
-        console.log(`  ${i + 1}. ${game.title} by ${game.developer} (${game.year}) ${isRecent}`)
+        console.log(`  ${i + 1}. ${game.title} by ${game.developer || game.author} (${game.year}) ${isRecent}`)
       })
 
       return convertedGames
@@ -11090,7 +11317,7 @@ export default function SearchModal({
                 const isInLibrary = !!libraryItem
                 const isAdding = addingItem === result.id
                 const wasJustAdded = justAddedItems.has(result.id)
-                const creator = getCreator(result)
+                const creator = getCreator(result) // ✅ UTILISATION DE LA FONCTION CORRIGÉE
                 const isRecent = result.year >= new Date().getFullYear()
                 
                 return (
@@ -11135,9 +11362,9 @@ export default function SearchModal({
                           )}
                         </h3>
                         
-                        {/* Créateur complet sans truncate */}
+                        {/* ✅ CRÉATEUR AFFICHÉ CORRECTEMENT */}
                         <p className="text-gray-600 text-sm font-medium leading-tight" title={creator}>
-                          {creator}
+                          by {creator}
                         </p>
                       </div>
                       

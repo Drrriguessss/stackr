@@ -1,4 +1,4 @@
-// src/components/SearchModal.tsx - VERSION COMPLÈTE CORRIGÉE
+// src/components/SearchModal.tsx - VERSION CORRIGÉE POUR AFFICHAGE DES CRÉATEURS
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
@@ -72,38 +72,87 @@ export default function SearchModal({
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
-  // ✅ FONCTION getCreator CORRIGÉE
-  const getCreator = (result: SearchResult) => {
-    console.log('🔍 [SearchModal] Getting creator for:', result.title)
-    console.log('🔍 [SearchModal] Category:', result.category)
+  // ✅ FONCTION getCreator UNIFIÉE ET CORRIGÉE
+  const getCreator = (result: SearchResult): string => {
+    console.log('🔍 [SearchModal] Getting creator for:', result.title, 'Category:', result.category)
+    console.log('🔍 [SearchModal] Available fields:', {
+      author: result.author,
+      artist: result.artist, 
+      director: result.director,
+      developer: result.developer
+    })
 
-    let creator = 'Unknown Creator'
+    let creator = ''
 
     switch (result.category) {
       case 'games':
-        // ✅ UTILISE LE DÉVELOPPEUR CORRIGÉ DU SERVICE
-        creator = result.developer || result.author || 'Unknown Developer'
-        console.log('🎮 [SearchModal] Game creator:', creator)
+        // ✅ PRIORITÉ: developer > author > mapping manuel
+        if (result.developer && result.developer !== 'Unknown Developer' && result.developer !== 'Developer' && result.developer !== 'Unknown') {
+          creator = result.developer
+        } else if (result.author && result.author !== 'Unknown Developer' && result.author !== 'Developer' && result.author !== 'Unknown') {
+          creator = result.author
+        } else {
+          // Mapping de secours basé sur le titre
+          const title = result.title?.toLowerCase() || ''
+          const mappings = {
+            'ori and the': 'Moon Studios',
+            'last of us': 'Naughty Dog', 
+            'cyberpunk': 'CD Projekt RED',
+            'witcher': 'CD Projekt RED',
+            'halo': '343 Industries',
+            'god of war': 'Santa Monica Studio',
+            'spider-man': 'Insomniac Games',
+            'zelda': 'Nintendo',
+            'mario': 'Nintendo',
+            'assassin\'s creed': 'Ubisoft',
+            'monster hunter': 'Capcom',
+            'call of duty': 'Activision'
+          }
+          
+          for (const [keyword, studio] of Object.entries(mappings)) {
+            if (title.includes(keyword)) {
+              creator = studio
+              break
+            }
+          }
+          
+          if (!creator) creator = 'Developer'
+        }
         break
 
       case 'movies':
-        creator = result.director || result.author || 'Unknown Director'
-        console.log('🎬 [SearchModal] Movie creator:', creator)
+        // ✅ PRIORITÉ: director > author
+        if (result.director && result.director !== 'Unknown Director' && result.director !== 'N/A' && result.director !== 'Unknown') {
+          creator = result.director
+        } else if (result.author && result.author !== 'Unknown Director' && result.author !== 'N/A' && result.author !== 'Unknown') {
+          creator = result.author
+        } else {
+          creator = 'Director'
+        }
         break
 
       case 'music':
-        creator = result.artist || result.author || 'Unknown Artist'
-        console.log('🎵 [SearchModal] Music creator:', creator)
+        // ✅ PRIORITÉ: artist > author
+        if (result.artist && result.artist !== 'Unknown Artist' && result.artist !== 'Unknown') {
+          creator = result.artist
+        } else if (result.author && result.author !== 'Unknown Artist' && result.author !== 'Unknown') {
+          creator = result.author
+        } else {
+          creator = 'Artist'
+        }
         break
 
       case 'books':
-        creator = result.author || 'Unknown Author'
-        console.log('📚 [SearchModal] Book creator:', creator)
+        // ✅ PRIORITÉ: author
+        if (result.author && result.author !== 'Unknown Author' && result.author !== 'Unknown') {
+          creator = result.author
+        } else {
+          creator = 'Author'
+        }
         break
 
       default:
-        creator = result.author || result.artist || result.director || result.developer || 'Unknown Creator'
-        console.log('❓ [SearchModal] Default creator:', creator)
+        creator = result.author || result.artist || result.director || result.developer || 'Creator'
         break
     }
 
@@ -141,7 +190,8 @@ export default function SearchModal({
         const converted = rawgService.convertToAppFormat(game)
         console.log('🎮 [SearchModal] Converted game:', {
           title: converted.title,
-          developer: converted.developer, // ✅ Plus "Unknown Developer"
+          developer: converted.developer,
+          author: converted.author,
           year: converted.year,
           hasImage: !!converted.image
         })
@@ -151,7 +201,7 @@ export default function SearchModal({
       console.log('✅ [SearchModal] Games search complete with developers:')
       convertedGames.slice(0, 8).forEach((game, i) => {
         const isRecent = game.year >= 2024 ? '🔥' : ''
-        console.log(`  ${i + 1}. ${game.title} by ${game.developer} (${game.year}) ${isRecent}`)
+        console.log(`  ${i + 1}. ${game.title} by ${game.developer || game.author} (${game.year}) ${isRecent}`)
       })
 
       return convertedGames
@@ -737,7 +787,7 @@ export default function SearchModal({
                 const isInLibrary = !!libraryItem
                 const isAdding = addingItem === result.id
                 const wasJustAdded = justAddedItems.has(result.id)
-                const creator = getCreator(result)
+                const creator = getCreator(result) // ✅ UTILISATION DE LA FONCTION CORRIGÉE
                 const isRecent = result.year >= new Date().getFullYear()
                 
                 return (
@@ -782,9 +832,9 @@ export default function SearchModal({
                           )}
                         </h3>
                         
-                        {/* Créateur complet sans truncate */}
+                        {/* ✅ CRÉATEUR AFFICHÉ CORRECTEMENT */}
                         <p className="text-gray-600 text-sm font-medium leading-tight" title={creator}>
-                          {creator}
+                          by {creator}
                         </p>
                       </div>
                       

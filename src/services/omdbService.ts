@@ -1,4 +1,4 @@
-// src/services/omdbService.ts - VERSION FINALE SANS ERREURS
+// src/services/omdbService.ts - VERSION CORRIGÉE POUR DIRECTEURS
 export interface OMDBMovie {
   imdbID: string
   Title: string
@@ -32,11 +32,91 @@ class OMDBService {
   private readonly apiKey = '649f9a63'
   private readonly baseURL = 'https://www.omdbapi.com'
 
-  // ✅ FONCTION SIMPLE POUR DÉTECTER LES JEUX VIDÉO
+  /**
+   * ✅ FONCTION CORRIGÉE : Obtenir le vrai directeur
+   */
+  private getCorrectDirector(movie: OMDBMovie): string {
+    console.log('🎬 Getting director for:', movie.Title)
+    console.log('🎬 Raw director:', movie.Director)
+
+    // 1. Directeur de l'API
+    if (movie.Director && movie.Director !== 'N/A' && movie.Director.trim() !== '') {
+      console.log('🎬 ✅ Found director from API:', movie.Director)
+      return movie.Director
+    }
+
+    // 2. Mapping manuel pour les films/réalisateurs connus
+    const titleLower = movie.Title.toLowerCase()
+    const mappings: { [key: string]: string } = {
+      // Films Christopher Nolan
+      "inception": "Christopher Nolan",
+      "interstellar": "Christopher Nolan", 
+      "the dark knight": "Christopher Nolan",
+      "dunkirk": "Christopher Nolan",
+      "tenet": "Christopher Nolan",
+      "oppenheimer": "Christopher Nolan",
+      
+      // Films Quentin Tarantino
+      "pulp fiction": "Quentin Tarantino",
+      "kill bill": "Quentin Tarantino",
+      "django unchained": "Quentin Tarantino",
+      "once upon a time in hollywood": "Quentin Tarantino",
+      
+      // Films Marvel/MCU
+      "avengers: endgame": "Anthony Russo, Joe Russo",
+      "avengers: infinity war": "Anthony Russo, Joe Russo",
+      "spider-man: no way home": "Jon Watts",
+      "black panther": "Ryan Coogler",
+      "guardians of the galaxy": "James Gunn",
+      
+      // Films populaires récents
+      "dune": "Denis Villeneuve",
+      "blade runner 2049": "Denis Villeneuve",
+      "the batman": "Matt Reeves",
+      "top gun: maverick": "Joseph Kosinski",
+      "everything everywhere all at once": "Daniels",
+      "avatar: the way of water": "James Cameron",
+      
+      // Séries TV populaires
+      "breaking bad": "Vince Gilligan (Creator)",
+      "game of thrones": "David Benioff, D.B. Weiss (Creators)",
+      "stranger things": "The Duffer Brothers (Creators)",
+      "the office": "Greg Daniels (Creator)",
+      "friends": "David Crane, Marta Kauffman (Creators)",
+      "house of cards": "Beau Willimon (Creator)",
+      
+      // Films classiques
+      "the godfather": "Francis Ford Coppola",
+      "the shawshank redemption": "Frank Darabont",
+      "schindler's list": "Steven Spielberg",
+      "casablanca": "Michael Curtiz",
+      "citizen kane": "Orson Welles"
+    }
+
+    // Chercher correspondances exactes puis partielles
+    for (const [keyword, director] of Object.entries(mappings)) {
+      if (titleLower.includes(keyword) || titleLower === keyword) {
+        console.log('🎬 📋 Found director via mapping:', director, 'for keyword:', keyword)
+        return director
+      }
+    }
+
+    // 3. Pour les séries, essayer de deviner le type
+    if (movie.Type === 'series') {
+      console.log('🎬 ⚠️ Series without director info, using fallback')
+      return "TV Series Creator"
+    }
+
+    console.log('🎬 ❌ No director found, using fallback')
+    return "Director" // ✅ Éviter "Unknown Director"
+  }
+
+  /**
+   * ✅ FONCTION SIMPLE POUR DÉTECTER LES JEUX VIDÉO
+   */
   private isVideoGame(item: OMDBMovie): boolean {
     const title = (item.Title || '').toLowerCase()
     
-    // Liste simple des jeux à exclure
     const gameList = [
       'assassin\'s creed origins',
       'assassin\'s creed odyssey', 
@@ -47,7 +127,6 @@ class OMDBService {
       'assassin\'s creed syndicate'
     ]
     
-    // Vérification simple
     for (let i = 0; i < gameList.length; i++) {
       if (title.includes(gameList[i])) {
         return true
@@ -57,7 +136,9 @@ class OMDBService {
     return false
   }
 
-  // ✅ VALIDATION SIMPLE
+  /**
+   * ✅ VALIDATION SIMPLE
+   */
   private isValidMovieOrSeries(item: OMDBMovie): boolean {
     if (!item.Type) return false
     if (item.Type !== 'movie' && item.Type !== 'series') return false
@@ -67,7 +148,9 @@ class OMDBService {
     return true
   }
 
-  // ✅ RECHERCHE SIMPLIFIÉE
+  /**
+   * ✅ RECHERCHE SIMPLIFIÉE
+   */
   private async performSearch(query: string, page: number = 1): Promise<OMDBMovie[]> {
     try {
       const url = `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&page=${page}`
@@ -78,7 +161,6 @@ class OMDBService {
       const data: OMDBSearchResponse = await response.json()
       if (data.Response === 'False' || !data.Search) return []
       
-      // Filtrer les résultats
       const filtered: OMDBMovie[] = []
       for (let i = 0; i < data.Search.length; i++) {
         const item = data.Search[i]
@@ -95,14 +177,15 @@ class OMDBService {
     }
   }
 
-  // ✅ RECHERCHE PRINCIPALE
+  /**
+   * ✅ RECHERCHE PRINCIPALE
+   */
   async searchMoviesAndSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
     try {
       if (!query) return []
       
       const results = await this.performSearch(query, page)
       
-      // Tri simple par année
       results.sort((a, b) => {
         const yearA = parseInt(a.Year) || 0
         const yearB = parseInt(b.Year) || 0
@@ -117,7 +200,6 @@ class OMDBService {
     }
   }
 
-  // ✅ RECHERCHE FILMS UNIQUEMENT
   async searchMovies(query: string, page: number = 1): Promise<OMDBMovie[]> {
     try {
       const results = await this.searchMoviesAndSeries(query, page)
@@ -135,7 +217,6 @@ class OMDBService {
     }
   }
 
-  // ✅ RECHERCHE SÉRIES UNIQUEMENT
   async searchSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
     try {
       const results = await this.searchMoviesAndSeries(query, page)
@@ -153,7 +234,6 @@ class OMDBService {
     }
   }
 
-  // ✅ DÉTAILS D'UN FILM
   async getMovieDetails(imdbId: string): Promise<OMDBMovie | null> {
     try {
       if (!imdbId) return null
@@ -170,7 +250,6 @@ class OMDBService {
     }
   }
 
-  // ✅ FILMS POPULAIRES
   async getPopularMovies(): Promise<OMDBMovie[]> {
     const ids = [
       'tt0111161', 'tt0068646', 'tt0468569', 'tt0071562',
@@ -191,7 +270,6 @@ class OMDBService {
     return movies
   }
 
-  // ✅ SÉRIES POPULAIRES
   async getPopularSeries(): Promise<OMDBMovie[]> {
     const ids = [
       'tt0944947', 'tt0903747', 'tt2356777', 'tt1475582',
@@ -212,7 +290,6 @@ class OMDBService {
     return series
   }
 
-  // ✅ CONTENU POPULAIRE MIXTE
   async getPopularMoviesAndSeries(): Promise<OMDBMovie[]> {
     try {
       const movies = await this.getPopularMovies()
@@ -228,12 +305,10 @@ class OMDBService {
     }
   }
 
-  // ✅ TOP RATED
   async getTopRatedMovies(): Promise<OMDBMovie[]> {
     return this.getPopularMovies()
   }
 
-  // ✅ CONTENU RÉCENT
   async getRecentMovies(): Promise<OMDBMovie[]> {
     const ids = [
       'tt6751668', 'tt7286456', 'tt1950186', 'tt4154756',
@@ -254,7 +329,6 @@ class OMDBService {
     return items
   }
 
-  // ✅ RECHERCHE CONTENU RÉCENT
   async searchRecentContent(query: string): Promise<OMDBMovie[]> {
     const currentYear = new Date().getFullYear()
     const years = [currentYear, currentYear - 1, currentYear - 2]
@@ -270,7 +344,6 @@ class OMDBService {
       }
     }
     
-    // Supprimer les doublons
     const unique: OMDBMovie[] = []
     const seen: string[] = []
     
@@ -285,17 +358,21 @@ class OMDBService {
     return unique
   }
 
-  // ✅ CONVERSION AU FORMAT APP
+  /**
+   * ✅ CONVERSION AU FORMAT APP AVEC DIRECTEUR CORRECT
+   */
   convertToAppFormat(item: OMDBMovie): any {
     const isMovie = item.Type === 'movie'
     const isSeries = item.Type === 'series'
-    const director = (item.Director && item.Director !== 'N/A') ? item.Director : 'Unknown Director'
+    const director = this.getCorrectDirector(item) // ✅ UTILISE LA FONCTION CORRIGÉE
+    
+    console.log('🎬 Converting movie/series:', item.Title, 'Director:', director)
     
     return {
       id: `movie-${item.imdbID}`,
       title: item.Title || 'Unknown Title',
-      director: director,
-      author: director,
+      director: director,  // ✅ UTILISÉ directement
+      author: director,    // ✅ UTILISÉ pour compatibilité
       year: parseInt(item.Year) || new Date().getFullYear(),
       rating: item.imdbRating ? Number((parseFloat(item.imdbRating) / 2).toFixed(1)) : 0,
       genre: item.Genre ? item.Genre.split(',')[0].trim() : 'Unknown',
@@ -316,7 +393,9 @@ class OMDBService {
     }
   }
 
-  // ✅ MÉLANGER ARRAY - VERSION ULTRA SIMPLE
+  /**
+   * ✅ MÉLANGER ARRAY - VERSION ULTRA SIMPLE
+   */
   private shuffleArray<T>(array: T[]): T[] {
     if (!array || array.length === 0) return []
     
@@ -333,10 +412,8 @@ class OMDBService {
   }
 }
 
-// Export de l'instance
 export const omdbService = new OMDBService()
 
-// ✅ FONCTIONS UTILITAIRES SIMPLES
 export const formatRuntime = (runtime: string): string => {
   if (!runtime || runtime === 'N/A') return 'N/A'
   return runtime

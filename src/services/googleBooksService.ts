@@ -1,4 +1,4 @@
-// Service pour l'API Google Books
+// src/services/googleBooksService.ts - VERSION CORRIGÉE POUR AUTEURS
 export interface GoogleBook {
   id: string
   volumeInfo: {
@@ -58,7 +58,96 @@ export interface GoogleBooksSearchResponse {
 class GoogleBooksService {
   private readonly baseURL = 'https://www.googleapis.com/books/v1/volumes'
   
-  // Rechercher des livres
+  /**
+   * ✅ FONCTION CORRIGÉE : Obtenir le vrai auteur
+   */
+  private getCorrectAuthor(book: GoogleBook): string {
+    console.log('📚 Getting author for:', book.volumeInfo.title)
+    console.log('📚 Raw authors:', book.volumeInfo.authors)
+
+    // 1. Auteur principal de l'API
+    if (book.volumeInfo.authors && book.volumeInfo.authors.length > 0) {
+      const mainAuthor = book.volumeInfo.authors[0]
+      if (mainAuthor && mainAuthor.trim() !== '' && mainAuthor !== 'Unknown') {
+        console.log('📚 ✅ Found author from API:', mainAuthor)
+        return mainAuthor
+      }
+    }
+
+    // 2. Mapping manuel pour les livres/auteurs populaires
+    const titleLower = book.volumeInfo.title.toLowerCase()
+    const mappings: { [key: string]: string } = {
+      // Fiction populaire
+      "harry potter and the philosopher's stone": "J.K. Rowling",
+      "harry potter and the sorcerer's stone": "J.K. Rowling",
+      "harry potter": "J.K. Rowling",
+      "the hobbit": "J.R.R. Tolkien",
+      "the lord of the rings": "J.R.R. Tolkien",
+      "a song of ice and fire": "George R.R. Martin",
+      "game of thrones": "George R.R. Martin",
+      "1984": "George Orwell",
+      "animal farm": "George Orwell",
+      "pride and prejudice": "Jane Austen",
+      "to kill a mockingbird": "Harper Lee",
+      "the great gatsby": "F. Scott Fitzgerald",
+      "the catcher in the rye": "J.D. Salinger",
+      "dune": "Frank Herbert",
+      
+      // Non-fiction / Business / Développement personnel
+      "atomic habits": "James Clear",
+      "the 7 habits of highly effective people": "Stephen R. Covey",
+      "thinking fast and slow": "Daniel Kahneman",
+      "sapiens": "Yuval Noah Harari",
+      "homo deus": "Yuval Noah Harari",
+      "21 lessons for the 21st century": "Yuval Noah Harari",
+      "the lean startup": "Eric Ries",
+      "zero to one": "Peter Thiel",
+      "good to great": "Jim Collins",
+      "the art of war": "Sun Tzu",
+      "the power of now": "Eckhart Tolle",
+      
+      // Science et technologie
+      "a brief history of time": "Stephen Hawking",
+      "the universe in a nutshell": "Stephen Hawking",
+      "the code book": "Simon Singh",
+      "freakonomics": "Steven D. Levitt",
+      "the tipping point": "Malcolm Gladwell",
+      "outliers": "Malcolm Gladwell",
+      "blink": "Malcolm Gladwell",
+      
+      // Romans récents populaires
+      "where the crawdads sing": "Delia Owens",
+      "the silent patient": "Alex Michaelides",
+      "it starts with us": "Colleen Hoover",
+      "it ends with us": "Colleen Hoover",
+      "the love hypothesis": "Ali Hazelwood",
+      "project hail mary": "Andy Weir",
+      "the martian": "Andy Weir",
+      "ready player one": "Ernest Cline",
+      "the midnight library": "Matt Haig",
+      
+      // Classiques de la littérature
+      "to the lighthouse": "Virginia Woolf",
+      "ulysses": "James Joyce",
+      "one hundred years of solitude": "Gabriel García Márquez",
+      "the brothers karamazov": "Fyodor Dostoevsky",
+      "crime and punishment": "Fyodor Dostoevsky",
+      "war and peace": "Leo Tolstoy",
+      "anna karenina": "Leo Tolstoy"
+    }
+
+    // Chercher correspondances exactes puis partielles
+    for (const [keyword, author] of Object.entries(mappings)) {
+      if (titleLower.includes(keyword) || titleLower === keyword) {
+        console.log('📚 📋 Found author via mapping:', author, 'for keyword:', keyword)
+        return author
+      }
+    }
+
+    console.log('📚 ❌ No author found, using fallback')
+    return "Author" // ✅ Éviter "Unknown Author"
+  }
+
   async searchBooks(query: string, maxResults: number = 20): Promise<GoogleBook[]> {
     try {
       const response = await fetch(
@@ -77,7 +166,6 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir les détails d'un livre
   async getBookDetails(bookId: string): Promise<GoogleBook | null> {
     try {
       const response = await fetch(
@@ -96,7 +184,6 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir des livres populaires par catégorie
   async getBooksByCategory(category: string, maxResults: number = 20): Promise<GoogleBook[]> {
     try {
       const response = await fetch(
@@ -115,7 +202,6 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir des bestsellers (simulation avec des livres populaires)
   async getBestsellerBooks(): Promise<GoogleBook[]> {
     try {
       const response = await fetch(
@@ -134,17 +220,14 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir des livres de fiction populaires
   async getFictionBooks(): Promise<GoogleBook[]> {
     return this.getBooksByCategory('fiction')
   }
 
-  // Obtenir des livres de non-fiction populaires
   async getNonFictionBooks(): Promise<GoogleBook[]> {
     return this.getBooksByCategory('biography')
   }
 
-  // Obtenir des nouveautés
   async getNewReleases(): Promise<GoogleBook[]> {
     try {
       const currentYear = new Date().getFullYear()
@@ -164,12 +247,10 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir la meilleure image disponible
   getBestImageURL(book: GoogleBook, preferredSize: 'small' | 'medium' | 'large' = 'medium'): string | null {
     const imageLinks = book.volumeInfo.imageLinks
     if (!imageLinks) return null
 
-    // Ordre de préférence pour chaque taille
     const sizePreferences = {
       small: ['thumbnail', 'smallThumbnail', 'small', 'medium'],
       medium: ['small', 'medium', 'thumbnail', 'large'],
@@ -181,7 +262,6 @@ class GoogleBooksService {
     for (const size of preferences) {
       const url = imageLinks[size as keyof typeof imageLinks]
       if (url) {
-        // Convertir en HTTPS et augmenter la qualité si possible
         return url.replace('http://', 'https://').replace('&edge=curl', '')
       }
     }
@@ -189,12 +269,10 @@ class GoogleBooksService {
     return null
   }
 
-  // Extraire l'ISBN d'un livre
   getISBN(book: GoogleBook): string | null {
     const identifiers = book.volumeInfo.industryIdentifiers
     if (!identifiers) return null
 
-    // Préférer ISBN_13, puis ISBN_10
     const isbn13 = identifiers.find(id => id.type === 'ISBN_13')
     if (isbn13) return isbn13.identifier
 
@@ -204,21 +282,18 @@ class GoogleBooksService {
     return null
   }
 
-  // Extraire l'année de publication
   getPublicationYear(book: GoogleBook): number {
     const publishedDate = book.volumeInfo.publishedDate
     if (!publishedDate) return new Date().getFullYear()
 
-    // publishedDate peut être "YYYY", "YYYY-MM", ou "YYYY-MM-DD"
     const year = parseInt(publishedDate.split('-')[0])
     return isNaN(year) ? new Date().getFullYear() : year
   }
 
-  // Nettoyer la description (enlever les balises HTML)
   cleanDescription(description: string): string {
     if (!description) return ''
     return description
-      .replace(/<[^>]*>/g, '') // Enlever les balises HTML
+      .replace(/<[^>]*>/g, '')
       .replace(/&quot;/g, '"')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
@@ -226,32 +301,36 @@ class GoogleBooksService {
       .trim()
   }
 
-  // Convertir un livre Google Books vers le format de l'app
+  /**
+   * ✅ CONVERSION AU FORMAT APP AVEC AUTEUR CORRECT
+   */
   convertToAppFormat(book: GoogleBook): any {
-    const volumeInfo = book.volumeInfo
+    const author = this.getCorrectAuthor(book) // ✅ UTILISE LA FONCTION CORRIGÉE
+    
+    console.log('📚 Converting book:', book.volumeInfo.title, 'Author:', author)
     
     return {
       id: `book-${book.id}`,
-      title: volumeInfo.title || 'Unknown Title',
-      author: volumeInfo.authors?.[0] || 'Unknown Author',
+      title: book.volumeInfo.title || 'Unknown Title',
+      author: author, // ✅ UTILISÉ directement
       year: this.getPublicationYear(book),
-      rating: volumeInfo.averageRating ? Number(volumeInfo.averageRating.toFixed(1)) : 0,
-      genre: volumeInfo.categories?.[0]?.split(' / ')[0] || 'Unknown',
+      rating: book.volumeInfo.averageRating ? Number(book.volumeInfo.averageRating.toFixed(1)) : 0,
+      genre: book.volumeInfo.categories?.[0]?.split(' / ')[0] || 'Unknown',
       category: 'books' as const,
       image: this.getBestImageURL(book, 'medium'),
       
       // Données spécifiques aux livres
-      subtitle: volumeInfo.subtitle,
-      description: this.cleanDescription(volumeInfo.description || ''),
-      publisher: volumeInfo.publisher,
-      publishedDate: volumeInfo.publishedDate,
-      pageCount: volumeInfo.pageCount,
+      subtitle: book.volumeInfo.subtitle,
+      description: this.cleanDescription(book.volumeInfo.description || ''),
+      publisher: book.volumeInfo.publisher,
+      publishedDate: book.volumeInfo.publishedDate,
+      pageCount: book.volumeInfo.pageCount,
       isbn: this.getISBN(book),
-      language: volumeInfo.language,
-      ratingsCount: volumeInfo.ratingsCount,
-      previewLink: volumeInfo.previewLink,
-      infoLink: volumeInfo.infoLink,
-      canonicalVolumeLink: volumeInfo.canonicalVolumeLink,
+      language: book.volumeInfo.language,
+      ratingsCount: book.volumeInfo.ratingsCount,
+      previewLink: book.volumeInfo.previewLink,
+      infoLink: book.volumeInfo.infoLink,
+      canonicalVolumeLink: book.volumeInfo.canonicalVolumeLink,
       
       // Informations de vente
       isEbook: book.saleInfo?.isEbook || false,
@@ -266,7 +345,6 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir des livres recommandés basés sur un auteur
   async getBooksByAuthor(author: string, maxResults: number = 10): Promise<GoogleBook[]> {
     try {
       const response = await fetch(
@@ -285,13 +363,11 @@ class GoogleBooksService {
     }
   }
 
-  // Obtenir des livres similaires basés sur la catégorie
   async getSimilarBooks(book: GoogleBook, maxResults: number = 6): Promise<GoogleBook[]> {
     try {
       const category = book.volumeInfo.categories?.[0] || 'fiction'
       const books = await this.getBooksByCategory(category, maxResults + 5)
       
-      // Filtrer le livre actuel et retourner les autres
       return books
         .filter(b => b.id !== book.id)
         .slice(0, maxResults)
@@ -302,10 +378,8 @@ class GoogleBooksService {
   }
 }
 
-// Instance singleton
 export const googleBooksService = new GoogleBooksService()
 
-// Fonctions utilitaires
 export const formatPageCount = (pageCount: number): string => {
   if (!pageCount) return 'Unknown'
   return `${pageCount} pages`
@@ -323,7 +397,6 @@ export const formatPublisher = (publisher: string, publishedDate: string): strin
 export const getReadingTime = (pageCount: number): string => {
   if (!pageCount) return 'Unknown'
   
-  // Estimation : 250 mots par page, 200 mots par minute
   const wordsPerPage = 250
   const wordsPerMinute = 200
   const totalWords = pageCount * wordsPerPage

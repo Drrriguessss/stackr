@@ -17,6 +17,7 @@ interface LibraryItem {
   author?: string
   artist?: string
   director?: string
+  developer?: string  // ✅ AJOUTÉ
   status: MediaStatus
   addedAt: string
   dateStarted?: string
@@ -46,6 +47,176 @@ interface LibrarySectionProps {
   onOpenBookDetail?: (bookId: string) => void
   onOpenMusicDetail?: (musicId: string) => void
   onOpenSearch?: () => void
+}
+
+// ✅ FONCTION getCreator UNIFIÉE ET CORRIGÉE
+const getCreator = (item: LibraryItem): string => {
+  console.log('📚 [LibrarySection] Getting creator for:', item.title, 'Category:', item.category)
+  console.log('📚 [LibrarySection] Available fields:', {
+    author: item.author,
+    artist: item.artist, 
+    director: item.director,
+    developer: item.developer
+  })
+
+  let creator = ''
+
+  switch (item.category) {
+    case 'games':
+      // ✅ PRIORITÉ: developer > author > mapping manuel
+      if (item.developer && item.developer !== 'Unknown Developer' && item.developer !== 'Developer' && item.developer !== 'Unknown') {
+        creator = item.developer
+      } else if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Developer' && item.author !== 'Unknown') {
+        creator = item.author
+      } else {
+        // Mapping de secours basé sur le titre
+        const title = item.title?.toLowerCase() || ''
+        const mappings = {
+          'ori and the': 'Moon Studios',
+          'last of us': 'Naughty Dog', 
+          'cyberpunk': 'CD Projekt RED',
+          'witcher': 'CD Projekt RED',
+          'halo': '343 Industries',
+          'god of war': 'Santa Monica Studio',
+          'spider-man': 'Insomniac Games',
+          'zelda': 'Nintendo',
+          'mario': 'Nintendo',
+          'assassin\'s creed': 'Ubisoft',
+          'monster hunter': 'Capcom',
+          'call of duty': 'Activision',
+          'blue prince': 'Remedy Entertainment'
+        }
+        
+        for (const [keyword, studio] of Object.entries(mappings)) {
+          if (title.includes(keyword)) {
+            creator = studio
+            break
+          }
+        }
+        
+        if (!creator) creator = 'Developer'
+      }
+      break
+
+    case 'movies':
+      // ✅ PRIORITÉ: director > author
+      if (item.director && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
+        creator = item.director
+      } else if (item.author && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
+        creator = item.author
+      } else {
+        // Mapping de secours basé sur le titre
+        const title = item.title?.toLowerCase() || ''
+        const mappings = {
+          'inception': 'Christopher Nolan',
+          'interstellar': 'Christopher Nolan', 
+          'dark knight': 'Christopher Nolan',
+          'dunkirk': 'Christopher Nolan',
+          'tenet': 'Christopher Nolan',
+          'oppenheimer': 'Christopher Nolan',
+          'pulp fiction': 'Quentin Tarantino',
+          'kill bill': 'Quentin Tarantino',
+          'django unchained': 'Quentin Tarantino',
+          'avengers': 'Russo Brothers',
+          'spider-man': 'Jon Watts',
+          'black panther': 'Ryan Coogler',
+          'dune': 'Denis Villeneuve',
+          'blade runner 2049': 'Denis Villeneuve',
+          'the batman': 'Matt Reeves',
+          'top gun': 'Joseph Kosinski',
+          'godfather': 'Francis Ford Coppola',
+          'shawshank': 'Frank Darabont'
+        }
+        
+        for (const [keyword, director] of Object.entries(mappings)) {
+          if (title.includes(keyword)) {
+            creator = director
+            break
+          }
+        }
+        
+        if (!creator) creator = 'Director'
+      }
+      break
+
+    case 'music':
+      // ✅ PRIORITÉ: artist > author
+      if (item.artist && item.artist !== 'Unknown Artist' && item.artist !== 'Unknown') {
+        creator = item.artist
+      } else if (item.author && item.author !== 'Unknown Artist' && item.author !== 'Unknown') {
+        creator = item.author
+      } else {
+        // Mapping de secours basé sur le titre d'album
+        const title = item.title?.toLowerCase() || ''
+        const mappings = {
+          'abbey road': 'The Beatles',
+          'thriller': 'Michael Jackson',
+          'folklore': 'Taylor Swift',
+          'after hours': 'The Weeknd',
+          'good kid': 'Kendrick Lamar',
+          'random access memories': 'Daft Punk',
+          'blonde': 'Frank Ocean',
+          'nevermind': 'Nirvana',
+          'ok computer': 'Radiohead',
+          'dark side': 'Pink Floyd',
+          'what\'s going on': 'Marvin Gaye',
+          'kind of blue': 'Miles Davis'
+        }
+        
+        for (const [keyword, artist] of Object.entries(mappings)) {
+          if (title.includes(keyword)) {
+            creator = artist
+            break
+          }
+        }
+        
+        if (!creator) creator = 'Artist'
+      }
+      break
+
+    case 'books':
+      // ✅ PRIORITÉ: author
+      if (item.author && item.author !== 'Unknown Author' && item.author !== 'Unknown') {
+        creator = item.author
+      } else {
+        // Mapping de secours basé sur le titre
+        const title = item.title?.toLowerCase() || ''
+        const mappings = {
+          'harry potter': 'J.K. Rowling',
+          'hobbit': 'J.R.R. Tolkien',
+          'lord of the rings': 'J.R.R. Tolkien',
+          'game of thrones': 'George R.R. Martin',
+          '1984': 'George Orwell',
+          'animal farm': 'George Orwell',
+          'pride and prejudice': 'Jane Austen',
+          'mockingbird': 'Harper Lee',
+          'great gatsby': 'F. Scott Fitzgerald',
+          'dune': 'Frank Herbert',
+          'atomic habits': 'James Clear',
+          'sapiens': 'Yuval Noah Harari',
+          'brief history': 'Stephen Hawking',
+          'crawdads': 'Delia Owens',
+          'silent patient': 'Alex Michaelides'
+        }
+        
+        for (const [keyword, author] of Object.entries(mappings)) {
+          if (title.includes(keyword)) {
+            creator = author
+            break
+          }
+        }
+        
+        if (!creator) creator = 'Author'
+      }
+      break
+
+    default:
+      creator = item.author || item.artist || item.director || item.developer || 'Creator'
+      break
+  }
+
+  console.log('✅ [LibrarySection] Final creator for', item.title, ':', creator)
+  return creator
 }
 
 // Sample data
@@ -83,6 +254,7 @@ const sampleLibrary: LibraryItem[] = [
   {
     id: '3',
     title: 'Ori and the Will of the Wisps',
+    developer: 'Moon Studios',  // ✅ AJOUTÉ
     author: 'Moon Studios',
     year: 2020,
     rating: 4.8,
@@ -105,6 +277,7 @@ const sampleLibrary: LibraryItem[] = [
   {
     id: '4',
     title: 'The Last of Us Part II',
+    developer: 'Naughty Dog',  // ✅ AJOUTÉ
     author: 'Naughty Dog',
     year: 2020,
     rating: 4.6,
@@ -166,6 +339,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
           item.author,
           item.artist,
           item.director,
+          item.developer,  // ✅ AJOUTÉ
           item.genre
         ].filter(Boolean).join(' ').toLowerCase()
         
@@ -191,8 +365,9 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
         case 'title':
           return a.title.localeCompare(b.title)
         case 'creator':
-          const aCreator = a.author || a.artist || a.director || ''
-          const bCreator = b.author || b.artist || b.director || ''
+          // ✅ UTILISE LA FONCTION getCreator UNIFIÉE
+          const aCreator = getCreator(a)
+          const bCreator = getCreator(b)
           return aCreator.localeCompare(bCreator)
         case 'average_rating':
           return (b.rating || 0) - (a.rating || 0)
@@ -299,63 +474,10 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     })
   }
 
-  // ✅ FONCTION getCreator CORRIGÉE - FIX des erreurs TypeScript
-  const getCreator = (item: LibraryItem) => {
-    let creator = 'Unknown Creator'
-
-    switch (item.category) {
-      case 'games':
-        // Pour les jeux, éviter "Unknown Developer"
-        if (item.author && item.author.trim() !== '' && item.author !== 'Unknown Developer' && item.author !== 'Unknown') {
-          creator = item.author
-        } else {
-          // Mapping manuel pour les studios connus basé sur le titre
-          const title = item.title?.toLowerCase() || '' // ✅ FIX: Vérifier si title existe
-          if (title.includes('blue prince')) creator = 'Remedy Entertainment'
-          else if (title.includes('ori and the will')) creator = 'Moon Studios'
-          else if (title.includes('last of us')) creator = 'Naughty Dog'
-          else if (title.includes('cyberpunk')) creator = 'CD Projekt RED'
-          else if (title.includes('witcher')) creator = 'CD Projekt RED'
-          else if (title.includes('halo')) creator = '343 Industries'
-          else if (title.includes('god of war')) creator = 'Santa Monica Studio'
-          else if (title.includes('spider-man')) creator = 'Insomniac Games'
-          else creator = 'Developer'
-        }
-        break
-
-      case 'movies':
-        // Pour les films, éviter "Unknown Director" et "N/A"
-        if (item.director && item.director.trim() !== '' && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
-          creator = item.director
-        } else if (item.author && item.author.trim() !== '' && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
-          creator = item.author
-        } else {
-          creator = 'Director'
-        }
-        break
-
-      case 'music':
-        // Pour la musique (déjà bien)
-        creator = item.artist || item.author || 'Artist'
-        break
-
-      case 'books':
-        // Pour les livres (déjà bien)
-        creator = item.author || 'Author'
-        break
-
-      default:
-        creator = item.author || item.artist || item.director || 'Creator'
-        break
-    }
-
-    return creator
-  }
-
   // ✅ FONCTIONS DE NAVIGATION VERS LES FICHES PRODUITS
   const handleItemClick = (item: LibraryItem) => {
     // Nettoyer l'ID pour retirer les préfixes
-    const cleanId = item.id?.replace(/^(game-|movie-|music-|book-)/, '') || '' // ✅ FIX: Vérifier si id existe
+    const cleanId = item.id?.replace(/^(game-|movie-|music-|book-)/, '') || ''
     
     switch (item.category) {
       case 'games':

@@ -1,4 +1,4 @@
-// src/services/rawgService.ts - CORRIGÉ: Développeurs + Jeux récents 2025
+// src/services/rawgService.ts - VERSION CORRIGÉE POUR DÉVELOPPEURS
 export interface RAWGGame {
   id: number
   name: string
@@ -32,8 +32,94 @@ class RAWGService {
   private readonly baseURL = 'https://api.rawg.io/api'
 
   /**
-   * 🎯 RECHERCHE AMÉLIORÉE avec jeux 2025 inclus
+   * ✅ FONCTION CORRIGÉE : Obtenir le vrai développeur
    */
+  private getCorrectDeveloper(game: RAWGGame): string {
+    console.log('🎮 Getting developer for:', game.name)
+    console.log('🎮 Raw developers:', game.developers)
+    console.log('🎮 Raw publishers:', game.publishers)
+
+    // 1. Développeur principal de l'API
+    if (game.developers && game.developers.length > 0) {
+      const mainDev = game.developers[0].name
+      if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && !mainDev.includes('undefined')) {
+        console.log('🎮 ✅ Found developer from API:', mainDev)
+        return mainDev
+      }
+    }
+
+    // 2. Publisher en second recours (mais marquer comme tel)
+    if (game.publishers && game.publishers.length > 0) {
+      const mainPub = game.publishers[0].name
+      if (mainPub && mainPub.trim() !== '' && mainPub !== 'Unknown' && !mainPub.includes('undefined')) {
+        console.log('🎮 ⚠️ Using publisher as developer:', mainPub)
+        return mainPub  // On peut retirer "(Publisher)" pour simplifier
+      }
+    }
+
+    // 3. Mapping manuel pour les gros studios connus
+    const gameNameLower = game.name.toLowerCase()
+    const mappings: { [key: string]: string } = {
+      "assassin's creed origins": "Ubisoft Montreal",
+      "assassin's creed odyssey": "Ubisoft Quebec", 
+      "assassin's creed valhalla": "Ubisoft Montreal",
+      "assassin's creed": "Ubisoft",
+      "monster hunter world": "Capcom",
+      "monster hunter rise": "Capcom",
+      "monster hunter": "Capcom",
+      "call of duty modern warfare": "Infinity Ward",
+      "call of duty black ops": "Treyarch",
+      "call of duty": "Activision",
+      "the witcher 3": "CD Projekt RED",
+      "the witcher": "CD Projekt RED",
+      "cyberpunk 2077": "CD Projekt RED",
+      "cyberpunk": "CD Projekt RED",
+      "elder scrolls v": "Bethesda Game Studios",
+      "elder scrolls": "Bethesda Game Studios",
+      "fallout 4": "Bethesda Game Studios",
+      "fallout": "Bethesda Game Studios",
+      "halo infinite": "343 Industries",
+      "halo": "343 Industries",
+      "god of war": "Santa Monica Studio",
+      "spider-man": "Insomniac Games",
+      "marvel's spider-man": "Insomniac Games",
+      "zelda breath of the wild": "Nintendo EPD",
+      "zelda tears of the kingdom": "Nintendo EPD", 
+      "zelda": "Nintendo",
+      "mario": "Nintendo",
+      "ori and the will of the wisps": "Moon Studios",
+      "ori and the blind forest": "Moon Studios",
+      "ori and the": "Moon Studios",
+      "the last of us part ii": "Naughty Dog",
+      "the last of us": "Naughty Dog",
+      "last of us": "Naughty Dog",
+      "uncharted": "Naughty Dog",
+      "horizon zero dawn": "Guerrilla Games",
+      "horizon forbidden west": "Guerrilla Games",
+      "horizon": "Guerrilla Games",
+      "ghost of tsushima": "Sucker Punch Productions",
+      "baldur's gate 3": "Larian Studios",
+      "elden ring": "FromSoftware",
+      "dark souls": "FromSoftware",
+      "sekiro": "FromSoftware",
+      "bloodborne": "FromSoftware",
+      "grand theft auto v": "Rockstar North",
+      "grand theft auto": "Rockstar Games",
+      "red dead redemption": "Rockstar Games"
+    }
+
+    // Chercher d'abord les correspondances exactes, puis partielles
+    for (const [keyword, studio] of Object.entries(mappings)) {
+      if (gameNameLower.includes(keyword)) {
+        console.log('🎮 📋 Found developer via mapping:', studio, 'for keyword:', keyword)
+        return studio
+      }
+    }
+
+    console.log('🎮 ❌ No developer found, using fallback')
+    return "Developer" // ✅ Éviter "Unknown Developer"
+  }
+
   async searchGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
     console.log('🎮 Enhanced search for:', query)
     
@@ -43,7 +129,6 @@ class RAWGService {
     }
 
     try {
-      // ✅ INCLURE LES JEUX 2025 et futurs avec dates étendues
       const currentYear = new Date().getFullYear()
       const nextYear = currentYear + 1
       
@@ -51,8 +136,8 @@ class RAWGService {
         key: this.apiKey,
         search: query,
         page_size: '20',
-        dates: `2000-01-01,${nextYear}-12-31`, // ✅ Inclure 2025 et futurs
-        ordering: '-relevance' // Pertinence d'abord
+        dates: `2000-01-01,${nextYear}-12-31`,
+        ordering: '-relevance'
       }).toString()
 
       console.log('🎮 Enhanced URL with 2025 games:', url)
@@ -90,61 +175,11 @@ class RAWGService {
     }
   }
 
-  /**
-   * 🛠️ CORRECTION: Obtenir le vrai développeur (pas "Unknown Developer")
-   */
-  private getCorrectDeveloper(game: RAWGGame): string {
-    // ✅ 1. Développeur principal
-    if (game.developers && game.developers.length > 0) {
-      const mainDev = game.developers[0].name
-      if (mainDev && mainDev.trim() !== '') {
-        return mainDev
-      }
-    }
-
-    // ✅ 2. Publisher en second recours
-    if (game.publishers && game.publishers.length > 0) {
-      const mainPub = game.publishers[0].name
-      if (mainPub && mainPub.trim() !== '') {
-        return `${mainPub} (Publisher)`
-      }
-    }
-
-    // ✅ 3. Mapping manuel pour les gros studios connus
-    const gameNameLower = game.name.toLowerCase()
-    
-    if (gameNameLower.includes("assassin's creed")) {
-      return "Ubisoft"
-    }
-    if (gameNameLower.includes("monster hunter")) {
-      return "Capcom"
-    }
-    if (gameNameLower.includes("call of duty")) {
-      return "Activision"
-    }
-    if (gameNameLower.includes("the witcher")) {
-      return "CD Projekt RED"
-    }
-    if (gameNameLower.includes("cyberpunk")) {
-      return "CD Projekt RED"
-    }
-    if (gameNameLower.includes("elder scrolls") || gameNameLower.includes("fallout")) {
-      return "Bethesda"
-    }
-
-    return "Unknown Developer"
-  }
-
-  /**
-   * 🔄 RECHERCHE SUPPLÉMENTAIRE pour les jeux récents manqués
-   */
   async searchWithRecentGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
     console.log('🎮 Searching with recent games priority for:', query)
     
-    // ✅ Recherche normale d'abord
     const normalResults = await this.searchGames(query, maxResults)
     
-    // ✅ Recherche spécifique pour 2025 si peu de résultats récents
     const recentGames = normalResults.filter(game => {
       if (!game.released) return false
       const year = new Date(game.released).getFullYear()
@@ -153,7 +188,6 @@ class RAWGService {
 
     console.log(`🎮 Found ${recentGames.length} recent games (2024+) in normal search`)
 
-    // Si pas assez de jeux récents, faire une recherche spécifique 2025
     if (recentGames.length < 2) {
       console.log('🎮 Searching specifically for 2025 games...')
       
@@ -162,8 +196,8 @@ class RAWGService {
           key: this.apiKey,
           search: query,
           page_size: '10',
-          dates: '2024-01-01,2026-12-31', // ✅ Focus sur 2024-2026
-          ordering: '-released' // Plus récents d'abord
+          dates: '2024-01-01,2026-12-31',
+          ordering: '-released'
         }).toString()
 
         const recentResponse = await fetch(recentUrl)
@@ -173,13 +207,12 @@ class RAWGService {
           console.log(`🎮 Found ${recentData.results?.length || 0} additional recent games`)
           
           if (recentData.results && recentData.results.length > 0) {
-            // ✅ Combiner et dédupliquer
             const combinedResults = [...normalResults]
             const existingIds = new Set(normalResults.map(g => g.id))
             
             recentData.results.forEach((game: RAWGGame) => {
               if (!existingIds.has(game.id)) {
-                combinedResults.unshift(game) // Ajouter au début
+                combinedResults.unshift(game)
                 console.log(`🎮 ➕ Added recent game: ${game.name} (${game.released ? new Date(game.released).getFullYear() : 'TBA'})`)
               }
             })
@@ -225,7 +258,6 @@ class RAWGService {
 
   async getPopularGames(): Promise<RAWGGame[]> {
     try {
-      // ✅ Inclure les jeux récents dans les populaires
       const response = await fetch(
         `${this.baseURL}/games?key=${this.apiKey}&ordering=-rating&page_size=8&dates=2020-01-01,2026-12-31`
       )
@@ -258,7 +290,6 @@ class RAWGService {
 
   async getNewReleases(): Promise<RAWGGame[]> {
     try {
-      // ✅ Nouvelles sorties incluant 2025
       const currentYear = new Date().getFullYear()
       const response = await fetch(
         `${this.baseURL}/games?key=${this.apiKey}&ordering=-released&page_size=8&dates=${currentYear}-01-01,${currentYear + 1}-12-31`
@@ -291,17 +322,19 @@ class RAWGService {
   }
 
   /**
-   * ✅ CONVERSION avec développeur correct
+   * ✅ CONVERSION AVEC DÉVELOPPEUR CORRECT
    */
   convertToAppFormat(game: RAWGGame): any {
     const developer = this.getCorrectDeveloper(game)
+    
+    console.log('🎮 Converting game:', game.name, 'Developer:', developer)
     
     return {
       id: `game-${game.id}`,
       title: game.name,
       name: game.name,
-      author: developer,
-      developer: developer,
+      author: developer,      // ✅ UTILISÉ pour compatibilité
+      developer: developer,   // ✅ UTILISÉ spécifiquement pour les jeux
       year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
       rating: game.rating || 0,
       genre: game.genres?.[0]?.name || 'Unknown',
@@ -331,9 +364,3 @@ class RAWGService {
 }
 
 export const rawgService = new RAWGService()
-
-// ✅ UTILISER LA MÉTHODE AMÉLIORÉE DANS SearchModal
-// Dans SearchModal.tsx, remplacer :
-// const games = await rawgService.searchGames(query, 20)
-// Par :
-// const games = await rawgService.searchWithRecentGames(query, 20)
