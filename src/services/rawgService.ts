@@ -32,7 +32,7 @@ class RAWGService {
   private readonly baseURL = 'https://api.rawg.io/api'
 
   /**
-   * 🎯 RECHERCHE SIMPLIFIÉE - UN SEUL APPEL API COMME LES AUTRES SERVICES
+   * 🎯 RECHERCHE ULTRA-SIMPLIFIÉE - FAIRE CONFIANCE À L'API COMME LES AUTRES
    */
   async searchGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
     if (!query || query.trim().length < 2) {
@@ -40,15 +40,15 @@ class RAWGService {
     }
 
     const cleanQuery = query.trim()
-    console.log('🎮 [RAWG] Simple search for:', cleanQuery)
+    console.log('🎮 [RAWG] Ultra-simple search for:', cleanQuery)
 
     try {
-      // ✅ UN SEUL APPEL API - comme OMDB, Books et Music
+      // ✅ FAIRE CONFIANCE À L'API - comme OMDB/Books/Music
       const url = `${this.baseURL}/games?` + new URLSearchParams({
         key: this.apiKey,
         search: cleanQuery,
-        page_size: Math.min(maxResults * 2, 40).toString(), // Un peu plus pour avoir du choix
-        ordering: '-relevance,-released' // Pertinence puis récence
+        page_size: Math.min(maxResults * 1.5, 30).toString(), // Un peu plus pour du choix
+        ordering: '-relevance,-released' // L'API fait le travail de pertinence !
       }).toString()
 
       const response = await fetch(url, {
@@ -65,29 +65,28 @@ class RAWGService {
       const data: RAWGSearchResponse = await response.json()
       const games = data.results || []
 
-      console.log(`🎮 [RAWG] API returned ${games.length} games`)
+      console.log(`🎮 [RAWG] API returned ${games.length} games (pre-sorted by relevance)`)
 
       if (games.length === 0) {
         return []
       }
 
-      // ✅ FILTRAGE MINIMAL - juste éliminer les résultats vraiment non pertinents
-      const filteredGames = games.filter(game => this.isBasicRelevant(game, cleanQuery))
+      // ✅ FILTRAGE ULTRA-MINIMAL - comme les autres services
+      const validGames = games.filter(game => this.isValidGame(game))
       
-      // ✅ TRI SIMPLE mais efficace - comme les autres services
-      const sortedGames = this.simpleSortByRelevance(filteredGames, cleanQuery)
+      // ✅ TRI ULTRA-LÉGER - juste un petit ajustement récence, pas plus !
+      const finalGames = this.lightRecencyAdjustment(validGames)
 
-      console.log(`🎮 [RAWG] Final results: ${sortedGames.length} games`)
+      console.log(`🎮 [RAWG] Final: ${finalGames.length} games`)
       
-      // Log des premiers résultats pour debug avec années détaillées
-      sortedGames.slice(0, 8).forEach((game, i) => {
+      // Log simple
+      finalGames.slice(0, 6).forEach((game, i) => {
         const year = game.released ? new Date(game.released).getFullYear() : 0
-        const recencyIcon = year >= 2024 ? '🔥' : year >= 2023 ? '⭐' : year >= 2020 ? '📅' : year >= 2015 ? '🕰️' : '📜'
-        const monthDay = game.released ? new Date(game.released).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
-        console.log(`  ${i + 1}. ${game.name} (${year} ${monthDay}) ${recencyIcon}`)
+        const icon = year >= 2024 ? '🔥' : year >= 2023 ? '⭐' : year >= 2020 ? '📅' : ''
+        console.log(`  ${i + 1}. ${game.name} (${year}) ${icon}`)
       })
 
-      return sortedGames.slice(0, maxResults)
+      return finalGames.slice(0, maxResults)
 
     } catch (error) {
       console.error('🎮 [RAWG] Search failed:', error)
@@ -96,81 +95,32 @@ class RAWGService {
   }
 
   /**
-   * ✅ FILTRAGE MINIMAL - juste éliminer les vrais hors-sujet
+   * ✅ VALIDATION ULTRA-MINIMALE - comme isValidMovieOrSeries dans OMDB
    */
-  private isBasicRelevant(game: RAWGGame, query: string): boolean {
-    const gameName = game.name.toLowerCase()
-    const queryLower = query.toLowerCase()
-    const queryWords = queryLower.split(/\s+/).filter(word => word.length > 2)
-
-    // Très permissif - juste éliminer les vraiment hors-sujet
-    
-    // Si le titre contient la requête complète
-    if (gameName.includes(queryLower)) return true
-    
-    // Si le titre contient au moins un mot important de la requête
-    if (queryWords.some(word => gameName.includes(word))) return true
-    
-    // Si c'est une recherche courte et qu'il y a une correspondance partielle
-    if (query.length <= 5 && gameName.includes(queryLower.substring(0, 3))) return true
-
-    return false
+  private isValidGame(game: RAWGGame): boolean {
+    // Juste éliminer les résultats vraiment cassés - c'est tout !
+    return !!(game.id && game.name && game.name.trim().length > 0)
   }
 
   /**
-   * ✅ TRI SIMPLE - comme OMDB et les autres services
+   * ✅ AJUSTEMENT RÉCENCE ULTRA-LÉGER - ne pas casser l'ordre de l'API
    */
-  private simpleSortByRelevance(games: RAWGGame[], query: string): RAWGGame[] {
-    const queryLower = query.toLowerCase()
+  private lightRecencyAdjustment(games: RAWGGame[]): RAWGGame[] {
     const currentYear = new Date().getFullYear()
-
-    return games.sort((a, b) => {
-      const aName = a.name.toLowerCase()
-      const bName = b.name.toLowerCase()
-      const aYear = a.released ? new Date(a.released).getFullYear() : 0
-      const bYear = b.released ? new Date(b.released).getFullYear() : 0
-
-      // 1. Correspondance exacte en premier
-      const aExact = aName === queryLower
-      const bExact = bName === queryLower
-      if (aExact && !bExact) return -1
-      if (!aExact && bExact) return 1
-
-      // 2. Commence par la requête
-      const aStarts = aName.startsWith(queryLower)
-      const bStarts = bName.startsWith(queryLower)
-      if (aStarts && !bStarts) return -1
-      if (!aStarts && bStarts) return 1
-
-      // 3. Contient la requête complète
-      const aContains = aName.includes(queryLower)
-      const bContains = bName.includes(queryLower)
-      if (aContains && !bContains) return -1
-      if (!aContains && bContains) return 1
-
-      // 4. Pour les matchs équivalents, prioriser par récence GRADUÉE
-      if ((aContains && bContains) || (aStarts && bStarts)) {
-        // ✅ BONUS RÉCENCE GRADUÉ pour prioriser les jeux 2024-2025
-        const getRecencyBonus = (year: number) => {
-          if (year >= 2024) return 10 // 🔥 MAXIMUM pour 2024-2025
-          if (year >= 2023) return 8  // ⭐ FORT pour 2023  
-          if (year >= 2020) return 5  // 📅 MODÉRÉ pour 2020-2022
-          if (year >= 2015) return 2  // 🕰️ LÉGER pour 2015-2019
-          return 0 // Pas de bonus pour plus ancien
-        }
-        
-        const aBonus = getRecencyBonus(aYear)
-        const bBonus = getRecencyBonus(bYear)
-        
-        if (aBonus !== bBonus) return bBonus - aBonus
-        
-        // Si même bonus, trier par année exacte (plus récent = premier)
-        if (aYear !== bYear) return bYear - aYear
-      }
-
-      // 5. Sinon par rating
-      return (b.rating || 0) - (a.rating || 0)
+    
+    // ✅ STRATÉGIE: Garder l'ordre de l'API mais juste pousser les 2024-2025 au top
+    const recentGames = games.filter(game => {
+      const year = game.released ? new Date(game.released).getFullYear() : 0
+      return year >= 2024
     })
+    
+    const olderGames = games.filter(game => {
+      const year = game.released ? new Date(game.released).getFullYear() : 0
+      return year < 2024
+    })
+    
+    // ✅ Concaténer: récents d'abord (dans leur ordre API), puis anciens (dans leur ordre API)
+    return [...recentGames, ...olderGames]
   }
 
   /**
