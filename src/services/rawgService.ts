@@ -1,4 +1,4 @@
-// src/services/rawgService.ts - AMÉLIORATION POUR JEUX RÉCENTS
+// src/services/rawgService.ts - CORRECTION POUR JEUX RÉCENTS
 export interface RAWGGame {
   id: number
   name: string
@@ -29,25 +29,30 @@ class RAWGService {
   private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
   private readonly baseURL = 'https://api.rawg.io/api'
   
-  // ✅ RECHERCHE PRINCIPALE AVEC JEUX RÉCENTS ET À VENIR
+  // ✅ RECHERCHE PRINCIPALE AVEC STRATÉGIE MULTI-DATES
   async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
     try {
       console.log('🎮 RAWG: Starting enhanced search for:', query, 'pageSize:', pageSize)
       
       const allResults: RAWGGame[] = []
       
-      // ✅ STRATÉGIE 1: Recherche standard
+      // ✅ STRATÉGIE 1: Recherche standard avec tous les jeux
       const standardResults = await this.performStandardSearch(query, pageSize)
       allResults.push(...standardResults)
       
-      // ✅ STRATÉGIE 2: Recherche spécifique pour jeux récents (2024-2025+)
-      if (allResults.length < 10) {
-        const recentResults = await this.searchRecentGames(query)
-        allResults.push(...recentResults)
-      }
+      // ✅ STRATÉGIE 2: Recherche spécifique pour jeux futurs/récents (2024-2026)
+      const currentYear = new Date().getFullYear()
+      const nextYear = currentYear + 1
       
-      // ✅ STRATÉGIE 3: Recherche avec dates étendues si c'est une franchise connue
-      if (allResults.length < 5 && this.isKnownFranchise(query)) {
+      const recentResults = await this.searchGamesByDateRange(query, currentYear, nextYear + 1)
+      allResults.push(...recentResults)
+      
+      // ✅ STRATÉGIE 3: Recherche pour jeux à venir (dates futures)
+      const upcomingResults = await this.searchUpcomingGames(query)
+      allResults.push(...upcomingResults)
+      
+      // ✅ STRATÉGIE 4: Recherche spécifique pour franchises connues
+      if (this.isKnownFranchise(query)) {
         const franchiseResults = await this.searchFranchiseGames(query)
         allResults.push(...franchiseResults)
       }
@@ -58,7 +63,7 @@ class RAWGService {
       // Enrichir avec les détails complets
       const enrichedResults = await this.enrichWithDetails(uniqueResults.slice(0, Math.min(pageSize, 15)))
       
-      // Trier par pertinence et date
+      // ✅ TRIER PAR PERTINENCE ET DATE (PLUS RÉCENT EN PREMIER)
       const sortedResults = this.sortByRelevanceAndDate(enrichedResults, query)
       
       console.log('🎮 RAWG: Final enhanced results count:', sortedResults.length)
@@ -74,7 +79,7 @@ class RAWGService {
   private async performStandardSearch(query: string, pageSize: number): Promise<RAWGGame[]> {
     try {
       const searchResponse = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.min(pageSize, 20)}`
+        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.min(pageSize, 20)}&ordering=-released`
       )
       
       if (!searchResponse.ok) {
@@ -91,58 +96,53 @@ class RAWGService {
     }
   }
 
-  // ✅ RECHERCHE SPÉCIFIQUE POUR JEUX RÉCENTS (2024-2025+)
-  private async searchRecentGames(query: string): Promise<RAWGGame[]> {
+  // ✅ NOUVELLE MÉTHODE: Recherche par plage de dates
+  private async searchGamesByDateRange(query: string, startYear: number, endYear: number): Promise<RAWGGame[]> {
     try {
-      const currentYear = new Date().getFullYear()
-      const nextYear = currentYear + 1
+      console.log(`🎮 RAWG: Searching games ${startYear}-${endYear} for:`, query)
       
-      console.log('🎮 RAWG: Searching recent/upcoming games for:', query)
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${startYear}-01-01,${endYear}-12-31&page_size=20&ordering=-released`
+      )
       
-      const allRecentResults: RAWGGame[] = []
-      
-      // Recherche pour l'année actuelle et suivante
-      const years = [nextYear, currentYear, currentYear - 1]
-      
-      for (const year of years) {
-        try {
-          // Recherche avec année spécifique
-          const yearResponse = await fetch(
-            `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${year}-01-01,${year}-12-31&page_size=10&ordering=-released`
-          )
-          
-          if (yearResponse.ok) {
-            const yearData: RAWGSearchResponse = await yearResponse.json()
-            if (yearData.results) {
-              allRecentResults.push(...yearData.results)
-              console.log(`🎮 RAWG: Found ${yearData.results.length} games for ${year}`)
-            }
-          }
-        } catch (error) {
-          console.warn(`🎮 RAWG: Error searching year ${year}:`, error)
-        }
+      if (!response.ok) {
+        console.warn(`🎮 RAWG: Date range search failed: ${response.status}`)
+        return []
       }
       
-      // Recherche également dans les prochaines sorties
-      try {
-        const upcomingResponse = await fetch(
-          `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${currentYear}-01-01,${nextYear + 1}-12-31&page_size=10&ordering=-added`
-        )
-        
-        if (upcomingResponse.ok) {
-          const upcomingData: RAWGSearchResponse = await upcomingResponse.json()
-          if (upcomingData.results) {
-            allRecentResults.push(...upcomingData.results)
-            console.log(`🎮 RAWG: Found ${upcomingData.results.length} upcoming games`)
-          }
-        }
-      } catch (error) {
-        console.warn('🎮 RAWG: Error searching upcoming games:', error)
-      }
+      const data: RAWGSearchResponse = await response.json()
+      console.log(`🎮 RAWG: Found ${data.results?.length || 0} games for ${startYear}-${endYear}`)
       
-      return allRecentResults
+      return data.results || []
     } catch (error) {
-      console.error('🎮 RAWG: Recent games search failed:', error)
+      console.error(`🎮 RAWG: Error searching ${startYear}-${endYear}:`, error)
+      return []
+    }
+  }
+
+  // ✅ NOUVELLE MÉTHODE: Recherche de jeux à venir
+  private async searchUpcomingGames(query: string): Promise<RAWGGame[]> {
+    try {
+      console.log('🎮 RAWG: Searching upcoming games for:', query)
+      
+      const currentDate = new Date().toISOString().split('T')[0]
+      const futureDate = '2026-12-31'
+      
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${currentDate},${futureDate}&page_size=15&ordering=-added`
+      )
+      
+      if (!response.ok) {
+        console.warn('🎮 RAWG: Upcoming games search failed:', response.status)
+        return []
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      console.log(`🎮 RAWG: Found ${data.results?.length || 0} upcoming games`)
+      
+      return data.results || []
+    } catch (error) {
+      console.error('🎮 RAWG: Error searching upcoming games:', error)
       return []
     }
   }
@@ -156,11 +156,13 @@ class RAWGService {
         query,
         `${query} 2024`,
         `${query} 2025`,
+        `${query} 2026`,
         `${query} latest`,
         `${query} new`,
         `${query} shadows`, // Spécifique pour Assassin's Creed
         `${query} mirage`,
-        `${query} valhalla`
+        `${query} valhalla`,
+        `${query} odyssey`
       ]
       
       const allFranchiseResults: RAWGGame[] = []
@@ -168,7 +170,7 @@ class RAWGService {
       for (const franchiseQuery of franchiseQueries) {
         try {
           const response = await fetch(
-            `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(franchiseQuery)}&page_size=5&ordering=-released`
+            `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(franchiseQuery)}&page_size=10&ordering=-released`
           )
           
           if (response.ok) {
@@ -192,16 +194,19 @@ class RAWGService {
   // ✅ VÉRIFIER SI C'EST UNE FRANCHISE CONNUE
   private isKnownFranchise(query: string): boolean {
     const knownFranchises = [
-      'assassin\'s creed', 'assassins creed',
+      'assassin\'s creed', 'assassins creed', 'assassin creed',
       'call of duty', 'battlefield', 'fifa', 'madden',
       'grand theft auto', 'gta', 'red dead',
       'the witcher', 'cyberpunk', 'elder scrolls',
       'fallout', 'doom', 'halo', 'gears of war',
-      'uncharted', 'the last of us', 'god of war'
+      'uncharted', 'the last of us', 'god of war',
+      'spider-man', 'spiderman', 'marvel'
     ]
     
     const queryLower = query.toLowerCase()
-    return knownFranchises.some(franchise => queryLower.includes(franchise))
+    return knownFranchises.some(franchise => 
+      queryLower.includes(franchise) || franchise.includes(queryLower)
+    )
   }
 
   // ✅ SUPPRIMER LES DOUBLONS
@@ -267,35 +272,42 @@ class RAWGService {
     return enrichedGames
   }
 
-  // ✅ TRIER PAR PERTINENCE ET DATE
+  // ✅ TRIER PAR PERTINENCE ET DATE (PLUS RÉCENT EN PREMIER)
   private sortByRelevanceAndDate(games: RAWGGame[], query: string): RAWGGame[] {
     return games.sort((a, b) => {
       const queryLower = query.toLowerCase()
       
-      // 1. Correspondance exacte du nom
-      const aExactMatch = a.name.toLowerCase().includes(queryLower)
-      const bExactMatch = b.name.toLowerCase().includes(queryLower)
+      // 1. Correspondance exacte du nom (priorité absolue)
+      const aExactMatch = a.name.toLowerCase() === queryLower
+      const bExactMatch = b.name.toLowerCase() === queryLower
       
       if (aExactMatch && !bExactMatch) return -1
       if (!aExactMatch && bExactMatch) return 1
       
-      // 2. Jeux plus récents en premier (2024-2025+)
+      // 2. Correspondance partielle du nom
+      const aPartialMatch = a.name.toLowerCase().includes(queryLower)
+      const bPartialMatch = b.name.toLowerCase().includes(queryLower)
+      
+      if (aPartialMatch && !bPartialMatch) return -1
+      if (!aPartialMatch && bPartialMatch) return 1
+      
+      // 3. Jeux plus récents en premier (2024-2026+ en priorité)
       const aYear = a.released ? new Date(a.released).getFullYear() : 0
       const bYear = b.released ? new Date(b.released).getFullYear() : 0
       
       const currentYear = new Date().getFullYear()
       
-      // Priorité aux jeux récents/à venir
-      const aIsRecent = aYear >= currentYear - 1
-      const bIsRecent = bYear >= currentYear - 1
+      // Priorité absolue aux jeux récents/à venir (2024+)
+      const aIsRecent = aYear >= currentYear
+      const bIsRecent = bYear >= currentYear
       
       if (aIsRecent && !bIsRecent) return -1
       if (!aIsRecent && bIsRecent) return 1
       
-      // 3. Trier par année (plus récent en premier)
+      // 4. Trier par année (plus récent en premier)
       if (aYear !== bYear) return bYear - aYear
       
-      // 4. Trier par rating
+      // 5. Trier par rating pour départager
       return (b.rating || 0) - (a.rating || 0)
     })
   }
@@ -304,7 +316,7 @@ class RAWGService {
   async getPopularGames(): Promise<RAWGGame[]> {
     try {
       const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&dates=2020-01-01,2024-12-31&metacritic=80,100`
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&dates=2020-01-01,2025-12-31&metacritic=80,100`
       )
       
       if (!response.ok) {

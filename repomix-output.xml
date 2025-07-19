@@ -1648,6 +1648,384 @@ export default function GameCardHorizontal({
 }
 </file>
 
+<file path="src/data/sampleContent.ts">
+import type { ContentItem } from '@/types'
+
+export const sampleContent = {
+  games: [
+    {
+      id: '22511',
+      title: 'Elden Ring',
+      name: 'Elden Ring',
+      author: 'FromSoftware',
+      year: 2022,
+      rating: 4.8,
+      genre: 'Action RPG',
+      image: 'https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg',
+      background_image: 'https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg',
+      released: '2022-02-25',
+      developers: [{ name: 'FromSoftware' }],
+      genres: [{ name: 'RPG' }, { name: 'Action' }],
+      category: 'games' as const
+    },
+    {
+      id: '41494',
+      title: 'Cyberpunk 2077',
+      name: 'Cyberpunk 2077',
+      author: 'CD Projekt RED',
+      year: 2020,
+      rating: 4.1,
+      genre: 'RPG',
+      image: 'https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg',
+      background_image: 'https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg',
+      released: '2020-12-10',
+      developers: [{ name: 'CD PROJEKT RED' }],
+      genres: [{ name: 'RPG' }, { name: 'Adventure' }],
+      category: 'games' as const
+    },
+    {
+      id: '3328',
+      title: 'The Witcher 3: Wild Hunt',
+      name: 'The Witcher 3: Wild Hunt',
+      author: 'CD Projekt RED', 
+      year: 2015,
+      rating: 4.9,
+      genre: 'RPG',
+      image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg',
+      background_image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg',
+      released: '2015-05-18',
+      developers: [{ name: 'CD PROJEKT RED' }],
+      genres: [{ name: 'RPG' }, { name: 'Adventure' }],
+      category: 'games' as const
+    },
+    {
+      id: '58175',
+      title: 'God of War',
+      name: 'God of War',
+      author: 'Santa Monica Studio',
+      year: 2018,
+      rating: 4.7,
+      genre: 'Action Adventure',
+      image: 'https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg',
+      background_image: 'https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg',
+      released: '2018-04-20',
+      developers: [{ name: 'Santa Monica Studio' }],
+      genres: [{ name: 'Action' }, { name: 'Adventure' }],
+      category: 'games' as const
+    },
+    {
+      id: '622492',
+      title: 'Spider-Man 2',
+      name: 'Spider-Man 2',
+      author: 'Insomniac Games',
+      year: 2023,
+      rating: 4.6,
+      genre: 'Action Adventure',
+      image: 'https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg',
+      background_image: 'https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg',
+      released: '2023-10-20',
+      developers: [{ name: 'Insomniac Games' }],
+      genres: [{ name: 'Action' }, { name: 'Adventure' }],
+      category: 'games' as const
+    },
+    {
+      id: '422',
+      title: 'Baldurs Gate 3',
+      name: 'Baldurs Gate 3',
+      author: 'Larian Studios',
+      year: 2023,
+      rating: 4.9,
+      genre: 'RPG',
+      image: 'https://media.rawg.io/media/games/699/69993db1cfcaf895c8b22603ee1aae62.jpg',
+      background_image: 'https://media.rawg.io/media/games/699/69993db1cfcaf895c8b22603ee1aae62.jpg',
+      released: '2023-08-03',
+      developers: [{ name: 'Larian Studios' }],
+      genres: [{ name: 'RPG' }, { name: 'Strategy' }],
+      category: 'games' as const
+    },
+    {
+      id: '28',
+      title: 'Red Dead Redemption 2',
+      name: 'Red Dead Redemption 2',
+      author: 'Rockstar Games',
+      year: 2018,
+      rating: 4.8,
+      genre: 'Action Adventure',
+      image: 'https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg',
+      background_image: 'https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg',
+      released: '2018-10-26',
+      developers: [{ name: 'Rockstar Studios' }],
+      genres: [{ name: 'Action' }, { name: 'Adventure' }],
+      category: 'games' as const
+    },
+    {
+      id: '326243',
+      title: 'Zelda: Tears of the Kingdom',
+      name: 'The Legend of Zelda: Tears of the Kingdom',
+      author: 'Nintendo',
+      year: 2023,
+      rating: 4.9,
+      genre: 'Adventure',
+      image: 'https://media.rawg.io/media/games/8d9/8d92b2b6b28c5497f7a52049e6d0e95d.jpg',
+      background_image: 'https://media.rawg.io/media/games/8d9/8d92b2b6b28c5497f7a52049e6d0e95d.jpg',
+      released: '2023-05-12',
+      developers: [{ name: 'Nintendo EPD' }],
+      genres: [{ name: 'Adventure' }, { name: 'Puzzle' }],
+      category: 'games' as const
+    }
+  ],
+  
+  movies: [
+    {
+      id: 'dune-2021',
+      title: 'Dune',
+      director: 'Denis Villeneuve',
+      year: 2021,
+      rating: 4.2,
+      genre: 'Sci-Fi',
+      image: 'https://image.tmdb.org/t/p/w500/d5NuKzxEfgLAE6twC18pSnWnOzw.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'inception',
+      title: 'Inception',
+      director: 'Christopher Nolan',
+      year: 2010,
+      rating: 4.8,
+      genre: 'Sci-Fi',
+      image: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'interstellar',
+      title: 'Interstellar',
+      director: 'Christopher Nolan',
+      year: 2014,
+      rating: 4.7,
+      genre: 'Sci-Fi Drama',
+      image: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'the-batman',
+      title: 'The Batman',
+      director: 'Matt Reeves',
+      year: 2022,
+      rating: 4.3,
+      genre: 'Action',
+      image: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'top-gun-maverick',
+      title: 'Top Gun: Maverick',
+      director: 'Joseph Kosinski',
+      year: 2022,
+      rating: 4.5,
+      genre: 'Action',
+      image: 'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'everything-everywhere',
+      title: 'Everything Everywhere All at Once',
+      director: 'Daniels',
+      year: 2022,
+      rating: 4.6,
+      genre: 'Sci-Fi Comedy',
+      image: 'https://image.tmdb.org/t/p/w500/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'avatar-2',
+      title: 'Avatar: The Way of Water',
+      director: 'James Cameron',
+      year: 2022,
+      rating: 4.4,
+      genre: 'Sci-Fi',
+      image: 'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
+      category: 'movies' as const
+    },
+    {
+      id: 'oppenheimer',
+      title: 'Oppenheimer',
+      director: 'Christopher Nolan',
+      year: 2023,
+      rating: 4.7,
+      genre: 'Drama',
+      image: 'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
+      category: 'movies' as const
+    }
+  ],
+
+  music: [
+    {
+      id: 'random-access-memories',
+      title: 'Random Access Memories',
+      artist: 'Daft Punk',
+      year: 2013,
+      rating: 4.5,
+      genre: 'Electronic',
+      image: 'https://images.genius.com/2b3eafa25e5fb5bb0ab8f73ab9d09634.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'after-hours',
+      title: 'After Hours',
+      artist: 'The Weeknd',
+      year: 2020,
+      rating: 4.3,
+      genre: 'R&B',
+      image: 'https://images.genius.com/a9922ad23c21e6a2b6f97e65c5c2ea2b.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'abbey-road',
+      title: 'Abbey Road',
+      artist: 'The Beatles',
+      year: 1969,
+      rating: 4.9,
+      genre: 'Rock',
+      image: 'https://images.genius.com/aeeef7f8b02c67a7f27a8f5e7e2fc439.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'good-kid-maad-city',
+      title: 'good kid, m.A.A.d city',
+      artist: 'Kendrick Lamar',
+      year: 2012,
+      rating: 4.8,
+      genre: 'Hip Hop',
+      image: 'https://images.genius.com/abd8db8081e5daed5d833bdece4a6e0e.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'blond',
+      title: 'Blond',
+      artist: 'Frank Ocean',
+      year: 2016,
+      rating: 4.4,
+      genre: 'R&B',
+      image: 'https://images.genius.com/76e4c6b6cc6c81ac6fe45eae25ddc1a6.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'folklore',
+      title: 'Folklore',
+      artist: 'Taylor Swift',
+      year: 2020,
+      rating: 4.2,
+      genre: 'Indie Folk',
+      image: 'https://images.genius.com/fb9e8d5997d6df7794ae60fc1df2b3a5.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'astroworld',
+      title: 'Astroworld',
+      artist: 'Travis Scott',
+      year: 2018,
+      rating: 4.3,
+      genre: 'Hip Hop',
+      image: 'https://images.genius.com/d842b9a63b5d30b5ce7bb85f6be86e19.1000x1000x1.jpg',
+      category: 'music' as const
+    },
+    {
+      id: 'sour',
+      title: 'SOUR',
+      artist: 'Olivia Rodrigo',
+      year: 2021,
+      rating: 4.1,
+      genre: 'Pop',
+      image: 'https://images.genius.com/53b8d0c0df2e45c6ce8b23fa5e8e8fce.1000x1000x1.jpg',
+      category: 'music' as const
+    }
+  ],
+
+  books: [
+    {
+      id: 'the-silent-patient',
+      title: 'The Silent Patient',
+      author: 'Alex Michaelides',
+      year: 2019,
+      rating: 4.2,
+      genre: 'Thriller',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582398159i/40097951.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'dune-book',
+      title: 'Dune',
+      author: 'Frank Herbert',
+      year: 1965,
+      rating: 4.6,
+      genre: 'Sci-Fi',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1555447414i/44767458.jpg',
+      category: 'books' as const
+    },
+    {
+      id: '1984',
+      title: '1984',
+      author: 'George Orwell',
+      year: 1949,
+      rating: 4.8,
+      genre: 'Dystopian',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1532714506i/40961427.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'it-starts-with-us',
+      title: 'It Starts with Us',
+      author: 'Colleen Hoover',
+      year: 2022,
+      rating: 4.1,
+      genre: 'Romance',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1628449804i/58784475.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'the-love-hypothesis',
+      title: 'The Love Hypothesis',
+      author: 'Ali Hazelwood',
+      year: 2021,
+      rating: 4.0,
+      genre: 'Romance',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1611937942i/56732449.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'project-hail-mary',
+      title: 'Project Hail Mary',
+      author: 'Andy Weir',
+      year: 2021,
+      rating: 4.7,
+      genre: 'Sci-Fi',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1597695864i/54493401.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'where-crawdads-sing',
+      title: 'Where the Crawdads Sing',
+      author: 'Delia Owens',
+      year: 2018,
+      rating: 4.5,
+      genre: 'Fiction',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582135294i/36809135.jpg',
+      category: 'books' as const
+    },
+    {
+      id: 'atomic-habits',
+      title: 'Atomic Habits',
+      author: 'James Clear',
+      year: 2018,
+      rating: 4.6,
+      genre: 'Self-Help',
+      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1655988385i/40121378.jpg',
+      category: 'books' as const
+    }
+  ]
+}
+</file>
+
 <file path="src/services/libraryService.ts">
 // src/services/libraryService.ts
 import { supabase } from '@/lib/supabase'
@@ -2054,700 +2432,6 @@ export class LibraryService {
 
 // Export par défaut de la classe
 export default LibraryService
-</file>
-
-<file path="src/services/omdbService.ts">
-// Service pour l'API OMDB (films + séries) - VERSION COMPLÈTE AMÉLIORÉE
-export interface OMDBMovie {
-  imdbID: string
-  Title: string
-  Year: string
-  Type: string // 'movie' ou 'series'
-  Poster: string
-  Plot?: string
-  Director?: string
-  Genre?: string
-  imdbRating?: string
-  Runtime?: string
-  Released?: string
-  Actors?: string
-  Language?: string
-  Country?: string
-  Awards?: string
-  Response?: string
-  Error?: string
-  // Champs spécifiques aux séries
-  totalSeasons?: string
-  Seasons?: string
-}
-
-export interface OMDBSearchResponse {
-  Search: OMDBMovie[]
-  totalResults: string
-  Response: string
-  Error?: string
-}
-
-class OMDBService {
-  private readonly apiKey = '649f9a63'
-  private readonly baseURL = 'https://www.omdbapi.com'
-  
-  // Recherche privée avec gestion d'erreurs
-  private async performSearch(query: string, page: number = 1, type?: 'movie' | 'series'): Promise<OMDBMovie[]> {
-    try {
-      let url = `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&page=${page}`
-      if (type) {
-        url += `&type=${type}`
-      }
-
-      const response = await fetch(url)
-      
-      if (!response.ok) {
-        throw new Error(`OMDB API Error: ${response.status}`)
-      }
-      
-      const data: OMDBSearchResponse = await response.json()
-      
-      if (data.Response === 'False') {
-        return [] // Retourner un array vide au lieu d'une erreur
-      }
-      
-      return data.Search || []
-    } catch (error) {
-      console.warn(`OMDB search failed for "${query}":`, error)
-      return []
-    }
-  }
-
-  // Rechercher des films ET séries avec stratégies multiples
-  async searchMoviesAndSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
-    try {
-      const allResults: OMDBMovie[] = []
-      
-      // Stratégie 1: Recherche normale (films + séries)
-      const normalResults = await this.performSearch(query, page)
-      allResults.push(...normalResults)
-      
-      // Stratégie 2: Si peu de résultats, essayer avec des années
-      if (allResults.length < 5) {
-        const currentYear = new Date().getFullYear()
-        const nextYear = currentYear + 1
-        const lastYear = currentYear - 1
-        
-        // Essayer avec l'année courante
-        const currentYearResults = await this.performSearch(`${query} ${currentYear}`, page)
-        allResults.push(...currentYearResults)
-        
-        // Essayer avec l'année suivante (films à venir)
-        const nextYearResults = await this.performSearch(`${query} ${nextYear}`, page)
-        allResults.push(...nextYearResults)
-        
-        // Essayer avec l'année précédente
-        const lastYearResults = await this.performSearch(`${query} ${lastYear}`, page)
-        allResults.push(...lastYearResults)
-      }
-      
-      // Stratégie 3: Recherche avec variations du titre
-      if (allResults.length < 3) {
-        const variations = [
-          `${query} movie`,
-          `${query} film`,
-          `${query} series`,
-          query.replace(/\s+/g, '') // Sans espaces
-        ]
-        
-        for (const variation of variations) {
-          const variationResults = await this.performSearch(variation, page)
-          allResults.push(...variationResults)
-        }
-      }
-      
-      // Enlever les doublons basés sur imdbID
-      const uniqueResults = allResults.filter((movie, index, self) => 
-        index === self.findIndex(m => m.imdbID === movie.imdbID)
-      )
-      
-      // Trier par pertinence : titre exact en premier, puis par rating
-      return uniqueResults.sort((a, b) => {
-        const aExactMatch = a.Title.toLowerCase().includes(query.toLowerCase())
-        const bExactMatch = b.Title.toLowerCase().includes(query.toLowerCase())
-        
-        if (aExactMatch && !bExactMatch) return -1
-        if (!aExactMatch && bExactMatch) return 1
-        
-        // Trier par année (plus récent en premier)
-        const aYear = parseInt(a.Year) || 0
-        const bYear = parseInt(b.Year) || 0
-        
-        return bYear - aYear
-      })
-      
-    } catch (error) {
-      console.error('Error searching movies and series:', error)
-      throw error
-    }
-  }
-
-  // Rechercher seulement des films (garde l'ancienne méthode pour compatibilité)
-  async searchMovies(query: string, page: number = 1): Promise<OMDBMovie[]> {
-    return this.performSearch(query, page, 'movie')
-  }
-
-  // Rechercher seulement des séries
-  async searchSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
-    return this.performSearch(query, page, 'series')
-  }
-
-  // Obtenir les détails d'un film ou série
-  async getMovieDetails(imdbId: string): Promise<OMDBMovie | null> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/?apikey=${this.apiKey}&i=${imdbId}&plot=full`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`OMDB API Error: ${response.status}`)
-      }
-      
-      const movie: OMDBMovie = await response.json()
-      
-      if (movie.Response === 'False') {
-        return null
-      }
-      
-      return movie
-    } catch (error) {
-      console.error('Error fetching movie/series details:', error)
-      return null
-    }
-  }
-
-  // Obtenir des films populaires
-  async getPopularMovies(): Promise<OMDBMovie[]> {
-    const popularMovieIds = [
-      'tt0111161', // The Shawshank Redemption
-      'tt0068646', // The Godfather
-      'tt0468569', // The Dark Knight
-      'tt0071562', // The Godfather Part II
-      'tt0050083', // 12 Angry Men
-      'tt0108052', // Schindler's List
-      'tt0167260', // The Lord of the Rings: The Return of the King
-      'tt0110912'  // Pulp Fiction
-    ]
-
-    try {
-      const moviePromises = popularMovieIds.map(id => this.getMovieDetails(id))
-      const movies = await Promise.all(moviePromises)
-      return movies.filter(movie => movie !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching popular movies:', error)
-      return []
-    }
-  }
-
-  // Obtenir des séries populaires
-  async getPopularSeries(): Promise<OMDBMovie[]> {
-    const popularSeriesIds = [
-      'tt0944947', // Game of Thrones
-      'tt0903747', // Breaking Bad
-      'tt2356777', // True Detective
-      'tt1475582', // Sherlock
-      'tt0141842', // The Sopranos
-      'tt2395695', // Westworld
-      'tt4574334', // Stranger Things
-      'tt0386676'  // The Office
-    ]
-
-    try {
-      const seriesPromises = popularSeriesIds.map(id => this.getMovieDetails(id))
-      const series = await Promise.all(seriesPromises)
-      return series.filter(series => series !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching popular series:', error)
-      return []
-    }
-  }
-
-  // Obtenir films + séries populaires combinés
-  async getPopularMoviesAndSeries(): Promise<OMDBMovie[]> {
-    try {
-      const [movies, series] = await Promise.all([
-        this.getPopularMovies(),
-        this.getPopularSeries()
-      ])
-      
-      // Mélanger films et séries
-      const combined = [...movies.slice(0, 4), ...series.slice(0, 4)]
-      return this.shuffleArray(combined)
-    } catch (error) {
-      console.error('Error fetching popular movies and series:', error)
-      return []
-    }
-  }
-
-  // Obtenir les mieux notés (films + quelques séries)
-  async getTopRatedMovies(): Promise<OMDBMovie[]> {
-    const topRatedIds = [
-      'tt0111161', // The Shawshank Redemption
-      'tt0068646', // The Godfather
-      'tt0071562', // The Godfather Part II
-      'tt0468569', // The Dark Knight
-      'tt0903747', // Breaking Bad (série)
-      'tt0108052', // Schindler's List
-      'tt0944947', // Game of Thrones (série)
-      'tt0110912'  // Pulp Fiction
-    ]
-
-    try {
-      const itemPromises = topRatedIds.map(id => this.getMovieDetails(id))
-      const items = await Promise.all(itemPromises)
-      return items.filter(item => item !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching top rated content:', error)
-      return []
-    }
-  }
-
-  // Obtenir du contenu récent (plus large)
-  async getRecentMovies(): Promise<OMDBMovie[]> {
-    const recentIds = [
-      'tt6751668', // Parasite
-      'tt7286456', // Joker
-      'tt1950186', // Ford v Ferrari
-      'tt4154756', // Avengers: Endgame
-      'tt4633694', // Spider-Man: Into the Spider-Verse
-      'tt4574334', // Stranger Things (série récente)
-      'tt2380307', // Coco
-      'tt8503618'  // Hamilton
-    ]
-
-    try {
-      const itemPromises = recentIds.map(id => this.getMovieDetails(id))
-      const items = await Promise.all(itemPromises)
-      return items.filter(item => item !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching recent content:', error)
-      return []
-    }
-  }
-
-  // Recherche de films récents par terme (pour Superman 2025 par exemple)
-  async searchRecentContent(query: string): Promise<OMDBMovie[]> {
-    const currentYear = new Date().getFullYear()
-    const years = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2]
-    
-    const allResults: OMDBMovie[] = []
-    
-    for (const year of years) {
-      const yearResults = await this.performSearch(`${query} ${year}`)
-      allResults.push(...yearResults)
-    }
-    
-    // Enlever doublons et trier par année
-    const uniqueResults = allResults.filter((movie, index, self) => 
-      index === self.findIndex(m => m.imdbID === movie.imdbID)
-    )
-    
-    return uniqueResults.sort((a, b) => {
-      const aYear = parseInt(a.Year) || 0
-      const bYear = parseInt(b.Year) || 0
-      return bYear - aYear // Plus récent en premier
-    })
-  }
-
-  // ✅ CONVERTIR UN FILM/SÉRIE OMDB VERS LE FORMAT DE L'APP - CORRIGÉ
-  convertToAppFormat(item: OMDBMovie): any {
-    const isMovie = item.Type === 'movie'
-    const isSeries = item.Type === 'series'
-    const director = item.Director && item.Director !== 'N/A' ? item.Director : 'Unknown Director'
-    
-    return {
-      id: `movie-${item.imdbID}`,
-      title: item.Title,
-      director: director,          // ✅ Propriété spécifique aux films
-      author: director,            // ✅ Pour compatibilité avec getCreator
-      year: parseInt(item.Year) || new Date().getFullYear(),
-      rating: item.imdbRating ? Number((parseFloat(item.imdbRating) / 2).toFixed(1)) : 0,
-      genre: item.Genre?.split(',')[0]?.trim() || 'Unknown',
-      category: 'movies' as const,
-      image: item.Poster !== 'N/A' ? item.Poster : undefined,
-      overview: item.Plot,
-      runtime: item.Runtime,
-      released: item.Released,
-      actors: item.Actors,
-      language: item.Language,
-      country: item.Country,
-      awards: item.Awards,
-      
-      // Nouvelles propriétés pour distinguer films/séries
-      type: item.Type,
-      isMovie,
-      isSeries,
-      totalSeasons: item.totalSeasons ? parseInt(item.totalSeasons) : undefined,
-      
-      // Titre avec indication si c'est une série
-      displayTitle: isSeries ? `${item.Title} (TV Series)` : item.Title
-    }
-  }
-
-  // Fonction utilitaire pour mélanger un array
-  private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array]
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-    }
-    return shuffled
-  }
-}
-
-// Instance singleton
-export const omdbService = new OMDBService()
-
-// Fonctions utilitaires
-export const formatRuntime = (runtime: string): string => {
-  if (!runtime || runtime === 'N/A') return 'N/A'
-  return runtime
-}
-
-export const formatRating = (rating: string): number => {
-  if (!rating || rating === 'N/A') return 0
-  return Number((parseFloat(rating) / 2).toFixed(1))
-}
-
-export const getContentTypeLabel = (type: string): string => {
-  switch (type) {
-    case 'movie': return 'Film'
-    case 'series': return 'Série TV'
-    default: return 'Contenu'
-  }
-}
-</file>
-
-<file path="src/services/rawgService.ts">
-// src/services/rawgService.ts - SERVICE COMPLET AVEC CORRECTION DÉVELOPPEURS
-export interface RAWGGame {
-  id: number
-  name: string
-  background_image: string
-  rating: number
-  rating_count: number
-  released: string
-  platforms: { platform: { name: string } }[]
-  developers: { name: string }[]
-  publishers: { name: string }[]
-  genres: { name: string }[]
-  tags: { name: string }[]
-  description_raw?: string
-  metacritic?: number
-  esrb_rating?: { name: string }
-  parent_platforms?: { platform: { name: string } }[]
-  website?: string
-  stores?: { store: { name: string }, url: string }[]
-  screenshots?: { image: string }[]
-}
-
-export interface RAWGSearchResponse {
-  count: number
-  results: RAWGGame[]
-}
-
-class RAWGService {
-  private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
-  private readonly baseURL = 'https://api.rawg.io/api'
-  
-  // ✅ MÉTHODE PRINCIPALE : Rechercher des jeux avec détails complets incluant développeurs
-  async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
-    try {
-      console.log('🎮 RAWG: Starting search for:', query, 'pageSize:', pageSize)
-      
-      // Étape 1: Recherche initiale
-      const searchResponse = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.min(pageSize, 20)}`
-      )
-      
-      if (!searchResponse.ok) {
-        throw new Error(`RAWG Search API Error: ${searchResponse.status}`)
-      }
-      
-      const searchData: RAWGSearchResponse = await searchResponse.json()
-      console.log('🎮 RAWG: Initial search returned', searchData.results?.length || 0, 'games')
-      
-      if (!searchData.results || searchData.results.length === 0) {
-        console.log('🎮 RAWG: No games found for query:', query)
-        return []
-      }
-
-      // ✅ Étape 2: Récupérer les détails complets pour avoir les développeurs
-      console.log('🎮 RAWG: Fetching detailed info for', searchData.results.length, 'games...')
-      
-      const gamesWithDetails = await Promise.all(
-        searchData.results.slice(0, Math.min(pageSize, 15)).map(async (game, index) => {
-          try {
-            console.log(`🎮 RAWG: [${index + 1}/${searchData.results.length}] Fetching details for:`, game.name, 'ID:', game.id)
-            
-            // Récupérer les détails complets
-            const detailResponse = await fetch(
-              `${this.baseURL}/games/${game.id}?key=${this.apiKey}`
-            )
-            
-            if (!detailResponse.ok) {
-              console.warn('🎮 RAWG: Failed to get details for', game.name, 'status:', detailResponse.status)
-              return {
-                ...game,
-                developers: game.developers || [],
-                publishers: game.publishers || []
-              }
-            }
-            
-            const gameDetail: RAWGGame = await detailResponse.json()
-            
-            // Log des développeurs trouvés
-            const developers = gameDetail.developers || []
-            const publishers = gameDetail.publishers || []
-            
-            console.log(`🎮 RAWG: Details for "${gameDetail.name}":`, {
-              developers: developers.map(d => d.name),
-              publishers: publishers.map(p => p.name),
-              rating: gameDetail.rating,
-              released: gameDetail.released
-            })
-            
-            return gameDetail
-            
-          } catch (error) {
-            console.warn('🎮 RAWG: Error getting details for', game.name, ':', error)
-            // Fallback vers les données de base avec structure minimale
-            return {
-              ...game,
-              developers: game.developers || [],
-              publishers: game.publishers || []
-            }
-          }
-        })
-      )
-
-      console.log('🎮 RAWG: Successfully processed', gamesWithDetails.length, 'games with full details')
-      
-      // Filtrer les jeux valides et trier par pertinence
-      const validGames = gamesWithDetails
-        .filter(game => game && game.name)
-        .sort((a, b) => {
-          // Trier par correspondance de nom puis par rating
-          const queryLower = query.toLowerCase()
-          const aMatch = a.name.toLowerCase().includes(queryLower)
-          const bMatch = b.name.toLowerCase().includes(queryLower)
-          
-          if (aMatch && !bMatch) return -1
-          if (!aMatch && bMatch) return 1
-          
-          return (b.rating || 0) - (a.rating || 0)
-        })
-      
-      console.log('🎮 RAWG: Returning', validGames.length, 'valid games')
-      return validGames
-      
-    } catch (error) {
-      console.error('🎮 RAWG: Search failed:', error)
-      throw error
-    }
-  }
-
-  // Obtenir les jeux populaires
-  async getPopularGames(): Promise<RAWGGame[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&dates=2020-01-01,2024-12-31&metacritic=80,100`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      return data.results || []
-    } catch (error) {
-      console.error('Error fetching popular games:', error)
-      return []
-    }
-  }
-
-  // Obtenir les jeux les mieux notés
-  async getTopRatedGames(): Promise<RAWGGame[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&metacritic=90,100`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      return data.results || []
-    } catch (error) {
-      console.error('Error fetching top rated games:', error)
-      return []
-    }
-  }
-
-  // Obtenir les nouveautés
-  async getNewReleases(): Promise<RAWGGame[]> {
-    try {
-      const currentDate = new Date()
-      const threeMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 3, currentDate.getDate())
-      
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-released&dates=${threeMonthsAgo.toISOString().split('T')[0]},${currentDate.toISOString().split('T')[0]}`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      return data.results || []
-    } catch (error) {
-      console.error('Error fetching new releases:', error)
-      return []
-    }
-  }
-
-  // Obtenir les détails d'un jeu spécifique
-  async getGameDetails(gameId: string | number): Promise<RAWGGame | null> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games/${gameId}?key=${this.apiKey}`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const game: RAWGGame = await response.json()
-      return game
-    } catch (error) {
-      console.error('Error fetching game details:', error)
-      return null
-    }
-  }
-
-  // ✅ CONVERSION AMÉLIORÉE avec gestion robuste des développeurs
-  convertToAppFormat(game: RAWGGame): any {
-    // ✅ EXTRACTION INTELLIGENTE DU DÉVELOPPEUR
-    let developer = 'Unknown Developer'
-    let finalDeveloper = 'Unknown Developer'
-    
-    // Priorité 1: Développeurs directs
-    if (game.developers && game.developers.length > 0) {
-      developer = game.developers[0].name
-      finalDeveloper = developer
-      console.log('🎮 Using primary developer:', developer)
-    }
-    // Priorité 2: Publishers comme fallback
-    else if (game.publishers && game.publishers.length > 0) {
-      developer = game.publishers[0].name
-      finalDeveloper = `${developer} (Publisher)`
-      console.log('🎮 Using publisher as developer fallback:', developer)
-    }
-    
-    console.log('🎮 Converting game:', game.name, '→ Developer:', finalDeveloper)
-    
-    const converted = {
-      id: `game-${game.id}`,
-      title: game.name || 'Unknown Game',
-      name: game.name || 'Unknown Game',
-      author: finalDeveloper,           // ✅ Pour compatibilité avec getCreator
-      developer: finalDeveloper,        // ✅ Propriété spécifique aux jeux
-      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
-      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
-      genre: game.genres?.[0]?.name || 'Unknown',
-      category: 'games' as const,
-      image: game.background_image,
-      background_image: game.background_image,
-      released: game.released,
-      developers: game.developers || [],
-      publishers: game.publishers || [],
-      genres: game.genres || [],
-      
-      // Données supplémentaires
-      description_raw: game.description_raw,
-      metacritic: game.metacritic,
-      esrb_rating: game.esrb_rating,
-      platforms: game.platforms || [],
-      tags: game.tags || [],
-      rating_count: game.rating_count || 0,
-      parent_platforms: game.parent_platforms || [],
-      website: game.website,
-      stores: game.stores || [],
-      screenshots: game.screenshots || []
-    }
-    
-    console.log('🎮 Converted result:', {
-      title: converted.title,
-      developer: converted.developer,
-      author: converted.author,
-      year: converted.year,
-      rating: converted.rating
-    })
-    
-    return converted
-  }
-
-  // Obtenir des jeux similaires basés sur le genre
-  async getSimilarGames(game: RAWGGame, limit: number = 6): Promise<RAWGGame[]> {
-    try {
-      if (!game.genres || game.genres.length === 0) {
-        return []
-      }
-      
-      const genre = game.genres[0].name
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&genres=${genre}&page_size=${limit + 5}&ordering=-rating`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      
-      // Filtrer le jeu actuel et retourner les autres
-      return (data.results || [])
-        .filter(g => g.id !== game.id)
-        .slice(0, limit)
-    } catch (error) {
-      console.error('Error fetching similar games:', error)
-      return []
-    }
-  }
-
-  // Obtenir des jeux par développeur
-  async getGamesByDeveloper(developerId: number, excludeGameId: number, limit: number = 6): Promise<RAWGGame[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&developers=${developerId}&page_size=${limit + 5}&ordering=-rating`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      
-      // Filtrer le jeu actuel et retourner les autres
-      return (data.results || [])
-        .filter(g => g.id !== excludeGameId)
-        .slice(0, limit)
-    } catch (error) {
-      console.error('Error fetching games by developer:', error)
-      return []
-    }
-  }
-}
-
-// Instance singleton
-export const rawgService = new RAWGService()
 </file>
 
 <file path="src/components/DiscoverPage.tsx">
@@ -3912,384 +3596,6 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
 }
 </file>
 
-<file path="src/data/sampleContent.ts">
-import type { ContentItem } from '@/types'
-
-export const sampleContent = {
-  games: [
-    {
-      id: '22511',
-      title: 'Elden Ring',
-      name: 'Elden Ring',
-      author: 'FromSoftware',
-      year: 2022,
-      rating: 4.8,
-      genre: 'Action RPG',
-      image: 'https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg',
-      background_image: 'https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg',
-      released: '2022-02-25',
-      developers: [{ name: 'FromSoftware' }],
-      genres: [{ name: 'RPG' }, { name: 'Action' }],
-      category: 'games' as const
-    },
-    {
-      id: '41494',
-      title: 'Cyberpunk 2077',
-      name: 'Cyberpunk 2077',
-      author: 'CD Projekt RED',
-      year: 2020,
-      rating: 4.1,
-      genre: 'RPG',
-      image: 'https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg',
-      background_image: 'https://media.rawg.io/media/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg',
-      released: '2020-12-10',
-      developers: [{ name: 'CD PROJEKT RED' }],
-      genres: [{ name: 'RPG' }, { name: 'Adventure' }],
-      category: 'games' as const
-    },
-    {
-      id: '3328',
-      title: 'The Witcher 3: Wild Hunt',
-      name: 'The Witcher 3: Wild Hunt',
-      author: 'CD Projekt RED', 
-      year: 2015,
-      rating: 4.9,
-      genre: 'RPG',
-      image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg',
-      background_image: 'https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg',
-      released: '2015-05-18',
-      developers: [{ name: 'CD PROJEKT RED' }],
-      genres: [{ name: 'RPG' }, { name: 'Adventure' }],
-      category: 'games' as const
-    },
-    {
-      id: '58175',
-      title: 'God of War',
-      name: 'God of War',
-      author: 'Santa Monica Studio',
-      year: 2018,
-      rating: 4.7,
-      genre: 'Action Adventure',
-      image: 'https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg',
-      background_image: 'https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg',
-      released: '2018-04-20',
-      developers: [{ name: 'Santa Monica Studio' }],
-      genres: [{ name: 'Action' }, { name: 'Adventure' }],
-      category: 'games' as const
-    },
-    {
-      id: '622492',
-      title: 'Spider-Man 2',
-      name: 'Spider-Man 2',
-      author: 'Insomniac Games',
-      year: 2023,
-      rating: 4.6,
-      genre: 'Action Adventure',
-      image: 'https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg',
-      background_image: 'https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg',
-      released: '2023-10-20',
-      developers: [{ name: 'Insomniac Games' }],
-      genres: [{ name: 'Action' }, { name: 'Adventure' }],
-      category: 'games' as const
-    },
-    {
-      id: '422',
-      title: 'Baldurs Gate 3',
-      name: 'Baldurs Gate 3',
-      author: 'Larian Studios',
-      year: 2023,
-      rating: 4.9,
-      genre: 'RPG',
-      image: 'https://media.rawg.io/media/games/699/69993db1cfcaf895c8b22603ee1aae62.jpg',
-      background_image: 'https://media.rawg.io/media/games/699/69993db1cfcaf895c8b22603ee1aae62.jpg',
-      released: '2023-08-03',
-      developers: [{ name: 'Larian Studios' }],
-      genres: [{ name: 'RPG' }, { name: 'Strategy' }],
-      category: 'games' as const
-    },
-    {
-      id: '28',
-      title: 'Red Dead Redemption 2',
-      name: 'Red Dead Redemption 2',
-      author: 'Rockstar Games',
-      year: 2018,
-      rating: 4.8,
-      genre: 'Action Adventure',
-      image: 'https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg',
-      background_image: 'https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg',
-      released: '2018-10-26',
-      developers: [{ name: 'Rockstar Studios' }],
-      genres: [{ name: 'Action' }, { name: 'Adventure' }],
-      category: 'games' as const
-    },
-    {
-      id: '326243',
-      title: 'Zelda: Tears of the Kingdom',
-      name: 'The Legend of Zelda: Tears of the Kingdom',
-      author: 'Nintendo',
-      year: 2023,
-      rating: 4.9,
-      genre: 'Adventure',
-      image: 'https://media.rawg.io/media/games/8d9/8d92b2b6b28c5497f7a52049e6d0e95d.jpg',
-      background_image: 'https://media.rawg.io/media/games/8d9/8d92b2b6b28c5497f7a52049e6d0e95d.jpg',
-      released: '2023-05-12',
-      developers: [{ name: 'Nintendo EPD' }],
-      genres: [{ name: 'Adventure' }, { name: 'Puzzle' }],
-      category: 'games' as const
-    }
-  ],
-  
-  movies: [
-    {
-      id: 'dune-2021',
-      title: 'Dune',
-      director: 'Denis Villeneuve',
-      year: 2021,
-      rating: 4.2,
-      genre: 'Sci-Fi',
-      image: 'https://image.tmdb.org/t/p/w500/d5NuKzxEfgLAE6twC18pSnWnOzw.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'inception',
-      title: 'Inception',
-      director: 'Christopher Nolan',
-      year: 2010,
-      rating: 4.8,
-      genre: 'Sci-Fi',
-      image: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'interstellar',
-      title: 'Interstellar',
-      director: 'Christopher Nolan',
-      year: 2014,
-      rating: 4.7,
-      genre: 'Sci-Fi Drama',
-      image: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'the-batman',
-      title: 'The Batman',
-      director: 'Matt Reeves',
-      year: 2022,
-      rating: 4.3,
-      genre: 'Action',
-      image: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'top-gun-maverick',
-      title: 'Top Gun: Maverick',
-      director: 'Joseph Kosinski',
-      year: 2022,
-      rating: 4.5,
-      genre: 'Action',
-      image: 'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'everything-everywhere',
-      title: 'Everything Everywhere All at Once',
-      director: 'Daniels',
-      year: 2022,
-      rating: 4.6,
-      genre: 'Sci-Fi Comedy',
-      image: 'https://image.tmdb.org/t/p/w500/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'avatar-2',
-      title: 'Avatar: The Way of Water',
-      director: 'James Cameron',
-      year: 2022,
-      rating: 4.4,
-      genre: 'Sci-Fi',
-      image: 'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
-      category: 'movies' as const
-    },
-    {
-      id: 'oppenheimer',
-      title: 'Oppenheimer',
-      director: 'Christopher Nolan',
-      year: 2023,
-      rating: 4.7,
-      genre: 'Drama',
-      image: 'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
-      category: 'movies' as const
-    }
-  ],
-
-  music: [
-    {
-      id: 'random-access-memories',
-      title: 'Random Access Memories',
-      artist: 'Daft Punk',
-      year: 2013,
-      rating: 4.5,
-      genre: 'Electronic',
-      image: 'https://images.genius.com/2b3eafa25e5fb5bb0ab8f73ab9d09634.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'after-hours',
-      title: 'After Hours',
-      artist: 'The Weeknd',
-      year: 2020,
-      rating: 4.3,
-      genre: 'R&B',
-      image: 'https://images.genius.com/a9922ad23c21e6a2b6f97e65c5c2ea2b.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'abbey-road',
-      title: 'Abbey Road',
-      artist: 'The Beatles',
-      year: 1969,
-      rating: 4.9,
-      genre: 'Rock',
-      image: 'https://images.genius.com/aeeef7f8b02c67a7f27a8f5e7e2fc439.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'good-kid-maad-city',
-      title: 'good kid, m.A.A.d city',
-      artist: 'Kendrick Lamar',
-      year: 2012,
-      rating: 4.8,
-      genre: 'Hip Hop',
-      image: 'https://images.genius.com/abd8db8081e5daed5d833bdece4a6e0e.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'blond',
-      title: 'Blond',
-      artist: 'Frank Ocean',
-      year: 2016,
-      rating: 4.4,
-      genre: 'R&B',
-      image: 'https://images.genius.com/76e4c6b6cc6c81ac6fe45eae25ddc1a6.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'folklore',
-      title: 'Folklore',
-      artist: 'Taylor Swift',
-      year: 2020,
-      rating: 4.2,
-      genre: 'Indie Folk',
-      image: 'https://images.genius.com/fb9e8d5997d6df7794ae60fc1df2b3a5.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'astroworld',
-      title: 'Astroworld',
-      artist: 'Travis Scott',
-      year: 2018,
-      rating: 4.3,
-      genre: 'Hip Hop',
-      image: 'https://images.genius.com/d842b9a63b5d30b5ce7bb85f6be86e19.1000x1000x1.jpg',
-      category: 'music' as const
-    },
-    {
-      id: 'sour',
-      title: 'SOUR',
-      artist: 'Olivia Rodrigo',
-      year: 2021,
-      rating: 4.1,
-      genre: 'Pop',
-      image: 'https://images.genius.com/53b8d0c0df2e45c6ce8b23fa5e8e8fce.1000x1000x1.jpg',
-      category: 'music' as const
-    }
-  ],
-
-  books: [
-    {
-      id: 'the-silent-patient',
-      title: 'The Silent Patient',
-      author: 'Alex Michaelides',
-      year: 2019,
-      rating: 4.2,
-      genre: 'Thriller',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582398159i/40097951.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'dune-book',
-      title: 'Dune',
-      author: 'Frank Herbert',
-      year: 1965,
-      rating: 4.6,
-      genre: 'Sci-Fi',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1555447414i/44767458.jpg',
-      category: 'books' as const
-    },
-    {
-      id: '1984',
-      title: '1984',
-      author: 'George Orwell',
-      year: 1949,
-      rating: 4.8,
-      genre: 'Dystopian',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1532714506i/40961427.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'it-starts-with-us',
-      title: 'It Starts with Us',
-      author: 'Colleen Hoover',
-      year: 2022,
-      rating: 4.1,
-      genre: 'Romance',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1628449804i/58784475.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'the-love-hypothesis',
-      title: 'The Love Hypothesis',
-      author: 'Ali Hazelwood',
-      year: 2021,
-      rating: 4.0,
-      genre: 'Romance',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1611937942i/56732449.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'project-hail-mary',
-      title: 'Project Hail Mary',
-      author: 'Andy Weir',
-      year: 2021,
-      rating: 4.7,
-      genre: 'Sci-Fi',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1597695864i/54493401.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'where-crawdads-sing',
-      title: 'Where the Crawdads Sing',
-      author: 'Delia Owens',
-      year: 2018,
-      rating: 4.5,
-      genre: 'Fiction',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582135294i/36809135.jpg',
-      category: 'books' as const
-    },
-    {
-      id: 'atomic-habits',
-      title: 'Atomic Habits',
-      author: 'James Clear',
-      year: 2018,
-      rating: 4.6,
-      genre: 'Self-Help',
-      image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1655988385i/40121378.jpg',
-      category: 'books' as const
-    }
-  ]
-}
-</file>
-
 <file path="src/lib/supabase.ts">
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
@@ -4710,6 +4016,853 @@ export const formatDuration = (trackCount: number): string => {
   
   return `~${hours}h ${minutes}m`
 }
+</file>
+
+<file path="src/services/omdbService.ts">
+// src/services/omdbService.ts - VERSION FINALE SANS ERREURS
+export interface OMDBMovie {
+  imdbID: string
+  Title: string
+  Year: string
+  Type: string
+  Poster: string
+  Plot?: string
+  Director?: string
+  Genre?: string
+  imdbRating?: string
+  Runtime?: string
+  Released?: string
+  Actors?: string
+  Language?: string
+  Country?: string
+  Awards?: string
+  Response?: string
+  Error?: string
+  totalSeasons?: string
+  Seasons?: string
+}
+
+export interface OMDBSearchResponse {
+  Search: OMDBMovie[]
+  totalResults: string
+  Response: string
+  Error?: string
+}
+
+class OMDBService {
+  private readonly apiKey = '649f9a63'
+  private readonly baseURL = 'https://www.omdbapi.com'
+
+  // ✅ FONCTION SIMPLE POUR DÉTECTER LES JEUX VIDÉO
+  private isVideoGame(item: OMDBMovie): boolean {
+    const title = (item.Title || '').toLowerCase()
+    
+    // Liste simple des jeux à exclure
+    const gameList = [
+      'assassin\'s creed origins',
+      'assassin\'s creed odyssey', 
+      'assassin\'s creed valhalla',
+      'assassin\'s creed brotherhood',
+      'assassin\'s creed revelations',
+      'assassin\'s creed unity',
+      'assassin\'s creed syndicate'
+    ]
+    
+    // Vérification simple
+    for (let i = 0; i < gameList.length; i++) {
+      if (title.includes(gameList[i])) {
+        return true
+      }
+    }
+    
+    return false
+  }
+
+  // ✅ VALIDATION SIMPLE
+  private isValidMovieOrSeries(item: OMDBMovie): boolean {
+    if (!item.Type) return false
+    if (item.Type !== 'movie' && item.Type !== 'series') return false
+    if (this.isVideoGame(item)) return false
+    if (!item.Year || !item.Title) return false
+    
+    return true
+  }
+
+  // ✅ RECHERCHE SIMPLIFIÉE
+  private async performSearch(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    try {
+      const url = `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&page=${page}`
+      
+      const response = await fetch(url)
+      if (!response.ok) return []
+      
+      const data: OMDBSearchResponse = await response.json()
+      if (data.Response === 'False' || !data.Search) return []
+      
+      // Filtrer les résultats
+      const filtered: OMDBMovie[] = []
+      for (let i = 0; i < data.Search.length; i++) {
+        const item = data.Search[i]
+        if (this.isValidMovieOrSeries(item)) {
+          filtered.push(item)
+        }
+      }
+      
+      return filtered
+      
+    } catch (error) {
+      console.error('Search error:', error)
+      return []
+    }
+  }
+
+  // ✅ RECHERCHE PRINCIPALE
+  async searchMoviesAndSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    try {
+      if (!query) return []
+      
+      const results = await this.performSearch(query, page)
+      
+      // Tri simple par année
+      results.sort((a, b) => {
+        const yearA = parseInt(a.Year) || 0
+        const yearB = parseInt(b.Year) || 0
+        return yearB - yearA
+      })
+      
+      return results.slice(0, 10)
+      
+    } catch (error) {
+      console.error('Search movies and series error:', error)
+      return []
+    }
+  }
+
+  // ✅ RECHERCHE FILMS UNIQUEMENT
+  async searchMovies(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    try {
+      const results = await this.searchMoviesAndSeries(query, page)
+      const movies: OMDBMovie[] = []
+      
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].Type === 'movie') {
+          movies.push(results[i])
+        }
+      }
+      
+      return movies
+    } catch (error) {
+      return []
+    }
+  }
+
+  // ✅ RECHERCHE SÉRIES UNIQUEMENT
+  async searchSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    try {
+      const results = await this.searchMoviesAndSeries(query, page)
+      const series: OMDBMovie[] = []
+      
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].Type === 'series') {
+          series.push(results[i])
+        }
+      }
+      
+      return series
+    } catch (error) {
+      return []
+    }
+  }
+
+  // ✅ DÉTAILS D'UN FILM
+  async getMovieDetails(imdbId: string): Promise<OMDBMovie | null> {
+    try {
+      if (!imdbId) return null
+      
+      const response = await fetch(`${this.baseURL}/?apikey=${this.apiKey}&i=${imdbId}&plot=full`)
+      if (!response.ok) return null
+      
+      const movie: OMDBMovie = await response.json()
+      if (movie.Response === 'False') return null
+      
+      return movie
+    } catch (error) {
+      return null
+    }
+  }
+
+  // ✅ FILMS POPULAIRES
+  async getPopularMovies(): Promise<OMDBMovie[]> {
+    const ids = [
+      'tt0111161', 'tt0068646', 'tt0468569', 'tt0071562',
+      'tt0050083', 'tt0108052', 'tt0167260', 'tt0110912'
+    ]
+
+    const movies: OMDBMovie[] = []
+    
+    for (let i = 0; i < ids.length; i++) {
+      try {
+        const movie = await this.getMovieDetails(ids[i])
+        if (movie) movies.push(movie)
+      } catch (error) {
+        console.warn(`Error fetching movie ${ids[i]}`)
+      }
+    }
+    
+    return movies
+  }
+
+  // ✅ SÉRIES POPULAIRES
+  async getPopularSeries(): Promise<OMDBMovie[]> {
+    const ids = [
+      'tt0944947', 'tt0903747', 'tt2356777', 'tt1475582',
+      'tt0141842', 'tt2395695', 'tt4574334', 'tt0386676'
+    ]
+
+    const series: OMDBMovie[] = []
+    
+    for (let i = 0; i < ids.length; i++) {
+      try {
+        const show = await this.getMovieDetails(ids[i])
+        if (show) series.push(show)
+      } catch (error) {
+        console.warn(`Error fetching series ${ids[i]}`)
+      }
+    }
+    
+    return series
+  }
+
+  // ✅ CONTENU POPULAIRE MIXTE
+  async getPopularMoviesAndSeries(): Promise<OMDBMovie[]> {
+    try {
+      const movies = await this.getPopularMovies()
+      const series = await this.getPopularSeries()
+      
+      const combined: OMDBMovie[] = []
+      combined.push(...movies.slice(0, 4))
+      combined.push(...series.slice(0, 4))
+      
+      return this.shuffleArray(combined)
+    } catch (error) {
+      return []
+    }
+  }
+
+  // ✅ TOP RATED
+  async getTopRatedMovies(): Promise<OMDBMovie[]> {
+    return this.getPopularMovies()
+  }
+
+  // ✅ CONTENU RÉCENT
+  async getRecentMovies(): Promise<OMDBMovie[]> {
+    const ids = [
+      'tt6751668', 'tt7286456', 'tt1950186', 'tt4154756',
+      'tt4633694', 'tt4574334', 'tt2380307', 'tt8503618'
+    ]
+
+    const items: OMDBMovie[] = []
+    
+    for (let i = 0; i < ids.length; i++) {
+      try {
+        const item = await this.getMovieDetails(ids[i])
+        if (item) items.push(item)
+      } catch (error) {
+        console.warn(`Error fetching recent item ${ids[i]}`)
+      }
+    }
+    
+    return items
+  }
+
+  // ✅ RECHERCHE CONTENU RÉCENT
+  async searchRecentContent(query: string): Promise<OMDBMovie[]> {
+    const currentYear = new Date().getFullYear()
+    const years = [currentYear, currentYear - 1, currentYear - 2]
+    
+    const allResults: OMDBMovie[] = []
+    
+    for (let i = 0; i < years.length; i++) {
+      try {
+        const yearResults = await this.performSearch(`${query} ${years[i]}`)
+        allResults.push(...yearResults)
+      } catch (error) {
+        console.warn(`Error searching ${query} ${years[i]}`)
+      }
+    }
+    
+    // Supprimer les doublons
+    const unique: OMDBMovie[] = []
+    const seen: string[] = []
+    
+    for (let i = 0; i < allResults.length; i++) {
+      const movie = allResults[i]
+      if (!seen.includes(movie.imdbID)) {
+        seen.push(movie.imdbID)
+        unique.push(movie)
+      }
+    }
+    
+    return unique
+  }
+
+  // ✅ CONVERSION AU FORMAT APP
+  convertToAppFormat(item: OMDBMovie): any {
+    const isMovie = item.Type === 'movie'
+    const isSeries = item.Type === 'series'
+    const director = (item.Director && item.Director !== 'N/A') ? item.Director : 'Unknown Director'
+    
+    return {
+      id: `movie-${item.imdbID}`,
+      title: item.Title || 'Unknown Title',
+      director: director,
+      author: director,
+      year: parseInt(item.Year) || new Date().getFullYear(),
+      rating: item.imdbRating ? Number((parseFloat(item.imdbRating) / 2).toFixed(1)) : 0,
+      genre: item.Genre ? item.Genre.split(',')[0].trim() : 'Unknown',
+      category: 'movies' as const,
+      image: (item.Poster !== 'N/A') ? item.Poster : undefined,
+      overview: item.Plot,
+      runtime: item.Runtime,
+      released: item.Released,
+      actors: item.Actors,
+      language: item.Language,
+      country: item.Country,
+      awards: item.Awards,
+      type: item.Type,
+      isMovie,
+      isSeries,
+      totalSeasons: item.totalSeasons ? parseInt(item.totalSeasons) : undefined,
+      displayTitle: isSeries ? `${item.Title} (TV Series)` : item.Title
+    }
+  }
+
+  // ✅ MÉLANGER ARRAY - VERSION ULTRA SIMPLE
+  private shuffleArray<T>(array: T[]): T[] {
+    if (!array || array.length === 0) return []
+    
+    const result = [...array]
+    
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      const temp = result[i]
+      result[i] = result[j]
+      result[j] = temp
+    }
+    
+    return result
+  }
+}
+
+// Export de l'instance
+export const omdbService = new OMDBService()
+
+// ✅ FONCTIONS UTILITAIRES SIMPLES
+export const formatRuntime = (runtime: string): string => {
+  if (!runtime || runtime === 'N/A') return 'N/A'
+  return runtime
+}
+
+export const formatRating = (rating: string): number => {
+  if (!rating || rating === 'N/A') return 0
+  const num = parseFloat(rating)
+  if (isNaN(num)) return 0
+  return Number((num / 2).toFixed(1))
+}
+
+export const getContentTypeLabel = (type: string): string => {
+  if (type === 'movie') return 'Film'
+  if (type === 'series') return 'Série TV'
+  return 'Contenu'
+}
+</file>
+
+<file path="src/services/rawgService.ts">
+// src/services/rawgService.ts - AMÉLIORATION POUR JEUX RÉCENTS
+export interface RAWGGame {
+  id: number
+  name: string
+  background_image: string
+  rating: number
+  rating_count: number
+  released: string
+  platforms: { platform: { name: string } }[]
+  developers: { name: string }[]
+  publishers: { name: string }[]
+  genres: { name: string }[]
+  tags: { name: string }[]
+  description_raw?: string
+  metacritic?: number
+  esrb_rating?: { name: string }
+  parent_platforms?: { platform: { name: string } }[]
+  website?: string
+  stores?: { store: { name: string }, url: string }[]
+  screenshots?: { image: string }[]
+}
+
+export interface RAWGSearchResponse {
+  count: number
+  results: RAWGGame[]
+}
+
+class RAWGService {
+  private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+  private readonly baseURL = 'https://api.rawg.io/api'
+  
+  // ✅ RECHERCHE PRINCIPALE AVEC JEUX RÉCENTS ET À VENIR
+  async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
+    try {
+      console.log('🎮 RAWG: Starting enhanced search for:', query, 'pageSize:', pageSize)
+      
+      const allResults: RAWGGame[] = []
+      
+      // ✅ STRATÉGIE 1: Recherche standard
+      const standardResults = await this.performStandardSearch(query, pageSize)
+      allResults.push(...standardResults)
+      
+      // ✅ STRATÉGIE 2: Recherche spécifique pour jeux récents (2024-2025+)
+      if (allResults.length < 10) {
+        const recentResults = await this.searchRecentGames(query)
+        allResults.push(...recentResults)
+      }
+      
+      // ✅ STRATÉGIE 3: Recherche avec dates étendues si c'est une franchise connue
+      if (allResults.length < 5 && this.isKnownFranchise(query)) {
+        const franchiseResults = await this.searchFranchiseGames(query)
+        allResults.push(...franchiseResults)
+      }
+      
+      // Supprimer les doublons
+      const uniqueResults = this.removeDuplicates(allResults)
+      
+      // Enrichir avec les détails complets
+      const enrichedResults = await this.enrichWithDetails(uniqueResults.slice(0, Math.min(pageSize, 15)))
+      
+      // Trier par pertinence et date
+      const sortedResults = this.sortByRelevanceAndDate(enrichedResults, query)
+      
+      console.log('🎮 RAWG: Final enhanced results count:', sortedResults.length)
+      return sortedResults
+      
+    } catch (error) {
+      console.error('🎮 RAWG: Enhanced search failed:', error)
+      throw error
+    }
+  }
+
+  // ✅ RECHERCHE STANDARD
+  private async performStandardSearch(query: string, pageSize: number): Promise<RAWGGame[]> {
+    try {
+      const searchResponse = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.min(pageSize, 20)}`
+      )
+      
+      if (!searchResponse.ok) {
+        throw new Error(`RAWG Search API Error: ${searchResponse.status}`)
+      }
+      
+      const searchData: RAWGSearchResponse = await searchResponse.json()
+      console.log('🎮 RAWG: Standard search returned', searchData.results?.length || 0, 'games')
+      
+      return searchData.results || []
+    } catch (error) {
+      console.error('🎮 RAWG: Standard search failed:', error)
+      return []
+    }
+  }
+
+  // ✅ RECHERCHE SPÉCIFIQUE POUR JEUX RÉCENTS (2024-2025+)
+  private async searchRecentGames(query: string): Promise<RAWGGame[]> {
+    try {
+      const currentYear = new Date().getFullYear()
+      const nextYear = currentYear + 1
+      
+      console.log('🎮 RAWG: Searching recent/upcoming games for:', query)
+      
+      const allRecentResults: RAWGGame[] = []
+      
+      // Recherche pour l'année actuelle et suivante
+      const years = [nextYear, currentYear, currentYear - 1]
+      
+      for (const year of years) {
+        try {
+          // Recherche avec année spécifique
+          const yearResponse = await fetch(
+            `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${year}-01-01,${year}-12-31&page_size=10&ordering=-released`
+          )
+          
+          if (yearResponse.ok) {
+            const yearData: RAWGSearchResponse = await yearResponse.json()
+            if (yearData.results) {
+              allRecentResults.push(...yearData.results)
+              console.log(`🎮 RAWG: Found ${yearData.results.length} games for ${year}`)
+            }
+          }
+        } catch (error) {
+          console.warn(`🎮 RAWG: Error searching year ${year}:`, error)
+        }
+      }
+      
+      // Recherche également dans les prochaines sorties
+      try {
+        const upcomingResponse = await fetch(
+          `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${currentYear}-01-01,${nextYear + 1}-12-31&page_size=10&ordering=-added`
+        )
+        
+        if (upcomingResponse.ok) {
+          const upcomingData: RAWGSearchResponse = await upcomingResponse.json()
+          if (upcomingData.results) {
+            allRecentResults.push(...upcomingData.results)
+            console.log(`🎮 RAWG: Found ${upcomingData.results.length} upcoming games`)
+          }
+        }
+      } catch (error) {
+        console.warn('🎮 RAWG: Error searching upcoming games:', error)
+      }
+      
+      return allRecentResults
+    } catch (error) {
+      console.error('🎮 RAWG: Recent games search failed:', error)
+      return []
+    }
+  }
+
+  // ✅ RECHERCHE POUR FRANCHISES CONNUES
+  private async searchFranchiseGames(query: string): Promise<RAWGGame[]> {
+    try {
+      console.log('🎮 RAWG: Searching franchise games for:', query)
+      
+      const franchiseQueries = [
+        query,
+        `${query} 2024`,
+        `${query} 2025`,
+        `${query} latest`,
+        `${query} new`,
+        `${query} shadows`, // Spécifique pour Assassin's Creed
+        `${query} mirage`,
+        `${query} valhalla`
+      ]
+      
+      const allFranchiseResults: RAWGGame[] = []
+      
+      for (const franchiseQuery of franchiseQueries) {
+        try {
+          const response = await fetch(
+            `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(franchiseQuery)}&page_size=5&ordering=-released`
+          )
+          
+          if (response.ok) {
+            const data: RAWGSearchResponse = await response.json()
+            if (data.results) {
+              allFranchiseResults.push(...data.results)
+            }
+          }
+        } catch (error) {
+          console.warn(`🎮 RAWG: Error with franchise query "${franchiseQuery}":`, error)
+        }
+      }
+      
+      return allFranchiseResults
+    } catch (error) {
+      console.error('🎮 RAWG: Franchise search failed:', error)
+      return []
+    }
+  }
+
+  // ✅ VÉRIFIER SI C'EST UNE FRANCHISE CONNUE
+  private isKnownFranchise(query: string): boolean {
+    const knownFranchises = [
+      'assassin\'s creed', 'assassins creed',
+      'call of duty', 'battlefield', 'fifa', 'madden',
+      'grand theft auto', 'gta', 'red dead',
+      'the witcher', 'cyberpunk', 'elder scrolls',
+      'fallout', 'doom', 'halo', 'gears of war',
+      'uncharted', 'the last of us', 'god of war'
+    ]
+    
+    const queryLower = query.toLowerCase()
+    return knownFranchises.some(franchise => queryLower.includes(franchise))
+  }
+
+  // ✅ SUPPRIMER LES DOUBLONS
+  private removeDuplicates(games: RAWGGame[]): RAWGGame[] {
+    const seen = new Set<number>()
+    const unique: RAWGGame[] = []
+    
+    for (const game of games) {
+      if (!seen.has(game.id)) {
+        seen.add(game.id)
+        unique.push(game)
+      }
+    }
+    
+    return unique
+  }
+
+  // ✅ ENRICHIR AVEC LES DÉTAILS
+  private async enrichWithDetails(games: RAWGGame[]): Promise<RAWGGame[]> {
+    console.log('🎮 RAWG: Enriching', games.length, 'games with details...')
+    
+    const enrichedGames = await Promise.all(
+      games.map(async (game, index) => {
+        try {
+          console.log(`🎮 RAWG: [${index + 1}/${games.length}] Fetching details for:`, game.name, 'ID:', game.id)
+          
+          const detailResponse = await fetch(
+            `${this.baseURL}/games/${game.id}?key=${this.apiKey}`
+          )
+          
+          if (!detailResponse.ok) {
+            console.warn('🎮 RAWG: Failed to get details for', game.name, 'status:', detailResponse.status)
+            return {
+              ...game,
+              developers: game.developers || [],
+              publishers: game.publishers || []
+            }
+          }
+          
+          const gameDetail: RAWGGame = await detailResponse.json()
+          
+          console.log(`🎮 RAWG: Details for "${gameDetail.name}":`, {
+            developers: gameDetail.developers?.map(d => d.name) || [],
+            publishers: gameDetail.publishers?.map(p => p.name) || [],
+            rating: gameDetail.rating,
+            released: gameDetail.released
+          })
+          
+          return gameDetail
+          
+        } catch (error) {
+          console.warn('🎮 RAWG: Error getting details for', game.name, ':', error)
+          return {
+            ...game,
+            developers: game.developers || [],
+            publishers: game.publishers || []
+          }
+        }
+      })
+    )
+
+    console.log('🎮 RAWG: Successfully enriched', enrichedGames.length, 'games with full details')
+    return enrichedGames
+  }
+
+  // ✅ TRIER PAR PERTINENCE ET DATE
+  private sortByRelevanceAndDate(games: RAWGGame[], query: string): RAWGGame[] {
+    return games.sort((a, b) => {
+      const queryLower = query.toLowerCase()
+      
+      // 1. Correspondance exacte du nom
+      const aExactMatch = a.name.toLowerCase().includes(queryLower)
+      const bExactMatch = b.name.toLowerCase().includes(queryLower)
+      
+      if (aExactMatch && !bExactMatch) return -1
+      if (!aExactMatch && bExactMatch) return 1
+      
+      // 2. Jeux plus récents en premier (2024-2025+)
+      const aYear = a.released ? new Date(a.released).getFullYear() : 0
+      const bYear = b.released ? new Date(b.released).getFullYear() : 0
+      
+      const currentYear = new Date().getFullYear()
+      
+      // Priorité aux jeux récents/à venir
+      const aIsRecent = aYear >= currentYear - 1
+      const bIsRecent = bYear >= currentYear - 1
+      
+      if (aIsRecent && !bIsRecent) return -1
+      if (!aIsRecent && bIsRecent) return 1
+      
+      // 3. Trier par année (plus récent en premier)
+      if (aYear !== bYear) return bYear - aYear
+      
+      // 4. Trier par rating
+      return (b.rating || 0) - (a.rating || 0)
+    })
+  }
+
+  // ✅ MÉTHODES EXISTANTES INCHANGÉES
+  async getPopularGames(): Promise<RAWGGame[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&dates=2020-01-01,2024-12-31&metacritic=80,100`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching popular games:', error)
+      return []
+    }
+  }
+
+  async getTopRatedGames(): Promise<RAWGGame[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&metacritic=90,100`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching top rated games:', error)
+      return []
+    }
+  }
+
+  async getNewReleases(): Promise<RAWGGame[]> {
+    try {
+      const currentDate = new Date()
+      const threeMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 3, currentDate.getDate())
+      const sixMonthsLater = new Date(currentDate.getFullYear(), currentDate.getMonth() + 6, currentDate.getDate())
+      
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-released&dates=${threeMonthsAgo.toISOString().split('T')[0]},${sixMonthsLater.toISOString().split('T')[0]}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching new releases:', error)
+      return []
+    }
+  }
+
+  async getGameDetails(gameId: string | number): Promise<RAWGGame | null> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games/${gameId}?key=${this.apiKey}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const game: RAWGGame = await response.json()
+      return game
+    } catch (error) {
+      console.error('Error fetching game details:', error)
+      return null
+    }
+  }
+
+  convertToAppFormat(game: RAWGGame): any {
+    let developer = 'Unknown Developer'
+    let finalDeveloper = 'Unknown Developer'
+    
+    if (game.developers && game.developers.length > 0) {
+      developer = game.developers[0].name
+      finalDeveloper = developer
+      console.log('🎮 Using primary developer:', developer)
+    }
+    else if (game.publishers && game.publishers.length > 0) {
+      developer = game.publishers[0].name
+      finalDeveloper = `${developer} (Publisher)`
+      console.log('🎮 Using publisher as developer fallback:', developer)
+    }
+    
+    console.log('🎮 Converting game:', game.name, '→ Developer:', finalDeveloper)
+    
+    const converted = {
+      id: `game-${game.id}`,
+      title: game.name || 'Unknown Game',
+      name: game.name || 'Unknown Game',
+      author: finalDeveloper,
+      developer: finalDeveloper,
+      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
+      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
+      genre: game.genres?.[0]?.name || 'Unknown',
+      category: 'games' as const,
+      image: game.background_image,
+      background_image: game.background_image,
+      released: game.released,
+      developers: game.developers || [],
+      publishers: game.publishers || [],
+      genres: game.genres || [],
+      
+      description_raw: game.description_raw,
+      metacritic: game.metacritic,
+      esrb_rating: game.esrb_rating,
+      platforms: game.platforms || [],
+      tags: game.tags || [],
+      rating_count: game.rating_count || 0,
+      parent_platforms: game.parent_platforms || [],
+      website: game.website,
+      stores: game.stores || [],
+      screenshots: game.screenshots || []
+    }
+    
+    console.log('🎮 Converted result:', {
+      title: converted.title,
+      developer: converted.developer,
+      author: converted.author,
+      year: converted.year,
+      rating: converted.rating
+    })
+    
+    return converted
+  }
+
+  async getSimilarGames(game: RAWGGame, limit: number = 6): Promise<RAWGGame[]> {
+    try {
+      if (!game.genres || game.genres.length === 0) {
+        return []
+      }
+      
+      const genre = game.genres[0].name
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&genres=${genre}&page_size=${limit + 5}&ordering=-rating`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      
+      return (data.results || [])
+        .filter(g => g.id !== game.id)
+        .slice(0, limit)
+    } catch (error) {
+      console.error('Error fetching similar games:', error)
+      return []
+    }
+  }
+
+  async getGamesByDeveloper(developerId: number, excludeGameId: number, limit: number = 6): Promise<RAWGGame[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&developers=${developerId}&page_size=${limit + 5}&ordering=-rating`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      
+      return (data.results || [])
+        .filter(g => g.id !== excludeGameId)
+        .slice(0, limit)
+    } catch (error) {
+      console.error('Error fetching games by developer:', error)
+      return []
+    }
+  }
+}
+
+export const rawgService = new RAWGService()
 </file>
 
 <file path="src/components/CategoryTabs.tsx">

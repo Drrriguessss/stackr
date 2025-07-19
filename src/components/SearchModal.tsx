@@ -1,4 +1,4 @@
-// src/components/SearchModal.tsx - COMPLET AVEC INTERFACE MOBILE OPTIMISÉE
+// src/components/SearchModal.tsx - VERSION COMPLÈTE CORRIGÉE
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
@@ -137,16 +137,17 @@ export default function SearchModal({
     return creator
   }
 
-  // ✅ RECHERCHE JEUX AVEC DÉVELOPPEURS ASSURÉS
+  // ✅ RECHERCHE JEUX AVEC DÉVELOPPEURS ASSURÉS ET JEUX RÉCENTS
   const searchGames = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎮 [SearchModal] Starting games search for:', query)
+    console.log('🎮 [SearchModal] Starting ENHANCED games search for:', query)
     
     try {
-      const games = await rawgService.searchGames(query, 12)
-      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games')
+      // ✅ UTILISE LA NOUVELLE MÉTHODE searchGames AMÉLIORÉE
+      const games = await rawgService.searchGames(query, 15) // Plus de résultats pour couvrir les jeux récents
+      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games with enhanced search')
       
       if (!games || games.length === 0) {
-        console.log('🎮 [SearchModal] No games found')
+        console.log('🎮 [SearchModal] No games found with enhanced search')
         return []
       }
 
@@ -158,8 +159,10 @@ export default function SearchModal({
           title: converted.title,
           developer: converted.developer,
           author: converted.author,
+          year: converted.year,
           originalGame: {
             name: game.name,
+            released: game.released,
             developers: game.developers?.map(d => d.name) || [],
             publishers: game.publishers?.map(p => p.name) || []
           }
@@ -168,11 +171,41 @@ export default function SearchModal({
         return converted
       })
 
-      console.log('✅ [SearchModal] Games conversion complete:', convertedGames.length, 'results')
-      return convertedGames
+      // ✅ TRI SUPPLÉMENTAIRE PAR ANNÉE (PLUS RÉCENT EN PREMIER)
+      const sortedGames = convertedGames.sort((a, b) => {
+        const queryLower = query.toLowerCase()
+        
+        // 1. Correspondance exacte du titre
+        const aExactMatch = a.title.toLowerCase().includes(queryLower)
+        const bExactMatch = b.title.toLowerCase().includes(queryLower)
+        
+        if (aExactMatch && !bExactMatch) return -1
+        if (!aExactMatch && bExactMatch) return 1
+        
+        // 2. Jeux récents/futurs en priorité (2024+)
+        const currentYear = new Date().getFullYear()
+        const aIsRecent = a.year >= currentYear
+        const bIsRecent = b.year >= currentYear
+        
+        if (aIsRecent && !bIsRecent) return -1
+        if (!aIsRecent && bIsRecent) return 1
+        
+        // 3. Tri par année (plus récent d'abord)
+        if (a.year !== b.year) return b.year - a.year
+        
+        // 4. Tri par rating
+        return (b.rating || 0) - (a.rating || 0)
+      })
+
+      console.log('✅ [SearchModal] Games search complete - sorted by recency:')
+      sortedGames.slice(0, 5).forEach((game, i) => {
+        console.log(`  ${i + 1}. ${game.title} (${game.year}) ${game.year >= 2024 ? '🔥 RECENT' : ''}`)
+      })
+
+      return sortedGames
 
     } catch (error) {
-      console.error('❌ [SearchModal] Games search failed:', error)
+      console.error('❌ [SearchModal] Enhanced games search failed:', error)
       throw error
     }
   }
@@ -245,6 +278,33 @@ export default function SearchModal({
     }
   }
 
+  // 🎵 RECHERCHE MUSIQUE
+  const searchMusicWithCategory = async (query: string): Promise<SearchResult[]> => {
+    console.log('🎵 [SearchModal] Starting music search for:', query)
+    
+    try {
+      const albums = await musicService.searchAlbums(query, 20)
+      console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums')
+      
+      if (!albums || albums.length === 0) {
+        return []
+      }
+
+      const convertedAlbums = albums.map(album => {
+        const converted = musicService.convertToAppFormat(album)
+        console.log('🎵 [SearchModal] Converted album:', converted.title, 'by', converted.artist)
+        return converted
+      })
+
+      console.log('✅ [SearchModal] Music conversion complete:', convertedAlbums.length, 'results')
+      return convertedAlbums
+
+    } catch (error) {
+      console.error('❌ [SearchModal] Music search failed:', error)
+      throw error
+    }
+  }
+
   // ✅ RECHERCHE PRINCIPALE RÉÉCRITE
   const performSearch = async (searchQuery: string, category: string) => {
     if (!searchQuery.trim()) return
@@ -261,7 +321,7 @@ export default function SearchModal({
     try {
       const searchPromises: Promise<{ category: string, results: SearchResult[] }>[] = []
 
-      // ✅ RECHERCHE JEUX AVEC DÉVELOPPEURS
+      // ✅ RECHERCHE JEUX AVEC DÉVELOPPEURS ET JEUX RÉCENTS
       if (category === 'all' || category === 'games') {
         searchPromises.push(
           searchGames(searchQuery)
@@ -289,34 +349,8 @@ export default function SearchModal({
 
       // 🎵 RECHERCHE MUSIQUE
       if (category === 'all' || category === 'music') {
-        const searchMusicWithCategory = async (): Promise<SearchResult[]> => {
-          console.log('🎵 [SearchModal] Starting music search for:', searchQuery, 'Category filter:', category)
-          
-          try {
-            const albums = await musicService.searchAlbums(searchQuery, 20)
-            console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums')
-            
-            if (!albums || albums.length === 0) {
-              return []
-            }
-
-            const convertedAlbums = albums.map(album => {
-              const converted = musicService.convertToAppFormat(album)
-              console.log('🎵 [SearchModal] Converted album:', converted.title, 'by', converted.artist)
-              return converted
-            })
-
-            console.log('✅ [SearchModal] Music conversion complete:', convertedAlbums.length, 'results')
-            return convertedAlbums
-
-          } catch (error) {
-            console.error('❌ [SearchModal] Music search failed:', error)
-            throw error
-          }
-        }
-
         searchPromises.push(
-          searchMusicWithCategory()
+          searchMusicWithCategory(searchQuery)
             .then(results => ({ category: 'music', results }))
             .catch(err => {
               console.error('❌ [SearchModal] Music search failed:', err)
@@ -355,7 +389,7 @@ export default function SearchModal({
         allResults.push(...categoryResults)
       })
 
-      // 🔧 TRI INTELLIGENT PAR PERTINENCE
+      // 🔧 TRI INTELLIGENT PAR PERTINENCE ET ANNÉE RÉCENTE
       allResults.sort((a, b) => {
         const queryLower = searchQuery.toLowerCase()
         
@@ -375,18 +409,27 @@ export default function SearchModal({
         if (aCreatorMatch && !bCreatorMatch) return -1
         if (!aCreatorMatch && bCreatorMatch) return 1
         
-        // 3. Année (plus récent en premier)
+        // 3. Priorité aux contenus récents (2024+) pour tous les types
+        const currentYear = new Date().getFullYear()
+        const aIsRecent = a.year >= currentYear
+        const bIsRecent = b.year >= currentYear
+        
+        if (aIsRecent && !bIsRecent) return -1
+        if (!aIsRecent && bIsRecent) return 1
+        
+        // 4. Année (plus récent en premier)
         const yearDiff = (b.year || 0) - (a.year || 0)
         if (yearDiff !== 0) return yearDiff
         
-        // 4. Rating
+        // 5. Rating
         return (b.rating || 0) - (a.rating || 0)
       })
 
       console.log('🎯 [SearchModal] FINAL RESULTS:', allResults.length, 'total')
       allResults.slice(0, 10).forEach((result, index) => {
         const creator = getCreator(result)
-        console.log(`${index + 1}. ${result.title} (${result.year}) by ${creator} - ${result.category.toUpperCase()}`)
+        const isRecent = result.year >= new Date().getFullYear() ? '🔥' : ''
+        console.log(`${index + 1}. ${result.title} (${result.year}) ${isRecent} by ${creator} - ${result.category.toUpperCase()}`)
       })
 
       // Cache des résultats
@@ -735,6 +778,7 @@ export default function SearchModal({
                 const isAdding = addingItem === result.id
                 const wasJustAdded = justAddedItems.has(result.id)
                 const creator = getCreator(result)
+                const isRecent = result.year >= new Date().getFullYear()
                 
                 return (
                   <div
@@ -773,8 +817,8 @@ export default function SearchModal({
                           {result.isSeries && (
                             <span className="ml-2 text-purple-600 text-sm"> • TV Series</span>
                           )}
-                          {result.year >= 2024 && (
-                            <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">NEW</span>
+                          {isRecent && (
+                            <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">🔥 NEW</span>
                           )}
                         </h3>
                         
@@ -791,7 +835,7 @@ export default function SearchModal({
                             {result.category === 'movies' ? (result.isSeries ? 'TV' : 'Film') : result.category}
                           </span>
                           
-                          <span className={result.year >= 2024 ? 'font-semibold text-green-600' : result.year >= 2020 ? 'font-medium text-blue-600' : ''}>
+                          <span className={isRecent ? 'font-semibold text-green-600' : result.year >= 2020 ? 'font-medium text-blue-600' : ''}>
                             {result.year}
                           </span>
                           
