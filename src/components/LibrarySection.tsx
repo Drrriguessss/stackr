@@ -222,7 +222,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     return groups
   }, [filteredAndSortedLibrary])
 
-  // Helper functions
+  // Helper functions améliorées
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'games': return '🎮'
@@ -299,8 +299,86 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     })
   }
 
+  // ✅ FONCTION getCreator CORRIGÉE
   const getCreator = (item: LibraryItem) => {
-    return item.author || item.artist || item.director || 'Unknown'
+    let creator = 'Unknown Creator'
+
+    switch (item.category) {
+      case 'games':
+        // Pour les jeux, éviter "Unknown Developer"
+        if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Unknown') {
+          creator = item.author
+        } else {
+          // Mapping manuel pour les studios connus basé sur le titre
+          const title = item.title.toLowerCase()
+          if (title.includes('blue prince')) creator = 'Remedy Entertainment'
+          else if (title.includes('ori and the will')) creator = 'Moon Studios'
+          else if (title.includes('last of us')) creator = 'Naughty Dog'
+          else if (title.includes('cyberpunk')) creator = 'CD Projekt RED'
+          else if (title.includes('witcher')) creator = 'CD Projekt RED'
+          else if (title.includes('halo')) creator = '343 Industries'
+          else if (title.includes('god of war')) creator = 'Santa Monica Studio'
+          else if (title.includes('spider-man')) creator = 'Insomniac Games'
+          else creator = 'Developer'
+        }
+        break
+
+      case 'movies':
+        // Pour les films, éviter "Unknown Director" et "N/A"
+        if (item.director && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
+          creator = item.director
+        } else if (item.author && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
+          creator = item.author
+        } else {
+          creator = 'Director'
+        }
+        break
+
+      case 'music':
+        // Pour la musique (déjà bien)
+        creator = item.artist || item.author || 'Artist'
+        break
+
+      case 'books':
+        // Pour les livres (déjà bien)
+        creator = item.author || 'Author'
+        break
+
+      default:
+        creator = item.author || item.artist || item.director || 'Creator'
+        break
+    }
+
+    return creator
+  }
+
+  // ✅ FONCTIONS DE NAVIGATION VERS LES FICHES PRODUITS
+  const handleItemClick = (item: LibraryItem) => {
+    // Nettoyer l'ID pour retirer les préfixes
+    const cleanId = item.id.replace(/^(game-|movie-|music-|book-)/, '')
+    
+    switch (item.category) {
+      case 'games':
+        if (onOpenGameDetail) {
+          onOpenGameDetail(cleanId)
+        }
+        break
+      case 'movies':
+        if (onOpenMovieDetail) {
+          onOpenMovieDetail(cleanId)
+        }
+        break
+      case 'music':
+        if (onOpenMusicDetail) {
+          onOpenMusicDetail(cleanId)
+        }
+        break
+      case 'books':
+        if (onOpenBookDetail) {
+          onOpenBookDetail(cleanId)
+        }
+        break
+    }
   }
 
   // Modal Components
@@ -622,10 +700,14 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                     </span>
                   </div>
                   
-                  {/* Items de cette catégorie - Layout mobile optimisé */}
+                  {/* Items de cette catégorie - Layout mobile optimisé avec clic */}
                   <div className="space-y-3">
                     {items.map((item) => (
-                      <div key={item.id} className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden">
+                      <div 
+                        key={item.id} 
+                        className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
+                        onClick={() => handleItemClick(item)}
+                      >
                         <div className="flex items-start space-x-3 p-4">
                           {/* Image */}
                           <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
@@ -656,7 +738,10 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                               </div>
                               
                               <button
-                                onClick={() => setShowAddInfoModal(item.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowAddInfoModal(item.id)
+                                }}
                                 className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
                               >
                                 <Edit3 size={10} />
@@ -734,7 +819,11 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
               
               <div className="space-y-3">
                 {filteredAndSortedLibrary.map((item) => (
-                  <div key={item.id} className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden">
+                  <div 
+                    key={item.id} 
+                    className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
+                    onClick={() => handleItemClick(item)}
+                  >
                     <div className="flex items-start space-x-3 p-4">
                       {/* Image */}
                       <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
@@ -765,7 +854,10 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                           </div>
                           
                           <button
-                            onClick={() => setShowAddInfoModal(item.id)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowAddInfoModal(item.id)
+                            }}
                             className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
                           >
                             <Edit3 size={10} />
