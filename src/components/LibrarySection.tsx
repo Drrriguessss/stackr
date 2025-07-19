@@ -496,53 +496,27 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
             </div>
           </div>
 
-          {/* Filtres de catégories et statut */}
-          <div className="flex items-center justify-between">
-            {/* Boutons de catégories */}
-            <div className="flex items-center space-x-2">
-              {[
-                { key: 'all', label: 'All' },
-                { key: 'games', label: 'Games' },
-                { key: 'movies', label: 'Movies' },
-                { key: 'music', label: 'Music' },
-                { key: 'books', label: 'Books' }
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveCategory(key)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeCategory === key
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Menu déroulant de statut déplacé */}
-            <div className="flex items-center space-x-2">
-              {[
-                { key: 'all', label: 'All' },
-                { key: 'games', label: 'Games' },
-                { key: 'movies', label: 'Movies' },
-                { key: 'music', label: 'Music' },
-                { key: 'books', label: 'Books' }
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveCategory(key)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeCategory === key
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+          {/* Filtres de catégories uniquement */}
+          <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'games', label: 'Games' },
+              { key: 'movies', label: 'Movies' },
+              { key: 'music', label: 'Music' },
+              { key: 'books', label: 'Books' }
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setActiveCategory(key)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  activeCategory === key
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -648,93 +622,96 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                     </span>
                   </div>
                   
-                  {/* Items de cette catégorie */}
-                  <div className="space-y-4">
+                  {/* Items de cette catégorie - Layout mobile optimisé */}
+                  <div className="space-y-3">
                     {items.map((item) => (
-                      <div key={item.id} className="flex items-start space-x-4 p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-                        {/* Image */}
-                        <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
-                          {item.image ? (
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-lg">
-                              {getCategoryIcon(item.category)}
-                            </div>
-                          )}
-                        </div>
+                      <div key={item.id} className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden">
+                        <div className="flex items-start space-x-3 p-4">
+                          {/* Image */}
+                          <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={item.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-base">
+                                {getCategoryIcon(item.category)}
+                              </div>
+                            )}
+                          </div>
 
-                        {/* Contenu principal */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-gray-900 font-semibold text-base leading-tight">
-                                {item.title}
-                              </h3>
-                              <p className="text-gray-600 text-sm mt-1">
-                                by {getCreator(item)}
-                              </p>
+                          {/* Contenu principal */}
+                          <div className="flex-1 min-w-0 space-y-2">
+                            {/* Titre et Add Info */}
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-gray-900 font-semibold text-sm leading-tight">
+                                  {item.title}
+                                </h3>
+                                <p className="text-gray-600 text-xs mt-1">
+                                  by {getCreator(item)}
+                                </p>
+                              </div>
                               
-                              {/* Rating */}
-                              <div className="flex items-center space-x-3 mt-2">
-                                {item.userRating && (
-                                  <div className="flex items-center space-x-1">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                      <Star
-                                        key={star}
-                                        size={12}
-                                        className={`${
-                                          star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                        }`}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-                                
+                              <button
+                                onClick={() => setShowAddInfoModal(item.id)}
+                                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
+                              >
+                                <Edit3 size={10} />
+                                <span className="hidden sm:inline">Add Info</span>
+                              </button>
+                            </div>
+                            
+                            {/* Rating */}
+                            {item.userRating && (
+                              <div className="flex items-center space-x-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    size={10}
+                                    className={`${
+                                      star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
                                 {item.rating && (
-                                  <div className="text-xs text-gray-500">
-                                    avg {item.rating} • {item.numberOfRatings?.toLocaleString()} ratings
-                                  </div>
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    avg {item.rating}
+                                  </span>
                                 )}
                               </div>
+                            )}
 
-                              {/* Meta info */}
-                              <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+                            {/* Status et year sur une ligne */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                                   {getStatusLabel(item.status)}
                                 </span>
-                                <span>{item.year}</span>
-                                <span>Added {formatDate(item.addedAt)}</span>
-                                
-                                {/* Infos additionnelles pour les jeux */}
-                                {item.category === 'games' && item.additionalInfo && (
-                                  <>
-                                    {item.additionalInfo.platform && (
-                                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
-                                        {item.additionalInfo.platform}
-                                      </span>
-                                    )}
-                                    {item.additionalInfo.gamePass && (
-                                      <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
-                                        Game Pass
-                                      </span>
-                                    )}
-                                  </>
-                                )}
+                                <span className="text-xs text-gray-500">{item.year}</span>
                               </div>
+                              <span className="text-xs text-gray-400">
+                                {formatDate(item.addedAt).replace(/,.*/, '')}
+                              </span>
                             </div>
 
-                            {/* Bouton Add Info */}
-                            <button
-                              onClick={() => setShowAddInfoModal(item.id)}
-                              className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-4"
-                            >
-                              <Edit3 size={12} />
-                              <span>Add Info</span>
-                            </button>
+                            {/* Infos additionnelles sur une ligne séparée */}
+                            {item.category === 'games' && item.additionalInfo && (
+                              <div className="flex items-center space-x-2 flex-wrap">
+                                {item.additionalInfo.platform && (
+                                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                                    {item.additionalInfo.platform}
+                                  </span>
+                                )}
+                                {item.additionalInfo.gamePass && (
+                                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
+                                    Game Pass
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -755,92 +732,95 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 </span>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {filteredAndSortedLibrary.map((item) => (
-                  <div key={item.id} className="flex items-start space-x-4 p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-                    {/* Image */}
-                    <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-lg">
-                          {getCategoryIcon(item.category)}
-                        </div>
-                      )}
-                    </div>
+                  <div key={item.id} className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden">
+                    <div className="flex items-start space-x-3 p-4">
+                      {/* Image */}
+                      <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-base">
+                            {getCategoryIcon(item.category)}
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Contenu principal */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-gray-900 font-semibold text-base leading-tight">
-                            {item.title}
-                          </h3>
-                          <p className="text-gray-600 text-sm mt-1">
-                            by {getCreator(item)}
-                          </p>
+                      {/* Contenu principal */}
+                      <div className="flex-1 min-w-0 space-y-2">
+                        {/* Titre et Add Info */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-gray-900 font-semibold text-sm leading-tight">
+                              {item.title}
+                            </h3>
+                            <p className="text-gray-600 text-xs mt-1">
+                              by {getCreator(item)}
+                            </p>
+                          </div>
                           
-                          {/* Rating */}
-                          <div className="flex items-center space-x-3 mt-2">
-                            {item.userRating && (
-                              <div className="flex items-center space-x-1">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    size={12}
-                                    className={`${
-                                      star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                            )}
-                            
+                          <button
+                            onClick={() => setShowAddInfoModal(item.id)}
+                            className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
+                          >
+                            <Edit3 size={10} />
+                            <span className="hidden sm:inline">Add Info</span>
+                          </button>
+                        </div>
+                        
+                        {/* Rating */}
+                        {item.userRating && (
+                          <div className="flex items-center space-x-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={10}
+                                className={`${
+                                  star <= item.userRating! ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
                             {item.rating && (
-                              <div className="text-xs text-gray-500">
-                                avg {item.rating} • {item.numberOfRatings?.toLocaleString()} ratings
-                              </div>
+                              <span className="text-xs text-gray-500 ml-2">
+                                avg {item.rating}
+                              </span>
                             )}
                           </div>
+                        )}
 
-                          {/* Meta info */}
-                          <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+                        {/* Status et year sur une ligne */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                               {getStatusLabel(item.status)}
                             </span>
-                            <span>{item.year}</span>
-                            <span>Added {formatDate(item.addedAt)}</span>
-                            
-                            {/* Infos additionnelles pour les jeux */}
-                            {item.category === 'games' && item.additionalInfo && (
-                              <>
-                                {item.additionalInfo.platform && (
-                                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
-                                    {item.additionalInfo.platform}
-                                  </span>
-                                )}
-                                {item.additionalInfo.gamePass && (
-                                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
-                                    Game Pass
-                                  </span>
-                                )}
-                              </>
-                            )}
+                            <span className="text-xs text-gray-500">{item.year}</span>
                           </div>
+                          <span className="text-xs text-gray-400">
+                            {formatDate(item.addedAt).replace(/,.*/, '')}
+                          </span>
                         </div>
 
-                        {/* Bouton Add Info */}
-                        <button
-                          onClick={() => setShowAddInfoModal(item.id)}
-                          className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-4"
-                        >
-                          <Edit3 size={12} />
-                          <span>Add Info</span>
-                        </button>
+                        {/* Infos additionnelles sur une ligne séparée */}
+                        {item.category === 'games' && item.additionalInfo && (
+                          <div className="flex items-center space-x-2 flex-wrap">
+                            {item.additionalInfo.platform && (
+                              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                                {item.additionalInfo.platform}
+                              </span>
+                            )}
+                            {item.additionalInfo.gamePass && (
+                              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
+                                Game Pass
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
