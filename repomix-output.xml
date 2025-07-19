@@ -733,146 +733,6 @@ export const getReadingTime = (pageCount: number): string => {
 }
 </file>
 
-<file path="src/services/rawgService.ts">
-// Service pour l'API RAWG (jeux vidéo)
-export interface RAWGGame {
-  id: number
-  name: string
-  background_image: string
-  rating: number
-  rating_count: number
-  released: string
-  platforms: { platform: { name: string } }[]
-  developers: { name: string }[]
-  publishers: { name: string }[]
-  genres: { name: string }[]
-  tags: { name: string }[]
-  description_raw?: string
-  metacritic?: number
-  esrb_rating?: { name: string }
-}
-
-export interface RAWGSearchResponse {
-  count: number
-  results: RAWGGame[]
-}
-
-class RAWGService {
-  private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
-  private readonly baseURL = 'https://api.rawg.io/api'
-  
-  // Rechercher des jeux
-  async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${pageSize}`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      return data.results || []
-    } catch (error) {
-      console.error('Error searching games:', error)
-      throw error
-    }
-  }
-
-  // Obtenir les jeux populaires
-  async getPopularGames(): Promise<RAWGGame[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&dates=2020-01-01,2024-12-31&metacritic=80,100`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      return data.results || []
-    } catch (error) {
-      console.error('Error fetching popular games:', error)
-      return []
-    }
-  }
-
-  // Obtenir les jeux les mieux notés
-  async getTopRatedGames(): Promise<RAWGGame[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&metacritic=90,100`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      return data.results || []
-    } catch (error) {
-      console.error('Error fetching top rated games:', error)
-      return []
-    }
-  }
-
-  // Obtenir les nouveautés
-  async getNewReleases(): Promise<RAWGGame[]> {
-    try {
-      const currentDate = new Date()
-      const threeMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 3, currentDate.getDate())
-      
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-released&dates=${threeMonthsAgo.toISOString().split('T')[0]},${currentDate.toISOString().split('T')[0]}`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      return data.results || []
-    } catch (error) {
-      console.error('Error fetching new releases:', error)
-      return []
-    }
-  }
-
-  // Convertir un jeu RAWG vers le format de l'app
-  convertToAppFormat(game: RAWGGame): any {
-    return {
-      id: `game-${game.id}`,
-      title: game.name || 'Unknown Game',
-      name: game.name || 'Unknown Game',
-      author: game.developers?.[0]?.name || 'Unknown Developer',
-      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
-      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
-      genre: game.genres?.[0]?.name || 'Unknown',
-      category: 'games' as const,
-      image: game.background_image,
-      background_image: game.background_image,
-      released: game.released,
-      developers: game.developers,
-      genres: game.genres,
-      
-      // Données supplémentaires
-      description_raw: game.description_raw,
-      metacritic: game.metacritic,
-      esrb_rating: game.esrb_rating,
-      platforms: game.platforms,
-      publishers: game.publishers,
-      tags: game.tags,
-      rating_count: game.rating_count
-    }
-  }
-}
-
-// Instance singleton
-export const rawgService = new RAWGService()
-</file>
-
 <file path="src/utils/idNormalizer.ts">
 /**
  * Utilitaire pour normaliser les IDs et éviter la duplication de code
@@ -1454,370 +1314,147 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
 }
 </file>
 
-<file path="src/services/omdbService.ts">
-// Service pour l'API OMDB (films + séries) - VERSION COMPLÈTE AMÉLIORÉE
-export interface OMDBMovie {
-  imdbID: string
-  Title: string
-  Year: string
-  Type: string // 'movie' ou 'series'
-  Poster: string
-  Plot?: string
-  Director?: string
-  Genre?: string
-  imdbRating?: string
-  Runtime?: string
-  Released?: string
-  Actors?: string
-  Language?: string
-  Country?: string
-  Awards?: string
-  Response?: string
-  Error?: string
-  // Champs spécifiques aux séries
-  totalSeasons?: string
-  Seasons?: string
+<file path="src/services/rawgService.ts">
+// Service pour l'API RAWG (jeux vidéo)
+export interface RAWGGame {
+  id: number
+  name: string
+  background_image: string
+  rating: number
+  rating_count: number
+  released: string
+  platforms: { platform: { name: string } }[]
+  developers: { name: string }[]
+  publishers: { name: string }[]
+  genres: { name: string }[]
+  tags: { name: string }[]
+  description_raw?: string
+  metacritic?: number
+  esrb_rating?: { name: string }
 }
 
-export interface OMDBSearchResponse {
-  Search: OMDBMovie[]
-  totalResults: string
-  Response: string
-  Error?: string
+export interface RAWGSearchResponse {
+  count: number
+  results: RAWGGame[]
 }
 
-class OMDBService {
-  private readonly apiKey = '649f9a63'
-  private readonly baseURL = 'https://www.omdbapi.com'
+class RAWGService {
+  private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+  private readonly baseURL = 'https://api.rawg.io/api'
   
-  // Recherche privée avec gestion d'erreurs
-  private async performSearch(query: string, page: number = 1, type?: 'movie' | 'series'): Promise<OMDBMovie[]> {
+  // Rechercher des jeux
+  async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
     try {
-      let url = `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&page=${page}`
-      if (type) {
-        url += `&type=${type}`
-      }
-
-      const response = await fetch(url)
-      
-      if (!response.ok) {
-        throw new Error(`OMDB API Error: ${response.status}`)
-      }
-      
-      const data: OMDBSearchResponse = await response.json()
-      
-      if (data.Response === 'False') {
-        return [] // Retourner un array vide au lieu d'une erreur
-      }
-      
-      return data.Search || []
-    } catch (error) {
-      console.warn(`OMDB search failed for "${query}":`, error)
-      return []
-    }
-  }
-
-  // Rechercher des films ET séries avec stratégies multiples
-  async searchMoviesAndSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
-    try {
-      const allResults: OMDBMovie[] = []
-      
-      // Stratégie 1: Recherche normale (films + séries)
-      const normalResults = await this.performSearch(query, page)
-      allResults.push(...normalResults)
-      
-      // Stratégie 2: Si peu de résultats, essayer avec des années
-      if (allResults.length < 5) {
-        const currentYear = new Date().getFullYear()
-        const nextYear = currentYear + 1
-        const lastYear = currentYear - 1
-        
-        // Essayer avec l'année courante
-        const currentYearResults = await this.performSearch(`${query} ${currentYear}`, page)
-        allResults.push(...currentYearResults)
-        
-        // Essayer avec l'année suivante (films à venir)
-        const nextYearResults = await this.performSearch(`${query} ${nextYear}`, page)
-        allResults.push(...nextYearResults)
-        
-        // Essayer avec l'année précédente
-        const lastYearResults = await this.performSearch(`${query} ${lastYear}`, page)
-        allResults.push(...lastYearResults)
-      }
-      
-      // Stratégie 3: Recherche avec variations du titre
-      if (allResults.length < 3) {
-        const variations = [
-          `${query} movie`,
-          `${query} film`,
-          `${query} series`,
-          query.replace(/\s+/g, '') // Sans espaces
-        ]
-        
-        for (const variation of variations) {
-          const variationResults = await this.performSearch(variation, page)
-          allResults.push(...variationResults)
-        }
-      }
-      
-      // Enlever les doublons basés sur imdbID
-      const uniqueResults = allResults.filter((movie, index, self) => 
-        index === self.findIndex(m => m.imdbID === movie.imdbID)
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${pageSize}`
       )
       
-      // Trier par pertinence : titre exact en premier, puis par rating
-      return uniqueResults.sort((a, b) => {
-        const aExactMatch = a.Title.toLowerCase().includes(query.toLowerCase())
-        const bExactMatch = b.Title.toLowerCase().includes(query.toLowerCase())
-        
-        if (aExactMatch && !bExactMatch) return -1
-        if (!aExactMatch && bExactMatch) return 1
-        
-        // Trier par année (plus récent en premier)
-        const aYear = parseInt(a.Year) || 0
-        const bYear = parseInt(b.Year) || 0
-        
-        return bYear - aYear
-      })
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
       
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
     } catch (error) {
-      console.error('Error searching movies and series:', error)
+      console.error('Error searching games:', error)
       throw error
     }
   }
 
-  // Rechercher seulement des films (garde l'ancienne méthode pour compatibilité)
-  async searchMovies(query: string, page: number = 1): Promise<OMDBMovie[]> {
-    return this.performSearch(query, page, 'movie')
-  }
-
-  // Rechercher seulement des séries
-  async searchSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
-    return this.performSearch(query, page, 'series')
-  }
-
-  // Obtenir les détails d'un film ou série
-  async getMovieDetails(imdbId: string): Promise<OMDBMovie | null> {
+  // Obtenir les jeux populaires
+  async getPopularGames(): Promise<RAWGGame[]> {
     try {
       const response = await fetch(
-        `${this.baseURL}/?apikey=${this.apiKey}&i=${imdbId}&plot=full`
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&dates=2020-01-01,2024-12-31&metacritic=80,100`
       )
       
       if (!response.ok) {
-        throw new Error(`OMDB API Error: ${response.status}`)
+        throw new Error(`RAWG API Error: ${response.status}`)
       }
       
-      const movie: OMDBMovie = await response.json()
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching popular games:', error)
+      return []
+    }
+  }
+
+  // Obtenir les jeux les mieux notés
+  async getTopRatedGames(): Promise<RAWGGame[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&metacritic=90,100`
+      )
       
-      if (movie.Response === 'False') {
-        return null
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
       }
       
-      return movie
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
     } catch (error) {
-      console.error('Error fetching movie/series details:', error)
-      return null
-    }
-  }
-
-  // Obtenir des films populaires
-  async getPopularMovies(): Promise<OMDBMovie[]> {
-    const popularMovieIds = [
-      'tt0111161', // The Shawshank Redemption
-      'tt0068646', // The Godfather
-      'tt0468569', // The Dark Knight
-      'tt0071562', // The Godfather Part II
-      'tt0050083', // 12 Angry Men
-      'tt0108052', // Schindler's List
-      'tt0167260', // The Lord of the Rings: The Return of the King
-      'tt0110912'  // Pulp Fiction
-    ]
-
-    try {
-      const moviePromises = popularMovieIds.map(id => this.getMovieDetails(id))
-      const movies = await Promise.all(moviePromises)
-      return movies.filter(movie => movie !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching popular movies:', error)
+      console.error('Error fetching top rated games:', error)
       return []
     }
   }
 
-  // Obtenir des séries populaires
-  async getPopularSeries(): Promise<OMDBMovie[]> {
-    const popularSeriesIds = [
-      'tt0944947', // Game of Thrones
-      'tt0903747', // Breaking Bad
-      'tt2356777', // True Detective
-      'tt1475582', // Sherlock
-      'tt0141842', // The Sopranos
-      'tt2395695', // Westworld
-      'tt4574334', // Stranger Things
-      'tt0386676'  // The Office
-    ]
-
+  // Obtenir les nouveautés
+  async getNewReleases(): Promise<RAWGGame[]> {
     try {
-      const seriesPromises = popularSeriesIds.map(id => this.getMovieDetails(id))
-      const series = await Promise.all(seriesPromises)
-      return series.filter(series => series !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching popular series:', error)
-      return []
-    }
-  }
-
-  // Obtenir films + séries populaires combinés
-  async getPopularMoviesAndSeries(): Promise<OMDBMovie[]> {
-    try {
-      const [movies, series] = await Promise.all([
-        this.getPopularMovies(),
-        this.getPopularSeries()
-      ])
+      const currentDate = new Date()
+      const threeMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 3, currentDate.getDate())
       
-      // Mélanger films et séries
-      const combined = [...movies.slice(0, 4), ...series.slice(0, 4)]
-      return this.shuffleArray(combined)
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-released&dates=${threeMonthsAgo.toISOString().split('T')[0]},${currentDate.toISOString().split('T')[0]}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
     } catch (error) {
-      console.error('Error fetching popular movies and series:', error)
+      console.error('Error fetching new releases:', error)
       return []
     }
   }
 
-  // Obtenir les mieux notés (films + quelques séries)
-  async getTopRatedMovies(): Promise<OMDBMovie[]> {
-    const topRatedIds = [
-      'tt0111161', // The Shawshank Redemption
-      'tt0068646', // The Godfather
-      'tt0071562', // The Godfather Part II
-      'tt0468569', // The Dark Knight
-      'tt0903747', // Breaking Bad (série)
-      'tt0108052', // Schindler's List
-      'tt0944947', // Game of Thrones (série)
-      'tt0110912'  // Pulp Fiction
-    ]
-
-    try {
-      const itemPromises = topRatedIds.map(id => this.getMovieDetails(id))
-      const items = await Promise.all(itemPromises)
-      return items.filter(item => item !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching top rated content:', error)
-      return []
-    }
-  }
-
-  // Obtenir du contenu récent (plus large)
-  async getRecentMovies(): Promise<OMDBMovie[]> {
-    const recentIds = [
-      'tt6751668', // Parasite
-      'tt7286456', // Joker
-      'tt1950186', // Ford v Ferrari
-      'tt4154756', // Avengers: Endgame
-      'tt4633694', // Spider-Man: Into the Spider-Verse
-      'tt4574334', // Stranger Things (série récente)
-      'tt2380307', // Coco
-      'tt8503618'  // Hamilton
-    ]
-
-    try {
-      const itemPromises = recentIds.map(id => this.getMovieDetails(id))
-      const items = await Promise.all(itemPromises)
-      return items.filter(item => item !== null) as OMDBMovie[]
-    } catch (error) {
-      console.error('Error fetching recent content:', error)
-      return []
-    }
-  }
-
-  // Recherche de films récents par terme (pour Superman 2025 par exemple)
-  async searchRecentContent(query: string): Promise<OMDBMovie[]> {
-    const currentYear = new Date().getFullYear()
-    const years = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2]
-    
-    const allResults: OMDBMovie[] = []
-    
-    for (const year of years) {
-      const yearResults = await this.performSearch(`${query} ${year}`)
-      allResults.push(...yearResults)
-    }
-    
-    // Enlever doublons et trier par année
-    const uniqueResults = allResults.filter((movie, index, self) => 
-      index === self.findIndex(m => m.imdbID === movie.imdbID)
-    )
-    
-    return uniqueResults.sort((a, b) => {
-      const aYear = parseInt(a.Year) || 0
-      const bYear = parseInt(b.Year) || 0
-      return bYear - aYear // Plus récent en premier
-    })
-  }
-
-  // Convertir un film/série OMDB vers le format de l'app
-  convertToAppFormat(item: OMDBMovie): any {
-    const isMovie = item.Type === 'movie'
-    const isSeries = item.Type === 'series'
+  // ✅ CONVERTIR UN JEU RAWG VERS LE FORMAT DE L'APP - CORRIGÉ
+  convertToAppFormat(game: RAWGGame): any {
+    const developer = game.developers?.[0]?.name || 'Unknown Developer'
     
     return {
-      id: `movie-${item.imdbID}`,
-      title: item.Title,
-      director: item.Director || 'Unknown Director',
-      year: parseInt(item.Year) || new Date().getFullYear(),
-      rating: item.imdbRating ? Number((parseFloat(item.imdbRating) / 2).toFixed(1)) : 0,
-      genre: item.Genre?.split(',')[0]?.trim() || 'Unknown',
-      category: 'movies' as const,
-      image: item.Poster !== 'N/A' ? item.Poster : undefined,
-      overview: item.Plot,
-      runtime: item.Runtime,
-      released: item.Released,
-      actors: item.Actors,
-      language: item.Language,
-      country: item.Country,
-      awards: item.Awards,
+      id: `game-${game.id}`,
+      title: game.name || 'Unknown Game',
+      name: game.name || 'Unknown Game',
+      author: developer,           // ✅ Pour compatibilité avec getCreator
+      developer: developer,        // ✅ NOUVEAU: Propriété spécifique aux jeux
+      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
+      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
+      genre: game.genres?.[0]?.name || 'Unknown',
+      category: 'games' as const,
+      image: game.background_image,
+      background_image: game.background_image,
+      released: game.released,
+      developers: game.developers,
+      genres: game.genres,
       
-      // Nouvelles propriétés pour distinguer films/séries
-      type: item.Type,
-      isMovie,
-      isSeries,
-      totalSeasons: item.totalSeasons ? parseInt(item.totalSeasons) : undefined,
-      
-      // Titre avec indication si c'est une série
-      displayTitle: isSeries ? `${item.Title} (TV Series)` : item.Title
+      // Données supplémentaires
+      description_raw: game.description_raw,
+      metacritic: game.metacritic,
+      esrb_rating: game.esrb_rating,
+      platforms: game.platforms,
+      publishers: game.publishers,
+      tags: game.tags,
+      rating_count: game.rating_count
     }
-  }
-
-  // Fonction utilitaire pour mélanger un array
-  private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array]
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-    }
-    return shuffled
   }
 }
 
 // Instance singleton
-export const omdbService = new OMDBService()
-
-// Fonctions utilitaires
-export const formatRuntime = (runtime: string): string => {
-  if (!runtime || runtime === 'N/A') return 'N/A'
-  return runtime
-}
-
-export const formatRating = (rating: string): number => {
-  if (!rating || rating === 'N/A') return 0
-  return Number((parseFloat(rating) / 2).toFixed(1))
-}
-
-export const getContentTypeLabel = (type: string): string => {
-  switch (type) {
-    case 'movie': return 'Film'
-    case 'series': return 'Série TV'
-    default: return 'Contenu'
-  }
-}
+export const rawgService = new RAWGService()
 </file>
 
 <file path="src/components/BottomNavigation.tsx">
@@ -3033,135 +2670,371 @@ export const formatDuration = (trackCount: number): string => {
 }
 </file>
 
-<file path="src/types/index.ts">
-/**
- * Types TypeScript centralisés pour toute l'application
- * Assure la cohérence des types et évite la duplication
- */
+<file path="src/services/omdbService.ts">
+// Service pour l'API OMDB (films + séries) - VERSION COMPLÈTE AMÉLIORÉE
+export interface OMDBMovie {
+  imdbID: string
+  Title: string
+  Year: string
+  Type: string // 'movie' ou 'series'
+  Poster: string
+  Plot?: string
+  Director?: string
+  Genre?: string
+  imdbRating?: string
+  Runtime?: string
+  Released?: string
+  Actors?: string
+  Language?: string
+  Country?: string
+  Awards?: string
+  Response?: string
+  Error?: string
+  // Champs spécifiques aux séries
+  totalSeasons?: string
+  Seasons?: string
+}
 
-// Types de base pour les médias
-export type MediaCategory = 'games' | 'movies' | 'music' | 'books'
-export type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
+export interface OMDBSearchResponse {
+  Search: OMDBMovie[]
+  totalResults: string
+  Response: string
+  Error?: string
+}
 
-// Interface pour les items de contenu (recherche, sections, etc.)
-export interface ContentItem {
-  id: string
-  title: string
-  year: number
-  rating?: number
-  genre?: string
-  category: MediaCategory
-  image?: string
+class OMDBService {
+  private readonly apiKey = '649f9a63'
+  private readonly baseURL = 'https://www.omdbapi.com'
   
-  // Créateurs selon le type de média
-  author?: string      // Pour les livres
-  artist?: string      // Pour la musique
-  director?: string    // Pour les films
-  
-  // Données spécifiques aux jeux (RAWG API)
-  background_image?: string
-  developers?: Array<{ name: string }>
-  genres?: Array<{ name: string }>
-  released?: string
-  
-  // Propriété alternative pour les noms
-  name?: string
-  
-  // NOUVELLES PROPRIÉTÉS pour films/séries
-  type?: string        // 'movie' ou 'series'
-  isMovie?: boolean    // true si c'est un film
-  isSeries?: boolean   // true si c'est une série TV
-  totalSeasons?: number // Nombre de saisons pour les séries
-  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
-  overview?: string    // Synopsis/description
-  runtime?: string     // Durée
-  actors?: string      // Acteurs principaux
-  language?: string    // Langue
-  country?: string     // Pays
-  awards?: string      // Récompenses
+  // Recherche privée avec gestion d'erreurs
+  private async performSearch(query: string, page: number = 1, type?: 'movie' | 'series'): Promise<OMDBMovie[]> {
+    try {
+      let url = `${this.baseURL}/?apikey=${this.apiKey}&s=${encodeURIComponent(query)}&page=${page}`
+      if (type) {
+        url += `&type=${type}`
+      }
 
-  // NOUVELLES PROPRIÉTÉS pour Discover Page
-  subtitle?: string    // Sous-titre pour hero section
-  description?: string // Description détaillée
-  trending?: string    // Pourcentage de tendance ex: "+25%"
-  status?: 'new' | 'trending' | 'hot' | undefined // Badge status
-  callToAction?: string // Texte du bouton d'action
-  stats?: {
-    users?: string      // Nombre d'utilisateurs ex: "2.5M"
-    completion?: string // Pourcentage de completion ex: "85%"
-    trending?: string   // Tendance ex: "+15%"
-    engagement?: string // Engagement ex: "92%"
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error(`OMDB API Error: ${response.status}`)
+      }
+      
+      const data: OMDBSearchResponse = await response.json()
+      
+      if (data.Response === 'False') {
+        return [] // Retourner un array vide au lieu d'une erreur
+      }
+      
+      return data.Search || []
+    } catch (error) {
+      console.warn(`OMDB search failed for "${query}":`, error)
+      return []
+    }
+  }
+
+  // Rechercher des films ET séries avec stratégies multiples
+  async searchMoviesAndSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    try {
+      const allResults: OMDBMovie[] = []
+      
+      // Stratégie 1: Recherche normale (films + séries)
+      const normalResults = await this.performSearch(query, page)
+      allResults.push(...normalResults)
+      
+      // Stratégie 2: Si peu de résultats, essayer avec des années
+      if (allResults.length < 5) {
+        const currentYear = new Date().getFullYear()
+        const nextYear = currentYear + 1
+        const lastYear = currentYear - 1
+        
+        // Essayer avec l'année courante
+        const currentYearResults = await this.performSearch(`${query} ${currentYear}`, page)
+        allResults.push(...currentYearResults)
+        
+        // Essayer avec l'année suivante (films à venir)
+        const nextYearResults = await this.performSearch(`${query} ${nextYear}`, page)
+        allResults.push(...nextYearResults)
+        
+        // Essayer avec l'année précédente
+        const lastYearResults = await this.performSearch(`${query} ${lastYear}`, page)
+        allResults.push(...lastYearResults)
+      }
+      
+      // Stratégie 3: Recherche avec variations du titre
+      if (allResults.length < 3) {
+        const variations = [
+          `${query} movie`,
+          `${query} film`,
+          `${query} series`,
+          query.replace(/\s+/g, '') // Sans espaces
+        ]
+        
+        for (const variation of variations) {
+          const variationResults = await this.performSearch(variation, page)
+          allResults.push(...variationResults)
+        }
+      }
+      
+      // Enlever les doublons basés sur imdbID
+      const uniqueResults = allResults.filter((movie, index, self) => 
+        index === self.findIndex(m => m.imdbID === movie.imdbID)
+      )
+      
+      // Trier par pertinence : titre exact en premier, puis par rating
+      return uniqueResults.sort((a, b) => {
+        const aExactMatch = a.Title.toLowerCase().includes(query.toLowerCase())
+        const bExactMatch = b.Title.toLowerCase().includes(query.toLowerCase())
+        
+        if (aExactMatch && !bExactMatch) return -1
+        if (!aExactMatch && bExactMatch) return 1
+        
+        // Trier par année (plus récent en premier)
+        const aYear = parseInt(a.Year) || 0
+        const bYear = parseInt(b.Year) || 0
+        
+        return bYear - aYear
+      })
+      
+    } catch (error) {
+      console.error('Error searching movies and series:', error)
+      throw error
+    }
+  }
+
+  // Rechercher seulement des films (garde l'ancienne méthode pour compatibilité)
+  async searchMovies(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    return this.performSearch(query, page, 'movie')
+  }
+
+  // Rechercher seulement des séries
+  async searchSeries(query: string, page: number = 1): Promise<OMDBMovie[]> {
+    return this.performSearch(query, page, 'series')
+  }
+
+  // Obtenir les détails d'un film ou série
+  async getMovieDetails(imdbId: string): Promise<OMDBMovie | null> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/?apikey=${this.apiKey}&i=${imdbId}&plot=full`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`OMDB API Error: ${response.status}`)
+      }
+      
+      const movie: OMDBMovie = await response.json()
+      
+      if (movie.Response === 'False') {
+        return null
+      }
+      
+      return movie
+    } catch (error) {
+      console.error('Error fetching movie/series details:', error)
+      return null
+    }
+  }
+
+  // Obtenir des films populaires
+  async getPopularMovies(): Promise<OMDBMovie[]> {
+    const popularMovieIds = [
+      'tt0111161', // The Shawshank Redemption
+      'tt0068646', // The Godfather
+      'tt0468569', // The Dark Knight
+      'tt0071562', // The Godfather Part II
+      'tt0050083', // 12 Angry Men
+      'tt0108052', // Schindler's List
+      'tt0167260', // The Lord of the Rings: The Return of the King
+      'tt0110912'  // Pulp Fiction
+    ]
+
+    try {
+      const moviePromises = popularMovieIds.map(id => this.getMovieDetails(id))
+      const movies = await Promise.all(moviePromises)
+      return movies.filter(movie => movie !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching popular movies:', error)
+      return []
+    }
+  }
+
+  // Obtenir des séries populaires
+  async getPopularSeries(): Promise<OMDBMovie[]> {
+    const popularSeriesIds = [
+      'tt0944947', // Game of Thrones
+      'tt0903747', // Breaking Bad
+      'tt2356777', // True Detective
+      'tt1475582', // Sherlock
+      'tt0141842', // The Sopranos
+      'tt2395695', // Westworld
+      'tt4574334', // Stranger Things
+      'tt0386676'  // The Office
+    ]
+
+    try {
+      const seriesPromises = popularSeriesIds.map(id => this.getMovieDetails(id))
+      const series = await Promise.all(seriesPromises)
+      return series.filter(series => series !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching popular series:', error)
+      return []
+    }
+  }
+
+  // Obtenir films + séries populaires combinés
+  async getPopularMoviesAndSeries(): Promise<OMDBMovie[]> {
+    try {
+      const [movies, series] = await Promise.all([
+        this.getPopularMovies(),
+        this.getPopularSeries()
+      ])
+      
+      // Mélanger films et séries
+      const combined = [...movies.slice(0, 4), ...series.slice(0, 4)]
+      return this.shuffleArray(combined)
+    } catch (error) {
+      console.error('Error fetching popular movies and series:', error)
+      return []
+    }
+  }
+
+  // Obtenir les mieux notés (films + quelques séries)
+  async getTopRatedMovies(): Promise<OMDBMovie[]> {
+    const topRatedIds = [
+      'tt0111161', // The Shawshank Redemption
+      'tt0068646', // The Godfather
+      'tt0071562', // The Godfather Part II
+      'tt0468569', // The Dark Knight
+      'tt0903747', // Breaking Bad (série)
+      'tt0108052', // Schindler's List
+      'tt0944947', // Game of Thrones (série)
+      'tt0110912'  // Pulp Fiction
+    ]
+
+    try {
+      const itemPromises = topRatedIds.map(id => this.getMovieDetails(id))
+      const items = await Promise.all(itemPromises)
+      return items.filter(item => item !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching top rated content:', error)
+      return []
+    }
+  }
+
+  // Obtenir du contenu récent (plus large)
+  async getRecentMovies(): Promise<OMDBMovie[]> {
+    const recentIds = [
+      'tt6751668', // Parasite
+      'tt7286456', // Joker
+      'tt1950186', // Ford v Ferrari
+      'tt4154756', // Avengers: Endgame
+      'tt4633694', // Spider-Man: Into the Spider-Verse
+      'tt4574334', // Stranger Things (série récente)
+      'tt2380307', // Coco
+      'tt8503618'  // Hamilton
+    ]
+
+    try {
+      const itemPromises = recentIds.map(id => this.getMovieDetails(id))
+      const items = await Promise.all(itemPromises)
+      return items.filter(item => item !== null) as OMDBMovie[]
+    } catch (error) {
+      console.error('Error fetching recent content:', error)
+      return []
+    }
+  }
+
+  // Recherche de films récents par terme (pour Superman 2025 par exemple)
+  async searchRecentContent(query: string): Promise<OMDBMovie[]> {
+    const currentYear = new Date().getFullYear()
+    const years = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2]
+    
+    const allResults: OMDBMovie[] = []
+    
+    for (const year of years) {
+      const yearResults = await this.performSearch(`${query} ${year}`)
+      allResults.push(...yearResults)
+    }
+    
+    // Enlever doublons et trier par année
+    const uniqueResults = allResults.filter((movie, index, self) => 
+      index === self.findIndex(m => m.imdbID === movie.imdbID)
+    )
+    
+    return uniqueResults.sort((a, b) => {
+      const aYear = parseInt(a.Year) || 0
+      const bYear = parseInt(b.Year) || 0
+      return bYear - aYear // Plus récent en premier
+    })
+  }
+
+  // ✅ CONVERTIR UN FILM/SÉRIE OMDB VERS LE FORMAT DE L'APP - CORRIGÉ
+  convertToAppFormat(item: OMDBMovie): any {
+    const isMovie = item.Type === 'movie'
+    const isSeries = item.Type === 'series'
+    const director = item.Director && item.Director !== 'N/A' ? item.Director : 'Unknown Director'
+    
+    return {
+      id: `movie-${item.imdbID}`,
+      title: item.Title,
+      director: director,          // ✅ Propriété spécifique aux films
+      author: director,            // ✅ Pour compatibilité avec getCreator
+      year: parseInt(item.Year) || new Date().getFullYear(),
+      rating: item.imdbRating ? Number((parseFloat(item.imdbRating) / 2).toFixed(1)) : 0,
+      genre: item.Genre?.split(',')[0]?.trim() || 'Unknown',
+      category: 'movies' as const,
+      image: item.Poster !== 'N/A' ? item.Poster : undefined,
+      overview: item.Plot,
+      runtime: item.Runtime,
+      released: item.Released,
+      actors: item.Actors,
+      language: item.Language,
+      country: item.Country,
+      awards: item.Awards,
+      
+      // Nouvelles propriétés pour distinguer films/séries
+      type: item.Type,
+      isMovie,
+      isSeries,
+      totalSeasons: item.totalSeasons ? parseInt(item.totalSeasons) : undefined,
+      
+      // Titre avec indication si c'est une série
+      displayTitle: isSeries ? `${item.Title} (TV Series)` : item.Title
+    }
+  }
+
+  // Fonction utilitaire pour mélanger un array
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return shuffled
   }
 }
 
-// Interface pour les items dans la bibliothèque utilisateur
-export interface LibraryItem {
-  id: string
-  title: string
-  year: number
-  rating?: number
-  genre?: string
-  category: MediaCategory
-  image?: string
-  
-  // Créateurs selon le type de média
-  author?: string      // Pour les livres
-  artist?: string      // Pour la musique
-  director?: string    // Pour les films
-  
-  // Données spécifiques aux jeux (RAWG API)
-  background_image?: string
-  developers?: Array<{ name: string }>
-  genres?: Array<{ name: string }>
-  released?: string
-  
-  // Propriété alternative pour les noms
-  name?: string
-  
-  // NOUVELLES PROPRIÉTÉS pour films/séries
-  type?: string        // 'movie' ou 'series'
-  isMovie?: boolean    // true si c'est un film
-  isSeries?: boolean   // true si c'est une série TV
-  totalSeasons?: number // Nombre de saisons pour les séries
-  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
-  overview?: string    // Synopsis/description
-  runtime?: string     // Durée
-  actors?: string      // Acteurs principaux
-  language?: string    // Langue
-  country?: string     // Pays
-  awards?: string      // Récompenses
+// Instance singleton
+export const omdbService = new OMDBService()
 
-  // Propriétés spécifiques à la bibliothèque
-  status: MediaStatus
-  addedAt: string
-  dateStarted?: string
-  dateCompleted?: string
-  userRating?: number    // Note utilisateur (1-5)
-  progress?: number      // Progression en % (0-100)
-  notes?: string         // Notes personnelles
+// Fonctions utilitaires
+export const formatRuntime = (runtime: string): string => {
+  if (!runtime || runtime === 'N/A') return 'N/A'
+  return runtime
 }
 
-// Interface pour les résultats de recherche
-export interface SearchResult extends ContentItem {
-  // Hérite de ContentItem avec toutes les nouvelles propriétés
+export const formatRating = (rating: string): number => {
+  if (!rating || rating === 'N/A') return 0
+  return Number((parseFloat(rating) / 2).toFixed(1))
 }
 
-// Interface pour les reviews/critiques
-export interface Review {
-  id: string | number
-  username: string
-  rating: number
-  text?: string
-  review?: string  // Alias pour text
-  date: string
-  helpful?: number
-  platform?: string
-}
-
-// Options de statut pour les popups
-export interface StatusOption {
-  value: MediaStatus
-  label: string
+export const getContentTypeLabel = (type: string): string => {
+  switch (type) {
+    case 'movie': return 'Film'
+    case 'series': return 'Série TV'
+    default: return 'Contenu'
+  }
 }
 </file>
 
@@ -4301,6 +4174,140 @@ export const testSupabaseConnection = async () => {
     console.error('❌ Supabase connection failed:', error)
     return false
   }
+}
+</file>
+
+<file path="src/types/index.ts">
+/**
+ * Types TypeScript centralisés pour toute l'application
+ * Assure la cohérence des types et évite la duplication
+ */
+
+// Types de base pour les médias
+export type MediaCategory = 'games' | 'movies' | 'music' | 'books'
+export type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
+
+// Interface pour les items de contenu (recherche, sections, etc.)
+export interface ContentItem {
+  id: string
+  title: string
+  year: number
+  rating?: number
+  genre?: string
+  category: MediaCategory
+  image?: string
+  
+  // Créateurs selon le type de média
+  author?: string      // Pour les livres
+  artist?: string      // Pour la musique
+  director?: string    // Pour les films
+  developer?: string   // ✅ NOUVEAU: Pour les jeux
+  
+  // Données spécifiques aux jeux (RAWG API)
+  background_image?: string
+  developers?: Array<{ name: string }>
+  genres?: Array<{ name: string }>
+  released?: string
+  
+  // Propriété alternative pour les noms
+  name?: string
+  
+  // NOUVELLES PROPRIÉTÉS pour films/séries
+  type?: string        // 'movie' ou 'series'
+  isMovie?: boolean    // true si c'est un film
+  isSeries?: boolean   // true si c'est une série TV
+  totalSeasons?: number // Nombre de saisons pour les séries
+  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
+  overview?: string    // Synopsis/description
+  runtime?: string     // Durée
+  actors?: string      // Acteurs principaux
+  language?: string    // Langue
+  country?: string     // Pays
+  awards?: string      // Récompenses
+
+  // NOUVELLES PROPRIÉTÉS pour Discover Page
+  subtitle?: string    // Sous-titre pour hero section
+  description?: string // Description détaillée
+  trending?: string    // Pourcentage de tendance ex: "+25%"
+  status?: 'new' | 'trending' | 'hot' | undefined // Badge status
+  callToAction?: string // Texte du bouton d'action
+  stats?: {
+    users?: string      // Nombre d'utilisateurs ex: "2.5M"
+    completion?: string // Pourcentage de completion ex: "85%"
+    trending?: string   // Tendance ex: "+15%"
+    engagement?: string // Engagement ex: "92%"
+  }
+}
+
+// Interface pour les items dans la bibliothèque utilisateur
+export interface LibraryItem {
+  id: string
+  title: string
+  year: number
+  rating?: number
+  genre?: string
+  category: MediaCategory
+  image?: string
+  
+  // Créateurs selon le type de média
+  author?: string      // Pour les livres
+  artist?: string      // Pour la musique
+  director?: string    // Pour les films
+  developer?: string   // ✅ NOUVEAU: Pour les jeux
+  
+  // Données spécifiques aux jeux (RAWG API)
+  background_image?: string
+  developers?: Array<{ name: string }>
+  genres?: Array<{ name: string }>
+  released?: string
+  
+  // Propriété alternative pour les noms
+  name?: string
+  
+  // NOUVELLES PROPRIÉTÉS pour films/séries
+  type?: string        // 'movie' ou 'series'
+  isMovie?: boolean    // true si c'est un film
+  isSeries?: boolean   // true si c'est une série TV
+  totalSeasons?: number // Nombre de saisons pour les séries
+  displayTitle?: string // Titre avec indication "(TV Series)" si nécessaire
+  overview?: string    // Synopsis/description
+  runtime?: string     // Durée
+  actors?: string      // Acteurs principaux
+  language?: string    // Langue
+  country?: string     // Pays
+  awards?: string      // Récompenses
+
+  // Propriétés spécifiques à la bibliothèque
+  status: MediaStatus
+  addedAt: string
+  dateStarted?: string
+  dateCompleted?: string
+  userRating?: number    // Note utilisateur (1-5)
+  progress?: number      // Progression en % (0-100)
+  notes?: string         // Notes personnelles
+}
+
+// Interface pour les résultats de recherche
+export interface SearchResult extends ContentItem {
+  // Hérite de ContentItem avec toutes les nouvelles propriétés
+}
+
+// Interface pour les reviews/critiques
+export interface Review {
+  id: string | number
+  username: string
+  rating: number
+  text?: string
+  review?: string  // Alias pour text
+  date: string
+  helpful?: number
+  platform?: string
+}
+
+// Options de statut pour les popups
+export interface StatusOption {
+  value: MediaStatus
+  label: string
 }
 </file>
 
@@ -10053,6 +10060,18 @@ interface SearchModalProps {
   library: LibraryItem[]
 }
 
+// Debounce utility function
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
+}
+
 export default function SearchModal({
   isOpen,
   onClose,
@@ -10087,159 +10106,215 @@ export default function SearchModal({
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
-  // Focus input when modal opens
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [isOpen])
-
-  // Close popup when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => setShowStatusPopup(null)
-    if (showStatusPopup) {
-      document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
-    }
-  }, [showStatusPopup])
-
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setQuery('')
-      setResults([])
-      setSelectedIndex(-1)
-      setError(null)
-      setShowStatusPopup(null)
-      setAddingItem(null)
-      setFadeOutPopup(null)
-      setSelectedStatus(null)
-      setJustAddedItems(new Set())
-    }
-  }, [isOpen])
-
-  // Feedback flow detection
-  useEffect(() => {
-    if (addingItem) {
-      const normalizedId = normalizeId(addingItem)
-      
-      const checkLibrary = () => {
-        const isInLibrary = safeLibrary.some((item: LibraryItem) => {
-          if (!item?.id) return false
-          return idsMatch(item.id, addingItem)
-        })
-        
-        if (isInLibrary) {
-          setAddingItem(null)
-          setJustAddedItems(prev => new Set([...prev, addingItem]))
-          
-          setTimeout(() => {
-            setJustAddedItems(prev => {
-              const newSet = new Set(prev)
-              newSet.delete(addingItem)
-              return newSet
-            })
-          }, 3000)
-        }
-      }
-      
-      checkLibrary()
-      
-      const timeoutId = setTimeout(() => {
-        console.warn('Adding timeout reached for:', addingItem)
-        setAddingItem(null)
-        setJustAddedItems(prev => new Set([...prev, addingItem]))
-        
-        setTimeout(() => {
-          setJustAddedItems(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(addingItem)
-            return newSet
-          })
-        }, 2000)
-      }, 5000)
-      
-      return () => clearTimeout(timeoutId)
-    }
-  }, [safeLibrary, addingItem])
-
-  // Get status options based on category
-  const getStatusOptions = (category: string): StatusOption[] => {
-    switch (category) {
-      case 'games':
-        return [
-          { value: 'want-to-play', label: 'Want to Play' },
-          { value: 'currently-playing', label: 'Playing' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'movies':
-        return [
-          { value: 'want-to-play', label: 'Want to Watch' },
-          { value: 'currently-playing', label: 'Watching' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'music':
-        return [
-          { value: 'want-to-play', label: 'Want to Listen' },
-          { value: 'currently-playing', label: 'Listening' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      case 'books':
-        return [
-          { value: 'want-to-play', label: 'Want to Read' },
-          { value: 'currently-playing', label: 'Reading' },
-          { value: 'completed', label: 'Completed' }
-        ]
-      default:
-        return [
-          { value: 'want-to-play', label: 'Want to Play' },
-          { value: 'currently-playing', label: 'Playing' },
-          { value: 'completed', label: 'Completed' }
-        ]
-    }
-  }
-
-  // Check if item is in library avec sécurité
-  const getLibraryItem = (resultId: string): LibraryItem | undefined => {
-    return safeLibrary.find((libItem: LibraryItem) => {
-      if (!libItem?.id) return false
-      return idsMatch(libItem.id, resultId)
-    })
-  }
-
-  // Get status display label
-  const getStatusDisplayLabel = (status: MediaStatus, category: string): string => {
-    const options = getStatusOptions(category)
-    const option = options.find(opt => opt.value === status)
-    return option ? option.label : 'Added'
-  }
-
-  // Fetch with timeout utility
-  const fetchWithTimeout = async (url: string, timeout = 8000): Promise<Response> => {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeout)
+  // 🎮 RECHERCHE JEUX - CORRIGÉE AVEC DÉVELOPPEURS
+  const searchGames = async (query: string): Promise<SearchResult[]> => {
+    console.log('🎮 Starting games search for:', query)
     
     try {
-      const response = await fetch(url, { 
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-        }
+      const games = await rawgService.searchGames(query, 12)
+      console.log('🎮 RAWG service returned:', games.length, 'games')
+      
+      if (!games || games.length === 0) {
+        console.log('🎮 No games found')
+        return []
+      }
+
+      // ✅ CONVERSION AVEC DÉVELOPPEURS ASSURÉS
+      const convertedGames = games.map(game => {
+        const converted = rawgService.convertToAppFormat(game)
+        
+        // ✅ LOG POUR VÉRIFIER LES DÉVELOPPEURS
+        console.log('🎮 Game:', converted.title, '- Developer:', converted.developer, '- Author:', converted.author)
+        
+        return converted
       })
-      clearTimeout(timeoutId)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      return response
+
+      console.log('✅ Games search successful:', convertedGames.length, 'results')
+      return convertedGames
+
     } catch (error) {
-      clearTimeout(timeoutId)
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Request timeout - please try again')
-      }
+      console.error('❌ Games search failed:', error)
       throw error
     }
+  }
+
+  // 🎬 RECHERCHE FILMS/SÉRIES - CORRIGÉE AVEC RÉALISATEURS  
+  const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
+    console.log('🎬 Starting movies/series search for:', query)
+    
+    try {
+      const movies = await omdbService.searchMoviesAndSeries(query, 1)
+      console.log('🎬 OMDB service returned:', movies.length, 'movies/series')
+      
+      if (!movies || movies.length === 0) {
+        console.log('🎬 No movies/series found')
+        return []
+      }
+
+      // ✅ RÉCUPÉRER LES DÉTAILS POUR AVOIR LES RÉALISATEURS
+      const detailedMovies = await Promise.all(
+        movies.slice(0, 8).map(async movie => {
+          try {
+            // Récupérer les détails complets pour avoir le réalisateur
+            const movieDetails = await omdbService.getMovieDetails(movie.imdbID)
+            
+            if (movieDetails) {
+              const converted = omdbService.convertToAppFormat(movieDetails)
+              
+              // ✅ LOG POUR VÉRIFIER LES RÉALISATEURS
+              console.log('🎬 Movie with details:', converted.title, '- Director:', converted.director, '- Author:', converted.author)
+              
+              return converted
+            } else {
+              // Fallback sur les données de base
+              const converted = omdbService.convertToAppFormat(movie)
+              console.log('🎬 Movie fallback:', converted.title, '- Director:', converted.director)
+              return converted
+            }
+          } catch (error) {
+            console.warn('🎬 Failed to get details for:', movie.Title, error)
+            // Fallback sur les données de base
+            const converted = omdbService.convertToAppFormat(movie)
+            return converted
+          }
+        })
+      )
+
+      console.log('✅ Movies search successful:', detailedMovies.length, 'results')
+      return detailedMovies
+
+    } catch (error) {
+      console.error('❌ Movies search failed:', error)
+      throw error
+    }
+  }
+
+  // 🎵 RECHERCHE MUSIQUE - INCHANGÉE
+  const searchMusic = async (query: string): Promise<SearchResult[]> => {
+    console.log('🎵 Starting music search for:', query)
+    
+    try {
+      const albums = await musicService.searchAlbums(query, 20)
+      console.log('🎵 Music service returned:', albums.length, 'albums')
+      
+      if (!albums || albums.length === 0) {
+        console.log('🎵 No albums found')
+        return []
+      }
+
+      const convertedAlbums = albums.map(album => {
+        const converted = musicService.convertToAppFormat(album)
+        console.log('🎵 Converted album:', converted.title, 'by', converted.artist, `(${converted.year}) - Category: ${converted.category}`)
+        return converted
+      })
+
+      console.log('✅ Music search successful:', convertedAlbums.length, 'results')
+      return convertedAlbums
+
+    } catch (error) {
+      console.error('❌ Music search failed:', error)
+      
+      // Fallback pour Taylor Swift
+      if (query.toLowerCase().includes('taylor')) {
+        console.log('🎵 Using extended Taylor Swift fallback')
+        return [
+          {
+            id: 'music-1440935467',
+            title: 'Midnights',
+            artist: 'Taylor Swift',
+            year: 2022,
+            rating: 4.5,
+            genre: 'Pop',
+            category: 'music' as const,
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/18/93/6f/18936ff8-d3ac-4f66-96af-8c6c35e5a63d/22UMGIM86640.rgb.jpg/300x300bb.jpg'
+          },
+          {
+            id: 'music-1584791945',
+            title: '1989 (Taylor\'s Version)',
+            artist: 'Taylor Swift',
+            year: 2023,
+            rating: 4.7,
+            genre: 'Pop',
+            category: 'music' as const,
+            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/69/4e/c0/694ec029-bef2-8339-a5e8-5f8d8bb5b4ad/23UMGIM78793.rgb.jpg/300x300bb.jpg'
+          }
+        ]
+      }
+      
+      throw error
+    }
+  }
+
+  // 📚 RECHERCHE LIVRES - INCHANGÉE
+  const searchBooks = async (query: string): Promise<SearchResult[]> => {
+    console.log('📚 Starting books search for:', query)
+    
+    try {
+      const books = await googleBooksService.searchBooks(query, 15)
+      console.log('📚 Google Books service returned:', books.length, 'books')
+      
+      if (!books || books.length === 0) {
+        console.log('📚 No books found')
+        return []
+      }
+
+      const convertedBooks = books.map(book => {
+        const converted = googleBooksService.convertToAppFormat(book)
+        console.log('📚 Converted book:', converted.title, 'by', converted.author, `(${converted.year}) - Category: ${converted.category}`)
+        return converted
+      })
+
+      console.log('✅ Books search successful:', convertedBooks.length, 'results')
+      return convertedBooks
+
+    } catch (error) {
+      console.error('❌ Books search failed:', error)
+      throw error
+    }
+  }
+
+  // ✅ FONCTION getCreator DÉFINITIVE ET CORRIGÉE
+  const getCreator = (result: SearchResult) => {
+    console.log('🔍 Getting creator for:', result.title, 'Category:', result.category, 'Available fields:', {
+      author: result.author,
+      director: result.director,
+      developer: result.developer,
+      artist: result.artist,
+      developers: result.developers
+    })
+
+    // Pour les jeux, utiliser le développeur
+    if (result.category === 'games') {
+      const creator = result.developer || 
+                      result.author || 
+                      (result.developers && result.developers.length > 0 ? result.developers[0].name : null) ||
+                      'Unknown Developer'
+      console.log('🎮 Game creator found:', creator)
+      return creator
+    }
+    
+    // Pour les films, utiliser le réalisateur
+    if (result.category === 'movies') {
+      const creator = result.director || result.author || 'Unknown Director'
+      console.log('🎬 Movie creator found:', creator)
+      return creator
+    }
+    
+    // Pour la musique, utiliser l'artiste
+    if (result.category === 'music') {
+      const creator = result.artist || 'Unknown Artist'
+      console.log('🎵 Music creator found:', creator)
+      return creator
+    }
+    
+    // Pour les livres, utiliser l'auteur
+    if (result.category === 'books') {
+      const creator = result.author || 'Unknown Author'
+      console.log('📚 Book creator found:', creator)
+      return creator
+    }
+    
+    return result.author || result.artist || result.director || result.developer || 'Unknown'
   }
 
   // Debounced search with caching
@@ -10249,25 +10324,6 @@ export default function SearchModal({
     }, 500),
     []
   )
-
-  useEffect(() => {
-    if (!query.trim() || query.length < 2) {
-      setResults([])
-      setSelectedIndex(-1)
-      setError(null)
-      return
-    }
-
-    const cacheKey = `${activeCategory}-${query.toLowerCase()}`
-    if (searchCache.has(cacheKey)) {
-      const cachedResults = searchCache.get(cacheKey)!
-      setResults(cachedResults)
-      setSelectedIndex(-1)
-      return
-    }
-
-    debouncedSearch(query, activeCategory)
-  }, [query, activeCategory, debouncedSearch, searchCache])
 
   const performSearch = async (searchQuery: string, category: string) => {
     if (!searchQuery.trim()) return
@@ -10398,225 +10454,150 @@ export default function SearchModal({
     }
   }
 
-  // 🎮 RECHERCHE JEUX - CORRIGÉE
-  const searchGames = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎮 Starting games search for:', query)
-    
-    try {
-      // ✅ UTILISER LE SERVICE RAWG EXISTANT
-      const games = await rawgService.searchGames(query, 12)
-      console.log('🎮 RAWG service returned:', games.length, 'games')
-      
-      if (!games || games.length === 0) {
-        console.log('🎮 No games found')
-        return []
-      }
-
-      // ✅ CONVERSION CORRECTE AVEC DÉVELOPPEURS
-      const convertedGames = games.map(game => {
-        const converted = rawgService.convertToAppFormat(game)
-        
-        // ✅ ASSURER QUE LE DÉVELOPPEUR EST BIEN MAPPÉ
-        if (game.developers && game.developers.length > 0) {
-          converted.author = game.developers[0].name
-          converted.developers = game.developers
-        }
-        
-        console.log('🎮 Converted game:', converted.title, `by ${converted.author} (${converted.year}) - Category: ${converted.category}`)
-        return converted
-      })
-
-      console.log('✅ Games search successful:', convertedGames.length, 'results')
-      return convertedGames
-
-    } catch (error) {
-      console.error('❌ Games search failed:', error)
-      throw error
+  // Focus input when modal opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus()
     }
-  }
+  }, [isOpen])
 
-  // 🎬 RECHERCHE FILMS/SÉRIES - SIMPLIFIÉE
-  const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎬 Starting movies/series search for:', query)
-    
-    try {
-      // ✅ UTILISER LE SERVICE OMDB EXISTANT
-      const movies = await omdbService.searchMoviesAndSeries(query, 1)
-      console.log('🎬 OMDB service returned:', movies.length, 'movies/series')
-      
-      if (!movies || movies.length === 0) {
-        console.log('🎬 No movies/series found')
-        return []
-      }
-
-      // ✅ CONVERSION CORRECTE AVEC RÉALISATEURS
-      const convertedMovies = movies.slice(0, 12).map(movie => {
-        const converted = omdbService.convertToAppFormat(movie)
-        
-        // ✅ ASSURER QUE LE RÉALISATEUR EST BIEN MAPPÉ
-        if (movie.Director && movie.Director !== 'N/A') {
-          converted.director = movie.Director
-        }
-        
-        console.log('🎬 Converted movie:', converted.title, `by ${converted.director} (${converted.year}) - Category: ${converted.category}`)
-        return converted
-      })
-
-      console.log('✅ Movies search successful:', convertedMovies.length, 'results')
-      return convertedMovies
-
-    } catch (error) {
-      console.error('❌ Movies search failed:', error)
-      throw error
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowStatusPopup(null)
+    if (showStatusPopup) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
     }
-  }
+  }, [showStatusPopup])
 
-  // 🎵 RECHERCHE MUSIQUE - EXHAUSTIVE
-  const searchMusic = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎵 Starting music search for:', query)
-    
-    try {
-      // ✅ RECHERCHE EXHAUSTIVE (20 résultats au lieu de 8)
-      const albums = await musicService.searchAlbums(query, 20)
-      console.log('🎵 Music service returned:', albums.length, 'albums')
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('')
+      setResults([])
+      setSelectedIndex(-1)
+      setError(null)
+      setShowStatusPopup(null)
+      setAddingItem(null)
+      setFadeOutPopup(null)
+      setSelectedStatus(null)
+      setJustAddedItems(new Set())
+    }
+  }, [isOpen])
+
+  // Feedback flow detection
+  useEffect(() => {
+    if (addingItem) {
+      const normalizedId = normalizeId(addingItem)
       
-      if (!albums || albums.length === 0) {
-        console.log('🎵 No albums found')
-        return []
+      const checkLibrary = () => {
+        const isInLibrary = safeLibrary.some((item: LibraryItem) => {
+          if (!item?.id) return false
+          return idsMatch(item.id, addingItem)
+        })
+        
+        if (isInLibrary) {
+          setAddingItem(null)
+          setJustAddedItems(prev => new Set([...prev, addingItem]))
+          
+          setTimeout(() => {
+            setJustAddedItems(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(addingItem)
+              return newSet
+            })
+          }, 3000)
+        }
       }
-
-      // ✅ CONVERSION CORRECTE
-      const convertedAlbums = albums.map(album => {
-        const converted = musicService.convertToAppFormat(album)
-        console.log('🎵 Converted album:', converted.title, 'by', converted.artist, `(${converted.year}) - Category: ${converted.category}`)
-        return converted
-      })
-
-      console.log('✅ Music search successful:', convertedAlbums.length, 'results')
-      return convertedAlbums
-
-    } catch (error) {
-      console.error('❌ Music search failed:', error)
       
-      // ✅ FALLBACK ÉTENDU
-      if (query.toLowerCase().includes('taylor')) {
-        console.log('🎵 Using extended Taylor Swift fallback')
+      checkLibrary()
+      
+      const timeoutId = setTimeout(() => {
+        console.warn('Adding timeout reached for:', addingItem)
+        setAddingItem(null)
+        setJustAddedItems(prev => new Set([...prev, addingItem]))
+        
+        setTimeout(() => {
+          setJustAddedItems(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(addingItem)
+            return newSet
+          })
+        }, 2000)
+      }, 5000)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [safeLibrary, addingItem])
+
+  useEffect(() => {
+    if (!query.trim() || query.length < 2) {
+      setResults([])
+      setSelectedIndex(-1)
+      setError(null)
+      return
+    }
+
+    const cacheKey = `${activeCategory}-${query.toLowerCase()}`
+    if (searchCache.has(cacheKey)) {
+      const cachedResults = searchCache.get(cacheKey)!
+      setResults(cachedResults)
+      setSelectedIndex(-1)
+      return
+    }
+
+    debouncedSearch(query, activeCategory)
+  }, [query, activeCategory, debouncedSearch, searchCache])
+
+  // Get status options based on category
+  const getStatusOptions = (category: string): StatusOption[] => {
+    switch (category) {
+      case 'games':
         return [
-          {
-            id: 'music-1440935467',
-            title: 'Midnights',
-            artist: 'Taylor Swift',
-            year: 2022,
-            rating: 4.5,
-            genre: 'Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/18/93/6f/18936ff8-d3ac-4f66-96af-8c6c35e5a63d/22UMGIM86640.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-1584791945',
-            title: '1989 (Taylor\'s Version)',
-            artist: 'Taylor Swift',
-            year: 2023,
-            rating: 4.7,
-            genre: 'Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/69/4e/c0/694ec029-bef2-8339-a5e8-5f8d8bb5b4ad/23UMGIM78793.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-1584791944',
-            title: 'folklore',
-            artist: 'Taylor Swift',
-            year: 2020,
-            rating: 4.8,
-            genre: 'Alternative',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/0f/58/54/0f585482-8998-be0a-9565-2dfc81a64558/20UMGIM58208.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-fearless',
-            title: 'Fearless (Taylor\'s Version)',
-            artist: 'Taylor Swift',
-            year: 2021,
-            rating: 4.6,
-            genre: 'Country Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/8b/77/37/8b7737db-22a9-5f17-df0e-b7cf6fdea41e/18UMGIM53115.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-red',
-            title: 'Red (Taylor\'s Version)',
-            artist: 'Taylor Swift',
-            year: 2021,
-            rating: 4.7,
-            genre: 'Pop Rock',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/83/17/2e/83172e66-0eb4-c9ab-a2c8-3b6c5f4b3b8b/21UMGIM76650.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-evermore',
-            title: 'evermore',
-            artist: 'Taylor Swift',
-            year: 2020,
-            rating: 4.5,
-            genre: 'Alternative',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/f3/51/29/f35129e1-6d8e-43e2-b0fa-c90a8e7b7c8f/20UMGIM67878.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-reputation',
-            title: 'reputation',
-            artist: 'Taylor Swift',
-            year: 2017,
-            rating: 4.3,
-            genre: 'Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music127/v4/23/8e/7e/238e7e6f-8fa3-4c78-b940-ff2f45c9b5b5/17UMGIM52009.rgb.jpg/300x300bb.jpg'
-          },
-          {
-            id: 'music-lover',
-            title: 'Lover',
-            artist: 'Taylor Swift',
-            year: 2019,
-            rating: 4.4,
-            genre: 'Pop',
-            category: 'music' as const,
-            image: 'https://is1-ssl.mzstatic.com/image/thumb/Music123/v4/07/77/33/077733d8-be2a-8751-8f7b-5b2c86b5c5db/19UMGIM53550.rgb.jpg/300x300bb.jpg'
-          }
+          { value: 'want-to-play', label: 'Want to Play' },
+          { value: 'currently-playing', label: 'Playing' },
+          { value: 'completed', label: 'Completed' }
         ]
-      }
-      
-      throw error
+      case 'movies':
+        return [
+          { value: 'want-to-play', label: 'Want to Watch' },
+          { value: 'currently-playing', label: 'Watching' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      case 'music':
+        return [
+          { value: 'want-to-play', label: 'Want to Listen' },
+          { value: 'currently-playing', label: 'Listening' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      case 'books':
+        return [
+          { value: 'want-to-play', label: 'Want to Read' },
+          { value: 'currently-playing', label: 'Reading' },
+          { value: 'completed', label: 'Completed' }
+        ]
+      default:
+        return [
+          { value: 'want-to-play', label: 'Want to Play' },
+          { value: 'currently-playing', label: 'Playing' },
+          { value: 'completed', label: 'Completed' }
+        ]
     }
   }
 
-  // 📚 RECHERCHE LIVRES - EXHAUSTIVE
-  const searchBooks = async (query: string): Promise<SearchResult[]> => {
-    console.log('📚 Starting books search for:', query)
-    
-    try {
-      // ✅ RECHERCHE EXHAUSTIVE (15 résultats au lieu de 8)
-      const books = await googleBooksService.searchBooks(query, 15)
-      console.log('📚 Google Books service returned:', books.length, 'books')
-      
-      if (!books || books.length === 0) {
-        console.log('📚 No books found')
-        return []
-      }
+  // Check if item is in library avec sécurité
+  const getLibraryItem = (resultId: string): LibraryItem | undefined => {
+    return safeLibrary.find((libItem: LibraryItem) => {
+      if (!libItem?.id) return false
+      return idsMatch(libItem.id, resultId)
+    })
+  }
 
-      // ✅ CONVERSION CORRECTE
-      const convertedBooks = books.map(book => {
-        const converted = googleBooksService.convertToAppFormat(book)
-        console.log('📚 Converted book:', converted.title, 'by', converted.author, `(${converted.year}) - Category: ${converted.category}`)
-        return converted
-      })
-
-      console.log('✅ Books search successful:', convertedBooks.length, 'results')
-      return convertedBooks
-
-    } catch (error) {
-      console.error('❌ Books search failed:', error)
-      throw error
-    }
+  // Get status display label
+  const getStatusDisplayLabel = (status: MediaStatus, category: string): string => {
+    const options = getStatusOptions(category)
+    const option = options.find(opt => opt.value === status)
+    return option ? option.label : 'Added'
   }
 
   // Status selection with feedback flow
@@ -10689,27 +10670,6 @@ export default function SearchModal({
       onAddToLibrary(result, 'want-to-play')
       onClose()
     }
-  }
-
-  const getCreator = (result: SearchResult) => {
-    // Pour les jeux, utiliser le développeur
-    if (result.category === 'games') {
-      return result.author || result.developers?.[0]?.name || 'Unknown Developer'
-    }
-    // Pour les films, utiliser le réalisateur
-    if (result.category === 'movies') {
-      return result.director || 'Unknown Director'
-    }
-    // Pour la musique, utiliser l'artiste
-    if (result.category === 'music') {
-      return result.artist || 'Unknown Artist'
-    }
-    // Pour les livres, utiliser l'auteur
-    if (result.category === 'books') {
-      return result.author || 'Unknown Author'
-    }
-    
-    return result.author || result.artist || result.director || 'Unknown'
   }
 
   const getCategoryInfo = (category: string) => {
@@ -10979,18 +10939,6 @@ export default function SearchModal({
       </div>
     </div>
   )
-}
-
-// Debounce utility
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null
-  return (...args: Parameters<T>) => {
-    if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => func(...args), wait)
-  }
 }
 </file>
 

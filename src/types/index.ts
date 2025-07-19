@@ -1,3 +1,4 @@
+// src/types/index.ts - TYPES CORRIGÉS AVEC NOUVELLES PROPRIÉTÉS
 /**
  * Types TypeScript centralisés pour toute l'application
  * Assure la cohérence des types et évite la duplication
@@ -21,18 +22,20 @@ export interface ContentItem {
   author?: string      // Pour les livres
   artist?: string      // Pour la musique
   director?: string    // Pour les films
-  developer?: string   // ✅ NOUVEAU: Pour les jeux
+  developer?: string   // ✅ Pour les jeux
   
-  // Données spécifiques aux jeux (RAWG API)
+  // ✅ NOUVELLES PROPRIÉTÉS POUR LES JEUX
   background_image?: string
   developers?: Array<{ name: string }>
+  publishers?: Array<{ name: string }>  // ✅ AJOUTÉ
   genres?: Array<{ name: string }>
+  platforms?: Array<{ platform: { name: string } }>
   released?: string
   
   // Propriété alternative pour les noms
   name?: string
   
-  // NOUVELLES PROPRIÉTÉS pour films/séries
+  // PROPRIÉTÉS pour films/séries
   type?: string        // 'movie' ou 'series'
   isMovie?: boolean    // true si c'est un film
   isSeries?: boolean   // true si c'est une série TV
@@ -45,7 +48,7 @@ export interface ContentItem {
   country?: string     // Pays
   awards?: string      // Récompenses
 
-  // NOUVELLES PROPRIÉTÉS pour Discover Page
+  // PROPRIÉTÉS pour Discover Page
   subtitle?: string    // Sous-titre pour hero section
   description?: string // Description détaillée
   trending?: string    // Pourcentage de tendance ex: "+25%"
@@ -57,6 +60,47 @@ export interface ContentItem {
     trending?: string   // Tendance ex: "+15%"
     engagement?: string // Engagement ex: "92%"
   }
+
+  // ✅ PROPRIÉTÉS SUPPLÉMENTAIRES POUR LES JEUX
+  description_raw?: string
+  metacritic?: number
+  esrb_rating?: { name: string }
+  tags?: Array<{ name: string }>
+  rating_count?: number
+  parent_platforms?: Array<{ platform: { name: string } }>
+  website?: string
+  stores?: Array<{ store: { name: string }, url: string }>
+  screenshots?: Array<{ image: string }>
+
+  // ✅ PROPRIÉTÉS SUPPLÉMENTAIRES POUR LA MUSIQUE
+  trackCount?: number
+  copyright?: string
+  collectionPrice?: number
+  currency?: string
+  collectionViewUrl?: string
+  artistViewUrl?: string
+  collectionType?: string
+
+  // ✅ PROPRIÉTÉS SUPPLÉMENTAIRES POUR LES LIVRES
+  isbn?: string
+  pageCount?: number
+  publishedDate?: string
+  publisher?: string
+  previewLink?: string
+  infoLink?: string
+  canonicalVolumeLink?: string
+  isEbook?: boolean
+  buyLink?: string
+  price?: string
+  webReaderLink?: string
+  epubAvailable?: boolean
+  pdfAvailable?: boolean
+}
+
+// ✅ Interface pour les résultats de recherche (hérite de ContentItem)
+export interface SearchResult extends ContentItem {
+  // Hérite de toutes les propriétés de ContentItem
+  // Pas besoin d'ajouter d'autres propriétés spécifiques
 }
 
 // Interface pour les items dans la bibliothèque utilisateur
@@ -73,18 +117,19 @@ export interface LibraryItem {
   author?: string      // Pour les livres
   artist?: string      // Pour la musique
   director?: string    // Pour les films
-  developer?: string   // ✅ NOUVEAU: Pour les jeux
+  developer?: string   // ✅ Pour les jeux
   
-  // Données spécifiques aux jeux (RAWG API)
+  // ✅ NOUVELLES PROPRIÉTÉS POUR LES JEUX
   background_image?: string
   developers?: Array<{ name: string }>
+  publishers?: Array<{ name: string }>  // ✅ AJOUTÉ
   genres?: Array<{ name: string }>
   released?: string
   
   // Propriété alternative pour les noms
   name?: string
   
-  // NOUVELLES PROPRIÉTÉS pour films/séries
+  // PROPRIÉTÉS pour films/séries
   type?: string        // 'movie' ou 'series'
   isMovie?: boolean    // true si c'est un film
   isSeries?: boolean   // true si c'est une série TV
@@ -105,11 +150,6 @@ export interface LibraryItem {
   userRating?: number    // Note utilisateur (1-5)
   progress?: number      // Progression en % (0-100)
   notes?: string         // Notes personnelles
-}
-
-// Interface pour les résultats de recherche
-export interface SearchResult extends ContentItem {
-  // Hérite de ContentItem avec toutes les nouvelles propriétés
 }
 
 // Interface pour les reviews/critiques
