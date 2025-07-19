@@ -35,6 +35,19 @@ interface LibraryItem {
   }
 }
 
+// Props interface for LibrarySection
+interface LibrarySectionProps {
+  library?: LibraryItem[]
+  onAddToLibrary?: (item: any, status: MediaStatus) => void
+  onUpdateItem?: (id: string, updates: Partial<LibraryItem>) => void
+  onDeleteItem?: (id: string) => void
+  onOpenGameDetail?: (gameId: string) => void
+  onOpenMovieDetail?: (movieId: string) => void
+  onOpenBookDetail?: (bookId: string) => void
+  onOpenMusicDetail?: (musicId: string) => void
+  onOpenSearch?: () => void
+}
+
 // Sample data
 const sampleLibrary: LibraryItem[] = [
   {
@@ -113,8 +126,19 @@ const sampleLibrary: LibraryItem[] = [
   }
 ]
 
-const LibrarySection = () => {
-  const [library, setLibrary] = useState<LibraryItem[]>(sampleLibrary)
+const LibrarySection: React.FC<LibrarySectionProps> = ({
+  library: propLibrary = [],
+  onAddToLibrary,
+  onUpdateItem,
+  onDeleteItem,
+  onOpenGameDetail,
+  onOpenMovieDetail,
+  onOpenBookDetail,
+  onOpenMusicDetail,
+  onOpenSearch
+}) => {
+  // Use prop library or fallback to sample data
+  const [library, setLibrary] = useState<LibraryItem[]>(propLibrary.length > 0 ? propLibrary : sampleLibrary)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [activeStatus, setActiveStatus] = useState<string>('all')
@@ -123,6 +147,13 @@ const LibrarySection = () => {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showAddInfoModal, setShowAddInfoModal] = useState<string | null>(null)
   const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false)
+
+  // Update library when prop changes
+  useEffect(() => {
+    if (propLibrary.length > 0) {
+      setLibrary(propLibrary)
+    }
+  }, [propLibrary])
 
   // Filter and sort logic
   const filteredAndSortedLibrary = React.useMemo(() => {
@@ -401,11 +432,15 @@ const LibrarySection = () => {
             </button>
             <button
               onClick={() => {
-                setLibrary(prev => prev.map(libItem => 
-                  libItem.id === item.id 
-                    ? { ...libItem, additionalInfo: formData }
-                    : libItem
-                ))
+                if (onUpdateItem) {
+                  onUpdateItem(item.id, { additionalInfo: formData })
+                } else {
+                  setLibrary(prev => prev.map(libItem => 
+                    libItem.id === item.id 
+                      ? { ...libItem, additionalInfo: formData }
+                      : libItem
+                  ))
+                }
                 setShowAddInfoModal(null)
               }}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors"
@@ -420,42 +455,41 @@ const LibrarySection = () => {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Header grisé unifié - EXACTEMENT comme la page Home - UN SEUL HEADER */}
+      {/* Nouveau header simplifié collé au top sans titre "Your Library" */}
       <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
         <div className="px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Your Library 
-              <span className="text-lg font-normal text-gray-500 ml-2">
-                ({library.length} items)
-              </span>
-            </h1>
+            <div className="flex-1 max-w-sm">
+              {/* Barre de recherche locale en premier plan */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="Search your library..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white text-gray-900 pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                />
+              </div>
+            </div>
             
-            {/* Icône de recherche globale */}
+            {/* Icône de recherche globale à droite */}
             <button
-              onClick={() => setShowGlobalSearchModal(true)}
-              className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+              onClick={() => {
+                if (onOpenSearch) {
+                  onOpenSearch()
+                } else {
+                  setShowGlobalSearchModal(true)
+                }
+              }}
+              className="p-2 hover:bg-gray-200 rounded-full transition-colors ml-3"
               title="Search and add new items"
             >
               <Search size={20} className="text-gray-600" />
             </button>
           </div>
 
-          {/* Barre de recherche locale dans le header */}
-          <div className="mt-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type="text"
-                placeholder="Search your library..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white text-gray-900 pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Filtres de catégories et statut dans le header */}
+          {/* Filtres de catégories et statut */}
           <div className="mt-4">
             <div className="flex items-center justify-between">
               {/* Boutons de catégories */}
@@ -524,41 +558,48 @@ const LibrarySection = () => {
       <div className="bg-white">
         {/* Bouton "Sorted by" */}
         <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
-          <div className="relative inline-block">
-            <button
-              onClick={() => setShowSortDropdown(!showSortDropdown)}
-              className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm font-medium"
-            >
-              {getSortIcon(sortBy)}
-              <span>Sorted by {getSortLabel(sortBy)}</span>
-              <ChevronDown size={14} />
-            </button>
+          <div className="flex items-center justify-between">
+            <div className="relative inline-block">
+              <button
+                onClick={() => setShowSortDropdown(!showSortDropdown)}
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm font-medium"
+              >
+                {getSortIcon(sortBy)}
+                <span>Sorted by {getSortLabel(sortBy)}</span>
+                <ChevronDown size={14} />
+              </button>
+              
+              {showSortDropdown && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
+                  {[
+                    { key: 'date_added', label: 'Date Added', icon: <Calendar size={14} /> },
+                    { key: 'date_updated', label: 'Date Updated', icon: <Clock size={14} /> },
+                    { key: 'title', label: 'Title', icon: <Hash size={14} /> },
+                    { key: 'creator', label: 'Creator', icon: <User size={14} /> },
+                    { key: 'average_rating', label: 'Average Rating', icon: <Star size={14} /> },
+                    { key: 'number_of_ratings', label: 'Number of Ratings', icon: <TrendingUp size={14} /> },
+                    { key: 'release_year', label: 'Release Year', icon: <Calendar size={14} /> }
+                  ].map(({ key, label, icon }) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setSortBy(key as SortOption)
+                        setShowSortDropdown(false)
+                      }}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
+                    >
+                      {icon}
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             
-            {showSortDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
-                {[
-                  { key: 'date_added', label: 'Date Added', icon: <Calendar size={14} /> },
-                  { key: 'date_updated', label: 'Date Updated', icon: <Clock size={14} /> },
-                  { key: 'title', label: 'Title', icon: <Hash size={14} /> },
-                  { key: 'creator', label: 'Creator', icon: <User size={14} /> },
-                  { key: 'average_rating', label: 'Average Rating', icon: <Star size={14} /> },
-                  { key: 'number_of_ratings', label: 'Number of Ratings', icon: <TrendingUp size={14} /> },
-                  { key: 'release_year', label: 'Release Year', icon: <Calendar size={14} /> }
-                ].map(({ key, label, icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setSortBy(key as SortOption)
-                      setShowSortDropdown(false)
-                    }}
-                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
-                  >
-                    {icon}
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Compteur d'items ajouté ici */}
+            <span className="text-sm text-gray-500">
+              {filteredAndSortedLibrary.length} item{filteredAndSortedLibrary.length !== 1 ? 's' : ''}
+            </span>
           </div>
         </div>
 
