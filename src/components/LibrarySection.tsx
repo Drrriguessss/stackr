@@ -521,18 +521,49 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
               ))}
             </div>
 
+            {/* Menu déroulant de statut déplacé */}
+            <div className="flex items-center space-x-2">
+              {[
+                { key: 'all', label: 'All' },
+                { key: 'games', label: 'Games' },
+                { key: 'movies', label: 'Movies' },
+                { key: 'music', label: 'Music' },
+                { key: 'books', label: 'Books' }
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveCategory(key)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    activeCategory === key
+                      ? 'bg-gray-900 text-white'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contenu principal */}
+      <div className="bg-white">
+        {/* Filtres de tri et statut */}
+        <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
+          <div className="flex items-center space-x-3">
             {/* Menu déroulant de statut */}
             <div className="relative">
               <button
                 onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
               >
                 <span>{getStatusLabel(activeStatus as MediaStatus)}</span>
                 <ChevronDown size={14} />
               </button>
               
               {showStatusDropdown && (
-                <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
                   {[
                     { key: 'all', label: 'All' },
                     { key: 'want-to-play', label: 'Wishlist' },
@@ -555,15 +586,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Contenu principal */}
-      <div className="bg-white">
-        {/* Bouton "Sorted by" */}
-        <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
-          <div className="flex items-center justify-between">
+            {/* Bouton "Sorted by" */}
             <div className="relative inline-block">
               <button
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
@@ -600,8 +624,6 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 </div>
               )}
             </div>
-            
-            {/* Compteur d'items déplacé dans le bouton "Sorted by" */}
           </div>
         </div>
 
