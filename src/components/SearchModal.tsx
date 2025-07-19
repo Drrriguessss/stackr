@@ -137,7 +137,7 @@ export default function SearchModal({
     return creator
   }
 
-  // ✅ RECHERCHE JEUX AVEC FILTRAGE STRICT DE PERTINENCE
+  // ✅ RECHERCHE JEUX AVEC FILTRAGE ULTRA STRICT DE PERTINENCE
   const searchGames = async (query: string): Promise<SearchResult[]> => {
     console.log('🎮 [SearchModal] Starting ENHANCED games search for:', query)
     
@@ -151,24 +151,47 @@ export default function SearchModal({
         return []
       }
 
-      // ✅ FILTRAGE STRICT DE PERTINENCE AVANT CONVERSION
-      const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2)
+      // ✅ FILTRAGE ULTRA STRICT DE PERTINENCE AVANT CONVERSION
+      const queryLower = query.toLowerCase().trim()
+      const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1) // Garder les mots de 2+ lettres
+      
+      console.log('🎮 [SearchModal] Query words to match:', queryWords)
       
       const relevantGames = games.filter(game => {
         const gameName = game.name.toLowerCase()
+        const developerNames = game.developers?.map(dev => dev.name.toLowerCase()) || []
+        const publisherNames = game.publishers?.map(pub => pub.name.toLowerCase()) || []
         
-        // Vérifier si le nom du jeu contient au moins un mot-clé significatif de la recherche
-        const hasRelevantMatch = queryWords.some(word => 
-          gameName.includes(word) || 
-          game.developers?.some(dev => dev.name.toLowerCase().includes(word)) ||
-          game.publishers?.some(pub => pub.name.toLowerCase().includes(word))
+        // ✅ LOGIQUE ULTRA STRICTE : TOUS les mots-clés doivent être présents
+        const allWordsInTitle = queryWords.every(word => gameName.includes(word))
+        
+        // Alternative : au moins un match exact de séquence dans le titre
+        const hasSequenceMatch = gameName.includes(queryLower)
+        
+        // Match développeur/éditeur (moins strict pour les créateurs)
+        const hasCreatorMatch = queryWords.some(word => 
+          developerNames.some(dev => dev.includes(word)) ||
+          publisherNames.some(pub => pub.includes(word))
         )
         
-        console.log(`🎮 [SearchModal] Filtering "${game.name}": ${hasRelevantMatch ? 'KEEP' : 'REJECT'}`)
-        return hasRelevantMatch
+        // ✅ CRITÈRES STRICTS : 
+        // 1. Soit TOUS les mots sont dans le titre
+        // 2. Soit la séquence complète est dans le titre  
+        // 3. Soit c'est un match exact de créateur ET au moins un mot du titre
+        const isRelevant = allWordsInTitle || hasSequenceMatch || 
+          (hasCreatorMatch && queryWords.some(word => gameName.includes(word)))
+        
+        console.log(`🎮 [SearchModal] "${game.name}":`, {
+          allWordsInTitle,
+          hasSequenceMatch, 
+          hasCreatorMatch,
+          isRelevant: isRelevant ? 'KEEP' : 'REJECT'
+        })
+        
+        return isRelevant
       })
 
-      console.log(`🎮 [SearchModal] Filtered from ${games.length} to ${relevantGames.length} relevant games`)
+      console.log(`🎮 [SearchModal] STRICT FILTERING: ${games.length} → ${relevantGames.length} games`)
 
       // ✅ CONVERSION AVEC VÉRIFICATION STRICTE DES DÉVELOPPEURS
       const convertedGames = relevantGames.map(game => {
@@ -192,7 +215,8 @@ export default function SearchModal({
 
       // ✅ TRI OPTIMISÉ: PERTINENCE D'ABORD, PUIS DATE
       const sortedGames = convertedGames.sort((a, b) => {
-        const queryLower = query.toLowerCase()
+        const queryLower = query.toLowerCase().trim()
+        const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1)
         
         // 1. PRIORITÉ ABSOLUE: Correspondance exacte du titre
         const aExactMatch = a.title.toLowerCase() === queryLower
@@ -201,22 +225,22 @@ export default function SearchModal({
         if (aExactMatch && !bExactMatch) return -1
         if (!aExactMatch && bExactMatch) return 1
         
-        // 2. Correspondance partielle forte du titre (tous les mots-clés présents)
-        const aStrongMatch = queryWords.every(word => a.title.toLowerCase().includes(word))
-        const bStrongMatch = queryWords.every(word => b.title.toLowerCase().includes(word))
+        // 2. Correspondance de séquence complète dans le titre
+        const aHasSequence = a.title.toLowerCase().includes(queryLower)
+        const bHasSequence = b.title.toLowerCase().includes(queryLower)
         
-        if (aStrongMatch && !bStrongMatch) return -1
-        if (!aStrongMatch && bStrongMatch) return 1
+        if (aHasSequence && !bHasSequence) return -1
+        if (!aHasSequence && bHasSequence) return 1
         
-        // 3. Correspondance partielle du titre (au moins un mot-clé)
-        const aTitleContains = queryWords.some(word => a.title.toLowerCase().includes(word))
-        const bTitleContains = queryWords.some(word => b.title.toLowerCase().includes(word))
+        // 3. Tous les mots-clés présents dans le titre
+        const aHasAllWords = queryWords.every(word => a.title.toLowerCase().includes(word))
+        const bHasAllWords = queryWords.every(word => b.title.toLowerCase().includes(word))
         
-        if (aTitleContains && !bTitleContains) return -1
-        if (!aTitleContains && bTitleContains) return 1
+        if (aHasAllWords && !bHasAllWords) return -1
+        if (!aHasAllWords && bHasAllWords) return 1
         
-        // 4. Pour les jeux qui matchent le titre, prioriser les récents
-        if (aTitleContains && bTitleContains) {
+        // 4. Pour les jeux qui matchent bien, prioriser les récents
+        if ((aHasSequence || aHasAllWords) && (bHasSequence || bHasAllWords)) {
           const currentYear = new Date().getFullYear()
           const aIsRecent = a.year >= currentYear
           const bIsRecent = b.year >= currentYear
@@ -224,11 +248,11 @@ export default function SearchModal({
           if (aIsRecent && !bIsRecent) return -1
           if (!aIsRecent && bIsRecent) return 1
           
-          // Tri par année si les deux sont récents ou anciens
+          // Trier par année (plus récent en premier) pour les matchs pertinents
           if (a.year !== b.year) return b.year - a.year
         }
         
-        // 5. Correspondance développeur/auteur
+        // 5. Correspondance développeur/créateur
         const aDeveloperMatch = queryWords.some(word => 
           (a.developer || a.author || '').toLowerCase().includes(word)
         )
@@ -245,7 +269,7 @@ export default function SearchModal({
 
       console.log('✅ [SearchModal] Games search complete - sorted by relevance then recency:')
       sortedGames.slice(0, 8).forEach((game, i) => {
-        const isRelevant = queryWords.some(word => game.title.toLowerCase().includes(word))
+        const isRelevant = queryWords.every(word => game.title.toLowerCase().includes(word))
         console.log(`  ${i + 1}. ${game.title} (${game.year}) ${game.year >= 2024 ? '🔥' : ''} ${isRelevant ? '✅' : '❌'}`)
       })
 

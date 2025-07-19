@@ -1648,6 +1648,70 @@ export default function GameCardHorizontal({
 }
 </file>
 
+<file path="src/components/Header.tsx">
+'use client'
+import { useState } from 'react'
+import { Search } from 'lucide-react'
+import SearchModal from './SearchModal'
+import type { LibraryItem, MediaStatus } from '@/types'
+
+interface HeaderProps {
+  onAddToLibrary: (item: any, status: MediaStatus) => void
+  library: LibraryItem[]
+  onOpenGameDetail?: (gameId: string) => void
+}
+
+export default function Header({ onAddToLibrary, library, onOpenGameDetail }: HeaderProps) {
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
+  
+  return (
+    <>
+      <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-white">
+        {/* Logo */}
+        <div className="flex items-center">
+          <h1 className="text-2xl font-bold text-gray-900">Books</h1>
+        </div>
+        
+        {/* Barre de recherche cliquable - plus subtile */}
+        <div className="flex-1 max-w-md mx-8">
+          <div 
+            className="relative cursor-pointer"
+            onClick={() => setIsSearchModalOpen(true)}
+          >
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <div className="w-full pl-4 pr-10 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors text-sm">
+              <span className="hidden md:inline">Search...</span>
+              <span className="md:hidden">Search...</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Profile - minimaliste */}
+        <div className="flex items-center">
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 text-sm font-medium">👤</span>
+            </div>
+          </button>
+        </div>
+      </header>
+      
+      {/* Modal de recherche */}
+      <SearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onAddToLibrary={onAddToLibrary}
+        onOpenGameDetail={(gameId) => {
+          setIsSearchModalOpen(false)
+          onOpenGameDetail?.(gameId)
+        }}
+        library={library}
+      />
+    </>
+  )
+}
+</file>
+
 <file path="src/data/sampleContent.ts">
 import type { ContentItem } from '@/types'
 
@@ -3532,70 +3596,6 @@ export default function DiscoverPage({
 }
 </file>
 
-<file path="src/components/Header.tsx">
-'use client'
-import { useState } from 'react'
-import { Search } from 'lucide-react'
-import SearchModal from './SearchModal'
-import type { LibraryItem, MediaStatus } from '@/types'
-
-interface HeaderProps {
-  onAddToLibrary: (item: any, status: MediaStatus) => void
-  library: LibraryItem[]
-  onOpenGameDetail?: (gameId: string) => void
-}
-
-export default function Header({ onAddToLibrary, library, onOpenGameDetail }: HeaderProps) {
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
-  
-  return (
-    <>
-      <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-white">
-        {/* Logo */}
-        <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Books</h1>
-        </div>
-        
-        {/* Barre de recherche cliquable - plus subtile */}
-        <div className="flex-1 max-w-md mx-8">
-          <div 
-            className="relative cursor-pointer"
-            onClick={() => setIsSearchModalOpen(true)}
-          >
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <div className="w-full pl-4 pr-10 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors text-sm">
-              <span className="hidden md:inline">Search...</span>
-              <span className="md:hidden">Search...</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Profile - minimaliste */}
-        <div className="flex items-center">
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-600 text-sm font-medium">👤</span>
-            </div>
-          </button>
-        </div>
-      </header>
-      
-      {/* Modal de recherche */}
-      <SearchModal
-        isOpen={isSearchModalOpen}
-        onClose={() => setIsSearchModalOpen(false)}
-        onAddToLibrary={onAddToLibrary}
-        onOpenGameDetail={(gameId) => {
-          setIsSearchModalOpen(false)
-          onOpenGameDetail?.(gameId)
-        }}
-        library={library}
-      />
-    </>
-  )
-}
-</file>
-
 <file path="src/lib/supabase.ts">
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
@@ -4375,494 +4375,6 @@ export const getContentTypeLabel = (type: string): string => {
   if (type === 'series') return 'Série TV'
   return 'Contenu'
 }
-</file>
-
-<file path="src/services/rawgService.ts">
-// src/services/rawgService.ts - AMÉLIORATION POUR JEUX RÉCENTS
-export interface RAWGGame {
-  id: number
-  name: string
-  background_image: string
-  rating: number
-  rating_count: number
-  released: string
-  platforms: { platform: { name: string } }[]
-  developers: { name: string }[]
-  publishers: { name: string }[]
-  genres: { name: string }[]
-  tags: { name: string }[]
-  description_raw?: string
-  metacritic?: number
-  esrb_rating?: { name: string }
-  parent_platforms?: { platform: { name: string } }[]
-  website?: string
-  stores?: { store: { name: string }, url: string }[]
-  screenshots?: { image: string }[]
-}
-
-export interface RAWGSearchResponse {
-  count: number
-  results: RAWGGame[]
-}
-
-class RAWGService {
-  private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
-  private readonly baseURL = 'https://api.rawg.io/api'
-  
-  // ✅ RECHERCHE PRINCIPALE AVEC JEUX RÉCENTS ET À VENIR
-  async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
-    try {
-      console.log('🎮 RAWG: Starting enhanced search for:', query, 'pageSize:', pageSize)
-      
-      const allResults: RAWGGame[] = []
-      
-      // ✅ STRATÉGIE 1: Recherche standard
-      const standardResults = await this.performStandardSearch(query, pageSize)
-      allResults.push(...standardResults)
-      
-      // ✅ STRATÉGIE 2: Recherche spécifique pour jeux récents (2024-2025+)
-      if (allResults.length < 10) {
-        const recentResults = await this.searchRecentGames(query)
-        allResults.push(...recentResults)
-      }
-      
-      // ✅ STRATÉGIE 3: Recherche avec dates étendues si c'est une franchise connue
-      if (allResults.length < 5 && this.isKnownFranchise(query)) {
-        const franchiseResults = await this.searchFranchiseGames(query)
-        allResults.push(...franchiseResults)
-      }
-      
-      // Supprimer les doublons
-      const uniqueResults = this.removeDuplicates(allResults)
-      
-      // Enrichir avec les détails complets
-      const enrichedResults = await this.enrichWithDetails(uniqueResults.slice(0, Math.min(pageSize, 15)))
-      
-      // Trier par pertinence et date
-      const sortedResults = this.sortByRelevanceAndDate(enrichedResults, query)
-      
-      console.log('🎮 RAWG: Final enhanced results count:', sortedResults.length)
-      return sortedResults
-      
-    } catch (error) {
-      console.error('🎮 RAWG: Enhanced search failed:', error)
-      throw error
-    }
-  }
-
-  // ✅ RECHERCHE STANDARD
-  private async performStandardSearch(query: string, pageSize: number): Promise<RAWGGame[]> {
-    try {
-      const searchResponse = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.min(pageSize, 20)}`
-      )
-      
-      if (!searchResponse.ok) {
-        throw new Error(`RAWG Search API Error: ${searchResponse.status}`)
-      }
-      
-      const searchData: RAWGSearchResponse = await searchResponse.json()
-      console.log('🎮 RAWG: Standard search returned', searchData.results?.length || 0, 'games')
-      
-      return searchData.results || []
-    } catch (error) {
-      console.error('🎮 RAWG: Standard search failed:', error)
-      return []
-    }
-  }
-
-  // ✅ RECHERCHE SPÉCIFIQUE POUR JEUX RÉCENTS (2024-2025+)
-  private async searchRecentGames(query: string): Promise<RAWGGame[]> {
-    try {
-      const currentYear = new Date().getFullYear()
-      const nextYear = currentYear + 1
-      
-      console.log('🎮 RAWG: Searching recent/upcoming games for:', query)
-      
-      const allRecentResults: RAWGGame[] = []
-      
-      // Recherche pour l'année actuelle et suivante
-      const years = [nextYear, currentYear, currentYear - 1]
-      
-      for (const year of years) {
-        try {
-          // Recherche avec année spécifique
-          const yearResponse = await fetch(
-            `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${year}-01-01,${year}-12-31&page_size=10&ordering=-released`
-          )
-          
-          if (yearResponse.ok) {
-            const yearData: RAWGSearchResponse = await yearResponse.json()
-            if (yearData.results) {
-              allRecentResults.push(...yearData.results)
-              console.log(`🎮 RAWG: Found ${yearData.results.length} games for ${year}`)
-            }
-          }
-        } catch (error) {
-          console.warn(`🎮 RAWG: Error searching year ${year}:`, error)
-        }
-      }
-      
-      // Recherche également dans les prochaines sorties
-      try {
-        const upcomingResponse = await fetch(
-          `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${currentYear}-01-01,${nextYear + 1}-12-31&page_size=10&ordering=-added`
-        )
-        
-        if (upcomingResponse.ok) {
-          const upcomingData: RAWGSearchResponse = await upcomingResponse.json()
-          if (upcomingData.results) {
-            allRecentResults.push(...upcomingData.results)
-            console.log(`🎮 RAWG: Found ${upcomingData.results.length} upcoming games`)
-          }
-        }
-      } catch (error) {
-        console.warn('🎮 RAWG: Error searching upcoming games:', error)
-      }
-      
-      return allRecentResults
-    } catch (error) {
-      console.error('🎮 RAWG: Recent games search failed:', error)
-      return []
-    }
-  }
-
-  // ✅ RECHERCHE POUR FRANCHISES CONNUES
-  private async searchFranchiseGames(query: string): Promise<RAWGGame[]> {
-    try {
-      console.log('🎮 RAWG: Searching franchise games for:', query)
-      
-      const franchiseQueries = [
-        query,
-        `${query} 2024`,
-        `${query} 2025`,
-        `${query} latest`,
-        `${query} new`,
-        `${query} shadows`, // Spécifique pour Assassin's Creed
-        `${query} mirage`,
-        `${query} valhalla`
-      ]
-      
-      const allFranchiseResults: RAWGGame[] = []
-      
-      for (const franchiseQuery of franchiseQueries) {
-        try {
-          const response = await fetch(
-            `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(franchiseQuery)}&page_size=5&ordering=-released`
-          )
-          
-          if (response.ok) {
-            const data: RAWGSearchResponse = await response.json()
-            if (data.results) {
-              allFranchiseResults.push(...data.results)
-            }
-          }
-        } catch (error) {
-          console.warn(`🎮 RAWG: Error with franchise query "${franchiseQuery}":`, error)
-        }
-      }
-      
-      return allFranchiseResults
-    } catch (error) {
-      console.error('🎮 RAWG: Franchise search failed:', error)
-      return []
-    }
-  }
-
-  // ✅ VÉRIFIER SI C'EST UNE FRANCHISE CONNUE
-  private isKnownFranchise(query: string): boolean {
-    const knownFranchises = [
-      'assassin\'s creed', 'assassins creed',
-      'call of duty', 'battlefield', 'fifa', 'madden',
-      'grand theft auto', 'gta', 'red dead',
-      'the witcher', 'cyberpunk', 'elder scrolls',
-      'fallout', 'doom', 'halo', 'gears of war',
-      'uncharted', 'the last of us', 'god of war'
-    ]
-    
-    const queryLower = query.toLowerCase()
-    return knownFranchises.some(franchise => queryLower.includes(franchise))
-  }
-
-  // ✅ SUPPRIMER LES DOUBLONS
-  private removeDuplicates(games: RAWGGame[]): RAWGGame[] {
-    const seen = new Set<number>()
-    const unique: RAWGGame[] = []
-    
-    for (const game of games) {
-      if (!seen.has(game.id)) {
-        seen.add(game.id)
-        unique.push(game)
-      }
-    }
-    
-    return unique
-  }
-
-  // ✅ ENRICHIR AVEC LES DÉTAILS
-  private async enrichWithDetails(games: RAWGGame[]): Promise<RAWGGame[]> {
-    console.log('🎮 RAWG: Enriching', games.length, 'games with details...')
-    
-    const enrichedGames = await Promise.all(
-      games.map(async (game, index) => {
-        try {
-          console.log(`🎮 RAWG: [${index + 1}/${games.length}] Fetching details for:`, game.name, 'ID:', game.id)
-          
-          const detailResponse = await fetch(
-            `${this.baseURL}/games/${game.id}?key=${this.apiKey}`
-          )
-          
-          if (!detailResponse.ok) {
-            console.warn('🎮 RAWG: Failed to get details for', game.name, 'status:', detailResponse.status)
-            return {
-              ...game,
-              developers: game.developers || [],
-              publishers: game.publishers || []
-            }
-          }
-          
-          const gameDetail: RAWGGame = await detailResponse.json()
-          
-          console.log(`🎮 RAWG: Details for "${gameDetail.name}":`, {
-            developers: gameDetail.developers?.map(d => d.name) || [],
-            publishers: gameDetail.publishers?.map(p => p.name) || [],
-            rating: gameDetail.rating,
-            released: gameDetail.released
-          })
-          
-          return gameDetail
-          
-        } catch (error) {
-          console.warn('🎮 RAWG: Error getting details for', game.name, ':', error)
-          return {
-            ...game,
-            developers: game.developers || [],
-            publishers: game.publishers || []
-          }
-        }
-      })
-    )
-
-    console.log('🎮 RAWG: Successfully enriched', enrichedGames.length, 'games with full details')
-    return enrichedGames
-  }
-
-  // ✅ TRIER PAR PERTINENCE ET DATE
-  private sortByRelevanceAndDate(games: RAWGGame[], query: string): RAWGGame[] {
-    return games.sort((a, b) => {
-      const queryLower = query.toLowerCase()
-      
-      // 1. Correspondance exacte du nom
-      const aExactMatch = a.name.toLowerCase().includes(queryLower)
-      const bExactMatch = b.name.toLowerCase().includes(queryLower)
-      
-      if (aExactMatch && !bExactMatch) return -1
-      if (!aExactMatch && bExactMatch) return 1
-      
-      // 2. Jeux plus récents en premier (2024-2025+)
-      const aYear = a.released ? new Date(a.released).getFullYear() : 0
-      const bYear = b.released ? new Date(b.released).getFullYear() : 0
-      
-      const currentYear = new Date().getFullYear()
-      
-      // Priorité aux jeux récents/à venir
-      const aIsRecent = aYear >= currentYear - 1
-      const bIsRecent = bYear >= currentYear - 1
-      
-      if (aIsRecent && !bIsRecent) return -1
-      if (!aIsRecent && bIsRecent) return 1
-      
-      // 3. Trier par année (plus récent en premier)
-      if (aYear !== bYear) return bYear - aYear
-      
-      // 4. Trier par rating
-      return (b.rating || 0) - (a.rating || 0)
-    })
-  }
-
-  // ✅ MÉTHODES EXISTANTES INCHANGÉES
-  async getPopularGames(): Promise<RAWGGame[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&dates=2020-01-01,2024-12-31&metacritic=80,100`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      return data.results || []
-    } catch (error) {
-      console.error('Error fetching popular games:', error)
-      return []
-    }
-  }
-
-  async getTopRatedGames(): Promise<RAWGGame[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&metacritic=90,100`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      return data.results || []
-    } catch (error) {
-      console.error('Error fetching top rated games:', error)
-      return []
-    }
-  }
-
-  async getNewReleases(): Promise<RAWGGame[]> {
-    try {
-      const currentDate = new Date()
-      const threeMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 3, currentDate.getDate())
-      const sixMonthsLater = new Date(currentDate.getFullYear(), currentDate.getMonth() + 6, currentDate.getDate())
-      
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-released&dates=${threeMonthsAgo.toISOString().split('T')[0]},${sixMonthsLater.toISOString().split('T')[0]}`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      return data.results || []
-    } catch (error) {
-      console.error('Error fetching new releases:', error)
-      return []
-    }
-  }
-
-  async getGameDetails(gameId: string | number): Promise<RAWGGame | null> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games/${gameId}?key=${this.apiKey}`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const game: RAWGGame = await response.json()
-      return game
-    } catch (error) {
-      console.error('Error fetching game details:', error)
-      return null
-    }
-  }
-
-  convertToAppFormat(game: RAWGGame): any {
-    let developer = 'Unknown Developer'
-    let finalDeveloper = 'Unknown Developer'
-    
-    if (game.developers && game.developers.length > 0) {
-      developer = game.developers[0].name
-      finalDeveloper = developer
-      console.log('🎮 Using primary developer:', developer)
-    }
-    else if (game.publishers && game.publishers.length > 0) {
-      developer = game.publishers[0].name
-      finalDeveloper = `${developer} (Publisher)`
-      console.log('🎮 Using publisher as developer fallback:', developer)
-    }
-    
-    console.log('🎮 Converting game:', game.name, '→ Developer:', finalDeveloper)
-    
-    const converted = {
-      id: `game-${game.id}`,
-      title: game.name || 'Unknown Game',
-      name: game.name || 'Unknown Game',
-      author: finalDeveloper,
-      developer: finalDeveloper,
-      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
-      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
-      genre: game.genres?.[0]?.name || 'Unknown',
-      category: 'games' as const,
-      image: game.background_image,
-      background_image: game.background_image,
-      released: game.released,
-      developers: game.developers || [],
-      publishers: game.publishers || [],
-      genres: game.genres || [],
-      
-      description_raw: game.description_raw,
-      metacritic: game.metacritic,
-      esrb_rating: game.esrb_rating,
-      platforms: game.platforms || [],
-      tags: game.tags || [],
-      rating_count: game.rating_count || 0,
-      parent_platforms: game.parent_platforms || [],
-      website: game.website,
-      stores: game.stores || [],
-      screenshots: game.screenshots || []
-    }
-    
-    console.log('🎮 Converted result:', {
-      title: converted.title,
-      developer: converted.developer,
-      author: converted.author,
-      year: converted.year,
-      rating: converted.rating
-    })
-    
-    return converted
-  }
-
-  async getSimilarGames(game: RAWGGame, limit: number = 6): Promise<RAWGGame[]> {
-    try {
-      if (!game.genres || game.genres.length === 0) {
-        return []
-      }
-      
-      const genre = game.genres[0].name
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&genres=${genre}&page_size=${limit + 5}&ordering=-rating`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      
-      return (data.results || [])
-        .filter(g => g.id !== game.id)
-        .slice(0, limit)
-    } catch (error) {
-      console.error('Error fetching similar games:', error)
-      return []
-    }
-  }
-
-  async getGamesByDeveloper(developerId: number, excludeGameId: number, limit: number = 6): Promise<RAWGGame[]> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&developers=${developerId}&page_size=${limit + 5}&ordering=-rating`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`RAWG API Error: ${response.status}`)
-      }
-      
-      const data: RAWGSearchResponse = await response.json()
-      
-      return (data.results || [])
-        .filter(g => g.id !== excludeGameId)
-        .slice(0, limit)
-    } catch (error) {
-      console.error('Error fetching games by developer:', error)
-      return []
-    }
-  }
-}
-
-export const rawgService = new RAWGService()
 </file>
 
 <file path="src/components/CategoryTabs.tsx">
@@ -6634,6 +6146,529 @@ export default function MusicDetailModal({
     </div>
   )
 }
+</file>
+
+<file path="src/services/rawgService.ts">
+// src/services/rawgService.ts - CORRECTION POUR JEUX RÉCENTS
+export interface RAWGGame {
+  id: number
+  name: string
+  background_image: string
+  rating: number
+  rating_count: number
+  released: string
+  platforms: { platform: { name: string } }[]
+  developers: { name: string }[]
+  publishers: { name: string }[]
+  genres: { name: string }[]
+  tags: { name: string }[]
+  description_raw?: string
+  metacritic?: number
+  esrb_rating?: { name: string }
+  parent_platforms?: { platform: { name: string } }[]
+  website?: string
+  stores?: { store: { name: string }, url: string }[]
+  screenshots?: { image: string }[]
+}
+
+export interface RAWGSearchResponse {
+  count: number
+  results: RAWGGame[]
+}
+
+class RAWGService {
+  private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+  private readonly baseURL = 'https://api.rawg.io/api'
+  
+  // ✅ RECHERCHE PRINCIPALE AVEC STRATÉGIE PLUS CIBLÉE
+  async searchGames(query: string, pageSize: number = 20): Promise<RAWGGame[]> {
+    try {
+      console.log('🎮 RAWG: Starting targeted search for:', query, 'pageSize:', pageSize)
+      
+      const allResults: RAWGGame[] = []
+      
+      // ✅ STRATÉGIE 1: Recherche standard (prioritaire)
+      const standardResults = await this.performStandardSearch(query, Math.min(pageSize, 15))
+      allResults.push(...standardResults)
+      
+      // ✅ STRATÉGIE 2: Recherche spécifique pour jeux récents SEULEMENT si peu de résultats
+      if (allResults.length < 8) {
+        const currentYear = new Date().getFullYear()
+        const recentResults = await this.searchGamesByDateRange(query, currentYear, currentYear + 2)
+        allResults.push(...recentResults)
+      }
+      
+      // ✅ STRATÉGIE 3: Recherche franchise SEULEMENT pour les franchises connues
+      if (this.isKnownFranchise(query) && allResults.length < 10) {
+        const franchiseResults = await this.searchFranchiseGames(query)
+        allResults.push(...franchiseResults.slice(0, 5)) // Limiter le bruit
+      }
+      
+      // Supprimer les doublons
+      const uniqueResults = this.removeDuplicates(allResults)
+      
+      // ✅ FILTRAGE PLUS STRICT DE PERTINENCE
+      const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2)
+      const relevantResults = uniqueResults.filter(game => {
+        const gameName = game.name.toLowerCase()
+        
+        // Le jeu doit contenir au moins un mot significatif de la recherche
+        return queryWords.some(word => 
+          gameName.includes(word) ||
+          game.developers?.some(dev => dev.name.toLowerCase().includes(word))
+        )
+      })
+      
+      console.log(`🎮 RAWG: Filtered from ${uniqueResults.length} to ${relevantResults.length} relevant games`)
+      
+      // Enrichir avec les détails complets (moins de jeux = plus rapide)
+      const enrichedResults = await this.enrichWithDetails(relevantResults.slice(0, Math.min(pageSize, 12)))
+      
+      // ✅ TRIER PAR PERTINENCE ET DATE
+      const sortedResults = this.sortByRelevanceAndDate(enrichedResults, query)
+      
+      console.log('🎮 RAWG: Final targeted results count:', sortedResults.length)
+      return sortedResults
+      
+    } catch (error) {
+      console.error('🎮 RAWG: Targeted search failed:', error)
+      throw error
+    }
+  }
+
+  // ✅ RECHERCHE STANDARD
+  private async performStandardSearch(query: string, pageSize: number): Promise<RAWGGame[]> {
+    try {
+      const searchResponse = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.min(pageSize, 20)}&ordering=-released`
+      )
+      
+      if (!searchResponse.ok) {
+        throw new Error(`RAWG Search API Error: ${searchResponse.status}`)
+      }
+      
+      const searchData: RAWGSearchResponse = await searchResponse.json()
+      console.log('🎮 RAWG: Standard search returned', searchData.results?.length || 0, 'games')
+      
+      return searchData.results || []
+    } catch (error) {
+      console.error('🎮 RAWG: Standard search failed:', error)
+      return []
+    }
+  }
+
+  // ✅ NOUVELLE MÉTHODE: Recherche par plage de dates
+  private async searchGamesByDateRange(query: string, startYear: number, endYear: number): Promise<RAWGGame[]> {
+    try {
+      console.log(`🎮 RAWG: Searching games ${startYear}-${endYear} for:`, query)
+      
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${startYear}-01-01,${endYear}-12-31&page_size=20&ordering=-released`
+      )
+      
+      if (!response.ok) {
+        console.warn(`🎮 RAWG: Date range search failed: ${response.status}`)
+        return []
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      console.log(`🎮 RAWG: Found ${data.results?.length || 0} games for ${startYear}-${endYear}`)
+      
+      return data.results || []
+    } catch (error) {
+      console.error(`🎮 RAWG: Error searching ${startYear}-${endYear}:`, error)
+      return []
+    }
+  }
+
+  // ✅ NOUVELLE MÉTHODE: Recherche de jeux à venir
+  private async searchUpcomingGames(query: string): Promise<RAWGGame[]> {
+    try {
+      console.log('🎮 RAWG: Searching upcoming games for:', query)
+      
+      const currentDate = new Date().toISOString().split('T')[0]
+      const futureDate = '2026-12-31'
+      
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&dates=${currentDate},${futureDate}&page_size=15&ordering=-added`
+      )
+      
+      if (!response.ok) {
+        console.warn('🎮 RAWG: Upcoming games search failed:', response.status)
+        return []
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      console.log(`🎮 RAWG: Found ${data.results?.length || 0} upcoming games`)
+      
+      return data.results || []
+    } catch (error) {
+      console.error('🎮 RAWG: Error searching upcoming games:', error)
+      return []
+    }
+  }
+
+  // ✅ RECHERCHE POUR FRANCHISES CONNUES
+  private async searchFranchiseGames(query: string): Promise<RAWGGame[]> {
+    try {
+      console.log('🎮 RAWG: Searching franchise games for:', query)
+      
+      const franchiseQueries = [
+        query,
+        `${query} 2024`,
+        `${query} 2025`,
+        `${query} 2026`,
+        `${query} latest`,
+        `${query} new`,
+        `${query} shadows`, // Spécifique pour Assassin's Creed
+        `${query} mirage`,
+        `${query} valhalla`,
+        `${query} odyssey`
+      ]
+      
+      const allFranchiseResults: RAWGGame[] = []
+      
+      for (const franchiseQuery of franchiseQueries) {
+        try {
+          const response = await fetch(
+            `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(franchiseQuery)}&page_size=10&ordering=-released`
+          )
+          
+          if (response.ok) {
+            const data: RAWGSearchResponse = await response.json()
+            if (data.results) {
+              allFranchiseResults.push(...data.results)
+            }
+          }
+        } catch (error) {
+          console.warn(`🎮 RAWG: Error with franchise query "${franchiseQuery}":`, error)
+        }
+      }
+      
+      return allFranchiseResults
+    } catch (error) {
+      console.error('🎮 RAWG: Franchise search failed:', error)
+      return []
+    }
+  }
+
+  // ✅ VÉRIFIER SI C'EST UNE FRANCHISE CONNUE
+  private isKnownFranchise(query: string): boolean {
+    const knownFranchises = [
+      'assassin\'s creed', 'assassins creed', 'assassin creed',
+      'call of duty', 'battlefield', 'fifa', 'madden',
+      'grand theft auto', 'gta', 'red dead',
+      'the witcher', 'cyberpunk', 'elder scrolls',
+      'fallout', 'doom', 'halo', 'gears of war',
+      'uncharted', 'the last of us', 'god of war',
+      'spider-man', 'spiderman', 'marvel'
+    ]
+    
+    const queryLower = query.toLowerCase()
+    return knownFranchises.some(franchise => 
+      queryLower.includes(franchise) || franchise.includes(queryLower)
+    )
+  }
+
+  // ✅ SUPPRIMER LES DOUBLONS
+  private removeDuplicates(games: RAWGGame[]): RAWGGame[] {
+    const seen = new Set<number>()
+    const unique: RAWGGame[] = []
+    
+    for (const game of games) {
+      if (!seen.has(game.id)) {
+        seen.add(game.id)
+        unique.push(game)
+      }
+    }
+    
+    return unique
+  }
+
+  // ✅ ENRICHIR AVEC LES DÉTAILS
+  private async enrichWithDetails(games: RAWGGame[]): Promise<RAWGGame[]> {
+    console.log('🎮 RAWG: Enriching', games.length, 'games with details...')
+    
+    const enrichedGames = await Promise.all(
+      games.map(async (game, index) => {
+        try {
+          console.log(`🎮 RAWG: [${index + 1}/${games.length}] Fetching details for:`, game.name, 'ID:', game.id)
+          
+          const detailResponse = await fetch(
+            `${this.baseURL}/games/${game.id}?key=${this.apiKey}`
+          )
+          
+          if (!detailResponse.ok) {
+            console.warn('🎮 RAWG: Failed to get details for', game.name, 'status:', detailResponse.status)
+            return {
+              ...game,
+              developers: game.developers || [],
+              publishers: game.publishers || []
+            }
+          }
+          
+          const gameDetail: RAWGGame = await detailResponse.json()
+          
+          console.log(`🎮 RAWG: Details for "${gameDetail.name}":`, {
+            developers: gameDetail.developers?.map(d => d.name) || [],
+            publishers: gameDetail.publishers?.map(p => p.name) || [],
+            rating: gameDetail.rating,
+            released: gameDetail.released
+          })
+          
+          return gameDetail
+          
+        } catch (error) {
+          console.warn('🎮 RAWG: Error getting details for', game.name, ':', error)
+          return {
+            ...game,
+            developers: game.developers || [],
+            publishers: game.publishers || []
+          }
+        }
+      })
+    )
+
+    console.log('🎮 RAWG: Successfully enriched', enrichedGames.length, 'games with full details')
+    return enrichedGames
+  }
+
+  // ✅ TRIER PAR PERTINENCE ET DATE (PERTINENCE D'ABORD)
+  private sortByRelevanceAndDate(games: RAWGGame[], query: string): RAWGGame[] {
+    return games.sort((a, b) => {
+      const queryLower = query.toLowerCase()
+      
+      // 1. PRIORITÉ ABSOLUE: Correspondance exacte du nom
+      const aExactMatch = a.name.toLowerCase() === queryLower
+      const bExactMatch = b.name.toLowerCase() === queryLower
+      
+      if (aExactMatch && !bExactMatch) return -1
+      if (!aExactMatch && bExactMatch) return 1
+      
+      // 2. Correspondance partielle forte du nom (contient le mot-clé)
+      const aPartialMatch = a.name.toLowerCase().includes(queryLower)
+      const bPartialMatch = b.name.toLowerCase().includes(queryLower)
+      
+      if (aPartialMatch && !bPartialMatch) return -1
+      if (!aPartialMatch && bPartialMatch) return 1
+      
+      // 3. Pour les jeux qui matchent le nom, prioriser les récents
+      if (aPartialMatch && bPartialMatch) {
+        const aYear = a.released ? new Date(a.released).getFullYear() : 0
+        const bYear = b.released ? new Date(b.released).getFullYear() : 0
+        
+        const currentYear = new Date().getFullYear()
+        
+        // Priorité aux jeux récents/à venir (2024+) SEULEMENT pour les matchs pertinents
+        const aIsRecent = aYear >= currentYear
+        const bIsRecent = bYear >= currentYear
+        
+        if (aIsRecent && !bIsRecent) return -1
+        if (!aIsRecent && bIsRecent) return 1
+        
+        // Trier par année (plus récent en premier) pour les matchs pertinents
+        if (aYear !== bYear) return bYear - aYear
+      }
+      
+      // 4. Correspondance développeur (pour les cas où le nom ne match pas exactement)
+      const aDeveloperMatch = a.developers?.some(dev => 
+        dev.name.toLowerCase().includes(queryLower)
+      ) || false
+      const bDeveloperMatch = b.developers?.some(dev => 
+        dev.name.toLowerCase().includes(queryLower)
+      ) || false
+      
+      if (aDeveloperMatch && !bDeveloperMatch) return -1
+      if (!aDeveloperMatch && bDeveloperMatch) return 1
+      
+      // 5. Trier par rating pour départager
+      return (b.rating || 0) - (a.rating || 0)
+    })
+  }
+
+  // ✅ MÉTHODES EXISTANTES INCHANGÉES
+  async getPopularGames(): Promise<RAWGGame[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&dates=2020-01-01,2025-12-31&metacritic=80,100`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching popular games:', error)
+      return []
+    }
+  }
+
+  async getTopRatedGames(): Promise<RAWGGame[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-rating&metacritic=90,100`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching top rated games:', error)
+      return []
+    }
+  }
+
+  async getNewReleases(): Promise<RAWGGame[]> {
+    try {
+      const currentDate = new Date()
+      const threeMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 3, currentDate.getDate())
+      const sixMonthsLater = new Date(currentDate.getFullYear(), currentDate.getMonth() + 6, currentDate.getDate())
+      
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&page_size=20&ordering=-released&dates=${threeMonthsAgo.toISOString().split('T')[0]},${sixMonthsLater.toISOString().split('T')[0]}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      return data.results || []
+    } catch (error) {
+      console.error('Error fetching new releases:', error)
+      return []
+    }
+  }
+
+  async getGameDetails(gameId: string | number): Promise<RAWGGame | null> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games/${gameId}?key=${this.apiKey}`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const game: RAWGGame = await response.json()
+      return game
+    } catch (error) {
+      console.error('Error fetching game details:', error)
+      return null
+    }
+  }
+
+  convertToAppFormat(game: RAWGGame): any {
+    let developer = 'Unknown Developer'
+    let finalDeveloper = 'Unknown Developer'
+    
+    if (game.developers && game.developers.length > 0) {
+      developer = game.developers[0].name
+      finalDeveloper = developer
+      console.log('🎮 Using primary developer:', developer)
+    }
+    else if (game.publishers && game.publishers.length > 0) {
+      developer = game.publishers[0].name
+      finalDeveloper = `${developer} (Publisher)`
+      console.log('🎮 Using publisher as developer fallback:', developer)
+    }
+    
+    console.log('🎮 Converting game:', game.name, '→ Developer:', finalDeveloper)
+    
+    const converted = {
+      id: `game-${game.id}`,
+      title: game.name || 'Unknown Game',
+      name: game.name || 'Unknown Game',
+      author: finalDeveloper,
+      developer: finalDeveloper,
+      year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
+      rating: game.rating ? Number(game.rating.toFixed(1)) : 0,
+      genre: game.genres?.[0]?.name || 'Unknown',
+      category: 'games' as const,
+      image: game.background_image,
+      background_image: game.background_image,
+      released: game.released,
+      developers: game.developers || [],
+      publishers: game.publishers || [],
+      genres: game.genres || [],
+      
+      description_raw: game.description_raw,
+      metacritic: game.metacritic,
+      esrb_rating: game.esrb_rating,
+      platforms: game.platforms || [],
+      tags: game.tags || [],
+      rating_count: game.rating_count || 0,
+      parent_platforms: game.parent_platforms || [],
+      website: game.website,
+      stores: game.stores || [],
+      screenshots: game.screenshots || []
+    }
+    
+    console.log('🎮 Converted result:', {
+      title: converted.title,
+      developer: converted.developer,
+      author: converted.author,
+      year: converted.year,
+      rating: converted.rating
+    })
+    
+    return converted
+  }
+
+  async getSimilarGames(game: RAWGGame, limit: number = 6): Promise<RAWGGame[]> {
+    try {
+      if (!game.genres || game.genres.length === 0) {
+        return []
+      }
+      
+      const genre = game.genres[0].name
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&genres=${genre}&page_size=${limit + 5}&ordering=-rating`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      
+      return (data.results || [])
+        .filter(g => g.id !== game.id)
+        .slice(0, limit)
+    } catch (error) {
+      console.error('Error fetching similar games:', error)
+      return []
+    }
+  }
+
+  async getGamesByDeveloper(developerId: number, excludeGameId: number, limit: number = 6): Promise<RAWGGame[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games?key=${this.apiKey}&developers=${developerId}&page_size=${limit + 5}&ordering=-rating`
+      )
+      
+      if (!response.ok) {
+        throw new Error(`RAWG API Error: ${response.status}`)
+      }
+      
+      const data: RAWGSearchResponse = await response.json()
+      
+      return (data.results || [])
+        .filter(g => g.id !== excludeGameId)
+        .slice(0, limit)
+    } catch (error) {
+      console.error('Error fetching games by developer:', error)
+      return []
+    }
+  }
+}
+
+export const rawgService = new RAWGService()
 </file>
 
 <file path="src/components/LibrarySection.tsx">
@@ -10325,7 +10360,7 @@ export default function Home() {
 </file>
 
 <file path="src/components/SearchModal.tsx">
-// src/components/SearchModal.tsx - COMPLET AVEC INTERFACE MOBILE OPTIMISÉE
+// src/components/SearchModal.tsx - VERSION COMPLÈTE CORRIGÉE
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
@@ -10464,29 +10499,51 @@ export default function SearchModal({
     return creator
   }
 
-  // ✅ RECHERCHE JEUX AVEC DÉVELOPPEURS ASSURÉS
+  // ✅ RECHERCHE JEUX AVEC FILTRAGE STRICT DE PERTINENCE
   const searchGames = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎮 [SearchModal] Starting games search for:', query)
+    console.log('🎮 [SearchModal] Starting ENHANCED games search for:', query)
     
     try {
-      const games = await rawgService.searchGames(query, 12)
-      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games')
+      // ✅ UTILISE LA NOUVELLE MÉTHODE searchGames AMÉLIORÉE
+      const games = await rawgService.searchGames(query, 20) // Plus de résultats pour filtrer
+      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games with enhanced search')
       
       if (!games || games.length === 0) {
-        console.log('🎮 [SearchModal] No games found')
+        console.log('🎮 [SearchModal] No games found with enhanced search')
         return []
       }
 
+      // ✅ FILTRAGE STRICT DE PERTINENCE AVANT CONVERSION
+      const queryWords = query.toLowerCase().split(' ').filter(word => word.length > 2)
+      
+      const relevantGames = games.filter(game => {
+        const gameName = game.name.toLowerCase()
+        
+        // Vérifier si le nom du jeu contient au moins un mot-clé significatif de la recherche
+        const hasRelevantMatch = queryWords.some(word => 
+          gameName.includes(word) || 
+          game.developers?.some(dev => dev.name.toLowerCase().includes(word)) ||
+          game.publishers?.some(pub => pub.name.toLowerCase().includes(word))
+        )
+        
+        console.log(`🎮 [SearchModal] Filtering "${game.name}": ${hasRelevantMatch ? 'KEEP' : 'REJECT'}`)
+        return hasRelevantMatch
+      })
+
+      console.log(`🎮 [SearchModal] Filtered from ${games.length} to ${relevantGames.length} relevant games`)
+
       // ✅ CONVERSION AVEC VÉRIFICATION STRICTE DES DÉVELOPPEURS
-      const convertedGames = games.map(game => {
+      const convertedGames = relevantGames.map(game => {
         const converted = rawgService.convertToAppFormat(game)
         
-        console.log('🎮 [SearchModal] Converted game:', {
+        console.log('🎮 [SearchModal] Converted relevant game:', {
           title: converted.title,
           developer: converted.developer,
           author: converted.author,
+          year: converted.year,
           originalGame: {
             name: game.name,
+            released: game.released,
             developers: game.developers?.map(d => d.name) || [],
             publishers: game.publishers?.map(p => p.name) || []
           }
@@ -10495,11 +10552,69 @@ export default function SearchModal({
         return converted
       })
 
-      console.log('✅ [SearchModal] Games conversion complete:', convertedGames.length, 'results')
-      return convertedGames
+      // ✅ TRI OPTIMISÉ: PERTINENCE D'ABORD, PUIS DATE
+      const sortedGames = convertedGames.sort((a, b) => {
+        const queryLower = query.toLowerCase()
+        
+        // 1. PRIORITÉ ABSOLUE: Correspondance exacte du titre
+        const aExactMatch = a.title.toLowerCase() === queryLower
+        const bExactMatch = b.title.toLowerCase() === queryLower
+        
+        if (aExactMatch && !bExactMatch) return -1
+        if (!aExactMatch && bExactMatch) return 1
+        
+        // 2. Correspondance partielle forte du titre (tous les mots-clés présents)
+        const aStrongMatch = queryWords.every(word => a.title.toLowerCase().includes(word))
+        const bStrongMatch = queryWords.every(word => b.title.toLowerCase().includes(word))
+        
+        if (aStrongMatch && !bStrongMatch) return -1
+        if (!aStrongMatch && bStrongMatch) return 1
+        
+        // 3. Correspondance partielle du titre (au moins un mot-clé)
+        const aTitleContains = queryWords.some(word => a.title.toLowerCase().includes(word))
+        const bTitleContains = queryWords.some(word => b.title.toLowerCase().includes(word))
+        
+        if (aTitleContains && !bTitleContains) return -1
+        if (!aTitleContains && bTitleContains) return 1
+        
+        // 4. Pour les jeux qui matchent le titre, prioriser les récents
+        if (aTitleContains && bTitleContains) {
+          const currentYear = new Date().getFullYear()
+          const aIsRecent = a.year >= currentYear
+          const bIsRecent = b.year >= currentYear
+          
+          if (aIsRecent && !bIsRecent) return -1
+          if (!aIsRecent && bIsRecent) return 1
+          
+          // Tri par année si les deux sont récents ou anciens
+          if (a.year !== b.year) return b.year - a.year
+        }
+        
+        // 5. Correspondance développeur/auteur
+        const aDeveloperMatch = queryWords.some(word => 
+          (a.developer || a.author || '').toLowerCase().includes(word)
+        )
+        const bDeveloperMatch = queryWords.some(word =>
+          (b.developer || b.author || '').toLowerCase().includes(word)
+        )
+        
+        if (aDeveloperMatch && !bDeveloperMatch) return -1
+        if (!aDeveloperMatch && bDeveloperMatch) return 1
+        
+        // 6. Tri final par rating
+        return (b.rating || 0) - (a.rating || 0)
+      })
+
+      console.log('✅ [SearchModal] Games search complete - sorted by relevance then recency:')
+      sortedGames.slice(0, 8).forEach((game, i) => {
+        const isRelevant = queryWords.some(word => game.title.toLowerCase().includes(word))
+        console.log(`  ${i + 1}. ${game.title} (${game.year}) ${game.year >= 2024 ? '🔥' : ''} ${isRelevant ? '✅' : '❌'}`)
+      })
+
+      return sortedGames.slice(0, 12) // Limiter aux 12 meilleurs résultats
 
     } catch (error) {
-      console.error('❌ [SearchModal] Games search failed:', error)
+      console.error('❌ [SearchModal] Enhanced games search failed:', error)
       throw error
     }
   }
@@ -10572,6 +10687,33 @@ export default function SearchModal({
     }
   }
 
+  // 🎵 RECHERCHE MUSIQUE
+  const searchMusicWithCategory = async (query: string): Promise<SearchResult[]> => {
+    console.log('🎵 [SearchModal] Starting music search for:', query)
+    
+    try {
+      const albums = await musicService.searchAlbums(query, 20)
+      console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums')
+      
+      if (!albums || albums.length === 0) {
+        return []
+      }
+
+      const convertedAlbums = albums.map(album => {
+        const converted = musicService.convertToAppFormat(album)
+        console.log('🎵 [SearchModal] Converted album:', converted.title, 'by', converted.artist)
+        return converted
+      })
+
+      console.log('✅ [SearchModal] Music conversion complete:', convertedAlbums.length, 'results')
+      return convertedAlbums
+
+    } catch (error) {
+      console.error('❌ [SearchModal] Music search failed:', error)
+      throw error
+    }
+  }
+
   // ✅ RECHERCHE PRINCIPALE RÉÉCRITE
   const performSearch = async (searchQuery: string, category: string) => {
     if (!searchQuery.trim()) return
@@ -10588,7 +10730,7 @@ export default function SearchModal({
     try {
       const searchPromises: Promise<{ category: string, results: SearchResult[] }>[] = []
 
-      // ✅ RECHERCHE JEUX AVEC DÉVELOPPEURS
+      // ✅ RECHERCHE JEUX AVEC DÉVELOPPEURS ET JEUX RÉCENTS
       if (category === 'all' || category === 'games') {
         searchPromises.push(
           searchGames(searchQuery)
@@ -10616,34 +10758,8 @@ export default function SearchModal({
 
       // 🎵 RECHERCHE MUSIQUE
       if (category === 'all' || category === 'music') {
-        const searchMusicWithCategory = async (): Promise<SearchResult[]> => {
-          console.log('🎵 [SearchModal] Starting music search for:', searchQuery, 'Category filter:', category)
-          
-          try {
-            const albums = await musicService.searchAlbums(searchQuery, 20)
-            console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums')
-            
-            if (!albums || albums.length === 0) {
-              return []
-            }
-
-            const convertedAlbums = albums.map(album => {
-              const converted = musicService.convertToAppFormat(album)
-              console.log('🎵 [SearchModal] Converted album:', converted.title, 'by', converted.artist)
-              return converted
-            })
-
-            console.log('✅ [SearchModal] Music conversion complete:', convertedAlbums.length, 'results')
-            return convertedAlbums
-
-          } catch (error) {
-            console.error('❌ [SearchModal] Music search failed:', error)
-            throw error
-          }
-        }
-
         searchPromises.push(
-          searchMusicWithCategory()
+          searchMusicWithCategory(searchQuery)
             .then(results => ({ category: 'music', results }))
             .catch(err => {
               console.error('❌ [SearchModal] Music search failed:', err)
@@ -10682,18 +10798,38 @@ export default function SearchModal({
         allResults.push(...categoryResults)
       })
 
-      // 🔧 TRI INTELLIGENT PAR PERTINENCE
+      // 🔧 TRI INTELLIGENT: PERTINENCE AVANT DATE
       allResults.sort((a, b) => {
         const queryLower = searchQuery.toLowerCase()
         
-        // 1. Correspondance exacte du titre
-        const aTitleMatch = a.title.toLowerCase().includes(queryLower)
-        const bTitleMatch = b.title.toLowerCase().includes(queryLower)
+        // 1. PRIORITÉ ABSOLUE: Correspondance exacte du titre
+        const aExactTitle = a.title.toLowerCase() === queryLower
+        const bExactTitle = b.title.toLowerCase() === queryLower
         
-        if (aTitleMatch && !bTitleMatch) return -1
-        if (!aTitleMatch && bTitleMatch) return 1
+        if (aExactTitle && !bExactTitle) return -1
+        if (!aExactTitle && bExactTitle) return 1
         
-        // 2. Correspondance exacte du créateur
+        // 2. Correspondance partielle forte du titre (contient le mot-clé)
+        const aTitleContains = a.title.toLowerCase().includes(queryLower)
+        const bTitleContains = b.title.toLowerCase().includes(queryLower)
+        
+        if (aTitleContains && !bTitleContains) return -1
+        if (!aTitleContains && bTitleContains) return 1
+        
+        // 3. Pour les résultats qui matchent le titre, prioriser les récents
+        if (aTitleContains && bTitleContains) {
+          const currentYear = new Date().getFullYear()
+          const aIsRecent = a.year >= currentYear
+          const bIsRecent = b.year >= currentYear
+          
+          if (aIsRecent && !bIsRecent) return -1
+          if (!aIsRecent && bIsRecent) return 1
+          
+          // Année (plus récent en premier) pour les titres pertinents
+          if (a.year !== b.year) return (b.year || 0) - (a.year || 0)
+        }
+        
+        // 4. Correspondance créateur (développeur, auteur, etc.)
         const aCreator = getCreator(a).toLowerCase()
         const bCreator = getCreator(b).toLowerCase()
         const aCreatorMatch = aCreator.includes(queryLower)
@@ -10702,18 +10838,15 @@ export default function SearchModal({
         if (aCreatorMatch && !bCreatorMatch) return -1
         if (!aCreatorMatch && bCreatorMatch) return 1
         
-        // 3. Année (plus récent en premier)
-        const yearDiff = (b.year || 0) - (a.year || 0)
-        if (yearDiff !== 0) return yearDiff
-        
-        // 4. Rating
+        // 5. Rating final
         return (b.rating || 0) - (a.rating || 0)
       })
 
       console.log('🎯 [SearchModal] FINAL RESULTS:', allResults.length, 'total')
       allResults.slice(0, 10).forEach((result, index) => {
         const creator = getCreator(result)
-        console.log(`${index + 1}. ${result.title} (${result.year}) by ${creator} - ${result.category.toUpperCase()}`)
+        const isRecent = result.year >= new Date().getFullYear() ? '🔥' : ''
+        console.log(`${index + 1}. ${result.title} (${result.year}) ${isRecent} by ${creator} - ${result.category.toUpperCase()}`)
       })
 
       // Cache des résultats
@@ -11062,6 +11195,7 @@ export default function SearchModal({
                 const isAdding = addingItem === result.id
                 const wasJustAdded = justAddedItems.has(result.id)
                 const creator = getCreator(result)
+                const isRecent = result.year >= new Date().getFullYear()
                 
                 return (
                   <div
@@ -11100,8 +11234,8 @@ export default function SearchModal({
                           {result.isSeries && (
                             <span className="ml-2 text-purple-600 text-sm"> • TV Series</span>
                           )}
-                          {result.year >= 2024 && (
-                            <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">NEW</span>
+                          {isRecent && (
+                            <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">🔥 NEW</span>
                           )}
                         </h3>
                         
@@ -11118,7 +11252,7 @@ export default function SearchModal({
                             {result.category === 'movies' ? (result.isSeries ? 'TV' : 'Film') : result.category}
                           </span>
                           
-                          <span className={result.year >= 2024 ? 'font-semibold text-green-600' : result.year >= 2020 ? 'font-medium text-blue-600' : ''}>
+                          <span className={isRecent ? 'font-semibold text-green-600' : result.year >= 2020 ? 'font-medium text-blue-600' : ''}>
                             {result.year}
                           </span>
                           
