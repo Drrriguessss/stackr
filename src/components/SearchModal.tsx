@@ -72,44 +72,18 @@ export default function SearchModal({
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
-  // ✅ FONCTION getCreator ENTIÈREMENT RÉÉCRITE
+  // ✅ FONCTION getCreator CORRIGÉE
   const getCreator = (result: SearchResult) => {
     console.log('🔍 [SearchModal] Getting creator for:', result.title)
     console.log('🔍 [SearchModal] Category:', result.category)
-    console.log('🔍 [SearchModal] Available data:', {
-      author: result.author,
-      director: result.director,
-      developer: result.developer,
-      artist: result.artist,
-      developers: result.developers ? result.developers.map(d => d.name) : null,
-      publishers: result.publishers ? result.publishers.map(p => p.name) : null
-    })
 
     let creator = 'Unknown Creator'
 
     switch (result.category) {
       case 'games':
-        // ✅ LOGIQUE AMÉLIORÉE POUR LES JEUX
-        if (result.developer && result.developer !== 'Unknown Developer') {
-          creator = result.developer
-          console.log('🎮 [SearchModal] Using developer field:', creator)
-        }
-        else if (result.developers && result.developers.length > 0) {
-          creator = result.developers[0].name
-          console.log('🎮 [SearchModal] Using first developer from array:', creator)
-        }
-        else if (result.author && result.author !== 'Unknown Developer') {
-          creator = result.author
-          console.log('🎮 [SearchModal] Using author as fallback:', creator)
-        }
-        else if (result.publishers && result.publishers.length > 0) {
-          creator = `${result.publishers[0].name} (Publisher)`
-          console.log('🎮 [SearchModal] Using publisher as last resort:', creator)
-        }
-        else {
-          creator = 'Unknown Developer'
-          console.log('🎮 [SearchModal] No developer info found')
-        }
+        // ✅ UTILISE LE DÉVELOPPEUR CORRIGÉ DU SERVICE
+        creator = result.developer || result.author || 'Unknown Developer'
+        console.log('🎮 [SearchModal] Game creator:', creator)
         break
 
       case 'movies':
@@ -137,9 +111,9 @@ export default function SearchModal({
     return creator
   }
 
-  // ✅ RECHERCHE JEUX AVEC DIAGNOSTIC COMPLET
+  // ✅ RECHERCHE JEUX AVEC DÉVELOPPEURS ET JEUX 2025
   const searchGames = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎮 [SearchModal] Starting DIAGNOSTIC games search for:', query)
+    console.log('🎮 [SearchModal] Starting ENHANCED games search for:', query)
     
     try {
       // ✅ TEST DE CONNECTIVITÉ D'ABORD
@@ -153,160 +127,34 @@ export default function SearchModal({
       
       console.log('🎮 [SearchModal] RAWG connection OK:', connectionTest.message)
       
-      // ✅ RECHERCHE AVEC LE SERVICE CORRIGÉ
-      const games = await rawgService.searchGames(query, 20)
-      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games')
+      // ✅ UTILISER LA NOUVELLE MÉTHODE AVEC JEUX 2025
+      const games = await rawgService.searchWithRecentGames(query, 20)
+      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games (including 2025)')
       
       if (!games || games.length === 0) {
-        console.log('🎮 [SearchModal] No games found, checking if API is working...')
+        console.log('🎮 [SearchModal] No games found')
         return []
       }
 
-      // ✅ FILTRAGE INTELLIGENT DE PERTINENCE AVANT CONVERSION
-      const queryLower = query.toLowerCase().trim()
-      const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1)
-      
-      console.log('🎮 [SearchModal] Query words to match:', queryWords)
-      console.log('🎮 [SearchModal] Full query:', queryLower)
-      
-      const relevantGames = games.filter(game => {
-        const gameName = game.name.toLowerCase()
-        const developerNames = game.developers?.map(dev => dev.name.toLowerCase()) || []
-        const publisherNames = game.publishers?.map(pub => pub.name.toLowerCase()) || []
-        
-        // ✅ LOGIQUE ÉQUILIBRÉE : Plusieurs niveaux de correspondance
-        
-        // 1. Correspondance exacte complète (priorité max)
-        const exactMatch = gameName === queryLower
-        
-        // 2. Correspondance de séquence complète dans le titre
-        const hasSequenceMatch = gameName.includes(queryLower)
-        
-        // 3. TOUS les mots-clés importants présents (pour requêtes multi-mots)
-        const allWordsInTitle = queryWords.length > 1 ? 
-          queryWords.every(word => gameName.includes(word)) : 
-          gameName.includes(queryWords[0]) // Pour un seul mot, juste vérifier qu'il est présent
-        
-        // 4. Au moins la moitié des mots-clés présents (pour flexibilité)
-        const majorityWordsMatch = queryWords.length > 2 ?
-          queryWords.filter(word => gameName.includes(word)).length >= Math.ceil(queryWords.length / 2) :
-          false
-        
-        // 5. Match développeur/éditeur avec mots du titre
-        const hasCreatorMatch = queryWords.some(word => 
-          developerNames.some(dev => dev.includes(word)) ||
-          publisherNames.some(pub => pub.includes(word))
-        )
-        const hasPartialTitleMatch = queryWords.some(word => gameName.includes(word))
-        
-        // 6. Correspondance début de titre (pour les séries)
-        const startsWithQuery = gameName.startsWith(queryLower)
-        
-        // ✅ CRITÈRES DE PERTINENCE (du plus strict au plus flexible) : 
-        const isRelevant = exactMatch ||           // Correspondance exacte
-          hasSequenceMatch ||                      // Séquence complète présente
-          startsWithQuery ||                       // Commence par la requête
-          allWordsInTitle ||                       // Tous les mots présents
-          majorityWordsMatch ||                    // Majorité des mots présents
-          (hasCreatorMatch && hasPartialTitleMatch) // Match créateur + titre partiel
-        
-        console.log(`🎮 [SearchModal] "${game.name}":`, {
-          exactMatch,
-          hasSequenceMatch,
-          startsWithQuery,
-          allWordsInTitle,
-          majorityWordsMatch,
-          hasCreatorMatch,
-          hasPartialTitleMatch,
-          isRelevant: isRelevant ? 'KEEP' : 'REJECT'
-        })
-        
-        return isRelevant
-      })
-
-      console.log(`🎮 [SearchModal] INTELLIGENT FILTERING: ${games.length} → ${relevantGames.length} games`)
-
-      // ✅ CONVERSION AVEC VÉRIFICATION STRICTE DES DÉVELOPPEURS
-      const convertedGames = relevantGames.map(game => {
+      // ✅ CONVERSION AVEC DÉVELOPPEURS CORRECTS
+      const convertedGames = games.map(game => {
         const converted = rawgService.convertToAppFormat(game)
-        
-        console.log('🎮 [SearchModal] Converted relevant game:', {
+        console.log('🎮 [SearchModal] Converted game:', {
           title: converted.title,
-          developer: converted.developer,
-          author: converted.author,
+          developer: converted.developer, // ✅ Plus "Unknown Developer"
           year: converted.year,
-          originalGame: {
-            name: game.name,
-            released: game.released,
-            developers: game.developers?.map(d => d.name) || [],
-            publishers: game.publishers?.map(p => p.name) || []
-          }
+          hasImage: !!converted.image
         })
-        
         return converted
       })
 
-      // ✅ TRI OPTIMISÉ: PERTINENCE D'ABORD, PUIS DATE
-      const sortedGames = convertedGames.sort((a, b) => {
-        const queryLower = query.toLowerCase().trim()
-        const queryWords = queryLower.split(/\s+/).filter(word => word.length > 1)
-        
-        // 1. PRIORITÉ ABSOLUE: Correspondance exacte du titre
-        const aExactMatch = a.title.toLowerCase() === queryLower
-        const bExactMatch = b.title.toLowerCase() === queryLower
-        
-        if (aExactMatch && !bExactMatch) return -1
-        if (!aExactMatch && bExactMatch) return 1
-        
-        // 2. Correspondance de séquence complète dans le titre
-        const aHasSequence = a.title.toLowerCase().includes(queryLower)
-        const bHasSequence = b.title.toLowerCase().includes(queryLower)
-        
-        if (aHasSequence && !bHasSequence) return -1
-        if (!aHasSequence && bHasSequence) return 1
-        
-        // 3. Tous les mots-clés présents dans le titre
-        const aHasAllWords = queryWords.every(word => a.title.toLowerCase().includes(word))
-        const bHasAllWords = queryWords.every(word => b.title.toLowerCase().includes(word))
-        
-        if (aHasAllWords && !bHasAllWords) return -1
-        if (!aHasAllWords && bHasAllWords) return 1
-        
-        // 4. Pour les jeux qui matchent bien, prioriser les récents
-        if ((aHasSequence || aHasAllWords) && (bHasSequence || bHasAllWords)) {
-          const currentYear = new Date().getFullYear()
-          const aIsRecent = a.year >= currentYear
-          const bIsRecent = b.year >= currentYear
-          
-          if (aIsRecent && !bIsRecent) return -1
-          if (!aIsRecent && bIsRecent) return 1
-          
-          // Trier par année (plus récent en premier) pour les matchs pertinents
-          if (a.year !== b.year) return b.year - a.year
-        }
-        
-        // 5. Correspondance développeur/créateur
-        const aDeveloperMatch = queryWords.some(word => 
-          (a.developer || a.author || '').toLowerCase().includes(word)
-        )
-        const bDeveloperMatch = queryWords.some(word =>
-          (b.developer || b.author || '').toLowerCase().includes(word)
-        )
-        
-        if (aDeveloperMatch && !bDeveloperMatch) return -1
-        if (!aDeveloperMatch && bDeveloperMatch) return 1
-        
-        // 6. Tri final par rating
-        return (b.rating || 0) - (a.rating || 0)
+      console.log('✅ [SearchModal] Games search complete with developers:')
+      convertedGames.slice(0, 8).forEach((game, i) => {
+        const isRecent = game.year >= 2024 ? '🔥' : ''
+        console.log(`  ${i + 1}. ${game.title} by ${game.developer} (${game.year}) ${isRecent}`)
       })
 
-      console.log('✅ [SearchModal] Games search complete - sorted by relevance then recency:')
-      sortedGames.slice(0, 8).forEach((game, i) => {
-        const isRelevant = queryWords.every(word => game.title.toLowerCase().includes(word))
-        console.log(`  ${i + 1}. ${game.title} (${game.year}) ${game.year >= 2024 ? '🔥' : ''} ${isRelevant ? '✅' : '❌'}`)
-      })
-
-      return sortedGames.slice(0, 12) // Limiter aux 12 meilleurs résultats
+      return convertedGames
 
     } catch (error) {
       console.error('❌ [SearchModal] Enhanced games search failed:', error)
