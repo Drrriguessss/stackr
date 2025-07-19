@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X } from 'lucide-react'
+import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus } from 'lucide-react'
 
 // Types
 type MediaCategory = 'games' | 'movies' | 'music' | 'books'
@@ -146,7 +146,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showAddInfoModal, setShowAddInfoModal] = useState<string | null>(null)
-  const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false)
+  const [showLocalSearchModal, setShowLocalSearchModal] = useState(false)
 
   // Update library when prop changes
   useEffect(() => {
@@ -304,8 +304,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   }
 
   // Modal Components
-  const GlobalSearchModal = () => {
-    if (!showGlobalSearchModal) return null
+  const LocalSearchModal = () => {
+    if (!showLocalSearchModal) return null
     
     return (
       <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -315,12 +315,14 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
               <Search className="text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Search games, movies, music, books..."
+                placeholder="Search your library..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none text-lg"
                 autoFocus
               />
               <button
-                onClick={() => setShowGlobalSearchModal(false)}
+                onClick={() => setShowLocalSearchModal(false)}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <X size={20} />
@@ -328,7 +330,9 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
             </div>
           </div>
           <div className="p-4">
-            <p className="text-gray-500 text-center py-8">Start typing to search for new items to add to your library...</p>
+            <p className="text-gray-500 text-center py-8">
+              {searchQuery ? `Searching for "${searchQuery}" in your library...` : 'Type to search in your library'}
+            </p>
           </div>
         </div>
       </div>
@@ -455,100 +459,96 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Nouveau header simplifié collé au top sans titre "Your Library" */}
+      {/* Nouveau header avec titre et icônes */}
       <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
         <div className="px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 max-w-sm">
-              {/* Barre de recherche locale en premier plan */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search your library..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white text-gray-900 pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            </div>
+          {/* Titre avec icônes */}
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
             
-            {/* Icône de recherche globale à droite */}
-            <button
-              onClick={() => {
-                if (onOpenSearch) {
-                  onOpenSearch()
-                } else {
-                  setShowGlobalSearchModal(true)
-                }
-              }}
-              className="p-2 hover:bg-gray-200 rounded-full transition-colors ml-3"
-              title="Search and add new items"
-            >
-              <Search size={20} className="text-gray-600" />
-            </button>
+            <div className="flex items-center space-x-3">
+              {/* Icône recherche locale */}
+              <button
+                onClick={() => setShowLocalSearchModal(true)}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                title="Search in your library"
+              >
+                <Search size={20} className="text-gray-600" />
+              </button>
+              
+              {/* Icône ajout global */}
+              <button
+                onClick={() => {
+                  if (onOpenSearch) {
+                    onOpenSearch()
+                  }
+                }}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                title="Add new items to your library"
+              >
+                <Plus size={20} className="text-gray-600" />
+              </button>
+            </div>
           </div>
 
           {/* Filtres de catégories et statut */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between">
-              {/* Boutons de catégories */}
-              <div className="flex items-center space-x-2">
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'games', label: 'Games' },
-                  { key: 'movies', label: 'Movies' },
-                  { key: 'music', label: 'Music' },
-                  { key: 'books', label: 'Books' }
-                ].map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => setActiveCategory(key)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      activeCategory === key
-                        ? 'bg-gray-900 text-white'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Menu déroulant de statut */}
-              <div className="relative">
+          <div className="flex items-center justify-between">
+            {/* Boutons de catégories */}
+            <div className="flex items-center space-x-2">
+              {[
+                { key: 'all', label: 'All' },
+                { key: 'games', label: 'Games' },
+                { key: 'movies', label: 'Movies' },
+                { key: 'music', label: 'Music' },
+                { key: 'books', label: 'Books' }
+              ].map(({ key, label }) => (
                 <button
-                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                  className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
+                  key={key}
+                  onClick={() => setActiveCategory(key)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    activeCategory === key
+                      ? 'bg-gray-900 text-white'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
                 >
-                  <span>{getStatusLabel(activeStatus as MediaStatus)}</span>
-                  <ChevronDown size={14} />
+                  {label}
                 </button>
-                
-                {showStatusDropdown && (
-                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
-                    {[
-                      { key: 'all', label: 'All' },
-                      { key: 'want-to-play', label: 'Wishlist' },
-                      { key: 'currently-playing', label: 'In Progress' },
-                      { key: 'completed', label: 'Completed' },
-                      { key: 'paused', label: 'Paused' },
-                      { key: 'dropped', label: 'Dropped' }
-                    ].map(({ key, label }) => (
-                      <button
-                        key={key}
-                        onClick={() => {
-                          setActiveStatus(key)
-                          setShowStatusDropdown(false)
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              ))}
+            </div>
+
+            {/* Menu déroulant de statut */}
+            <div className="relative">
+              <button
+                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
+              >
+                <span>{getStatusLabel(activeStatus as MediaStatus)}</span>
+                <ChevronDown size={14} />
+              </button>
+              
+              {showStatusDropdown && (
+                <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'want-to-play', label: 'Wishlist' },
+                    { key: 'currently-playing', label: 'In Progress' },
+                    { key: 'completed', label: 'Completed' },
+                    { key: 'paused', label: 'Paused' },
+                    { key: 'dropped', label: 'Dropped' }
+                  ].map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setActiveStatus(key)
+                        setShowStatusDropdown(false)
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -596,7 +596,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
               )}
             </div>
             
-            {/* Compteur d'items ajouté ici */}
+            {/* Compteur d'items */}
             <span className="text-sm text-gray-500">
               {filteredAndSortedLibrary.length} item{filteredAndSortedLibrary.length !== 1 ? 's' : ''}
             </span>
@@ -828,7 +828,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       </div>
 
       {/* Modals */}
-      <GlobalSearchModal />
+      <LocalSearchModal />
       
       {showAddInfoModal && (
         <AddInfoModal item={library.find(item => item.id === showAddInfoModal)!} />
