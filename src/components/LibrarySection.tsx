@@ -17,7 +17,7 @@ interface LibraryItem {
   author?: string
   artist?: string
   director?: string
-  developer?: string  // ✅ AJOUTÉ
+  developer?: string
   status: MediaStatus
   addedAt: string
   dateStarted?: string
@@ -27,6 +27,12 @@ interface LibraryItem {
   notes?: string
   numberOfRatings?: number
   dateUpdated?: string
+  // ✅ NOUVELLES PROPRIÉTÉS POUR LES DONNÉES COMPLÈTES API
+  developers?: Array<{ name: string }>
+  publishers?: Array<{ name: string }>
+  genres?: Array<{ name: string }>
+  background_image?: string
+  released?: string
   additionalInfo?: {
     platform?: string
     gamePass?: boolean
@@ -49,164 +55,118 @@ interface LibrarySectionProps {
   onOpenSearch?: () => void
 }
 
-// ✅ FONCTION getCreator UNIFIÉE ET CORRIGÉE
+// ✅ FONCTION getCreator COMPLÈTEMENT RÉÉCRITE ET CORRIGÉE
 const getCreator = (item: LibraryItem): string => {
   console.log('📚 [LibrarySection] Getting creator for:', item.title, 'Category:', item.category)
   console.log('📚 [LibrarySection] Available fields:', {
     author: item.author,
     artist: item.artist, 
     director: item.director,
-    developer: item.developer
+    developer: item.developer,
+    developers: item.developers,
+    publishers: item.publishers
   })
 
   let creator = ''
 
   switch (item.category) {
     case 'games':
-      // ✅ PRIORITÉ: developer > author > mapping manuel
+      // ✅ PRIORITÉ STRICTE: developers array > developer > author > mapping
+      if (item.developers && item.developers.length > 0) {
+        const mainDev = item.developers[0].name
+        if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer') {
+          creator = mainDev
+          console.log('🎮 ✅ Found developer from developers array:', creator)
+          break
+        }
+      }
+      
       if (item.developer && item.developer !== 'Unknown Developer' && item.developer !== 'Developer' && item.developer !== 'Unknown') {
         creator = item.developer
-      } else if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Developer' && item.author !== 'Unknown') {
-        creator = item.author
-      } else {
-        // Mapping de secours basé sur le titre
-        const title = item.title?.toLowerCase() || ''
-        const mappings = {
-          'ori and the': 'Moon Studios',
-          'last of us': 'Naughty Dog', 
-          'cyberpunk': 'CD Projekt RED',
-          'witcher': 'CD Projekt RED',
-          'halo': '343 Industries',
-          'god of war': 'Santa Monica Studio',
-          'spider-man': 'Insomniac Games',
-          'zelda': 'Nintendo',
-          'mario': 'Nintendo',
-          'assassin\'s creed': 'Ubisoft',
-          'monster hunter': 'Capcom',
-          'call of duty': 'Activision',
-          'blue prince': 'Remedy Entertainment'
-        }
-        
-        for (const [keyword, studio] of Object.entries(mappings)) {
-          if (title.includes(keyword)) {
-            creator = studio
-            break
-          }
-        }
-        
-        if (!creator) creator = 'Developer'
+        console.log('🎮 ✅ Found developer from developer field:', creator)
+        break
       }
+      
+      if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Developer' && item.author !== 'Unknown') {
+        creator = item.author
+        console.log('🎮 ✅ Found developer from author field:', creator)
+        break
+      }
+
+      // ✅ MAPPING ÉTENDU pour les jeux populaires
+      const title = item.title?.toLowerCase() || ''
+      const gameStudioMappings: { [key: string]: string } = {
+        'doom eternal': 'id Software',
+        'doom': 'id Software',
+        'ori and the will of the wisps': 'Moon Studios',
+        'ori and the blind forest': 'Moon Studios',
+        'ori and the': 'Moon Studios',
+        'the last of us part ii': 'Naughty Dog',
+        'the last of us': 'Naughty Dog',
+        'last of us': 'Naughty Dog',
+        'cyberpunk 2077': 'CD Projekt RED',
+        'cyberpunk': 'CD Projekt RED',
+        'the witcher 3': 'CD Projekt RED',
+        'the witcher': 'CD Projekt RED',
+        'elden ring': 'FromSoftware',
+        'dark souls': 'FromSoftware',
+        'sekiro': 'FromSoftware',
+        'bloodborne': 'FromSoftware',
+        'god of war': 'Santa Monica Studio',
+        'spider-man': 'Insomniac Games',
+        'marvel\'s spider-man': 'Insomniac Games',
+        'halo infinite': '343 Industries',
+        'halo': '343 Industries',
+        'zelda breath of the wild': 'Nintendo EPD',
+        'zelda tears of the kingdom': 'Nintendo EPD',
+        'zelda': 'Nintendo',
+        'mario': 'Nintendo',
+        'assassin\'s creed': 'Ubisoft',
+        'call of duty': 'Activision',
+        'grand theft auto': 'Rockstar Games',
+        'red dead redemption': 'Rockstar Games',
+        'baldur\'s gate 3': 'Larian Studios',
+        'horizon zero dawn': 'Guerrilla Games',
+        'horizon forbidden west': 'Guerrilla Games',
+        'ghost of tsushima': 'Sucker Punch Productions'
+      }
+      
+      for (const [keyword, studio] of Object.entries(gameStudioMappings)) {
+        if (title.includes(keyword)) {
+          creator = studio
+          console.log('🎮 📋 Found developer via enhanced mapping:', studio)
+          break
+        }
+      }
+      
+      if (!creator) creator = 'Game Developer'
       break
 
     case 'movies':
-      // ✅ PRIORITÉ: director > author
       if (item.director && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
         creator = item.director
       } else if (item.author && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
         creator = item.author
       } else {
-        // Mapping de secours basé sur le titre
-        const title = item.title?.toLowerCase() || ''
-        const mappings = {
-          'inception': 'Christopher Nolan',
-          'interstellar': 'Christopher Nolan', 
-          'dark knight': 'Christopher Nolan',
-          'dunkirk': 'Christopher Nolan',
-          'tenet': 'Christopher Nolan',
-          'oppenheimer': 'Christopher Nolan',
-          'pulp fiction': 'Quentin Tarantino',
-          'kill bill': 'Quentin Tarantino',
-          'django unchained': 'Quentin Tarantino',
-          'avengers': 'Russo Brothers',
-          'spider-man': 'Jon Watts',
-          'black panther': 'Ryan Coogler',
-          'dune': 'Denis Villeneuve',
-          'blade runner 2049': 'Denis Villeneuve',
-          'the batman': 'Matt Reeves',
-          'top gun': 'Joseph Kosinski',
-          'godfather': 'Francis Ford Coppola',
-          'shawshank': 'Frank Darabont'
-        }
-        
-        for (const [keyword, director] of Object.entries(mappings)) {
-          if (title.includes(keyword)) {
-            creator = director
-            break
-          }
-        }
-        
-        if (!creator) creator = 'Director'
+        creator = 'Director'
       }
       break
 
     case 'music':
-      // ✅ PRIORITÉ: artist > author
       if (item.artist && item.artist !== 'Unknown Artist' && item.artist !== 'Unknown') {
         creator = item.artist
       } else if (item.author && item.author !== 'Unknown Artist' && item.author !== 'Unknown') {
         creator = item.author
       } else {
-        // Mapping de secours basé sur le titre d'album
-        const title = item.title?.toLowerCase() || ''
-        const mappings = {
-          'abbey road': 'The Beatles',
-          'thriller': 'Michael Jackson',
-          'folklore': 'Taylor Swift',
-          'after hours': 'The Weeknd',
-          'good kid': 'Kendrick Lamar',
-          'random access memories': 'Daft Punk',
-          'blonde': 'Frank Ocean',
-          'nevermind': 'Nirvana',
-          'ok computer': 'Radiohead',
-          'dark side': 'Pink Floyd',
-          'what\'s going on': 'Marvin Gaye',
-          'kind of blue': 'Miles Davis'
-        }
-        
-        for (const [keyword, artist] of Object.entries(mappings)) {
-          if (title.includes(keyword)) {
-            creator = artist
-            break
-          }
-        }
-        
-        if (!creator) creator = 'Artist'
+        creator = 'Artist'
       }
       break
 
     case 'books':
-      // ✅ PRIORITÉ: author
       if (item.author && item.author !== 'Unknown Author' && item.author !== 'Unknown') {
         creator = item.author
       } else {
-        // Mapping de secours basé sur le titre
-        const title = item.title?.toLowerCase() || ''
-        const mappings = {
-          'harry potter': 'J.K. Rowling',
-          'hobbit': 'J.R.R. Tolkien',
-          'lord of the rings': 'J.R.R. Tolkien',
-          'game of thrones': 'George R.R. Martin',
-          '1984': 'George Orwell',
-          'animal farm': 'George Orwell',
-          'pride and prejudice': 'Jane Austen',
-          'mockingbird': 'Harper Lee',
-          'great gatsby': 'F. Scott Fitzgerald',
-          'dune': 'Frank Herbert',
-          'atomic habits': 'James Clear',
-          'sapiens': 'Yuval Noah Harari',
-          'brief history': 'Stephen Hawking',
-          'crawdads': 'Delia Owens',
-          'silent patient': 'Alex Michaelides'
-        }
-        
-        for (const [keyword, author] of Object.entries(mappings)) {
-          if (title.includes(keyword)) {
-            creator = author
-            break
-          }
-        }
-        
-        if (!creator) creator = 'Author'
+        creator = 'Author'
       }
       break
 
@@ -254,7 +214,7 @@ const sampleLibrary: LibraryItem[] = [
   {
     id: '3',
     title: 'Ori and the Will of the Wisps',
-    developer: 'Moon Studios',  // ✅ AJOUTÉ
+    developer: 'Moon Studios',
     author: 'Moon Studios',
     year: 2020,
     rating: 4.8,
@@ -267,6 +227,9 @@ const sampleLibrary: LibraryItem[] = [
     dateCompleted: '2025-01-12T18:00:00Z',
     numberOfRatings: 12500,
     image: 'https://media.rawg.io/media/games/718/71891291067b8bb23ad6ed6806b83881.jpg',
+    // ✅ DONNÉES COMPLÈTES DE L'API
+    developers: [{ name: 'Moon Studios' }],
+    publishers: [{ name: 'Xbox Game Studios' }],
     additionalInfo: {
       platform: 'Xbox Game Pass',
       gamePass: true,
@@ -277,7 +240,7 @@ const sampleLibrary: LibraryItem[] = [
   {
     id: '4',
     title: 'The Last of Us Part II',
-    developer: 'Naughty Dog',  // ✅ AJOUTÉ
+    developer: 'Naughty Dog',
     author: 'Naughty Dog',
     year: 2020,
     rating: 4.6,
@@ -290,6 +253,9 @@ const sampleLibrary: LibraryItem[] = [
     dateCompleted: '2025-01-11T20:30:00Z',
     numberOfRatings: 89000,
     image: 'https://media.rawg.io/media/games/d82/d82990b9c67ba0d2d09d4e6fa88885a7.jpg',
+    // ✅ DONNÉES COMPLÈTES DE L'API
+    developers: [{ name: 'Naughty Dog' }],
+    publishers: [{ name: 'Sony Interactive Entertainment' }],
     additionalInfo: {
       platform: 'PlayStation 5',
       gamePass: false,
@@ -339,7 +305,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
           item.author,
           item.artist,
           item.director,
-          item.developer,  // ✅ AJOUTÉ
+          item.developer,
           item.genre
         ].filter(Boolean).join(' ').toLowerCase()
         
@@ -365,7 +331,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
         case 'title':
           return a.title.localeCompare(b.title)
         case 'creator':
-          // ✅ UTILISE LA FONCTION getCreator UNIFIÉE
+          // ✅ UTILISE LA FONCTION getCreator UNIFIÉE ET CORRIGÉE
           const aCreator = getCreator(a)
           const bCreator = getCreator(b)
           return aCreator.localeCompare(bCreator)
@@ -418,13 +384,14 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     }
   }
 
-  const getStatusLabel = (status: MediaStatus) => {
+  const getStatusLabel = (status: MediaStatus | string) => {
     switch (status) {
       case 'want-to-play': return 'Wishlist'
       case 'currently-playing': return 'In Progress'
       case 'completed': return 'Completed'
       case 'paused': return 'Paused'
       case 'dropped': return 'Dropped'
+      case 'all': return 'All'
       default: return status
     }
   }
@@ -732,7 +699,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 onClick={() => setShowStatusDropdown(!showStatusDropdown)}
                 className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
               >
-                <span>{getStatusLabel(activeStatus as MediaStatus)}</span>
+                <span>{getStatusLabel(activeStatus)}</span>
                 <ChevronDown size={14} />
               </button>
               

@@ -1125,6 +1125,364 @@ export const sampleContent = {
 }
 </file>
 
+<file path="src/utils/idNormalizer.ts">
+/**
+ * Utilitaire pour normaliser les IDs et éviter la duplication de code
+ */
+
+export const normalizeId = (id: string): string => {
+  if (!id) return ''
+  return id.toString().replace(/^(game-|movie-|music-|book-)/, '')
+}
+
+export const addCategoryPrefix = (id: string, category: string): string => {
+  const normalizedId = normalizeId(id)
+  const prefixes = {
+    games: 'game-',
+    movies: 'movie-',
+    music: 'music-',
+    books: 'book-'
+  }
+  
+  const prefix = prefixes[category as keyof typeof prefixes] || ''
+  return `${prefix}${normalizedId}`
+}
+
+export const idsMatch = (id1: string, id2: string): boolean => {
+  return normalizeId(id1) === normalizeId(id2)
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "stackr",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.51.0",
+    "@vercel/analytics": "^1.5.0",
+    "lucide-react": "^0.525.0",
+    "next": "15.3.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+</file>
+
+<file path="src/app/layout.tsx">
+import { Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/react'
+import './globals.css'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata = {
+  title: 'Stackr - Your Universal Library',
+  description: 'Track games, movies, music, and books all in one place',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className={`${inter.className} bg-white text-gray-900 min-h-screen antialiased`}>
+        {children}
+        <Analytics />
+      </body>
+    </html>
+  )
+}
+</file>
+
+<file path="src/components/RoadmapPage.tsx">
+'use client'
+import { ArrowLeft, Check, Clock, Zap, Users, Star, Sparkles, CheckCircle, Smartphone } from 'lucide-react'
+
+interface RoadmapPageProps {
+  onBack: () => void
+}
+
+export default function RoadmapPage({ onBack }: RoadmapPageProps) {
+  const roadmapPhases = [
+    {
+      id: 'phase1',
+      title: 'Phase 1 - Foundations',
+      status: 'completed',
+      description: 'Core app structure and basic features',
+      items: [
+        { text: 'BottomNavigation with Apple design', completed: true },
+        { text: 'Movies/Music/Books/Games APIs integration', completed: true },
+        { text: 'Discover & Search pages', completed: true },
+        { text: 'Content browsing optimization', completed: true },
+        { text: 'Responsive design & mobile optimization', completed: true }
+      ]
+    },
+    {
+      id: 'phase2', 
+      title: 'Phase 2 - Core Features',
+      status: 'completed',
+      description: 'Essential functionality and data persistence',
+      items: [
+        { text: 'Database setup with Supabase', completed: true },
+        { text: 'Library management system', completed: true },
+        { text: 'Content detail modals', completed: true },
+        { text: 'Status tracking (Want/Playing/Completed)', completed: true },
+        { text: 'Basic recommendation algorithms', completed: true }
+      ]
+    },
+    {
+      id: 'phase3',
+      title: 'Phase 3 - Enhanced Experience',
+      status: 'in-progress', 
+      description: 'Improved user experience and mobile features',
+      items: [
+        { text: 'Progressive Web App (PWA) support', completed: false, isNew: true },
+        { text: 'Offline functionality', completed: false },
+        { text: 'Push notifications', completed: false },
+        { text: 'User reviews and ratings', completed: false },
+        { text: 'Advanced filtering and sorting', completed: false }
+      ]
+    },
+    {
+      id: 'phase4',
+      title: 'Phase 4 - Social Features',
+      status: 'planned', 
+      description: 'Connect with friends and share recommendations',
+      items: [
+        { text: 'User authentication (Google/Apple)', completed: false },
+        { text: 'Friend system (add/remove friends)', completed: false },
+        { text: 'Friend Recommendations with personal messages', completed: false },
+        { text: 'Activity Feed (see friends\' activities)', completed: false },
+        { text: 'Public profiles and sharing', completed: false }
+      ]
+    },
+    {
+      id: 'phase5',
+      title: 'Phase 5 - Advanced Features',
+      status: 'future',
+      description: 'Premium features and platform expansion',
+      items: [
+        { text: 'AI-powered smart recommendations', completed: false },
+        { text: 'Advanced analytics dashboard', completed: false },
+        { text: 'Custom themes and personalization', completed: false },
+        { text: 'Groups & Communities', completed: false },
+        { text: 'Native mobile apps (iOS/Android)', completed: false },
+        { text: 'Public API for developers', completed: false }
+      ]
+    }
+  ]
+
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return { 
+          color: 'bg-green-50 border-green-200 text-green-700',
+          icon: <CheckCircle size={16} className="text-green-600" />,
+          label: 'Completed'
+        }
+      case 'in-progress':
+        return {
+          color: 'bg-blue-50 border-blue-200 text-blue-700', 
+          icon: <Zap size={16} className="text-blue-600" />,
+          label: 'In Progress'
+        }
+      case 'planned':
+        return {
+          color: 'bg-orange-50 border-orange-200 text-orange-700', 
+          icon: <Clock size={16} className="text-orange-600" />,
+          label: 'Planned'
+        }
+      case 'future':
+        return {
+          color: 'bg-gray-50 border-gray-200 text-gray-700',
+          icon: <Star size={16} className="text-gray-600" />,
+          label: 'Future'
+        }
+      default:
+        return {
+          color: 'bg-gray-50 border-gray-200 text-gray-700',
+          icon: <Clock size={16} className="text-gray-600" />,
+          label: 'Unknown'
+        }
+    }
+  }
+
+  const calculateProgress = (items: any[]) => {
+    const completed = items.filter(item => item.completed).length
+    return Math.round((completed / items.length) * 100)
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
+        <div className="flex items-center px-4 py-4">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-3"
+          >
+            <ArrowLeft size={20} className="text-gray-600" />
+          </button>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Roadmap</h1>
+            <p className="text-sm text-gray-500">Track Stackr's development progress</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="pb-24">
+        {/* Overview Stats */}
+        <div className="px-4 py-6 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-100">
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Development Overview</h2>
+              <p className="text-gray-600 text-sm">
+                Building Stackr step by step. Track our progress and see what's coming next.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl p-3 border border-gray-200">
+                <div className="text-lg font-bold text-green-600">
+                  {roadmapPhases.reduce((acc, phase) => 
+                    acc + phase.items.filter(item => item.completed).length, 0
+                  )}
+                </div>
+                <div className="text-xs text-gray-600">Completed</div>
+              </div>
+              <div className="bg-white rounded-xl p-3 border border-gray-200">
+                <div className="text-lg font-bold text-blue-600">
+                  {roadmapPhases.reduce((acc, phase) => 
+                    acc + phase.items.filter(item => !item.completed).length, 0
+                  )}
+                </div>
+                <div className="text-xs text-gray-600">Remaining</div>
+              </div>
+              <div className="bg-white rounded-xl p-3 border border-gray-200">
+                <div className="text-lg font-bold text-gray-900">5</div>
+                <div className="text-xs text-gray-600">Phases</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Roadmap Phases */}
+        <div className="px-4 py-6 space-y-6">
+          {roadmapPhases.map((phase, phaseIndex) => {
+            const statusInfo = getStatusInfo(phase.status)
+            const progress = calculateProgress(phase.items)
+            
+            return (
+              <div key={phase.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                {/* Phase Header */}
+                <div className="p-4 border-b border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      <h3 className="text-lg font-semibold text-gray-900">{phase.title}</h3>
+                      <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}>
+                        {statusInfo.icon}
+                        <span>{statusInfo.label}</span>
+                      </div>
+                    </div>
+                    {(phase.status === 'in-progress' || phase.status === 'completed') && (
+                      <div className="text-sm font-medium text-green-600">{progress}%</div>
+                    )}
+                  </div>
+                  
+                  <p className="text-gray-600 text-sm mb-3">{phase.description}</p>
+                  
+                  {/* Progress Bar */}
+                  {(phase.status === 'in-progress' || phase.status === 'completed') && (
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          phase.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
+                        }`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Phase Items */}
+                <div className="p-4">
+                  <div className="space-y-3">
+                    {phase.items.map((item, itemIndex) => (
+                      <div key={itemIndex} className="flex items-center space-x-3">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          item.completed 
+                            ? 'bg-green-500 border-green-500' 
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}>
+                          {item.completed && <Check size={12} className="text-white" />}
+                        </div>
+                        
+                        <div className="flex-1 flex items-center space-x-2">
+                          <span className={`text-sm ${
+                            item.completed 
+                              ? 'text-gray-500 line-through' 
+                              : 'text-gray-900'
+                          }`}>
+                            {item.text}
+                          </span>
+                          {item.isNew && (
+                            <div className="flex items-center space-x-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                              {item.text.includes('PWA') ? <Smartphone size={10} /> : <Sparkles size={10} />}
+                              <span>New</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Footer Note */}
+        <div className="px-4 py-6">
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <div className="flex items-start space-x-3">
+              <Users size={20} className="text-gray-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-gray-900 mb-1">Community Driven</h4>
+                <p className="text-sm text-gray-600">
+                  This roadmap evolves based on user feedback and community needs. 
+                  Got suggestions? We'd love to hear them!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+</file>
+
 <file path="src/services/googleBooksService.ts">
 // src/services/googleBooksService.ts - VERSION CORRIGÉE POUR AUTEURS
 export interface GoogleBook {
@@ -1537,364 +1895,6 @@ export const getReadingTime = (pageCount: number): string => {
   
   const days = Math.round(hours / 24)
   return `~${days} days read`
-}
-</file>
-
-<file path="src/utils/idNormalizer.ts">
-/**
- * Utilitaire pour normaliser les IDs et éviter la duplication de code
- */
-
-export const normalizeId = (id: string): string => {
-  if (!id) return ''
-  return id.toString().replace(/^(game-|movie-|music-|book-)/, '')
-}
-
-export const addCategoryPrefix = (id: string, category: string): string => {
-  const normalizedId = normalizeId(id)
-  const prefixes = {
-    games: 'game-',
-    movies: 'movie-',
-    music: 'music-',
-    books: 'book-'
-  }
-  
-  const prefix = prefixes[category as keyof typeof prefixes] || ''
-  return `${prefix}${normalizedId}`
-}
-
-export const idsMatch = (id1: string, id2: string): boolean => {
-  return normalizeId(id1) === normalizeId(id2)
-}
-</file>
-
-<file path="package.json">
-{
-  "name": "stackr",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.51.0",
-    "@vercel/analytics": "^1.5.0",
-    "lucide-react": "^0.525.0",
-    "next": "15.3.5",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.5",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
-}
-</file>
-
-<file path="src/app/layout.tsx">
-import { Inter } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/react'
-import './globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata = {
-  title: 'Stackr - Your Universal Library',
-  description: 'Track games, movies, music, and books all in one place',
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en">
-      <body className={`${inter.className} bg-white text-gray-900 min-h-screen antialiased`}>
-        {children}
-        <Analytics />
-      </body>
-    </html>
-  )
-}
-</file>
-
-<file path="src/components/RoadmapPage.tsx">
-'use client'
-import { ArrowLeft, Check, Clock, Zap, Users, Star, Sparkles, CheckCircle, Smartphone } from 'lucide-react'
-
-interface RoadmapPageProps {
-  onBack: () => void
-}
-
-export default function RoadmapPage({ onBack }: RoadmapPageProps) {
-  const roadmapPhases = [
-    {
-      id: 'phase1',
-      title: 'Phase 1 - Foundations',
-      status: 'completed',
-      description: 'Core app structure and basic features',
-      items: [
-        { text: 'BottomNavigation with Apple design', completed: true },
-        { text: 'Movies/Music/Books/Games APIs integration', completed: true },
-        { text: 'Discover & Search pages', completed: true },
-        { text: 'Content browsing optimization', completed: true },
-        { text: 'Responsive design & mobile optimization', completed: true }
-      ]
-    },
-    {
-      id: 'phase2', 
-      title: 'Phase 2 - Core Features',
-      status: 'completed',
-      description: 'Essential functionality and data persistence',
-      items: [
-        { text: 'Database setup with Supabase', completed: true },
-        { text: 'Library management system', completed: true },
-        { text: 'Content detail modals', completed: true },
-        { text: 'Status tracking (Want/Playing/Completed)', completed: true },
-        { text: 'Basic recommendation algorithms', completed: true }
-      ]
-    },
-    {
-      id: 'phase3',
-      title: 'Phase 3 - Enhanced Experience',
-      status: 'in-progress', 
-      description: 'Improved user experience and mobile features',
-      items: [
-        { text: 'Progressive Web App (PWA) support', completed: false, isNew: true },
-        { text: 'Offline functionality', completed: false },
-        { text: 'Push notifications', completed: false },
-        { text: 'User reviews and ratings', completed: false },
-        { text: 'Advanced filtering and sorting', completed: false }
-      ]
-    },
-    {
-      id: 'phase4',
-      title: 'Phase 4 - Social Features',
-      status: 'planned', 
-      description: 'Connect with friends and share recommendations',
-      items: [
-        { text: 'User authentication (Google/Apple)', completed: false },
-        { text: 'Friend system (add/remove friends)', completed: false },
-        { text: 'Friend Recommendations with personal messages', completed: false },
-        { text: 'Activity Feed (see friends\' activities)', completed: false },
-        { text: 'Public profiles and sharing', completed: false }
-      ]
-    },
-    {
-      id: 'phase5',
-      title: 'Phase 5 - Advanced Features',
-      status: 'future',
-      description: 'Premium features and platform expansion',
-      items: [
-        { text: 'AI-powered smart recommendations', completed: false },
-        { text: 'Advanced analytics dashboard', completed: false },
-        { text: 'Custom themes and personalization', completed: false },
-        { text: 'Groups & Communities', completed: false },
-        { text: 'Native mobile apps (iOS/Android)', completed: false },
-        { text: 'Public API for developers', completed: false }
-      ]
-    }
-  ]
-
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return { 
-          color: 'bg-green-50 border-green-200 text-green-700',
-          icon: <CheckCircle size={16} className="text-green-600" />,
-          label: 'Completed'
-        }
-      case 'in-progress':
-        return {
-          color: 'bg-blue-50 border-blue-200 text-blue-700', 
-          icon: <Zap size={16} className="text-blue-600" />,
-          label: 'In Progress'
-        }
-      case 'planned':
-        return {
-          color: 'bg-orange-50 border-orange-200 text-orange-700', 
-          icon: <Clock size={16} className="text-orange-600" />,
-          label: 'Planned'
-        }
-      case 'future':
-        return {
-          color: 'bg-gray-50 border-gray-200 text-gray-700',
-          icon: <Star size={16} className="text-gray-600" />,
-          label: 'Future'
-        }
-      default:
-        return {
-          color: 'bg-gray-50 border-gray-200 text-gray-700',
-          icon: <Clock size={16} className="text-gray-600" />,
-          label: 'Unknown'
-        }
-    }
-  }
-
-  const calculateProgress = (items: any[]) => {
-    const completed = items.filter(item => item.completed).length
-    return Math.round((completed / items.length) * 100)
-  }
-
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
-        <div className="flex items-center px-4 py-4">
-          <button
-            onClick={onBack}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-3"
-          >
-            <ArrowLeft size={20} className="text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">Roadmap</h1>
-            <p className="text-sm text-gray-500">Track Stackr's development progress</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="pb-24">
-        {/* Overview Stats */}
-        <div className="px-4 py-6 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-100">
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Development Overview</h2>
-              <p className="text-gray-600 text-sm">
-                Building Stackr step by step. Track our progress and see what's coming next.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white rounded-xl p-3 border border-gray-200">
-                <div className="text-lg font-bold text-green-600">
-                  {roadmapPhases.reduce((acc, phase) => 
-                    acc + phase.items.filter(item => item.completed).length, 0
-                  )}
-                </div>
-                <div className="text-xs text-gray-600">Completed</div>
-              </div>
-              <div className="bg-white rounded-xl p-3 border border-gray-200">
-                <div className="text-lg font-bold text-blue-600">
-                  {roadmapPhases.reduce((acc, phase) => 
-                    acc + phase.items.filter(item => !item.completed).length, 0
-                  )}
-                </div>
-                <div className="text-xs text-gray-600">Remaining</div>
-              </div>
-              <div className="bg-white rounded-xl p-3 border border-gray-200">
-                <div className="text-lg font-bold text-gray-900">5</div>
-                <div className="text-xs text-gray-600">Phases</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Roadmap Phases */}
-        <div className="px-4 py-6 space-y-6">
-          {roadmapPhases.map((phase, phaseIndex) => {
-            const statusInfo = getStatusInfo(phase.status)
-            const progress = calculateProgress(phase.items)
-            
-            return (
-              <div key={phase.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                {/* Phase Header */}
-                <div className="p-4 border-b border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="text-lg font-semibold text-gray-900">{phase.title}</h3>
-                      <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}>
-                        {statusInfo.icon}
-                        <span>{statusInfo.label}</span>
-                      </div>
-                    </div>
-                    {(phase.status === 'in-progress' || phase.status === 'completed') && (
-                      <div className="text-sm font-medium text-green-600">{progress}%</div>
-                    )}
-                  </div>
-                  
-                  <p className="text-gray-600 text-sm mb-3">{phase.description}</p>
-                  
-                  {/* Progress Bar */}
-                  {(phase.status === 'in-progress' || phase.status === 'completed') && (
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          phase.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
-                        }`}
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Phase Items */}
-                <div className="p-4">
-                  <div className="space-y-3">
-                    {phase.items.map((item, itemIndex) => (
-                      <div key={itemIndex} className="flex items-center space-x-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                          item.completed 
-                            ? 'bg-green-500 border-green-500' 
-                            : 'border-gray-300 hover:border-gray-400'
-                        }`}>
-                          {item.completed && <Check size={12} className="text-white" />}
-                        </div>
-                        
-                        <div className="flex-1 flex items-center space-x-2">
-                          <span className={`text-sm ${
-                            item.completed 
-                              ? 'text-gray-500 line-through' 
-                              : 'text-gray-900'
-                          }`}>
-                            {item.text}
-                          </span>
-                          {item.isNew && (
-                            <div className="flex items-center space-x-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                              {item.text.includes('PWA') ? <Smartphone size={10} /> : <Sparkles size={10} />}
-                              <span>New</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Footer Note */}
-        <div className="px-4 py-6">
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <div className="flex items-start space-x-3">
-              <Users size={20} className="text-gray-600 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-gray-900 mb-1">Community Driven</h4>
-                <p className="text-sm text-gray-600">
-                  This roadmap evolves based on user feedback and community needs. 
-                  Got suggestions? We'd love to hear them!
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
 }
 </file>
 
@@ -3801,8 +3801,48 @@ export class LibraryService {
 export default LibraryService
 </file>
 
+<file path="src/components/CategoryTabs.tsx">
+'use client'
+
+interface CategoryTabsProps {
+  activeTab: string
+  onTabChange: (tab: string) => void
+}
+
+export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
+  const tabs = [
+    { id: 'books', name: 'Books' },
+    { id: 'games', name: 'Games' },
+    { id: 'movies', name: 'Films & TV' },
+    { id: 'music', name: 'Music' },
+  ]
+
+  return (
+    <div className="flex w-full border-b border-gray-200 mb-0">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex-1 pb-3 pt-2 text-sm font-medium transition-colors relative text-center whitespace-nowrap ${
+            activeTab === tab.id
+              ? 'text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          {tab.name}
+          {/* Soulignement pour l'onglet actif */}
+          {activeTab === tab.id && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+</file>
+
 <file path="src/services/musicService.ts">
-// Service pour l'API iTunes/Apple Music - VERSION API COMPLÈTE CORRIGÉE
+// src/services/musicService.ts - VERSION CORRIGÉE POUR ARTISTES
 export interface iTunesAlbum {
   collectionId: number
   artistId: number
@@ -3835,6 +3875,161 @@ export interface iTunesSearchResponse {
 class MusicService {
   private readonly baseURL = 'https://itunes.apple.com'
   
+  /**
+   * ✅ FONCTION CORRIGÉE : Obtenir le vrai artiste
+   */
+  private getCorrectArtist(album: iTunesAlbum): string {
+    console.log('🎵 Getting artist for:', album.collectionName)
+    console.log('🎵 Raw artist:', album.artistName)
+
+    // 1. Artiste principal de l'API
+    if (album.artistName && album.artistName.trim() !== '' && album.artistName !== 'Unknown' && album.artistName !== 'Various Artists') {
+      console.log('🎵 ✅ Found artist from API:', album.artistName)
+      return album.artistName
+    }
+
+    // 2. Mapping manuel pour les artistes/albums populaires
+    const albumLower = (album.collectionName || '').toLowerCase()
+    const mappings: { [key: string]: string } = {
+      // Albums classiques
+      "abbey road": "The Beatles",
+      "sgt. pepper": "The Beatles", 
+      "revolver": "The Beatles",
+      "white album": "The Beatles",
+      "let it be": "The Beatles",
+      "help!": "The Beatles",
+      "rubber soul": "The Beatles",
+      
+      // Hip Hop / Rap
+      "good kid m.a.a.d city": "Kendrick Lamar",
+      "to pimp a butterfly": "Kendrick Lamar",
+      "damn": "Kendrick Lamar",
+      "mr. morale": "Kendrick Lamar",
+      "the chronic": "Dr. Dre",
+      "2001": "Dr. Dre",
+      "illmatic": "Nas",
+      "ready to die": "The Notorious B.I.G.",
+      "life after death": "The Notorious B.I.G.",
+      "the blueprint": "Jay-Z",
+      "reasonable doubt": "Jay-Z",
+      "the black album": "Jay-Z",
+      "graduation": "Kanye West",
+      "my beautiful dark twisted fantasy": "Kanye West",
+      "college dropout": "Kanye West",
+      "late registration": "Kanye West",
+      "astroworld": "Travis Scott",
+      "rodeo": "Travis Scott",
+      "scorpion": "Drake",
+      "take care": "Drake",
+      "nothing was the same": "Drake",
+      "views": "Drake",
+      
+      // Pop / Contemporary
+      "thriller": "Michael Jackson",
+      "bad": "Michael Jackson",
+      "off the wall": "Michael Jackson",
+      "21": "Adele",
+      "25": "Adele",
+      "30": "Adele",
+      "folklore": "Taylor Swift",
+      "evermore": "Taylor Swift",
+      "midnights": "Taylor Swift",
+      "lover": "Taylor Swift",
+      "reputation": "Taylor Swift",
+      "1989": "Taylor Swift",
+      "red": "Taylor Swift",
+      "speak now": "Taylor Swift",
+      "fearless": "Taylor Swift",
+      "taylor swift": "Taylor Swift",
+      "lemonade": "Beyoncé",
+      "renaissance": "Beyoncé",
+      "dangerously in love": "Beyoncé",
+      "i am... sasha fierce": "Beyoncé",
+      "after hours": "The Weeknd",
+      "dawn fm": "The Weeknd",
+      "beauty behind the madness": "The Weeknd",
+      "starboy": "The Weeknd",
+      "blinding lights": "The Weeknd",
+      "sour": "Olivia Rodrigo",
+      "positions": "Ariana Grande",
+      "thank u, next": "Ariana Grande",
+      "sweetener": "Ariana Grande",
+      
+      // Rock / Alternative
+      "nevermind": "Nirvana",
+      "in utero": "Nirvana",
+      "bleach": "Nirvana",
+      "ok computer": "Radiohead",
+      "kid a": "Radiohead",
+      "the bends": "Radiohead",
+      "in rainbows": "Radiohead",
+      "hail to the thief": "Radiohead",
+      "dark side of the moon": "Pink Floyd",
+      "the wall": "Pink Floyd",
+      "wish you were here": "Pink Floyd",
+      "animals": "Pink Floyd",
+      "meddle": "Pink Floyd",
+      "led zeppelin iv": "Led Zeppelin",
+      "houses of the holy": "Led Zeppelin",
+      "physical graffiti": "Led Zeppelin",
+      "bohemian rhapsody": "Queen",
+      "a night at the opera": "Queen",
+      "news of the world": "Queen",
+      "greatest hits": "Queen",
+      
+      // Electronic / Dance
+      "random access memories": "Daft Punk",
+      "discovery": "Daft Punk",
+      "homework": "Daft Punk",
+      "human after all": "Daft Punk",
+      "cross": "Justice",
+      "woman": "Justice",
+      "since i left you": "The Avalanches",
+      "wildflower": "The Avalanches",
+      
+      // R&B / Soul
+      "what's going on": "Marvin Gaye",
+      "let's get it on": "Marvin Gaye",
+      "i want you": "Marvin Gaye",
+      "songs in the key of life": "Stevie Wonder",
+      "innervisions": "Stevie Wonder",
+      "talking book": "Stevie Wonder",
+      "channel orange": "Frank Ocean",
+      "blonde": "Frank Ocean",
+      "blond": "Frank Ocean",
+      "nostalgia ultra": "Frank Ocean",
+      
+      // Jazz / Classical
+      "kind of blue": "Miles Davis",
+      "bitches brew": "Miles Davis",
+      "a love supreme": "John Coltrane",
+      "giant steps": "John Coltrane",
+      "blue train": "John Coltrane",
+      "time out": "Dave Brubeck",
+      "mingus ah um": "Charles Mingus",
+      
+      // Country / Folk
+      "at folsom prison": "Johnny Cash",
+      "american recordings": "Johnny Cash",
+      "the man comes around": "Johnny Cash",
+      "rumours": "Fleetwood Mac",
+      "tusk": "Fleetwood Mac",
+      "hotel california": "Eagles",
+      "their greatest hits": "Eagles"
+    }
+
+    // Chercher correspondances exactes puis partielles
+    for (const [keyword, artist] of Object.entries(mappings)) {
+      if (albumLower.includes(keyword) || albumLower === keyword) {
+        console.log('🎵 📋 Found artist via mapping:', artist, 'for keyword:', keyword)
+        return artist
+      }
+    }
+
+    console.log('🎵 ❌ No artist found, using fallback')
+    return "Artist" // ✅ Éviter "Unknown Artist"
+  }
+
   // 🔧 RECHERCHE API PURE AVEC GESTION CORS
   async searchAlbums(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
     const cleanQuery = query.trim()
@@ -3975,28 +4170,6 @@ class MusicService {
     })
   }
 
-  // 🔧 MÉTHODE ALTERNATIVE AVEC PROXY CORS
-  async searchAlbumsWithProxy(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
-    try {
-      // Option 1: Utiliser un proxy CORS si l'API iTunes est bloquée
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(
-        `${this.baseURL}/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=${limit}`
-      )}`
-      
-      console.log('🎵 Using CORS proxy:', proxyUrl)
-      
-      const response = await fetch(proxyUrl)
-      const data = await response.json()
-      const iTunesData = JSON.parse(data.contents)
-      
-      return iTunesData.results || []
-      
-    } catch (err) {
-      console.error('🎵 Proxy search failed:', err)
-      return []
-    }
-  }
-
   // Test de connectivité iTunes
   async testItunesConnectivity(): Promise<boolean> {
     try {
@@ -4109,11 +4282,19 @@ class MusicService {
       .trim()
   }
 
+  /**
+   * ✅ CONVERSION AU FORMAT APP AVEC ARTISTE CORRECT
+   */
   convertToAppFormat(album: iTunesAlbum): any {
+    const artist = this.getCorrectArtist(album) // ✅ UTILISE LA FONCTION CORRIGÉE
+    
+    console.log('🎵 Converting album:', album.collectionName, 'Artist:', artist)
+    
     return {
       id: `music-${album.collectionId}`,
       title: this.cleanAlbumName(album.collectionName || 'Unknown Album'),
-      artist: album.artistName || 'Unknown Artist',
+      artist: artist,  // ✅ UTILISÉ directement
+      author: artist,  // ✅ UTILISÉ pour compatibilité
       year: this.getReleasedYear(album),
       rating: 0,
       genre: album.primaryGenreName || 'Unknown',
@@ -4173,12 +4354,13 @@ export const formatDuration = (trackCount: number): string => {
   const averageTrackDuration = 3.5
   const totalMinutes = Math.round(trackCount * averageTrackDuration)
   
-  if (totalMinutes < 60) return `~${totalMinutes} min`
+  if (totalMinutes < 60) return `~${totalMinutes} min read`
   
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
+  const hours = Math.round(totalMinutes / 60)
+  if (hours < 24) return `~${hours}h read`
   
-  return `~${hours}h ${minutes}m`
+  const days = Math.round(hours / 24)
+  return `~${days} days read`
 }
 </file>
 
@@ -4615,46 +4797,6 @@ export const getContentTypeLabel = (type: string): string => {
   if (type === 'movie') return 'Film'
   if (type === 'series') return 'Série TV'
   return 'Contenu'
-}
-</file>
-
-<file path="src/components/CategoryTabs.tsx">
-'use client'
-
-interface CategoryTabsProps {
-  activeTab: string
-  onTabChange: (tab: string) => void
-}
-
-export default function CategoryTabs({ activeTab, onTabChange }: CategoryTabsProps) {
-  const tabs = [
-    { id: 'books', name: 'Books' },
-    { id: 'games', name: 'Games' },
-    { id: 'movies', name: 'Films & TV' },
-    { id: 'music', name: 'Music' },
-  ]
-
-  return (
-    <div className="flex w-full border-b border-gray-200 mb-0">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onTabChange(tab.id)}
-          className={`flex-1 pb-3 pt-2 text-sm font-medium transition-colors relative text-center whitespace-nowrap ${
-            activeTab === tab.id
-              ? 'text-gray-900'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          {tab.name}
-          {/* Soulignement pour l'onglet actif */}
-          {activeTab === tab.id && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
-          )}
-        </button>
-      ))}
-    </div>
-  )
 }
 </file>
 
@@ -9228,6 +9370,7 @@ interface LibraryItem {
   author?: string
   artist?: string
   director?: string
+  developer?: string
   status: MediaStatus
   addedAt: string
   dateStarted?: string
@@ -9237,6 +9380,12 @@ interface LibraryItem {
   notes?: string
   numberOfRatings?: number
   dateUpdated?: string
+  // ✅ NOUVELLES PROPRIÉTÉS POUR LES DONNÉES COMPLÈTES API
+  developers?: Array<{ name: string }>
+  publishers?: Array<{ name: string }>
+  genres?: Array<{ name: string }>
+  background_image?: string
+  released?: string
   additionalInfo?: {
     platform?: string
     gamePass?: boolean
@@ -9257,6 +9406,130 @@ interface LibrarySectionProps {
   onOpenBookDetail?: (bookId: string) => void
   onOpenMusicDetail?: (musicId: string) => void
   onOpenSearch?: () => void
+}
+
+// ✅ FONCTION getCreator COMPLÈTEMENT RÉÉCRITE ET CORRIGÉE
+const getCreator = (item: LibraryItem): string => {
+  console.log('📚 [LibrarySection] Getting creator for:', item.title, 'Category:', item.category)
+  console.log('📚 [LibrarySection] Available fields:', {
+    author: item.author,
+    artist: item.artist, 
+    director: item.director,
+    developer: item.developer,
+    developers: item.developers,
+    publishers: item.publishers
+  })
+
+  let creator = ''
+
+  switch (item.category) {
+    case 'games':
+      // ✅ PRIORITÉ STRICTE: developers array > developer > author > mapping
+      if (item.developers && item.developers.length > 0) {
+        const mainDev = item.developers[0].name
+        if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer') {
+          creator = mainDev
+          console.log('🎮 ✅ Found developer from developers array:', creator)
+          break
+        }
+      }
+      
+      if (item.developer && item.developer !== 'Unknown Developer' && item.developer !== 'Developer' && item.developer !== 'Unknown') {
+        creator = item.developer
+        console.log('🎮 ✅ Found developer from developer field:', creator)
+        break
+      }
+      
+      if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Developer' && item.author !== 'Unknown') {
+        creator = item.author
+        console.log('🎮 ✅ Found developer from author field:', creator)
+        break
+      }
+
+      // ✅ MAPPING ÉTENDU pour les jeux populaires
+      const title = item.title?.toLowerCase() || ''
+      const gameStudioMappings = {
+        'doom eternal': 'id Software',
+        'doom': 'id Software',
+        'ori and the will of the wisps': 'Moon Studios',
+        'ori and the blind forest': 'Moon Studios',
+        'ori and the': 'Moon Studios',
+        'the last of us part ii': 'Naughty Dog',
+        'the last of us': 'Naughty Dog',
+        'last of us': 'Naughty Dog',
+        'cyberpunk 2077': 'CD Projekt RED',
+        'cyberpunk': 'CD Projekt RED',
+        'the witcher 3': 'CD Projekt RED',
+        'the witcher': 'CD Projekt RED',
+        'elden ring': 'FromSoftware',
+        'dark souls': 'FromSoftware',
+        'sekiro': 'FromSoftware',
+        'bloodborne': 'FromSoftware',
+        'god of war': 'Santa Monica Studio',
+        'spider-man': 'Insomniac Games',
+        'marvel\'s spider-man': 'Insomniac Games',
+        'halo infinite': '343 Industries',
+        'halo': '343 Industries',
+        'zelda breath of the wild': 'Nintendo EPD',
+        'zelda tears of the kingdom': 'Nintendo EPD',
+        'zelda': 'Nintendo',
+        'mario': 'Nintendo',
+        'assassin\'s creed': 'Ubisoft',
+        'call of duty': 'Activision',
+        'grand theft auto': 'Rockstar Games',
+        'red dead redemption': 'Rockstar Games',
+        'baldur\'s gate 3': 'Larian Studios',
+        'horizon zero dawn': 'Guerrilla Games',
+        'horizon forbidden west': 'Guerrilla Games',
+        'ghost of tsushima': 'Sucker Punch Productions'
+      }
+      
+      for (const [keyword, studio] of Object.entries(gameStudioMappings)) {
+        if (title.includes(keyword)) {
+          creator = studio
+          console.log('🎮 📋 Found developer via enhanced mapping:', studio)
+          break
+        }
+      }
+      
+      if (!creator) creator = 'Game Developer'
+      break
+
+    case 'movies':
+      if (item.director && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
+        creator = item.director
+      } else if (item.author && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
+        creator = item.author
+      } else {
+        creator = 'Director'
+      }
+      break
+
+    case 'music':
+      if (item.artist && item.artist !== 'Unknown Artist' && item.artist !== 'Unknown') {
+        creator = item.artist
+      } else if (item.author && item.author !== 'Unknown Artist' && item.author !== 'Unknown') {
+        creator = item.author
+      } else {
+        creator = 'Artist'
+      }
+      break
+
+    case 'books':
+      if (item.author && item.author !== 'Unknown Author' && item.author !== 'Unknown') {
+        creator = item.author
+      } else {
+        creator = 'Author'
+      }
+      break
+
+    default:
+      creator = item.author || item.artist || item.director || item.developer || 'Creator'
+      break
+  }
+
+  console.log('✅ [LibrarySection] Final creator for', item.title, ':', creator)
+  return creator
 }
 
 // Sample data
@@ -9294,6 +9567,7 @@ const sampleLibrary: LibraryItem[] = [
   {
     id: '3',
     title: 'Ori and the Will of the Wisps',
+    developer: 'Moon Studios',
     author: 'Moon Studios',
     year: 2020,
     rating: 4.8,
@@ -9306,6 +9580,9 @@ const sampleLibrary: LibraryItem[] = [
     dateCompleted: '2025-01-12T18:00:00Z',
     numberOfRatings: 12500,
     image: 'https://media.rawg.io/media/games/718/71891291067b8bb23ad6ed6806b83881.jpg',
+    // ✅ DONNÉES COMPLÈTES DE L'API
+    developers: [{ name: 'Moon Studios' }],
+    publishers: [{ name: 'Xbox Game Studios' }],
     additionalInfo: {
       platform: 'Xbox Game Pass',
       gamePass: true,
@@ -9316,6 +9593,7 @@ const sampleLibrary: LibraryItem[] = [
   {
     id: '4',
     title: 'The Last of Us Part II',
+    developer: 'Naughty Dog',
     author: 'Naughty Dog',
     year: 2020,
     rating: 4.6,
@@ -9328,6 +9606,9 @@ const sampleLibrary: LibraryItem[] = [
     dateCompleted: '2025-01-11T20:30:00Z',
     numberOfRatings: 89000,
     image: 'https://media.rawg.io/media/games/d82/d82990b9c67ba0d2d09d4e6fa88885a7.jpg',
+    // ✅ DONNÉES COMPLÈTES DE L'API
+    developers: [{ name: 'Naughty Dog' }],
+    publishers: [{ name: 'Sony Interactive Entertainment' }],
     additionalInfo: {
       platform: 'PlayStation 5',
       gamePass: false,
@@ -9377,6 +9658,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
           item.author,
           item.artist,
           item.director,
+          item.developer,
           item.genre
         ].filter(Boolean).join(' ').toLowerCase()
         
@@ -9402,102 +9684,15 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
         case 'title':
           return a.title.localeCompare(b.title)
         case 'creator':
-          const aCreator = a.author || a.artist || a.director || ''
-          const bCreator = b.author || b.artist || b.director || ''
+          // ✅ UTILISE LA FONCTION getCreator UNIFIÉE ET CORRIGÉE
+          const aCreator = getCreator(a)
+          const bCreator = getCreator(b)
           return aCreator.localeCompare(bCreator)
         case 'average_rating':
           return (b.rating || 0) - (a.rating || 0)
         case 'number_of_ratings':
           return (b.numberOfRatings || 0) - (a.numberOfRatings || 0)
-        case 'release_year':
-          return (b.year || 0) - (a.year || 0)
-        default:
-          return 0
-      }
-    })
-    
-    return filtered
-  }, [library, searchQuery, activeCategory, activeStatus, sortBy])
-
-  // Grouper les items par catégorie
-  const groupedLibrary = React.useMemo(() => {
-    const groups: { [key: string]: LibraryItem[] } = {}
-    
-    filteredAndSortedLibrary.forEach(item => {
-      if (!groups[item.category]) {
-        groups[item.category] = []
-      }
-      groups[item.category].push(item)
-    })
-    
-    return groups
-  }, [filteredAndSortedLibrary])
-
-  // Helper functions améliorées
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'games': return '🎮'
-      case 'movies': return '🎬'
-      case 'music': return '🎵'
-      case 'books': return '📚'
-      default: return '📚'
-    }
-  }
-
-  const getCategoryDisplayName = (category: string) => {
-    switch (category) {
-      case 'games': return 'Games'
-      case 'movies': return 'Movies'
-      case 'music': return 'Music'
-      case 'books': return 'Books'
-      default: return category
-    }
-  }
-
-  const getStatusLabel = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'Wishlist'
-      case 'currently-playing': return 'In Progress'
-      case 'completed': return 'Completed'
-      case 'paused': return 'Paused'
-      case 'dropped': return 'Dropped'
-      default: return status
-    }
-  }
-
-  const getStatusColor = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'bg-orange-100 text-orange-700'
-      case 'currently-playing': return 'bg-green-100 text-green-700'
-      case 'completed': return 'bg-blue-100 text-blue-700'
-      case 'paused': return 'bg-yellow-100 text-yellow-700'
-      case 'dropped': return 'bg-red-100 text-red-700'
-      default: return 'bg-gray-100 text-gray-700'
-    }
-  }
-
-  const getSortLabel = (sort: SortOption) => {
-    switch (sort) {
-      case 'date_added': return 'Date Added'
-      case 'date_updated': return 'Date Updated'
-      case 'title': return 'Title'
-      case 'creator': return 'Creator'
-      case 'average_rating': return 'Average Rating'
-      case 'number_of_ratings': return 'Number of Ratings'
-      case 'release_year': return 'Release Year'
-      default: return 'Date Added'
-    }
-  }
-
-  const getSortIcon = (sort: SortOption) => {
-    switch (sort) {
-      case 'date_added': return <Calendar size={14} />
-      case 'date_updated': return <Clock size={14} />
-      case 'title': return <Hash size={14} />
-      case 'creator': return <User size={14} />
-      case 'average_rating': return <Star size={14} />
-      case 'number_of_ratings': return <TrendingUp size={14} />
-      case 'release_year': return <Calendar size={14} />
+        case 'release_year': return <Calendar size={14} />
       default: return <Calendar size={14} />
     }
   }
@@ -9510,63 +9705,10 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     })
   }
 
-  // ✅ FONCTION getCreator CORRIGÉE - FIX des erreurs TypeScript
-  const getCreator = (item: LibraryItem) => {
-    let creator = 'Unknown Creator'
-
-    switch (item.category) {
-      case 'games':
-        // Pour les jeux, éviter "Unknown Developer"
-        if (item.author && item.author.trim() !== '' && item.author !== 'Unknown Developer' && item.author !== 'Unknown') {
-          creator = item.author
-        } else {
-          // Mapping manuel pour les studios connus basé sur le titre
-          const title = item.title?.toLowerCase() || '' // ✅ FIX: Vérifier si title existe
-          if (title.includes('blue prince')) creator = 'Remedy Entertainment'
-          else if (title.includes('ori and the will')) creator = 'Moon Studios'
-          else if (title.includes('last of us')) creator = 'Naughty Dog'
-          else if (title.includes('cyberpunk')) creator = 'CD Projekt RED'
-          else if (title.includes('witcher')) creator = 'CD Projekt RED'
-          else if (title.includes('halo')) creator = '343 Industries'
-          else if (title.includes('god of war')) creator = 'Santa Monica Studio'
-          else if (title.includes('spider-man')) creator = 'Insomniac Games'
-          else creator = 'Developer'
-        }
-        break
-
-      case 'movies':
-        // Pour les films, éviter "Unknown Director" et "N/A"
-        if (item.director && item.director.trim() !== '' && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
-          creator = item.director
-        } else if (item.author && item.author.trim() !== '' && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
-          creator = item.author
-        } else {
-          creator = 'Director'
-        }
-        break
-
-      case 'music':
-        // Pour la musique (déjà bien)
-        creator = item.artist || item.author || 'Artist'
-        break
-
-      case 'books':
-        // Pour les livres (déjà bien)
-        creator = item.author || 'Author'
-        break
-
-      default:
-        creator = item.author || item.artist || item.director || 'Creator'
-        break
-    }
-
-    return creator
-  }
-
   // ✅ FONCTIONS DE NAVIGATION VERS LES FICHES PRODUITS
   const handleItemClick = (item: LibraryItem) => {
     // Nettoyer l'ID pour retirer les préfixes
-    const cleanId = item.id?.replace(/^(game-|movie-|music-|book-)/, '') || '' // ✅ FIX: Vérifier si id existe
+    const cleanId = item.id?.replace(/^(game-|movie-|music-|book-)/, '') || ''
     
     switch (item.category) {
       case 'games':
@@ -10155,11 +10297,99 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   )
 }
 
-export default LibrarySection
+export default LibrarySectionyear':
+          return (b.year || 0) - (a.year || 0)
+        default:
+          return 0
+      }
+    })
+    
+    return filtered
+  }, [library, searchQuery, activeCategory, activeStatus, sortBy])
+
+  // Grouper les items par catégorie
+  const groupedLibrary = React.useMemo(() => {
+    const groups: { [key: string]: LibraryItem[] } = {}
+    
+    filteredAndSortedLibrary.forEach(item => {
+      if (!groups[item.category]) {
+        groups[item.category] = []
+      }
+      groups[item.category].push(item)
+    })
+    
+    return groups
+  }, [filteredAndSortedLibrary])
+
+  // Helper functions améliorées
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'games': return '🎮'
+      case 'movies': return '🎬'
+      case 'music': return '🎵'
+      case 'books': return '📚'
+      default: return '📚'
+    }
+  }
+
+  const getCategoryDisplayName = (category: string) => {
+    switch (category) {
+      case 'games': return 'Games'
+      case 'movies': return 'Movies'
+      case 'music': return 'Music'
+      case 'books': return 'Books'
+      default: return category
+    }
+  }
+
+  const getStatusLabel = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'Wishlist'
+      case 'currently-playing': return 'In Progress'
+      case 'completed': return 'Completed'
+      case 'paused': return 'Paused'
+      case 'dropped': return 'Dropped'
+      default: return status
+    }
+  }
+
+  const getStatusColor = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'bg-orange-100 text-orange-700'
+      case 'currently-playing': return 'bg-green-100 text-green-700'
+      case 'completed': return 'bg-blue-100 text-blue-700'
+      case 'paused': return 'bg-yellow-100 text-yellow-700'
+      case 'dropped': return 'bg-red-100 text-red-700'
+      default: return 'bg-gray-100 text-gray-700'
+    }
+  }
+
+  const getSortLabel = (sort: SortOption) => {
+    switch (sort) {
+      case 'date_added': return 'Date Added'
+      case 'date_updated': return 'Date Updated'
+      case 'title': return 'Title'
+      case 'creator': return 'Creator'
+      case 'average_rating': return 'Average Rating'
+      case 'number_of_ratings': return 'Number of Ratings'
+      case 'release_year': return 'Release Year'
+      default: return 'Date Added'
+    }
+  }
+
+  const getSortIcon = (sort: SortOption) => {
+    switch (sort) {
+      case 'date_added': return <Calendar size={14} />
+      case 'date_updated': return <Clock size={14} />
+      case 'title': return <Hash size={14} />
+      case 'creator': return <User size={14} />
+      case 'average_rating': return <Star size={14} />
+      case 'number_of_ratings': return <TrendingUp size={14} />
+      case 'release_
 </file>
 
 <file path="src/services/rawgService.ts">
-// src/services/rawgService.ts - VERSION CORRIGÉE POUR DÉVELOPPEURS
+// src/services/rawgService.ts - VERSION COMPLÈTE CORRIGÉE POUR DÉVELOPPEURS
 export interface RAWGGame {
   id: number
   name: string
@@ -10193,7 +10423,7 @@ class RAWGService {
   private readonly baseURL = 'https://api.rawg.io/api'
 
   /**
-   * ✅ FONCTION CORRIGÉE : Obtenir le vrai développeur
+   * ✅ FONCTION COMPLÈTEMENT RÉÉCRITE : Obtenir le vrai développeur
    */
   private getCorrectDeveloper(game: RAWGGame): string {
     console.log('🎮 Getting developer for:', game.name)
@@ -10209,18 +10439,37 @@ class RAWGService {
       }
     }
 
-    // 2. Publisher en second recours (mais marquer comme tel)
+    // 2. Publisher en second recours pour certains cas spéciaux
     if (game.publishers && game.publishers.length > 0) {
       const mainPub = game.publishers[0].name
       if (mainPub && mainPub.trim() !== '' && mainPub !== 'Unknown' && !mainPub.includes('undefined')) {
-        console.log('🎮 ⚠️ Using publisher as developer:', mainPub)
-        return mainPub  // On peut retirer "(Publisher)" pour simplifier
+        // ✅ AMÉLIORATION: Pour certains studios, le publisher EST le développeur
+        const publisherAsDeveloper = [
+          'Nintendo',
+          'Valve Corporation',
+          'Rockstar Games',
+          'id Software', 
+          'Bethesda Softworks',
+          'Activision',
+          'Electronic Arts',
+          'Sony Interactive Entertainment'
+        ]
+        
+        if (publisherAsDeveloper.some(studio => mainPub.includes(studio))) {
+          console.log('🎮 ✅ Using publisher as developer (known case):', mainPub)
+          return mainPub
+        }
       }
     }
 
-    // 3. Mapping manuel pour les gros studios connus
+    // 3. Mapping manuel étendu pour les gros studios
     const gameNameLower = game.name.toLowerCase()
     const mappings: { [key: string]: string } = {
+      // ✅ DOOM ETERNAL - CAS SPÉCIFIQUE
+      "doom eternal": "id Software",
+      "doom": "id Software",
+      
+      // Studios AAA
       "assassin's creed origins": "Ubisoft Montreal",
       "assassin's creed odyssey": "Ubisoft Quebec", 
       "assassin's creed valhalla": "Ubisoft Montreal",
@@ -10272,13 +10521,13 @@ class RAWGService {
     // Chercher d'abord les correspondances exactes, puis partielles
     for (const [keyword, studio] of Object.entries(mappings)) {
       if (gameNameLower.includes(keyword)) {
-        console.log('🎮 📋 Found developer via mapping:', studio, 'for keyword:', keyword)
+        console.log('🎮 📋 Found developer via enhanced mapping:', studio, 'for keyword:', keyword)
         return studio
       }
     }
 
     console.log('🎮 ❌ No developer found, using fallback')
-    return "Developer" // ✅ Éviter "Unknown Developer"
+    return "Game Studio" // ✅ Éviter "Unknown Developer"
   }
 
   async searchGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
@@ -10483,19 +10732,20 @@ class RAWGService {
   }
 
   /**
-   * ✅ CONVERSION AVEC DÉVELOPPEUR CORRECT
+   * ✅ CONVERSION COMPLÈTEMENT RÉÉCRITE AVEC DÉVELOPPEUR CORRECT
    */
   convertToAppFormat(game: RAWGGame): any {
     const developer = this.getCorrectDeveloper(game)
     
     console.log('🎮 Converting game:', game.name, 'Developer:', developer)
+    console.log('🎮 Raw developers array:', game.developers)
     
     return {
       id: `game-${game.id}`,
       title: game.name,
       name: game.name,
-      author: developer,      // ✅ UTILISÉ pour compatibilité
-      developer: developer,   // ✅ UTILISÉ spécifiquement pour les jeux
+      author: developer,      // ✅ Pour compatibilité
+      developer: developer,   // ✅ Champ spécifique
       year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
       rating: game.rating || 0,
       genre: game.genres?.[0]?.name || 'Unknown',
@@ -10503,9 +10753,13 @@ class RAWGService {
       image: game.background_image,
       background_image: game.background_image,
       released: game.released,
-      developers: game.developers || [],
-      publishers: game.publishers || [],
+      
+      // ✅ PRÉSERVER TOUTES LES DONNÉES API
+      developers: game.developers || [], // Array complet
+      publishers: game.publishers || [], // Array complet
       genres: game.genres || [],
+      
+      // Autres données
       description_raw: game.description_raw,
       metacritic: game.metacritic,
       esrb_rating: game.esrb_rating,
@@ -10528,7 +10782,7 @@ export const rawgService = new RAWGService()
 </file>
 
 <file path="src/components/SearchModal.tsx">
-// src/components/SearchModal.tsx - VERSION CORRIGÉE POUR AFFICHAGE DES CRÉATEURS
+// src/components/SearchModal.tsx - VERSION COMPLÈTE CORRIGÉE
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
@@ -10602,56 +10856,94 @@ export default function SearchModal({
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
-  // ✅ FONCTION getCreator UNIFIÉE ET CORRIGÉE
+  // ✅ FONCTION getCreator COMPLÈTEMENT RÉÉCRITE ET CORRIGÉE
   const getCreator = (result: SearchResult): string => {
     console.log('🔍 [SearchModal] Getting creator for:', result.title, 'Category:', result.category)
     console.log('🔍 [SearchModal] Available fields:', {
       author: result.author,
       artist: result.artist, 
       director: result.director,
-      developer: result.developer
+      developer: result.developer,
+      developers: result.developers,
+      publishers: result.publishers
     })
 
     let creator = ''
 
     switch (result.category) {
       case 'games':
-        // ✅ PRIORITÉ: developer > author > mapping manuel
+        // ✅ PRIORITÉ STRICTE: developers array > developer > author > mapping
+        if (result.developers && result.developers.length > 0) {
+          const mainDev = result.developers[0].name
+          if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer') {
+            creator = mainDev
+            console.log('🎮 ✅ Found developer from developers array:', creator)
+            break
+          }
+        }
+        
         if (result.developer && result.developer !== 'Unknown Developer' && result.developer !== 'Developer' && result.developer !== 'Unknown') {
           creator = result.developer
-        } else if (result.author && result.author !== 'Unknown Developer' && result.author !== 'Developer' && result.author !== 'Unknown') {
-          creator = result.author
-        } else {
-          // Mapping de secours basé sur le titre
-          const title = result.title?.toLowerCase() || ''
-          const mappings = {
-            'ori and the': 'Moon Studios',
-            'last of us': 'Naughty Dog', 
-            'cyberpunk': 'CD Projekt RED',
-            'witcher': 'CD Projekt RED',
-            'halo': '343 Industries',
-            'god of war': 'Santa Monica Studio',
-            'spider-man': 'Insomniac Games',
-            'zelda': 'Nintendo',
-            'mario': 'Nintendo',
-            'assassin\'s creed': 'Ubisoft',
-            'monster hunter': 'Capcom',
-            'call of duty': 'Activision'
-          }
-          
-          for (const [keyword, studio] of Object.entries(mappings)) {
-            if (title.includes(keyword)) {
-              creator = studio
-              break
-            }
-          }
-          
-          if (!creator) creator = 'Developer'
+          console.log('🎮 ✅ Found developer from developer field:', creator)
+          break
         }
+        
+        if (result.author && result.author !== 'Unknown Developer' && result.author !== 'Developer' && result.author !== 'Unknown') {
+          creator = result.author
+          console.log('🎮 ✅ Found developer from author field:', creator)
+          break
+        }
+
+        // ✅ MAPPING ÉTENDU pour les jeux populaires
+        const title = result.title?.toLowerCase() || ''
+        const gameStudioMappings = {
+          'doom eternal': 'id Software',
+          'doom': 'id Software',
+          'ori and the will of the wisps': 'Moon Studios',
+          'ori and the blind forest': 'Moon Studios',
+          'ori and the': 'Moon Studios',
+          'the last of us part ii': 'Naughty Dog',
+          'the last of us': 'Naughty Dog',
+          'last of us': 'Naughty Dog',
+          'cyberpunk 2077': 'CD Projekt RED',
+          'cyberpunk': 'CD Projekt RED',
+          'the witcher 3': 'CD Projekt RED',
+          'the witcher': 'CD Projekt RED',
+          'elden ring': 'FromSoftware',
+          'dark souls': 'FromSoftware',
+          'sekiro': 'FromSoftware',
+          'bloodborne': 'FromSoftware',
+          'god of war': 'Santa Monica Studio',
+          'spider-man': 'Insomniac Games',
+          'marvel\'s spider-man': 'Insomniac Games',
+          'halo infinite': '343 Industries',
+          'halo': '343 Industries',
+          'zelda breath of the wild': 'Nintendo EPD',
+          'zelda tears of the kingdom': 'Nintendo EPD',
+          'zelda': 'Nintendo',
+          'mario': 'Nintendo',
+          'assassin\'s creed': 'Ubisoft',
+          'call of duty': 'Activision',
+          'grand theft auto': 'Rockstar Games',
+          'red dead redemption': 'Rockstar Games',
+          'baldur\'s gate 3': 'Larian Studios',
+          'horizon zero dawn': 'Guerrilla Games',
+          'horizon forbidden west': 'Guerrilla Games',
+          'ghost of tsushima': 'Sucker Punch Productions'
+        }
+        
+        for (const [keyword, studio] of Object.entries(gameStudioMappings)) {
+          if (title.includes(keyword)) {
+            creator = studio
+            console.log('🎮 📋 Found developer via enhanced mapping:', studio)
+            break
+          }
+        }
+        
+        if (!creator) creator = 'Game Developer'
         break
 
       case 'movies':
-        // ✅ PRIORITÉ: director > author
         if (result.director && result.director !== 'Unknown Director' && result.director !== 'N/A' && result.director !== 'Unknown') {
           creator = result.director
         } else if (result.author && result.author !== 'Unknown Director' && result.author !== 'N/A' && result.author !== 'Unknown') {
@@ -10662,7 +10954,6 @@ export default function SearchModal({
         break
 
       case 'music':
-        // ✅ PRIORITÉ: artist > author
         if (result.artist && result.artist !== 'Unknown Artist' && result.artist !== 'Unknown') {
           creator = result.artist
         } else if (result.author && result.author !== 'Unknown Artist' && result.author !== 'Unknown') {
@@ -10673,7 +10964,6 @@ export default function SearchModal({
         break
 
       case 'books':
-        // ✅ PRIORITÉ: author
         if (result.author && result.author !== 'Unknown Author' && result.author !== 'Unknown') {
           creator = result.author
         } else {

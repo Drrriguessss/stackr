@@ -1,4 +1,4 @@
-// src/components/SearchModal.tsx - VERSION CORRIGÉE POUR AFFICHAGE DES CRÉATEURS
+// src/components/SearchModal.tsx - VERSION COMPLÈTE CORRIGÉE
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
@@ -72,56 +72,94 @@ export default function SearchModal({
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
-  // ✅ FONCTION getCreator UNIFIÉE ET CORRIGÉE
+  // ✅ FONCTION getCreator COMPLÈTEMENT RÉÉCRITE ET CORRIGÉE
   const getCreator = (result: SearchResult): string => {
     console.log('🔍 [SearchModal] Getting creator for:', result.title, 'Category:', result.category)
     console.log('🔍 [SearchModal] Available fields:', {
       author: result.author,
       artist: result.artist, 
       director: result.director,
-      developer: result.developer
+      developer: result.developer,
+      developers: result.developers,
+      publishers: result.publishers
     })
 
     let creator = ''
 
     switch (result.category) {
       case 'games':
-        // ✅ PRIORITÉ: developer > author > mapping manuel
+        // ✅ PRIORITÉ STRICTE: developers array > developer > author > mapping
+        if (result.developers && result.developers.length > 0) {
+          const mainDev = result.developers[0].name
+          if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer') {
+            creator = mainDev
+            console.log('🎮 ✅ Found developer from developers array:', creator)
+            break
+          }
+        }
+        
         if (result.developer && result.developer !== 'Unknown Developer' && result.developer !== 'Developer' && result.developer !== 'Unknown') {
           creator = result.developer
-        } else if (result.author && result.author !== 'Unknown Developer' && result.author !== 'Developer' && result.author !== 'Unknown') {
-          creator = result.author
-        } else {
-          // Mapping de secours basé sur le titre
-          const title = result.title?.toLowerCase() || ''
-          const mappings = {
-            'ori and the': 'Moon Studios',
-            'last of us': 'Naughty Dog', 
-            'cyberpunk': 'CD Projekt RED',
-            'witcher': 'CD Projekt RED',
-            'halo': '343 Industries',
-            'god of war': 'Santa Monica Studio',
-            'spider-man': 'Insomniac Games',
-            'zelda': 'Nintendo',
-            'mario': 'Nintendo',
-            'assassin\'s creed': 'Ubisoft',
-            'monster hunter': 'Capcom',
-            'call of duty': 'Activision'
-          }
-          
-          for (const [keyword, studio] of Object.entries(mappings)) {
-            if (title.includes(keyword)) {
-              creator = studio
-              break
-            }
-          }
-          
-          if (!creator) creator = 'Developer'
+          console.log('🎮 ✅ Found developer from developer field:', creator)
+          break
         }
+        
+        if (result.author && result.author !== 'Unknown Developer' && result.author !== 'Developer' && result.author !== 'Unknown') {
+          creator = result.author
+          console.log('🎮 ✅ Found developer from author field:', creator)
+          break
+        }
+
+        // ✅ MAPPING ÉTENDU pour les jeux populaires
+        const title = result.title?.toLowerCase() || ''
+        const gameStudioMappings = {
+          'doom eternal': 'id Software',
+          'doom': 'id Software',
+          'ori and the will of the wisps': 'Moon Studios',
+          'ori and the blind forest': 'Moon Studios',
+          'ori and the': 'Moon Studios',
+          'the last of us part ii': 'Naughty Dog',
+          'the last of us': 'Naughty Dog',
+          'last of us': 'Naughty Dog',
+          'cyberpunk 2077': 'CD Projekt RED',
+          'cyberpunk': 'CD Projekt RED',
+          'the witcher 3': 'CD Projekt RED',
+          'the witcher': 'CD Projekt RED',
+          'elden ring': 'FromSoftware',
+          'dark souls': 'FromSoftware',
+          'sekiro': 'FromSoftware',
+          'bloodborne': 'FromSoftware',
+          'god of war': 'Santa Monica Studio',
+          'spider-man': 'Insomniac Games',
+          'marvel\'s spider-man': 'Insomniac Games',
+          'halo infinite': '343 Industries',
+          'halo': '343 Industries',
+          'zelda breath of the wild': 'Nintendo EPD',
+          'zelda tears of the kingdom': 'Nintendo EPD',
+          'zelda': 'Nintendo',
+          'mario': 'Nintendo',
+          'assassin\'s creed': 'Ubisoft',
+          'call of duty': 'Activision',
+          'grand theft auto': 'Rockstar Games',
+          'red dead redemption': 'Rockstar Games',
+          'baldur\'s gate 3': 'Larian Studios',
+          'horizon zero dawn': 'Guerrilla Games',
+          'horizon forbidden west': 'Guerrilla Games',
+          'ghost of tsushima': 'Sucker Punch Productions'
+        }
+        
+        for (const [keyword, studio] of Object.entries(gameStudioMappings)) {
+          if (title.includes(keyword)) {
+            creator = studio
+            console.log('🎮 📋 Found developer via enhanced mapping:', studio)
+            break
+          }
+        }
+        
+        if (!creator) creator = 'Game Developer'
         break
 
       case 'movies':
-        // ✅ PRIORITÉ: director > author
         if (result.director && result.director !== 'Unknown Director' && result.director !== 'N/A' && result.director !== 'Unknown') {
           creator = result.director
         } else if (result.author && result.author !== 'Unknown Director' && result.author !== 'N/A' && result.author !== 'Unknown') {
@@ -132,7 +170,6 @@ export default function SearchModal({
         break
 
       case 'music':
-        // ✅ PRIORITÉ: artist > author
         if (result.artist && result.artist !== 'Unknown Artist' && result.artist !== 'Unknown') {
           creator = result.artist
         } else if (result.author && result.author !== 'Unknown Artist' && result.author !== 'Unknown') {
@@ -143,7 +180,6 @@ export default function SearchModal({
         break
 
       case 'books':
-        // ✅ PRIORITÉ: author
         if (result.author && result.author !== 'Unknown Author' && result.author !== 'Unknown') {
           creator = result.author
         } else {

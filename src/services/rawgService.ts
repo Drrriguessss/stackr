@@ -1,4 +1,4 @@
-// src/services/rawgService.ts - VERSION CORRIGÉE POUR DÉVELOPPEURS
+// src/services/rawgService.ts - VERSION COMPLÈTE CORRIGÉE POUR DÉVELOPPEURS
 export interface RAWGGame {
   id: number
   name: string
@@ -32,7 +32,7 @@ class RAWGService {
   private readonly baseURL = 'https://api.rawg.io/api'
 
   /**
-   * ✅ FONCTION CORRIGÉE : Obtenir le vrai développeur
+   * ✅ FONCTION COMPLÈTEMENT RÉÉCRITE : Obtenir le vrai développeur
    */
   private getCorrectDeveloper(game: RAWGGame): string {
     console.log('🎮 Getting developer for:', game.name)
@@ -48,18 +48,37 @@ class RAWGService {
       }
     }
 
-    // 2. Publisher en second recours (mais marquer comme tel)
+    // 2. Publisher en second recours pour certains cas spéciaux
     if (game.publishers && game.publishers.length > 0) {
       const mainPub = game.publishers[0].name
       if (mainPub && mainPub.trim() !== '' && mainPub !== 'Unknown' && !mainPub.includes('undefined')) {
-        console.log('🎮 ⚠️ Using publisher as developer:', mainPub)
-        return mainPub  // On peut retirer "(Publisher)" pour simplifier
+        // ✅ AMÉLIORATION: Pour certains studios, le publisher EST le développeur
+        const publisherAsDeveloper = [
+          'Nintendo',
+          'Valve Corporation',
+          'Rockstar Games',
+          'id Software', 
+          'Bethesda Softworks',
+          'Activision',
+          'Electronic Arts',
+          'Sony Interactive Entertainment'
+        ]
+        
+        if (publisherAsDeveloper.some(studio => mainPub.includes(studio))) {
+          console.log('🎮 ✅ Using publisher as developer (known case):', mainPub)
+          return mainPub
+        }
       }
     }
 
-    // 3. Mapping manuel pour les gros studios connus
+    // 3. Mapping manuel étendu pour les gros studios
     const gameNameLower = game.name.toLowerCase()
     const mappings: { [key: string]: string } = {
+      // ✅ DOOM ETERNAL - CAS SPÉCIFIQUE
+      "doom eternal": "id Software",
+      "doom": "id Software",
+      
+      // Studios AAA
       "assassin's creed origins": "Ubisoft Montreal",
       "assassin's creed odyssey": "Ubisoft Quebec", 
       "assassin's creed valhalla": "Ubisoft Montreal",
@@ -111,13 +130,13 @@ class RAWGService {
     // Chercher d'abord les correspondances exactes, puis partielles
     for (const [keyword, studio] of Object.entries(mappings)) {
       if (gameNameLower.includes(keyword)) {
-        console.log('🎮 📋 Found developer via mapping:', studio, 'for keyword:', keyword)
+        console.log('🎮 📋 Found developer via enhanced mapping:', studio, 'for keyword:', keyword)
         return studio
       }
     }
 
     console.log('🎮 ❌ No developer found, using fallback')
-    return "Developer" // ✅ Éviter "Unknown Developer"
+    return "Game Studio" // ✅ Éviter "Unknown Developer"
   }
 
   async searchGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
@@ -322,19 +341,20 @@ class RAWGService {
   }
 
   /**
-   * ✅ CONVERSION AVEC DÉVELOPPEUR CORRECT
+   * ✅ CONVERSION COMPLÈTEMENT RÉÉCRITE AVEC DÉVELOPPEUR CORRECT
    */
   convertToAppFormat(game: RAWGGame): any {
     const developer = this.getCorrectDeveloper(game)
     
     console.log('🎮 Converting game:', game.name, 'Developer:', developer)
+    console.log('🎮 Raw developers array:', game.developers)
     
     return {
       id: `game-${game.id}`,
       title: game.name,
       name: game.name,
-      author: developer,      // ✅ UTILISÉ pour compatibilité
-      developer: developer,   // ✅ UTILISÉ spécifiquement pour les jeux
+      author: developer,      // ✅ Pour compatibilité
+      developer: developer,   // ✅ Champ spécifique
       year: game.released ? new Date(game.released).getFullYear() : new Date().getFullYear(),
       rating: game.rating || 0,
       genre: game.genres?.[0]?.name || 'Unknown',
@@ -342,9 +362,13 @@ class RAWGService {
       image: game.background_image,
       background_image: game.background_image,
       released: game.released,
-      developers: game.developers || [],
-      publishers: game.publishers || [],
+      
+      // ✅ PRÉSERVER TOUTES LES DONNÉES API
+      developers: game.developers || [], // Array complet
+      publishers: game.publishers || [], // Array complet
       genres: game.genres || [],
+      
+      // Autres données
       description_raw: game.description_raw,
       metacritic: game.metacritic,
       esrb_rating: game.esrb_rating,
