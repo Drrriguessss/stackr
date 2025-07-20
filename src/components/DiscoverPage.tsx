@@ -1,3 +1,4 @@
+// src/components/DiscoverPage.tsx - VERSION CORRIGÉE
 'use client'
 import React, { useState, useEffect } from 'react'
 import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, Loader2 } from 'lucide-react'
@@ -129,6 +130,11 @@ export default function DiscoverPage({
       loadForYouRecommendations()
     }
   }, [library.length])
+
+  // ✅ NOUVEAU: Recharger le hero quand les filtres changent
+  useEffect(() => {
+    loadHeroContent()
+  }, [selectedFilters])
 
   // Hero auto-rotation
   useEffect(() => {
@@ -336,46 +342,75 @@ export default function DiscoverPage({
     }
   }
 
-  // Load hero content (top items from each category) avec 4 catégories
+  // ✅ NOUVEAU: Load hero content selon les filtres sélectionnés
   const loadHeroContent = async () => {
     try {
       setHeroLoading(true)
       
-      const [games, movies, books, music] = await Promise.all([
-        rawgService.getPopularGames().catch(() => []),
-        omdbService.getPopularMovies().catch(() => []),
-        googleBooksService.getFictionBooks().catch(() => []),
-        musicService.getPopularAlbums().catch(() => [])
-      ])
+      // Charger seulement les catégories sélectionnées
+      const promises: Promise<any[]>[] = []
+      
+      if (selectedFilters.includes('games')) {
+        promises.push(rawgService.getPopularGames().catch(() => []))
+      }
+      if (selectedFilters.includes('movies')) {
+        promises.push(omdbService.getPopularMovies().catch(() => []))
+      }
+      if (selectedFilters.includes('books')) {
+        promises.push(googleBooksService.getFictionBooks().catch(() => []))
+      }
+      if (selectedFilters.includes('music')) {
+        promises.push(musicService.getPopularAlbums().catch(() => []))
+      }
 
-      const heroItems = [
-        games[0] ? { 
-          ...rawgService.convertToAppFormat(games[0]), 
+      const results = await Promise.all(promises)
+      
+      const heroItems: ContentItem[] = []
+      let resultIndex = 0
+
+      // Ajouter un item de chaque catégorie sélectionnée
+      if (selectedFilters.includes('games') && results[resultIndex]?.[0]) {
+        heroItems.push({ 
+          ...rawgService.convertToAppFormat(results[resultIndex][0]), 
           description: getDescriptionForHero('games'),
           callToAction: getCallToActionForCategory('games'),
           categoryLabel: 'Games'
-        } : null,
-        movies[0] ? { 
-          ...omdbService.convertToAppFormat(movies[0]), 
+        })
+        resultIndex++
+      }
+      
+      if (selectedFilters.includes('movies') && results[resultIndex]?.[0]) {
+        heroItems.push({ 
+          ...omdbService.convertToAppFormat(results[resultIndex][0]), 
           description: getDescriptionForHero('movies'),
           callToAction: getCallToActionForCategory('movies'),
           categoryLabel: 'Movies'
-        } : null,
-        books[0] ? { 
-          ...googleBooksService.convertToAppFormat(books[0]), 
+        })
+        resultIndex++
+      }
+      
+      if (selectedFilters.includes('books') && results[resultIndex]?.[0]) {
+        heroItems.push({ 
+          ...googleBooksService.convertToAppFormat(results[resultIndex][0]), 
           description: getDescriptionForHero('books'),
           callToAction: getCallToActionForCategory('books'),
           categoryLabel: 'Books'
-        } : null,
-        music[0] ? { 
-          ...musicService.convertToAppFormat(music[0]), 
+        })
+        resultIndex++
+      }
+      
+      if (selectedFilters.includes('music') && results[resultIndex]?.[0]) {
+        heroItems.push({ 
+          ...musicService.convertToAppFormat(results[resultIndex][0]), 
           description: getDescriptionForHero('music'),
           callToAction: getCallToActionForCategory('music'),
           categoryLabel: 'Music'
-        } : null
-      ].filter(Boolean)
+        })
+        resultIndex++
+      }
 
       setHeroContent(heroItems)
+      setCurrentHeroIndex(0) // Reset index when content changes
     } catch (error) {
       console.error('Error loading hero content:', error)
     } finally {
@@ -634,7 +669,7 @@ export default function DiscoverPage({
             <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
           </div>
 
-          {/* Filtres élégants sans icônes */}
+          {/* ✅ NOUVEAU: Filtres avec style uniforme */}
           <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
             {[
               { key: 'all', label: 'All' },
@@ -657,7 +692,7 @@ export default function DiscoverPage({
                       handleFilterToggle(key as CategoryFilter)
                     }
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
                     isSelected
                       ? 'bg-gray-900 text-white'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -679,9 +714,9 @@ export default function DiscoverPage({
           </div>
         ) : (
           <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200">
-            {/* Catégorie en haut */}
+            {/* ✅ NOUVEAU: Catégorie en haut qui change avec l'image */}
             <div className="px-6 pt-4 pb-2">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-semibold rounded-full">
                 {currentHeroItem.categoryLabel}
               </span>
             </div>
@@ -759,7 +794,7 @@ export default function DiscoverPage({
               </div>
             </div>
 
-            {/* Titre et description en dessous */}
+            {/* ✅ NOUVEAU: Titre et description qui changent avec l'image */}
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">
                 {currentHeroItem.title}
@@ -953,7 +988,7 @@ export default function DiscoverPage({
           
           return (
             <div key={section.id} className="px-4 sm:px-6">
-              {/* Section Header */}
+              {/* ✅ NOUVEAU: Section Header avec style uniforme */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div>
