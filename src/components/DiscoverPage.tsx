@@ -714,11 +714,11 @@ export default function DiscoverPage({
           </div>
         ) : (
           <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200">
-            {/* ✅ NOUVEAU: Catégorie en haut qui change avec l'image */}
+            {/* ✅ NOUVEAU: Catégorie en haut qui change avec l'image - style uniforme */}
             <div className="px-6 pt-4 pb-2">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-semibold rounded-full">
+              <h2 className="text-xl font-bold text-gray-900">
                 {currentHeroItem.categoryLabel}
-              </span>
+              </h2>
             </div>
 
             {/* Container scrollable horizontal pour les images */}
@@ -726,6 +726,15 @@ export default function DiscoverPage({
               <div 
                 className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory"
                 style={{ scrollBehavior: 'smooth' }}
+                onScroll={(e) => {
+                  const scrollLeft = e.currentTarget.scrollLeft
+                  const itemWidth = e.currentTarget.scrollWidth / heroContent.length
+                  const newIndex = Math.round(scrollLeft / itemWidth)
+                  if (newIndex !== currentHeroIndex && newIndex >= 0 && newIndex < heroContent.length) {
+                    setCurrentHeroIndex(newIndex)
+                    setIsAutoplay(false)
+                  }
+                }}
               >
                 {heroContent.map((item, index) => (
                   <div
@@ -783,6 +792,16 @@ export default function DiscoverPage({
                       e.stopPropagation()
                       setCurrentHeroIndex(index)
                       setIsAutoplay(false)
+                      
+                      // Scroll vers l'image correspondante
+                      const container = e.currentTarget.parentElement?.parentElement?.querySelector('.flex.overflow-x-auto') as HTMLElement
+                      if (container) {
+                        const itemWidth = container.scrollWidth / heroContent.length
+                        container.scrollTo({
+                          left: index * itemWidth,
+                          behavior: 'smooth'
+                        })
+                      }
                     }}
                     className={`w-2 h-2 rounded-full transition-all duration-300 ${
                       index === currentHeroIndex 
