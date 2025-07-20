@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, Loader2, Filter } from 'lucide-react'
+import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, Loader2 } from 'lucide-react'
 import { rawgService } from '@/services/rawgService'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
@@ -57,8 +57,6 @@ export default function DiscoverPage({
     }
     return ['games', 'movies', 'music', 'books']
   })
-
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
 
   // Hero content state
   const [heroContent, setHeroContent] = useState<ContentItem[]>([])
@@ -154,24 +152,6 @@ export default function DiscoverPage({
         return [...prev, filter]
       }
     })
-  }
-
-  const getFilterIcon = (filter: CategoryFilter) => {
-    switch (filter) {
-      case 'games': return '🎮'
-      case 'movies': return '🎬'
-      case 'music': return '🎵'
-      case 'books': return '📚'
-    }
-  }
-
-  const getFilterLabel = (filter: CategoryFilter) => {
-    switch (filter) {
-      case 'games': return 'Games'
-      case 'movies': return 'Movies'
-      case 'music': return 'Music'
-      case 'books': return 'Books'
-    }
   }
 
   // Filtrer les sections selon les filtres sélectionnés
@@ -356,32 +336,42 @@ export default function DiscoverPage({
     }
   }
 
-  // Load hero content (top items from each category)
+  // Load hero content (top items from each category) avec 4 catégories
   const loadHeroContent = async () => {
     try {
       setHeroLoading(true)
       
-      const [games, movies, books] = await Promise.all([
+      const [games, movies, books, music] = await Promise.all([
         rawgService.getPopularGames().catch(() => []),
         omdbService.getPopularMovies().catch(() => []),
-        googleBooksService.getFictionBooks().catch(() => [])
+        googleBooksService.getFictionBooks().catch(() => []),
+        musicService.getPopularAlbums().catch(() => [])
       ])
 
       const heroItems = [
         games[0] ? { 
           ...rawgService.convertToAppFormat(games[0]), 
           description: getDescriptionForHero('games'),
-          callToAction: getCallToActionForCategory('games')
+          callToAction: getCallToActionForCategory('games'),
+          categoryLabel: 'Games'
         } : null,
         movies[0] ? { 
           ...omdbService.convertToAppFormat(movies[0]), 
           description: getDescriptionForHero('movies'),
-          callToAction: getCallToActionForCategory('movies')
+          callToAction: getCallToActionForCategory('movies'),
+          categoryLabel: 'Movies'
         } : null,
         books[0] ? { 
           ...googleBooksService.convertToAppFormat(books[0]), 
           description: getDescriptionForHero('books'),
-          callToAction: getCallToActionForCategory('books')
+          callToAction: getCallToActionForCategory('books'),
+          categoryLabel: 'Books'
+        } : null,
+        music[0] ? { 
+          ...musicService.convertToAppFormat(music[0]), 
+          description: getDescriptionForHero('music'),
+          callToAction: getCallToActionForCategory('music'),
+          categoryLabel: 'Music'
         } : null
       ].filter(Boolean)
 
@@ -637,161 +627,162 @@ export default function DiscoverPage({
   return (
     <div className="bg-white min-h-screen">
       {/* Header sticky avec titre et filtres */}
-      <div className="sticky top-0 z-50 bg-gray-100 border-b border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             {/* Titre Discover */}
             <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
-            
-            {/* Filtres multi-sélection */}
-            <div className="relative">
-              <button
-                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:border-gray-400 transition-colors shadow-sm"
-              >
-                <Filter size={16} className="text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">
-                  {selectedFilters.length === 4 ? 'All' : `${selectedFilters.length} selected`}
-                </span>
-              </button>
+          </div>
 
-              {showFilterDropdown && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowFilterDropdown(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48 p-2">
-                    <div className="space-y-1">
-                      {(['games', 'movies', 'music', 'books'] as CategoryFilter[]).map((filter) => (
-                        <label
-                          key={filter}
-                          className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedFilters.includes(filter)}
-                            onChange={() => handleFilterToggle(filter)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <span className="text-lg">{getFilterIcon(filter)}</span>
-                          <span className="text-sm font-medium text-gray-700">
-                            {getFilterLabel(filter)}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <div className="text-xs text-gray-500 px-2">
-                        {selectedFilters.length} of 4 categories selected
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+          {/* Filtres élégants sans icônes */}
+          <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'games', label: 'Games' },
+              { key: 'movies', label: 'Movies' },
+              { key: 'music', label: 'Music' },
+              { key: 'books', label: 'Books' }
+            ].map(({ key, label }) => {
+              const isSelected = key === 'all' 
+                ? selectedFilters.length === 4 
+                : selectedFilters.includes(key as CategoryFilter)
+              
+              return (
+                <button
+                  key={key}
+                  onClick={() => {
+                    if (key === 'all') {
+                      setSelectedFilters(['games', 'movies', 'music', 'books'])
+                    } else {
+                      handleFilterToggle(key as CategoryFilter)
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                    isSelected
+                      ? 'bg-gray-900 text-white'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
 
-      {/* Hero Section améliorée */}
+      {/* Hero Section redesignée */}
       <div className="px-4 sm:px-6 py-6">
         {heroLoading || !currentHeroItem ? (
-          <div className="bg-gray-100 rounded-2xl h-64 animate-pulse flex items-center justify-center">
+          <div className="bg-gray-100 rounded-2xl h-80 animate-pulse flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
           </div>
         ) : (
-          <div 
-            className="relative bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200 h-64 cursor-pointer hover:shadow-xl transition-all duration-300"
-            onClick={() => handleHeroAction(currentHeroItem)}
-          >
-            {/* Hero Image avec overlay amélioré */}
-            <div className="absolute inset-0">
-              <img
-                src={currentHeroItem.image || ''}
-                alt={currentHeroItem.title}
-                className="w-full h-full object-cover"
-              />
-              {/* Overlay gradiant plus subtil */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/20"></div>
+          <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200">
+            {/* Catégorie en haut */}
+            <div className="px-6 pt-4 pb-2">
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+                {currentHeroItem.categoryLabel}
+              </span>
             </div>
 
-            {/* Navigation dots */}
-            <div className="absolute top-4 right-4 flex space-x-2">
-              {heroContent.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCurrentHeroIndex(index)
-                    setIsAutoplay(false)
-                  }}
-                  className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                    index === currentHeroIndex 
-                      ? 'bg-white scale-125 shadow-lg' 
-                      : 'bg-white/60 hover:bg-white/80'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Hero Content amélioré */}
-            <div className="absolute inset-0 flex items-center">
-              <div className="p-8 text-white max-w-2xl">
-                {/* Badge de catégorie */}
-                <div className="inline-flex items-center px-3 py-1.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full mb-4">
-                  <span className="text-white/90 text-sm font-medium capitalize">
-                    {currentHeroItem.category}
-                  </span>
-                </div>
-
-                <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
-                  {currentHeroItem.title}
-                </h2>
-                
-                <div className="flex items-center space-x-6 mb-4">
-                  <div className="flex items-center space-x-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={18}
-                        className={`${
-                          star <= (currentHeroItem.rating || 0) ? 'text-yellow-400 fill-current' : 'text-white/40'
-                        }`}
+            {/* Container scrollable horizontal pour les images */}
+            <div className="relative">
+              <div 
+                className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory"
+                style={{ scrollBehavior: 'smooth' }}
+              >
+                {heroContent.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="flex-shrink-0 w-full snap-center relative"
+                  >
+                    {/* Image avec overlay */}
+                    <div className="relative h-64 overflow-hidden">
+                      <img
+                        src={item.image || ''}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
                       />
-                    ))}
-                    <span className="ml-2 text-white/90 font-semibold text-lg">
-                      {currentHeroItem.rating || 0}/5
-                    </span>
+                      
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                      
+                      {/* Informations sur l'image */}
+                      <div className="absolute bottom-4 left-6 right-6 text-white">
+                        <div className="flex items-center space-x-4 mb-2">
+                          {/* Rating */}
+                          <div className="flex items-center space-x-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={16}
+                                className={`${
+                                  star <= (item.rating || 0) ? 'text-yellow-400 fill-current' : 'text-white/40'
+                                }`}
+                              />
+                            ))}
+                            <span className="ml-2 text-white font-semibold">
+                              {item.rating || 0}/5
+                            </span>
+                          </div>
+                          
+                          <span className="text-white/90">{item.year}</span>
+                          
+                          {item.genre && (
+                            <span className="text-white/90">{item.genre}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <span className="text-white/80 text-lg">{currentHeroItem.year}</span>
-                  
-                  {currentHeroItem.genre && (
-                    <span className="text-white/80 text-lg">{currentHeroItem.genre}</span>
-                  )}
-                </div>
-
-                <p className="text-white/90 text-lg leading-relaxed max-w-xl mb-6">
-                  {currentHeroItem.description ? 
-                    currentHeroItem.description.substring(0, 150) + (currentHeroItem.description.length > 150 ? '...' : '') :
-                    'Discover this amazing content and add it to your library!'
-                  }
-                </p>
-
-                {/* Bouton d'action */}
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleHeroAction(currentHeroItem)
-                  }}
-                  className="inline-flex items-center px-6 py-3 bg-white hover:bg-gray-100 text-gray-900 font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  <Play size={18} className="mr-2" />
-                  {currentHeroItem.callToAction || 'Explore'}
-                </button>
+                ))}
               </div>
+              
+              {/* Points de navigation en bas de l'image */}
+              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                {heroContent.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCurrentHeroIndex(index)
+                      setIsAutoplay(false)
+                    }}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === currentHeroIndex 
+                        ? 'bg-white scale-125' 
+                        : 'bg-white/60 hover:bg-white/80'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Titre et description en dessous */}
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">
+                {currentHeroItem.title}
+              </h2>
+              
+              <p className="text-gray-600 mb-4 leading-relaxed">
+                {currentHeroItem.description ? 
+                  currentHeroItem.description.substring(0, 150) + (currentHeroItem.description.length > 150 ? '...' : '') :
+                  'Discover this amazing content and add it to your library!'
+                }
+              </p>
+
+              {/* Bouton d'action */}
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleHeroAction(currentHeroItem)
+                }}
+                className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                <Play size={18} className="mr-2" />
+                {currentHeroItem.callToAction || 'Explore'}
+              </button>
             </div>
           </div>
         )}
@@ -1120,6 +1111,15 @@ export default function DiscoverPage({
         .horizontal-scroll::-webkit-scrollbar {
           display: none;
           height: 0px;
+        }
+        
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </div>

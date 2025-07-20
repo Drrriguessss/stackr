@@ -1,4 +1,4 @@
-// src/types/index.ts - TYPES CORRIGÉS AVEC NOUVELLES PROPRIÉTÉS
+// src/types/index.ts - TYPES COMPLETS AVEC categoryLabel
 /**
  * Types TypeScript centralisés pour toute l'application
  * Assure la cohérence des types et évite la duplication
@@ -54,6 +54,7 @@ export interface ContentItem {
   trending?: string    // Pourcentage de tendance ex: "+25%"
   status?: 'new' | 'trending' | 'hot' | undefined // Badge status
   callToAction?: string // Texte du bouton d'action
+  categoryLabel?: string // ✅ AJOUTÉ - Label de catégorie pour hero
   stats?: {
     users?: string      // Nombre d'utilisateurs ex: "2.5M"
     completion?: string // Pourcentage de completion ex: "85%"
