@@ -88,78 +88,14 @@ export default function SearchModal({
 
     switch (result.category) {
       case 'games':
-        // ✅ PRIORITÉ STRICTE: developer > developers array > author > mapping
-        // Check developer string field first (this is what the API usually provides in search results)
-        if (result.developer && result.developer !== 'Unknown Developer' && result.developer !== 'Developer' && result.developer !== 'Unknown' && result.developer !== 'Game Studio') {
+        // SIMPLIFIED: Since we now fetch full details, developer should always be set
+        if (result.developer && result.developer !== 'Unknown Developer') {
           creator = result.developer
-          console.log('🎮 ✅ Found developer from developer field:', creator)
-          break
+          console.log('🎮 ✅ Found developer:', creator)
+        } else {
+          creator = 'Unknown Developer'
+          console.log('🎮 ❌ No developer found for:', result.title)
         }
-        
-        // Then check developers array (usually in detailed results)
-        if (result.developers && result.developers.length > 0) {
-          const mainDev = result.developers[0].name
-          if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer' && mainDev !== 'Game Studio') {
-            creator = mainDev
-            console.log('🎮 ✅ Found developer from developers array:', creator)
-            break
-          }
-        }
-        
-        // Finally check author field as a fallback
-        if (result.author && result.author !== 'Unknown Developer' && result.author !== 'Developer' && result.author !== 'Unknown' && result.author !== 'Game Studio') {
-          creator = result.author
-          console.log('🎮 ✅ Found developer from author field:', creator)
-          break
-        }
-
-        // ✅ MAPPING ÉTENDU pour les jeux populaires
-        const title = result.title?.toLowerCase() || ''
-        const gameStudioMappings = {
-          'doom eternal': 'id Software',
-          'doom': 'id Software',
-          'ori and the will of the wisps': 'Moon Studios',
-          'ori and the blind forest': 'Moon Studios',
-          'ori and the': 'Moon Studios',
-          'the last of us part ii': 'Naughty Dog',
-          'the last of us': 'Naughty Dog',
-          'last of us': 'Naughty Dog',
-          'cyberpunk 2077': 'CD Projekt RED',
-          'cyberpunk': 'CD Projekt RED',
-          'the witcher 3': 'CD Projekt RED',
-          'the witcher': 'CD Projekt RED',
-          'elden ring': 'FromSoftware',
-          'dark souls': 'FromSoftware',
-          'sekiro': 'FromSoftware',
-          'bloodborne': 'FromSoftware',
-          'god of war': 'Santa Monica Studio',
-          'spider-man': 'Insomniac Games',
-          'marvel\'s spider-man': 'Insomniac Games',
-          'halo infinite': '343 Industries',
-          'halo': '343 Industries',
-          'zelda breath of the wild': 'Nintendo EPD',
-          'zelda tears of the kingdom': 'Nintendo EPD',
-          'zelda': 'Nintendo',
-          'mario': 'Nintendo',
-          'assassin\'s creed': 'Ubisoft',
-          'call of duty': 'Activision',
-          'grand theft auto': 'Rockstar Games',
-          'red dead redemption': 'Rockstar Games',
-          'baldur\'s gate 3': 'Larian Studios',
-          'horizon zero dawn': 'Guerrilla Games',
-          'horizon forbidden west': 'Guerrilla Games',
-          'ghost of tsushima': 'Sucker Punch Productions'
-        }
-        
-        for (const [keyword, studio] of Object.entries(gameStudioMappings)) {
-          if (title.includes(keyword)) {
-            creator = studio
-            console.log('🎮 📋 Found developer via enhanced mapping:', studio)
-            break
-          }
-        }
-        
-        if (!creator) creator = 'Game Developer'
         break
 
       case 'movies':
@@ -199,54 +135,104 @@ export default function SearchModal({
     return creator
   }
 
-  // ✅ RECHERCHE JEUX AVEC DÉVELOPPEURS ET JEUX 2025
+  // ✅ COMPLETELY REWRITTEN GAME SEARCH WITH DEVELOPER FETCHING
   const searchGames = async (query: string): Promise<SearchResult[]> => {
-    console.log('🎮 [SearchModal] Starting ENHANCED games search for:', query)
+    console.log('🎮 [SearchModal] Starting complete game search for:', query)
+    
+    const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+    const currentYear = new Date().getFullYear()
     
     try {
-      // ✅ TEST DE CONNECTIVITÉ D'ABORD
-      console.log('🎮 [SearchModal] Testing RAWG connection...')
-      const connectionTest = await rawgService.testConnection()
+      // Search for games including recent ones (up to next year for upcoming games)
+      const searchUrl = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=15&dates=2000-01-01,${currentYear + 1}-12-31`
       
-      if (!connectionTest.success) {
-        console.error('🎮 [SearchModal] RAWG API unavailable:', connectionTest.message)
-        throw new Error(`RAWG API unavailable: ${connectionTest.message}`)
+      console.log('🎮 [SearchModal] Searching with URL:', searchUrl)
+      const response = await fetch(searchUrl)
+      
+      if (!response.ok) {
+        console.error('🎮 [SearchModal] Search failed:', response.status)
+        throw new Error(`Game search failed: ${response.status}`)
       }
       
-      console.log('🎮 [SearchModal] RAWG connection OK:', connectionTest.message)
+      const data = await response.json()
+      console.log('🎮 [SearchModal] Found', data.results?.length || 0, 'games')
       
-      // ✅ UTILISER LA NOUVELLE MÉTHODE AVEC JEUX 2025
-      const games = await rawgService.searchWithRecentGames(query, 20)
-      console.log('🎮 [SearchModal] RAWG returned', games.length, 'games (including 2025)')
-      
-      if (!games || games.length === 0) {
-        console.log('🎮 [SearchModal] No games found')
+      if (!data.results || data.results.length === 0) {
         return []
       }
 
-      // ✅ CONVERSION AVEC DÉVELOPPEURS CORRECTS
-      const convertedGames = games.map(game => {
-        const converted = rawgService.convertToAppFormat(game)
-        console.log('🎮 [SearchModal] Converted game:', {
-          title: converted.title,
-          developer: converted.developer,
-          author: converted.author,
-          year: converted.year,
-          hasImage: !!converted.image
+      // Fetch detailed information for each game to get developer info
+      const detailedGames = await Promise.all(
+        data.results.slice(0, 10).map(async (game: any) => {
+          try {
+            // Fetch full game details to get developer information
+            const detailUrl = `https://api.rawg.io/api/games/${game.id}?key=${RAWG_API_KEY}`
+            const detailResponse = await fetch(detailUrl)
+            
+            if (detailResponse.ok) {
+              const detailData = await detailResponse.json()
+              console.log(`🎮 [SearchModal] Got details for ${game.name}:`, {
+                developers: detailData.developers,
+                publishers: detailData.publishers
+              })
+              
+              // Use detailed data which includes developers
+              return detailData
+            }
+          } catch (error) {
+            console.warn(`🎮 [SearchModal] Failed to get details for ${game.name}:`, error)
+          }
+          
+          // Fallback to basic game data if detail fetch fails
+          return game
         })
-        return converted
-      })
+      )
 
-      console.log('✅ [SearchModal] Games search complete with developers:')
-      convertedGames.slice(0, 8).forEach((game, i) => {
-        const isRecent = game.year >= 2024 ? '🔥' : ''
-        console.log(`  ${i + 1}. ${game.title} by ${game.developer || game.author} (${game.year}) ${isRecent}`)
+      // Convert to our app format with proper developer information
+      const convertedGames: SearchResult[] = detailedGames.map((game: any) => {
+        // Extract developer name from developers array
+        let developerName = 'Unknown Developer'
+        if (game.developers && game.developers.length > 0) {
+          developerName = game.developers[0].name
+        } else if (game.publishers && game.publishers.length > 0) {
+          // Fallback to publisher if no developer
+          developerName = game.publishers[0].name
+        }
+        
+        const converted: SearchResult = {
+          id: `game-${game.id}`,
+          title: game.name,
+          name: game.name,
+          category: 'games' as const,
+          year: game.released ? new Date(game.released).getFullYear() : currentYear,
+          rating: game.rating || 0,
+          genre: game.genres?.[0]?.name || 'Game',
+          image: game.background_image,
+          
+          // Set all developer fields to ensure it's displayed
+          developer: developerName,
+          author: developerName, // For compatibility
+          
+          // Preserve the full arrays too
+          developers: game.developers || [],
+          publishers: game.publishers || [],
+          genres: game.genres || [],
+          
+          // Additional game data
+          released: game.released,
+          platforms: game.platforms || [],
+          metacritic: game.metacritic,
+          rating_count: game.rating_count || 0,
+        }
+        
+        console.log(`🎮 [SearchModal] Converted: ${converted.title} by ${converted.developer} (${converted.year})`)
+        return converted
       })
 
       return convertedGames
 
     } catch (error) {
-      console.error('❌ [SearchModal] Enhanced games search failed:', error)
+      console.error('❌ [SearchModal] Game search completely failed:', error)
       throw error
     }
   }
