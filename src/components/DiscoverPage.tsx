@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, MoreHorizontal, Loader2 } from 'lucide-react'
+import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, Loader2, Filter } from 'lucide-react'
 import { rawgService } from '@/services/rawgService'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
@@ -36,6 +36,9 @@ interface DiscoverPageProps {
   library?: LibraryItem[]
 }
 
+// Types pour les filtres
+type CategoryFilter = 'games' | 'movies' | 'music' | 'books'
+
 export default function DiscoverPage({
   onAddToLibrary,
   onDeleteItem,
@@ -45,6 +48,18 @@ export default function DiscoverPage({
   onOpenMusicDetail,
   library = []
 }: DiscoverPageProps) {
+  // State pour les filtres persistants
+  const [selectedFilters, setSelectedFilters] = useState<CategoryFilter[]>(() => {
+    // Récupérer les filtres depuis localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('discover-filters')
+      return saved ? JSON.parse(saved) : ['games', 'movies', 'music', 'books']
+    }
+    return ['games', 'movies', 'music', 'books']
+  })
+
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+
   // Hero content state
   const [heroContent, setHeroContent] = useState<ContentItem[]>([])
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
@@ -101,13 +116,11 @@ export default function DiscoverPage({
   // UI state
   const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState<string | null>(null)
-  const [showPersonalization, setShowPersonalization] = useState(false)
-  const [visibilitySettings, setVisibilitySettings] = useState<{[key: string]: boolean}>({
-    'trending-games': true,
-    'popular-movies': true,
-    'new-books': true,
-    'hot-albums': true
-  })
+
+  // Sauvegarder les filtres dans localStorage
+  useEffect(() => {
+    localStorage.setItem('discover-filters', JSON.stringify(selectedFilters))
+  }, [selectedFilters])
 
   // Load data on mount
   useEffect(() => {
@@ -129,6 +142,50 @@ export default function DiscoverPage({
 
     return () => clearInterval(interval)
   }, [isAutoplay, heroContent.length])
+
+  // Gestion des filtres
+  const handleFilterToggle = (filter: CategoryFilter) => {
+    setSelectedFilters(prev => {
+      if (prev.includes(filter)) {
+        // Ne pas permettre de désélectionner tous les filtres
+        if (prev.length === 1) return prev
+        return prev.filter(f => f !== filter)
+      } else {
+        return [...prev, filter]
+      }
+    })
+  }
+
+  const getFilterIcon = (filter: CategoryFilter) => {
+    switch (filter) {
+      case 'games': return '🎮'
+      case 'movies': return '🎬'
+      case 'music': return '🎵'
+      case 'books': return '📚'
+    }
+  }
+
+  const getFilterLabel = (filter: CategoryFilter) => {
+    switch (filter) {
+      case 'games': return 'Games'
+      case 'movies': return 'Movies'
+      case 'music': return 'Music'
+      case 'books': return 'Books'
+    }
+  }
+
+  // Filtrer les sections selon les filtres sélectionnés
+  const getFilteredSections = () => {
+    return categorySections.filter(section => {
+      switch (section.id) {
+        case 'trending-games': return selectedFilters.includes('games')
+        case 'popular-movies': return selectedFilters.includes('movies')
+        case 'new-books': return selectedFilters.includes('books')
+        case 'hot-albums': return selectedFilters.includes('music')
+        default: return true
+      }
+    })
+  }
 
   // Recommendation algorithm
   const analyzeLibraryPreferences = (library: LibraryItem[]) => {
@@ -574,55 +631,90 @@ export default function DiscoverPage({
     }
   }
 
-  const getStatusBadge = (status?: 'new' | 'trending' | 'hot', trending?: string) => {
-    return null // Removed all badges as requested
-  }
-
   const currentHeroItem = heroContent[currentHeroIndex]
+  const filteredSections = getFilteredSections()
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Header with Settings */}
-      <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center space-x-4">
-          <button 
-            onClick={() => setShowPersonalization(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <MoreHorizontal className="w-6 h-6 text-gray-700" />
-          </button>
-        </div>
-        
-        <h1 className="text-3xl font-bold text-gray-900">Discover</h1>
-        
-        <div className="flex items-center space-x-4">
-          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <div className="w-8 h-8 bg-gray-200 rounded-lg flex items-center justify-center">
-              <span className="text-gray-600 text-sm">👤</span>
+      {/* Header sticky avec titre et filtres */}
+      <div className="sticky top-0 z-50 bg-gray-100 border-b border-gray-200 shadow-sm">
+        <div className="px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Titre Discover */}
+            <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
+            
+            {/* Filtres multi-sélection */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:border-gray-400 transition-colors shadow-sm"
+              >
+                <Filter size={16} className="text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">
+                  {selectedFilters.length === 4 ? 'All' : `${selectedFilters.length} selected`}
+                </span>
+              </button>
+
+              {showFilterDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowFilterDropdown(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48 p-2">
+                    <div className="space-y-1">
+                      {(['games', 'movies', 'music', 'books'] as CategoryFilter[]).map((filter) => (
+                        <label
+                          key={filter}
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedFilters.includes(filter)}
+                            onChange={() => handleFilterToggle(filter)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-lg">{getFilterIcon(filter)}</span>
+                          <span className="text-sm font-medium text-gray-700">
+                            {getFilterLabel(filter)}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="text-xs text-gray-500 px-2">
+                        {selectedFilters.length} of 4 categories selected
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-          </button>
+          </div>
         </div>
       </div>
 
-      {/* Hero Section - Compact Banner Style */}
-      <div className="px-6 pb-6">
+      {/* Hero Section améliorée */}
+      <div className="px-4 sm:px-6 py-6">
         {heroLoading || !currentHeroItem ? (
-          <div className="bg-gray-100 rounded-2xl h-48 animate-pulse flex items-center justify-center">
+          <div className="bg-gray-100 rounded-2xl h-64 animate-pulse flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
           </div>
         ) : (
           <div 
-            className="relative bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-48 cursor-pointer hover:shadow-md transition-shadow"
+            className="relative bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200 h-64 cursor-pointer hover:shadow-xl transition-all duration-300"
             onClick={() => handleHeroAction(currentHeroItem)}
           >
-            {/* Hero Image - Banner style */}
+            {/* Hero Image avec overlay amélioré */}
             <div className="absolute inset-0">
               <img
                 src={currentHeroItem.image || ''}
                 alt={currentHeroItem.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent"></div>
+              {/* Overlay gradiant plus subtil */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/20"></div>
             </div>
 
             {/* Navigation dots */}
@@ -635,64 +727,79 @@ export default function DiscoverPage({
                     setCurrentHeroIndex(index)
                     setIsAutoplay(false)
                   }}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
                     index === currentHeroIndex 
-                      ? 'bg-white scale-125' 
-                      : 'bg-white/50 hover:bg-white/80'
+                      ? 'bg-white scale-125 shadow-lg' 
+                      : 'bg-white/60 hover:bg-white/80'
                   }`}
                 />
               ))}
             </div>
 
-            {/* Hero Content - Left aligned */}
+            {/* Hero Content amélioré */}
             <div className="absolute inset-0 flex items-center">
-              <div className="p-6 text-white">
-                <div className="bg-black/40 backdrop-blur-sm rounded-lg px-3 py-1.5 mb-3 inline-block">
-                  <h2 className="text-2xl font-bold">
-                    {currentHeroItem.title}
-                  </h2>
+              <div className="p-8 text-white max-w-2xl">
+                {/* Badge de catégorie */}
+                <div className="inline-flex items-center px-3 py-1.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full mb-4">
+                  <span className="text-white/90 text-sm font-medium capitalize">
+                    {currentHeroItem.category}
+                  </span>
                 </div>
+
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
+                  {currentHeroItem.title}
+                </h2>
                 
-                <div className="flex items-center space-x-4 mb-3">
+                <div className="flex items-center space-x-6 mb-4">
                   <div className="flex items-center space-x-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        size={16}
+                        size={18}
                         className={`${
                           star <= (currentHeroItem.rating || 0) ? 'text-yellow-400 fill-current' : 'text-white/40'
                         }`}
                       />
                     ))}
-                    <span className="ml-2 text-white/90 font-medium">{currentHeroItem.rating || 0}/5</span>
+                    <span className="ml-2 text-white/90 font-semibold text-lg">
+                      {currentHeroItem.rating || 0}/5
+                    </span>
                   </div>
                   
-                  <span className="text-white/80">•</span>
-                  <span className="text-white/80">{currentHeroItem.year}</span>
+                  <span className="text-white/80 text-lg">{currentHeroItem.year}</span>
                   
                   {currentHeroItem.genre && (
-                    <>
-                      <span className="text-white/80">•</span>
-                      <span className="text-white/80">{currentHeroItem.genre}</span>
-                    </>
+                    <span className="text-white/80 text-lg">{currentHeroItem.genre}</span>
                   )}
                 </div>
 
-                <p className="text-white/90 text-sm leading-relaxed max-w-md">
+                <p className="text-white/90 text-lg leading-relaxed max-w-xl mb-6">
                   {currentHeroItem.description ? 
-                    currentHeroItem.description.substring(0, 120) + (currentHeroItem.description.length > 120 ? '...' : '') :
+                    currentHeroItem.description.substring(0, 150) + (currentHeroItem.description.length > 150 ? '...' : '') :
                     'Discover this amazing content and add it to your library!'
                   }
                 </p>
+
+                {/* Bouton d'action */}
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleHeroAction(currentHeroItem)
+                  }}
+                  className="inline-flex items-center px-6 py-3 bg-white hover:bg-gray-100 text-gray-900 font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Play size={18} className="mr-2" />
+                  {currentHeroItem.callToAction || 'Explore'}
+                </button>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* For You Section with minimum requirement */}
+      {/* For You Section avec minimum requirement */}
       {library.length >= MIN_LIBRARY_ITEMS ? (
-        <div className="px-6 pb-8">
+        <div className="px-4 sm:px-6 pb-8">
           <div className="mb-4">
             <div className="flex items-center space-x-3">
               <div>
@@ -830,7 +937,7 @@ export default function DiscoverPage({
           )}
         </div>
       ) : (
-        <div className="px-6 pb-8">
+        <div className="px-4 sm:px-6 pb-8">
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100">
             <div className="text-center">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -848,17 +955,13 @@ export default function DiscoverPage({
         </div>
       )}
 
-      {/* Category Sections - Horizontal Carousels */}
+      {/* Category Sections filtrées */}
       <div className="space-y-8 pb-24">
-        {categorySections
-          .filter(section => {
-            return visibilitySettings[section.id] !== false
-          })
-          .map((section) => {
+        {filteredSections.map((section) => {
           const colors = getColorClasses(section.color)
           
           return (
-            <div key={section.id} className="px-6">
+            <div key={section.id} className="px-4 sm:px-6">
               {/* Section Header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
@@ -996,77 +1099,6 @@ export default function DiscoverPage({
           )
         })}
       </div>
-
-      {/* Personalization Modal */}
-      {showPersonalization && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
-            onClick={() => setShowPersonalization(false)}
-          />
-          
-          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl z-50 border-t border-gray-100">
-            <div className="flex justify-center pt-4 pb-2">
-              <div className="w-8 h-1 bg-gray-200 rounded-full" />
-            </div>
-            
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-xl font-semibold text-gray-900">Customize Discover</h3>
-              <p className="text-sm text-gray-500 mt-1">Choose what content you want to see</p>
-            </div>
-
-            <div className="px-6 py-4 max-h-96 overflow-y-auto">
-              <div className="space-y-4">
-                {categorySections.map((section) => {
-                  const colors = getColorClasses(section.color)
-                  return (
-                    <div key={section.id} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg ${colors.bg} ${colors.border} border`}>
-                          <div className={colors.text}>
-                            {section.icon}
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">{section.title}</h4>
-                          <p className="text-sm text-gray-500">{section.subtitle}</p>
-                        </div>
-                      </div>
-                      
-                      <button
-                        onClick={() => setVisibilitySettings(prev => ({
-                          ...prev,
-                          [section.id]: !prev[section.id]
-                        }))}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          visibilitySettings[section.id] ? 'bg-blue-600' : 'bg-gray-300'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            visibilitySettings[section.id] ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="px-6 py-4 border-t border-gray-100">
-              <button
-                onClick={() => setShowPersonalization(false)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition-colors"
-              >
-                Done
-              </button>
-            </div>
-
-            <div className="h-6 bg-white" />
-          </div>
-        </>
-      )}
 
       <style jsx>{`
         .line-clamp-1 {
