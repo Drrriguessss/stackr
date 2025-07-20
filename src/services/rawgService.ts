@@ -181,6 +181,12 @@ class RAWGService {
       
       // ✅ Log avec développeurs corrects
       data.results.forEach((game: RAWGGame, index: number) => {
+        console.log(`🎮 Game ${index + 1} raw data:`, {
+          name: game.name,
+          developers: game.developers,
+          publishers: game.publishers,
+          released: game.released
+        })
         const developer = this.getCorrectDeveloper(game)
         const year = game.released ? new Date(game.released).getFullYear() : 'TBA'
         console.log(`🎮 ${index + 1}. ${game.name} by ${developer} (${year})`)

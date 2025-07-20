@@ -1,163 +1,16 @@
-// src/components/DiscoverPage.tsx - VERSION FINALE COMPLÈTE
+// src/components/DiscoverPage.tsx - VERSION AVEC TRENDING INTELLIGENCE
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, Loader2 } from 'lucide-react'
+import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, Loader2, Sparkles, Zap } from 'lucide-react'
 import { rawgService } from '@/services/rawgService'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
+import { TrendingDiscoveryService } from '@/services/trendingDiscoveryService' // ✅ NOUVEAU IMPORT
 import type { ContentItem, LibraryItem, MediaStatus } from '@/types'
 
 // Constants
 const MIN_LIBRARY_ITEMS = 10
-
-// ✅ NOUVEAU: Service de contenu dynamique/tendance
-class TrendingContentService {
-  private static CACHE_KEY = 'hero_trending_content'
-  private static CACHE_DURATION = 4 * 60 * 60 * 1000 // 4 heures
-
-  static async getTrendingContent(): Promise<ContentItem[]> {
-    try {
-      const cached = this.getCachedContent()
-      if (cached) {
-        console.log('📈 Using cached trending content')
-        return cached
-      }
-
-      console.log('📈 Fetching fresh trending content...')
-      const trendingContent = await this.fetchTrendingContent()
-      this.setCachedContent(trendingContent)
-      return trendingContent
-    } catch (error) {
-      console.error('❌ Error fetching trending content:', error)
-      return this.getFallbackContent()
-    }
-  }
-
-  private static async fetchTrendingContent(): Promise<ContentItem[]> {
-    const content: ContentItem[] = []
-
-    try {
-      // Films tendance
-      const movies = await omdbService.getPopularMovies()
-      if (movies.length > 0) {
-        const topMovie = omdbService.convertToAppFormat(movies[0])
-        content.push({
-          ...topMovie,
-          categoryLabel: 'Movies',
-          description: 'The most captivating movie trending today - a cinematic experience that has captured audiences worldwide.',
-          callToAction: 'Watch Now',
-          stats: { trending: '+15%', users: '2.5M', engagement: '92%' },
-          status: 'trending'
-        })
-      }
-    } catch (error) {
-      console.warn('Failed to fetch trending movies:', error)
-    }
-
-    try {
-      // Jeux populaires
-      const games = await rawgService.getPopularGames()
-      if (games.length > 0) {
-        const topGame = rawgService.convertToAppFormat(games[0])
-        content.push({
-          ...topGame,
-          categoryLabel: 'Games',
-          description: 'The hottest game dominating charts and streaming platforms - experience the phenomenon everyone is playing.',
-          callToAction: 'Play Now',
-          stats: { trending: '+25%', users: '1.8M', completion: '85%' },
-          status: 'hot'
-        })
-      }
-    } catch (error) {
-      console.warn('Failed to fetch trending games:', error)
-    }
-
-    try {
-      // Livres bestsellers
-      const books = await googleBooksService.getFictionBooks()
-      if (books.length > 0) {
-        const topBook = googleBooksService.convertToAppFormat(books[0])
-        content.push({
-          ...topBook,
-          categoryLabel: 'Books',
-          description: 'The bestselling book everyone is talking about - a literary masterpiece that has captured readers globally.',
-          callToAction: 'Read Now',
-          stats: { trending: '+18%', users: '850K', engagement: '94%' },
-          status: 'new'
-        })
-      }
-    } catch (error) {
-      console.warn('Failed to fetch trending books:', error)
-    }
-
-    try {
-      // Musique populaire
-      const albums = await musicService.getPopularAlbums()
-      if (albums.length > 0) {
-        const topAlbum = musicService.convertToAppFormat(albums[0])
-        content.push({
-          ...topAlbum,
-          categoryLabel: 'Music',
-          description: 'The album topping charts everywhere - a sonic masterpiece that defines the current musical landscape.',
-          callToAction: 'Listen Now',
-          stats: { trending: '+35%', users: '3.2M', engagement: '88%' },
-          status: 'trending'
-        })
-      }
-    } catch (error) {
-      console.warn('Failed to fetch trending music:', error)
-    }
-
-    return content
-  }
-
-  private static getCachedContent(): ContentItem[] | null {
-    try {
-      if (typeof window === 'undefined') return null
-      const cached = localStorage.getItem(this.CACHE_KEY)
-      if (!cached) return null
-
-      const { content, timestamp } = JSON.parse(cached)
-      const now = Date.now()
-      
-      if (now - timestamp > this.CACHE_DURATION) {
-        localStorage.removeItem(this.CACHE_KEY)
-        return null
-      }
-
-      return content
-    } catch (error) {
-      return null
-    }
-  }
-
-  private static setCachedContent(content: ContentItem[]): void {
-    try {
-      if (typeof window === 'undefined') return
-      const cacheData = { content, timestamp: Date.now() }
-      localStorage.setItem(this.CACHE_KEY, JSON.stringify(cacheData))
-    } catch (error) {
-      console.warn('Failed to cache trending content:', error)
-    }
-  }
-
-  private static getFallbackContent(): ContentItem[] {
-    return [
-      {
-        id: 'fallback-1',
-        title: 'Discover Amazing Content',
-        categoryLabel: 'Featured',
-        description: 'Explore the best games, movies, music, and books all in one place.',
-        callToAction: 'Explore',
-        year: new Date().getFullYear(),
-        rating: 4.8,
-        category: 'games' as const,
-        image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=400&fit=crop'
-      }
-    ]
-  }
-}
 
 interface CategorySection {
   id: string
@@ -196,7 +49,13 @@ export default function DiscoverPage({
   onOpenMusicDetail,
   library = []
 }: DiscoverPageProps) {
-  // State pour les filtres persistants
+  // ✅ NOUVEAUX ÉTATS POUR LE TRENDING
+  const [trendingContent, setTrendingContent] = useState<ContentItem[]>([])
+  const [currentTrendingIndex, setCurrentTrendingIndex] = useState(0)
+  const [trendingLoading, setTrendingLoading] = useState(true)
+  const [isAutoplay, setIsAutoplay] = useState(true)
+
+  // États existants
   const [selectedFilters, setSelectedFilters] = useState<CategoryFilter[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('discover-filters')
@@ -205,20 +64,12 @@ export default function DiscoverPage({
     return ['games', 'movies', 'music', 'books']
   })
 
-  // Hero content state
-  const [heroContent, setHeroContent] = useState<ContentItem[]>([])
-  const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
-  const [heroLoading, setHeroLoading] = useState(true)
-  const [isAutoplay, setIsAutoplay] = useState(true)
-
-  // For You section state
   const [forYouSection, setForYouSection] = useState<ForYouSection>({
     items: [],
     reasoning: '',
     loading: false
   })
 
-  // Category sections state
   const [categorySections, setCategorySections] = useState<CategorySection[]>([
     {
       id: 'trending-games',
@@ -258,116 +109,69 @@ export default function DiscoverPage({
     }
   ])
 
-  // UI state
   const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState<string | null>(null)
 
-  // Sauvegarder les filtres dans localStorage
+  // ✅ CHARGEMENT DU CONTENU TRENDING AU DÉMARRAGE
   useEffect(() => {
-    localStorage.setItem('discover-filters', JSON.stringify(selectedFilters))
-  }, [selectedFilters])
-
-  // Load data on mount
-  useEffect(() => {
+    loadTrendingContent()
     loadAllContent()
     if (library.length >= MIN_LIBRARY_ITEMS) {
       loadForYouRecommendations()
     }
   }, [library.length])
 
-  // ✅ NOUVEAU: Charger le contenu hero dynamique
+  // ✅ SETUP AUTO-REFRESH DU TRENDING
   useEffect(() => {
-    loadTrendingHeroContent()
-  }, [selectedFilters])
-
-  // Hero auto-rotation
-  useEffect(() => {
-    if (!isAutoplay || heroContent.length === 0) return
-    
-    const interval = setInterval(() => {
-      setCurrentHeroIndex((prev) => (prev + 1) % heroContent.length)
-    }, 6000)
-
-    return () => clearInterval(interval)
-  }, [isAutoplay, heroContent.length])
-
-  // ✅ NOUVEAU: Auto-refresh du contenu toutes les 4 heures
-  useEffect(() => {
-    const REFRESH_INTERVAL = 4 * 60 * 60 * 1000 // 4 heures
-
-    const refreshInterval = setInterval(() => {
-      console.log('🔄 Auto-refreshing trending content...')
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('hero_trending_content')
-      }
-      loadTrendingHeroContent()
-    }, REFRESH_INTERVAL)
-
-    return () => clearInterval(refreshInterval)
+    TrendingDiscoveryService.setupAutoRefresh()
   }, [])
 
-  // Gestion des filtres
-  const handleFilterToggle = (filter: CategoryFilter) => {
-    setSelectedFilters(prev => {
-      if (prev.includes(filter)) {
-        if (prev.length === 1) return prev
-        return prev.filter(f => f !== filter)
-      } else {
-        return [...prev, filter]
-      }
-    })
-  }
+  // ✅ AUTO-ROTATION DU TRENDING HERO
+  useEffect(() => {
+    if (!isAutoplay || trendingContent.length === 0) return
+    
+    const interval = setInterval(() => {
+      setCurrentTrendingIndex((prev) => (prev + 1) % trendingContent.length)
+    }, 8000) // 8 secondes par item
 
-  // Filtrer les sections selon les filtres sélectionnés
-  const getFilteredSections = () => {
-    return categorySections.filter(section => {
-      switch (section.id) {
-        case 'trending-games': return selectedFilters.includes('games')
-        case 'popular-movies': return selectedFilters.includes('movies')
-        case 'new-books': return selectedFilters.includes('books')
-        case 'hot-albums': return selectedFilters.includes('music')
-        default: return true
-      }
-    })
-  }
+    return () => clearInterval(interval)
+  }, [isAutoplay, trendingContent.length])
 
-  // ✅ NOUVEAU: Charger le contenu hero avec tendances
-  const loadTrendingHeroContent = async () => {
+  // Sauvegarder les filtres
+  useEffect(() => {
+    localStorage.setItem('discover-filters', JSON.stringify(selectedFilters))
+  }, [selectedFilters])
+
+  // ✅ FONCTION PRINCIPALE: CHARGER LE CONTENU TRENDING
+  const loadTrendingContent = async () => {
     try {
-      setHeroLoading(true)
-      const trendingContent = await TrendingContentService.getTrendingContent()
+      setTrendingLoading(true)
+      console.log('🔥 Loading intelligent trending content...')
+      
+      const trendingItems = await TrendingDiscoveryService.getTrendingHeroContent()
       
       // Filtrer selon les catégories sélectionnées
-      const filteredContent = trendingContent.filter(item => {
-        const categoryMap: { [key: string]: string } = {
-          'Games': 'games',
-          'Movies': 'movies', 
-          'Music': 'music',
-          'Books': 'books'
-        }
-        
-        const itemCategory = categoryMap[item.categoryLabel || ''] || item.category
-        return selectedFilters.includes(itemCategory as CategoryFilter)
-      })
+      const filteredTrending = trendingItems.filter(item => 
+        selectedFilters.includes(item.category as CategoryFilter)
+      )
       
-      setHeroContent(filteredContent.length > 0 ? filteredContent : trendingContent)
-      setCurrentHeroIndex(0)
+      setTrendingContent(filteredTrending.length > 0 ? filteredTrending : trendingItems)
+      setCurrentTrendingIndex(0)
       
-      console.log('✅ Trending hero content loaded:', filteredContent.length, 'items')
+      console.log('✅ Trending content loaded:', filteredTrending.length, 'items')
+      
     } catch (error) {
       console.error('❌ Failed to load trending content:', error)
-      // Fallback vers le contenu normal
-      loadHeroContent()
+      // Fallback vers le contenu normal si le trending échoue
+      loadRegularHeroContent()
     } finally {
-      setHeroLoading(false)
+      setTrendingLoading(false)
     }
   }
 
-  // Fallback hero content loading
-  const loadHeroContent = async () => {
+  // Fallback vers le contenu hero normal
+  const loadRegularHeroContent = async () => {
     try {
-      setHeroLoading(true)
-      
       const promises: Promise<any[]>[] = []
       
       if (selectedFilters.includes('games')) {
@@ -428,15 +232,337 @@ export default function DiscoverPage({
         resultIndex++
       }
 
-      setHeroContent(heroItems)
+      setTrendingContent(heroItems)
     } catch (error) {
-      console.error('Error loading hero content:', error)
-    } finally {
-      setHeroLoading(false)
+      console.error('Error loading regular hero content:', error)
     }
   }
 
-  // Recommendation algorithm
+  // ✅ COMPOSANT HERO INTELLIGENT AMÉLIORÉ
+  const renderIntelligentHero = () => {
+    if (trendingLoading || !trendingContent[currentTrendingIndex]) {
+      return (
+        <div className="bg-gray-100 rounded-2xl h-64 animate-pulse flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-2" />
+            <p className="text-gray-500 text-sm">Loading trending content...</p>
+          </div>
+        </div>
+      )
+    }
+
+    const currentItem = trendingContent[currentTrendingIndex]
+    const isNew = currentItem.year >= new Date().getFullYear()
+
+    return (
+      <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200 relative">
+        {/* Badge de trending en haut */}
+        <div className="absolute top-4 left-4 z-10">
+          <div className="flex items-center space-x-2">
+            {currentItem.status && (
+              <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1 ${
+                currentItem.status === 'trending' ? 'bg-red-500 text-white' :
+                currentItem.status === 'hot' ? 'bg-orange-500 text-white' :
+                currentItem.status === 'new' ? 'bg-green-500 text-white' :
+                'bg-blue-500 text-white'
+              }`}>
+                {currentItem.status === 'trending' ? <TrendingUp size={12} /> : 
+                 currentItem.status === 'hot' ? <Zap size={12} /> :
+                 currentItem.status === 'new' ? <Sparkles size={12} /> : 
+                 <Star size={12} />}
+                <span>
+                  {currentItem.status === 'trending' ? 'TRENDING NOW' :
+                   currentItem.status === 'hot' ? 'HOT' :
+                   currentItem.status === 'new' ? 'NEW RELEASE' : 'FEATURED'}
+                </span>
+              </span>
+            )}
+            
+            {/* Badge de statistiques trending */}
+            {currentItem.stats?.trending && (
+              <span className="bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-bold">
+                {currentItem.stats.trending} ↗️
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Header avec catégorie */}
+        <div className="px-6 pt-4 pb-2 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <h2 className="text-xl font-bold text-gray-900">
+              {currentItem.categoryLabel} Trending
+            </h2>
+            
+            {/* Indicateur de fraîcheur */}
+            <div className="flex items-center space-x-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Live Data</span>
+            </div>
+          </div>
+          
+          {/* Stats en temps réel */}
+          {currentItem.stats && (
+            <div className="flex items-center space-x-4 text-sm">
+              {currentItem.stats.users && (
+                <div className="text-gray-600">
+                  <span className="font-semibold text-blue-600">{currentItem.stats.users}</span> users
+                </div>
+              )}
+              {currentItem.stats.engagement && (
+                <div className="text-gray-600">
+                  <span className="font-semibold text-purple-600">{currentItem.stats.engagement}</span> engagement
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Container principal */}
+        <div className="flex">
+          {/* Image */}
+          <div className="w-1/3 relative">
+            <div className="aspect-[4/3] relative overflow-hidden">
+              <img
+                src={currentItem.image || ''}
+                alt={currentItem.title}
+                className="w-full h-full object-cover"
+              />
+              
+              {/* Overlay avec rating */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20"></div>
+              
+              <div className="absolute top-3 right-3">
+                <div className="flex items-center space-x-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={12}
+                      className={`${
+                        star <= (currentItem.rating || 0) ? 'text-yellow-400 fill-current' : 'text-white/40'
+                      }`}
+                    />
+                  ))}
+                  <span className="text-white text-xs font-semibold ml-1">
+                    {currentItem.rating || 0}/5
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contenu principal */}
+          <div className="w-2/3 p-6 flex flex-col justify-center">
+            <div className="space-y-3">
+              {/* Titre et année */}
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1 leading-tight">
+                  {currentItem.title}
+                  {isNew && (
+                    <span className="ml-2 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent font-extrabold">
+                      NEW!
+                    </span>
+                  )}
+                </h2>
+                <div className="flex items-center space-x-3 text-sm text-gray-600">
+                  <span className="font-medium">{currentItem.year}</span>
+                  {currentItem.genre && (
+                    <>
+                      <span>•</span>
+                      <span>{currentItem.genre}</span>
+                    </>
+                  )}
+                  {/* Créateur */}
+                  {(currentItem.author || currentItem.artist || currentItem.director || currentItem.developer) && (
+                    <>
+                      <span>•</span>
+                      <span className="font-medium">
+                        by {currentItem.author || currentItem.artist || currentItem.director || currentItem.developer}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              {/* Description trending intelligente */}
+              <p className="text-gray-600 leading-relaxed text-sm">
+                {currentItem.description || 
+                 `This ${currentItem.category.slice(0, -1)} is trending everywhere right now. Join millions discovering this incredible experience.`}
+              </p>
+
+              {/* Stats détaillées */}
+              <div className="flex items-center space-x-4 text-xs">
+                <div className="flex items-center space-x-1 bg-red-50 text-red-600 px-2 py-1 rounded-full">
+                  <TrendingUp size={10} />
+                  <span>Trending {currentItem.stats?.trending || '+15%'}</span>
+                </div>
+                
+                {currentItem.stats?.engagement && (
+                  <div className="flex items-center space-x-1 bg-purple-50 text-purple-600 px-2 py-1 rounded-full">
+                    <span>👍</span>
+                    <span>{currentItem.stats.engagement} liked</span>
+                  </div>
+                )}
+                
+                <div className="text-gray-500">
+                  <span>Updated: {new Date().toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                  })}</span>
+                </div>
+              </div>
+
+              {/* Bouton d'action */}
+              <div className="pt-2">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleHeroAction(currentItem)
+                  }}
+                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                  <Play size={16} className="mr-2" />
+                  {currentItem.callToAction || 'Explore Trending'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation dots */}
+        {trendingContent.length > 1 && (
+          <div className="px-6 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex space-x-2">
+                {trendingContent.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCurrentTrendingIndex(index)
+                      setIsAutoplay(false)
+                    }}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === currentTrendingIndex 
+                        ? 'bg-blue-600 scale-125' 
+                        : 'bg-gray-300 hover:bg-gray-400'
+                    }`}
+                  />
+                ))}
+              </div>
+              
+              {/* Bouton pause/play */}
+              <button
+                onClick={() => setIsAutoplay(!isAutoplay)}
+                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100"
+              >
+                {isAutoplay ? '⏸️ Pause' : '▶️ Play'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Fonctions existantes (garder toutes tes fonctions existantes)
+  const loadAllContent = async () => {
+    try {
+      await Promise.all([
+        loadGamesContent(),
+        loadMoviesContent(), 
+        loadBooksContent(),
+        loadMusicContent()
+      ])
+    } catch (error) {
+      console.error('Error loading discover content:', error)
+    }
+  }
+
+  const loadGamesContent = async () => {
+    try {
+      const games = await rawgService.getPopularGames()
+      const convertedGames = games.map(game => rawgService.convertToAppFormat(game))
+
+      setCategorySections(prev => prev.map(section => 
+        section.id === 'trending-games' 
+          ? { ...section, items: convertedGames, loading: false }
+          : section
+      ))
+    } catch (error) {
+      console.error('Error loading games:', error)
+      setCategorySections(prev => prev.map(section => 
+        section.id === 'trending-games' 
+          ? { ...section, loading: false }
+          : section
+      ))
+    }
+  }
+
+  const loadMoviesContent = async () => {
+    try {
+      const movies = await omdbService.getPopularMovies()
+      const convertedMovies = movies.map(movie => omdbService.convertToAppFormat(movie))
+
+      setCategorySections(prev => prev.map(section => 
+        section.id === 'popular-movies' 
+          ? { ...section, items: convertedMovies, loading: false }
+          : section
+      ))
+    } catch (error) {
+      console.error('Error loading movies:', error)
+      setCategorySections(prev => prev.map(section => 
+        section.id === 'popular-movies' 
+          ? { ...section, loading: false }
+          : section
+      ))
+    }
+  }
+
+  const loadBooksContent = async () => {
+    try {
+      const books = await googleBooksService.getFictionBooks()
+      const convertedBooks = books.map(book => googleBooksService.convertToAppFormat(book))
+
+      setCategorySections(prev => prev.map(section => 
+        section.id === 'new-books' 
+          ? { ...section, items: convertedBooks, loading: false }
+          : section
+      ))
+    } catch (error) {
+      console.error('Error loading books:', error)
+      setCategorySections(prev => prev.map(section => 
+        section.id === 'new-books' 
+          ? { ...section, loading: false }
+          : section
+      ))
+    }
+  }
+
+  const loadMusicContent = async () => {
+    try {
+      const albums = await musicService.getPopularAlbums()
+      const convertedAlbums = albums.map(album => musicService.convertToAppFormat(album))
+
+      setCategorySections(prev => prev.map(section => 
+        section.id === 'hot-albums' 
+          ? { ...section, items: convertedAlbums, loading: false }
+          : section
+      ))
+    } catch (error) {
+      console.error('Error loading music:', error)
+      setCategorySections(prev => prev.map(section => 
+        section.id === 'hot-albums' 
+          ? { ...section, loading: false }
+          : section
+      ))
+    }
+  }
+
+  // ✅ GARDER TOUTES TES AUTRES FONCTIONS EXISTANTES TELLES QUELLES
+  // (analyzeLibraryPreferences, generateRecommendations, loadForYouRecommendations, etc.)
+
   const analyzeLibraryPreferences = (library: LibraryItem[]) => {
     const genreCounts: { [key: string]: number } = {}
     const creatorCounts: { [key: string]: number } = {}
@@ -578,101 +704,33 @@ export default function DiscoverPage({
     }
   }
 
-  // Load all content
-  const loadAllContent = async () => {
-    try {
-      await Promise.all([
-        loadGamesContent(),
-        loadMoviesContent(),
-        loadBooksContent(),
-        loadMusicContent()
-      ])
-    } catch (error) {
-      console.error('Error loading discover content:', error)
-    }
+  const handleFilterToggle = (filter: CategoryFilter) => {
+    setSelectedFilters(prev => {
+      if (prev.includes(filter)) {
+        if (prev.length === 1) return prev
+        return prev.filter(f => f !== filter)
+      } else {
+        return [...prev, filter]
+      }
+    })
   }
 
-  const loadGamesContent = async () => {
-    try {
-      const games = await rawgService.getPopularGames()
-      const convertedGames = games.map(game => rawgService.convertToAppFormat(game))
-
-      setCategorySections(prev => prev.map(section => 
-        section.id === 'trending-games' 
-          ? { ...section, items: convertedGames, loading: false }
-          : section
-      ))
-    } catch (error) {
-      console.error('Error loading games:', error)
-      setCategorySections(prev => prev.map(section => 
-        section.id === 'trending-games' 
-          ? { ...section, loading: false }
-          : section
-      ))
-    }
+  const getFilteredSections = () => {
+    return categorySections.filter(section => {
+      switch (section.id) {
+        case 'trending-games': return selectedFilters.includes('games')
+        case 'popular-movies': return selectedFilters.includes('movies')
+        case 'new-books': return selectedFilters.includes('books')
+        case 'hot-albums': return selectedFilters.includes('music')
+        default: return true
+      }
+    })
   }
 
-  const loadMoviesContent = async () => {
-    try {
-      const movies = await omdbService.getPopularMovies()
-      const convertedMovies = movies.map(movie => omdbService.convertToAppFormat(movie))
-
-      setCategorySections(prev => prev.map(section => 
-        section.id === 'popular-movies' 
-          ? { ...section, items: convertedMovies, loading: false }
-          : section
-      ))
-    } catch (error) {
-      console.error('Error loading movies:', error)
-      setCategorySections(prev => prev.map(section => 
-        section.id === 'popular-movies' 
-          ? { ...section, loading: false }
-          : section
-      ))
-    }
+  const handleHeroAction = (item: ContentItem) => {
+    handleItemClick(item)
   }
 
-  const loadBooksContent = async () => {
-    try {
-      const books = await googleBooksService.getFictionBooks()
-      const convertedBooks = books.map(book => googleBooksService.convertToAppFormat(book))
-
-      setCategorySections(prev => prev.map(section => 
-        section.id === 'new-books' 
-          ? { ...section, items: convertedBooks, loading: false }
-          : section
-      ))
-    } catch (error) {
-      console.error('Error loading books:', error)
-      setCategorySections(prev => prev.map(section => 
-        section.id === 'new-books' 
-          ? { ...section, loading: false }
-          : section
-      ))
-    }
-  }
-
-  const loadMusicContent = async () => {
-    try {
-      const albums = await musicService.getPopularAlbums()
-      const convertedAlbums = albums.map(album => musicService.convertToAppFormat(album))
-
-      setCategorySections(prev => prev.map(section => 
-        section.id === 'hot-albums' 
-          ? { ...section, items: convertedAlbums, loading: false }
-          : section
-      ))
-    } catch (error) {
-      console.error('Error loading music:', error)
-      setCategorySections(prev => prev.map(section => 
-        section.id === 'hot-albums' 
-          ? { ...section, loading: false }
-          : section
-      ))
-    }
-  }
-
-  // Event handlers
   const handleItemClick = (item: ContentItem) => {
     const itemIdWithoutPrefix = item.id.replace(/^(game-|movie-|music-|book-)/, '')
     
@@ -720,10 +778,6 @@ export default function DiscoverPage({
   const handleRemoveFromLibrary = (item: ContentItem) => {
     if (!onDeleteItem) return
     onDeleteItem(item.id)
-  }
-
-  const handleHeroAction = (item: ContentItem) => {
-    handleItemClick(item)
   }
 
   const isInLibrary = (itemId: string) => {
@@ -805,19 +859,25 @@ export default function DiscoverPage({
     }
   }
 
-  const currentHeroItem = heroContent[currentHeroIndex]
+  const currentHeroItem = trendingContent[currentTrendingIndex]
   const filteredSections = getFilteredSections()
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Header sticky avec titre et filtres */}
+      {/* Header existant */}
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
+            
+            {/* Indicateur de mise à jour en temps réel */}
+            <div className="text-xs text-gray-500 flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Live trending data</span>
+            </div>
           </div>
 
-          {/* Filtres avec style uniforme */}
+          {/* Filtres existants */}
           <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
             {[
               { key: 'all', label: 'All' },
@@ -854,172 +914,9 @@ export default function DiscoverPage({
         </div>
       </div>
 
-      {/* ✅ SECTION HERO OPTIMISÉE */}
+      {/* ✅ SECTION HERO INTELLIGENTE */}
       <div className="px-4 sm:px-6 py-4">
-        {heroLoading || !currentHeroItem ? (
-          <div className="bg-gray-100 rounded-2xl h-64 animate-pulse flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200">
-            {/* Header avec catégorie et badges */}
-            <div className="px-6 pt-4 pb-2 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <h2 className="text-xl font-bold text-gray-900">
-                  {currentHeroItem.categoryLabel}
-                </h2>
-                {/* Badge de statut */}
-                {currentHeroItem.status && (
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    currentHeroItem.status === 'trending' ? 'bg-red-100 text-red-700' :
-                    currentHeroItem.status === 'hot' ? 'bg-orange-100 text-orange-700' :
-                    currentHeroItem.status === 'new' ? 'bg-green-100 text-green-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
-                    {currentHeroItem.status === 'trending' ? '📈 Trending' :
-                     currentHeroItem.status === 'hot' ? '🔥 Hot' :
-                     currentHeroItem.status === 'new' ? '✨ New' : '⭐ Featured'}
-                  </span>
-                )}
-              </div>
-              
-              {/* Stats rapides */}
-              {currentHeroItem.stats && (
-                <div className="flex items-center space-x-4 text-sm">
-                  {currentHeroItem.stats.trending && (
-                    <div className="text-green-600 font-medium">
-                      {currentHeroItem.stats.trending}
-                    </div>
-                  )}
-                  {currentHeroItem.stats.users && (
-                    <div className="text-gray-600">
-                      {currentHeroItem.stats.users} users
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Container avec image plus petite et contenu à côté */}
-            <div className="flex">
-              {/* Image compacte à gauche */}
-              <div className="w-1/3 relative">
-                <div className="aspect-[4/3] relative overflow-hidden">
-                  <img
-                    src={currentHeroItem.image || ''}
-                    alt={currentHeroItem.title}
-                    className="w-full h-full object-cover"
-                  />
-                  
-                  {/* Overlay subtil */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20"></div>
-                  
-                  {/* Rating en overlay */}
-                  <div className="absolute top-3 left-3">
-                    <div className="flex items-center space-x-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={12}
-                          className={`${
-                            star <= (currentHeroItem.rating || 0) ? 'text-yellow-400 fill-current' : 'text-white/40'
-                          }`}
-                        />
-                      ))}
-                      <span className="text-white text-xs font-semibold ml-1">
-                        {currentHeroItem.rating || 0}/5
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contenu principal à droite */}
-              <div className="w-2/3 p-6 flex flex-col justify-center">
-                <div className="space-y-3">
-                  {/* Titre et année */}
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-1 leading-tight">
-                      {currentHeroItem.title}
-                    </h2>
-                    <div className="flex items-center space-x-3 text-sm text-gray-600">
-                      <span>{currentHeroItem.year}</span>
-                      {currentHeroItem.genre && (
-                        <>
-                          <span>•</span>
-                          <span>{currentHeroItem.genre}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Description compacte */}
-                  <p className="text-gray-600 leading-relaxed text-sm">
-                    {currentHeroItem.description ? 
-                      currentHeroItem.description.substring(0, 120) + (currentHeroItem.description.length > 120 ? '...' : '') :
-                      'Discover this amazing content and add it to your library!'
-                    }
-                  </p>
-
-                  {/* Stats détaillées */}
-                  {currentHeroItem.stats && (
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      {currentHeroItem.stats.engagement && (
-                        <div className="flex items-center space-x-1">
-                          <span>👍</span>
-                          <span>{currentHeroItem.stats.engagement} liked</span>
-                        </div>
-                      )}
-                      {currentHeroItem.stats.completion && (
-                        <div className="flex items-center space-x-1">
-                          <span>✅</span>
-                          <span>{currentHeroItem.stats.completion} completed</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Bouton d'action */}
-                  <div className="pt-2">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleHeroAction(currentHeroItem)
-                      }}
-                      className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
-                    >
-                      <Play size={16} className="mr-2" />
-                      {currentHeroItem.callToAction || 'Explore'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Navigation dots en bas */}
-            {heroContent.length > 1 && (
-              <div className="px-6 pb-4">
-                <div className="flex items-center justify-center space-x-2">
-                  {heroContent.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setCurrentHeroIndex(index)
-                        setIsAutoplay(false)
-                      }}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        index === currentHeroIndex 
-                          ? 'bg-blue-600 scale-125' 
-                          : 'bg-gray-300 hover:bg-gray-400'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {renderIntelligentHero()}
       </div>
 
       {/* For You Section avec minimum requirement */}

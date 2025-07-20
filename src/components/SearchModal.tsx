@@ -88,23 +88,26 @@ export default function SearchModal({
 
     switch (result.category) {
       case 'games':
-        // ✅ PRIORITÉ STRICTE: developers array > developer > author > mapping
+        // ✅ PRIORITÉ STRICTE: developer > developers array > author > mapping
+        // Check developer string field first (this is what the API usually provides in search results)
+        if (result.developer && result.developer !== 'Unknown Developer' && result.developer !== 'Developer' && result.developer !== 'Unknown' && result.developer !== 'Game Studio') {
+          creator = result.developer
+          console.log('🎮 ✅ Found developer from developer field:', creator)
+          break
+        }
+        
+        // Then check developers array (usually in detailed results)
         if (result.developers && result.developers.length > 0) {
           const mainDev = result.developers[0].name
-          if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer') {
+          if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer' && mainDev !== 'Game Studio') {
             creator = mainDev
             console.log('🎮 ✅ Found developer from developers array:', creator)
             break
           }
         }
         
-        if (result.developer && result.developer !== 'Unknown Developer' && result.developer !== 'Developer' && result.developer !== 'Unknown') {
-          creator = result.developer
-          console.log('🎮 ✅ Found developer from developer field:', creator)
-          break
-        }
-        
-        if (result.author && result.author !== 'Unknown Developer' && result.author !== 'Developer' && result.author !== 'Unknown') {
+        // Finally check author field as a fallback
+        if (result.author && result.author !== 'Unknown Developer' && result.author !== 'Developer' && result.author !== 'Unknown' && result.author !== 'Game Studio') {
           creator = result.author
           console.log('🎮 ✅ Found developer from author field:', creator)
           break
