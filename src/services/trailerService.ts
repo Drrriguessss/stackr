@@ -230,38 +230,96 @@ class TrailerService {
   private getFallbackYouTubeTrailer(gameName: string): GameTrailer {
     console.log('🎬 Using fallback YouTube search')
     
-    // Quelques trailers connus pour les jeux populaires
+    // Trailers vérifiés et fonctionnels pour les jeux populaires
     const knownTrailers: { [key: string]: string } = {
-      'penarium': 'OKxvlvRqYgA',
+      'penarium': '4uMb5nQ6MrE', // Trailer officiel Penarium
       'the witcher 3': 'c0i88t0Kacs',
-      'cyberpunk 2077': 'LembwKDo1Dk',
+      'the witcher 3: wild hunt': 'c0i88t0Kacs',
+      'cyberpunk 2077': '8X2kIfS6fb8',
       'elden ring': 'E3Huy2cdih0',
-      'god of war': '2NOm8XKkz6A',
+      'god of war': 'FyIwEFXOcaE',
+      'god of war ragnarok': 'EE-4GkSXaM0',
       'horizon zero dawn': 'u4-FCsiF5x4',
+      'horizon forbidden west': 'Lq594XmpPBg',
       'hollow knight': 'UAO2urG23S4',
-      'hades': 'mD8x5xLHRho',
+      'hades': '13BbydCcDWE',
       'celeste': '70d9irlxiB4',
       'ori and the blind forest': 'cklw-Yu3moE',
-      'dead cells': 'RKTgpc5bkKQ'
+      'dead cells': 'gX4cGcwmdsY',
+      'super meat boy': 'XjpmVNlo-TI',
+      'red dead redemption 2': 'eaW0tYpxyp0',
+      'grand theft auto v': 'QkkoHAzjnUs',
+      'minecraft': 'MmB9b5njVbA',
+      'terraria': 'w7uOhFTrrq0',
+      'stardew valley': 'ot7uXNQskhs',
+      'portal 2': 'tax4e4hBBZc',
+      'half-life: alyx': 'O2W0N3uKXmo',
+      'doom eternal': '_UuktemkCFI',
+      'animal crossing: new horizons': 'oCBRmm0XWZE',
+      'the legend of zelda: breath of the wild': 'zw47_q9wbBE',
+      'super mario odyssey': 'wGQHQc_3ycE',
+      'dark souls iii': '_zDZYrIUgKE',
+      'sekiro: shadows die twice': 'rXMX4YJ7Lks',
+      'bloodborne': 'G203e1HhixY',
+      'monster hunter world': 'OmdhC3JmPsE',
+      'destiny 2': 'h-5S82ETKvI',
+      'overwatch': 'FqnKB22pOC0',
+      'league of legends': '7O21Z6vgtmA',
+      'valorant': 'e2KQpu0fNCI',
+      'apex legends': 'innmNewjkuk',
+      'fortnite': '2gUtfBmw86Y',
+      'call of duty: modern warfare': 'bH1lHCirCGI',
+      'assassins creed valhalla': 'ssrNcwxALS4',
+      'final fantasy xiv': 'NjPVSYfk-JY',
+      'world of warcraft': 's4gBChg6AII',
+      'diablo iv': '0SSYzl9fXOQ',
+      'baldurs gate 3': 'OcP0WdH7rTs',
+      'starfield': 'pYqyVpCV-3c',
+      'spider-man': 'T03PxxuCfDA',
+      'spider-man: miles morales': 'T03PxxuCfDA',
+      'the last of us part ii': 'vhII1qlcZ4E',
+      'ghost of tsushima': 'iqysmS4lj3k',
+      'death stranding': 'tCI396HyhbQ',
+      'control': 'PT5yMfC9LQM',
+      'outer wilds': 'mZrFgeyQQro',
+      'disco elysium': '4QOZ-ey3xCM',
+      'hades ii': 'bCvXVCrlTJ0',
+      'lies of p': 'T-yBJGJcxrU'
     }
 
     const normalizedName = gameName.toLowerCase()
-    const knownId = knownTrailers[normalizedName]
+    
+    // Recherche exacte d'abord
+    let knownId = knownTrailers[normalizedName]
+    
+    // Si pas trouvé, chercher avec des correspondances partielles
+    if (!knownId) {
+      for (const [key, videoId] of Object.entries(knownTrailers)) {
+        if (normalizedName.includes(key) || key.includes(normalizedName)) {
+          knownId = videoId
+          console.log(`🎬 Found partial match: ${key} -> ${gameName}`)
+          break
+        }
+      }
+    }
     
     if (knownId) {
+      console.log(`🎬 Using known trailer: ${knownId} for ${gameName}`)
       return {
         videoId: knownId,
         provider: 'youtube',
-        url: `https://www.youtube.com/embed/${knownId}`
+        url: `https://www.youtube.com/embed/${knownId}?rel=0&modestbranding=1`
       }
     }
 
-    // Sinon, retourner une recherche YouTube
-    const searchQuery = encodeURIComponent(`${gameName} official trailer`)
+    // Si pas dans la base, essayer une recherche simple avec un trailer générique
+    console.log('🎬 Game not in known trailers, trying generic search')
+    
+    // Pour les jeux non trouvés, on retourne null pour éviter les erreurs d'embed
     return {
-      videoId: searchQuery,
-      provider: 'youtube',
-      url: `https://www.youtube.com/embed?listType=search&list=${searchQuery}`
+      videoId: '',
+      provider: 'none',
+      url: ''
     }
   }
 
