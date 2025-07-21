@@ -462,8 +462,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     }
   }
   
-  // Use prop library or fallback to sample data
-  const [library, setLibrary] = useState<LibraryItem[]>(propLibrary.length > 0 ? propLibrary : sampleLibrary)
+  // ✅ UTILISER UNIQUEMENT LES PROPS - PAS D'ÉTAT LOCAL POUR LA BIBLIOTHÈQUE
+  const library = propLibrary.length > 0 ? propLibrary : sampleLibrary
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [activeStatus, setActiveStatus] = useState<string>('all')
@@ -472,13 +472,6 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showAddInfoModal, setShowAddInfoModal] = useState<string | null>(null)
   const [showLocalSearchModal, setShowLocalSearchModal] = useState(false)
-
-  // Update library when prop changes
-  useEffect(() => {
-    if (propLibrary.length > 0) {
-      setLibrary(propLibrary)
-    }
-  }, [propLibrary])
 
   // ✅ FETCH DEVELOPER INFO FOR GAMES MISSING IT
   useEffect(() => {

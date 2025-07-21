@@ -17,19 +17,30 @@ import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
 import { rawgService } from '@/services/rawgService'
-import { LibraryService } from '@/services/libraryService'
+import { useLibrary } from '@/hooks/useLibrary'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<MediaCategory>('games')
   const [activeMainTab, setActiveMainTab] = useState('home')
-  const [library, setLibrary] = useState<LibraryItem[]>([])
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  
+  // ✅ NOUVEAU SYSTÈME DE SYNCHRONISATION
+  const { 
+    library, 
+    loading: libraryLoading, 
+    error: libraryError, 
+    addToLibrary, 
+    updateItem, 
+    deleteItem, 
+    forceSync,
+    clearError 
+  } = useLibrary()
   
   // State pour le contenu dynamique des jeux
   const [gameContent, setGameContent] = useState<{
@@ -82,83 +93,13 @@ export default function Home() {
   // User reviews state
   const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
 
-  // ✅ CHARGER LA BIBLIOTHÈQUE AU DÉMARRAGE + SYNCHRONISATION TEMPS RÉEL
+  // ✅ AFFICHER LES ERREURS DE SYNCHRONISATION
   useEffect(() => {
-    const loadSavedLibrary = async () => {
-      try {
-        // Forcer le rechargement depuis Supabase (ignorer le cache)
-        const savedLibrary = await LibraryService.getLibraryFresh()
-        setLibrary(savedLibrary)
-        console.log('📚 Initial library loaded:', savedLibrary.length, 'items')
-        
-        // Test optionnel de connexion Supabase
-        await LibraryService.testSupabaseConnection()
-      } catch (error) {
-        console.error('Error loading saved library:', error)
-      }
+    if (libraryError) {
+      console.error('❌ Library error:', libraryError)
+      // Optionnel: afficher une notification à l'utilisateur
     }
-    loadSavedLibrary()
-  }, [])
-
-  // ✅ SYNCHRONISATION TEMPS RÉEL - Recharger la bibliothèque périodiquement
-  useEffect(() => {
-    let syncInterval: NodeJS.Timeout
-
-    const syncLibrary = async () => {
-      try {
-        // Recharger depuis Supabase pour synchroniser avec d'autres appareils
-        const freshLibrary = await LibraryService.getLibraryFresh()
-        
-        // Comparer plus intelligemment (ignorer l'ordre et les timestamps)
-        const currentLibraryHash = library.map(item => `${item.id}-${item.status}-${item.title}`).sort().join('|')
-        const freshLibraryHash = freshLibrary.map(item => `${item.id}-${item.status}-${item.title}`).sort().join('|')
-        
-        if (currentLibraryHash !== freshLibraryHash) {
-          console.log('🔄 Library sync: Changes detected, updating...')
-          console.log('📊 Current items:', library.length, 'Fresh items:', freshLibrary.length)
-          setLibrary(freshLibrary)
-        } else {
-          console.log('✅ Library sync: No changes detected')
-        }
-      } catch (error) {
-        console.error('Error syncing library:', error)
-      }
-    }
-
-    // Synchroniser toutes les 30 secondes
-    syncInterval = setInterval(syncLibrary, 30000)
-
-    // Synchroniser aussi quand la fenêtre redevient active
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('🔄 Window became active, syncing library...')
-        syncLibrary()
-      }
-    }
-
-    const handleFocus = () => {
-      console.log('🔄 Window focused, syncing library...')
-      syncLibrary()
-    }
-
-    // ✅ ÉCOUTER LES ÉVÉNEMENTS DE CHANGEMENT DE BIBLIOTHÈQUE
-    const handleLibraryChange = (event: CustomEvent) => {
-      console.log('🔔 Library change detected:', event.detail)
-      // Synchroniser immédiatement après un changement
-      setTimeout(syncLibrary, 1000) // Petit délai pour laisser Supabase se synchroniser
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-    window.addEventListener('library-changed', handleLibraryChange as EventListener)
-
-    return () => {
-      if (syncInterval) clearInterval(syncInterval)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('library-changed', handleLibraryChange as EventListener)
-    }
-  }, [library])
+  }, [libraryError])
 
   // Charger le contenu selon la catégorie active
   useEffect(() => {
@@ -313,76 +254,39 @@ export default function Home() {
     }
   }
 
-  // Fonction modifiée pour ajouter à la bibliothèque avec Supabase
+  // ✅ NOUVELLES FONCTIONS UTILISANT LE SYSTÈME DE SYNCHRONISATION
   const handleAddToLibrary = async (item: any, status: MediaStatus) => {
     const normalizedId = normalizeId(item.id)
     
-    const newItem: LibraryItem = {
+    const itemToAdd = {
+      ...item,
       id: normalizedId,
-      title: item.title,
-      category: item.category || activeTab,
-      status,
-      addedAt: new Date().toISOString(),
-      year: item.year || new Date().getFullYear(),
-      rating: item.rating || 0,
-      image: item.image || item.background_image,
-      author: item.author,
-      artist: item.artist,
-      director: item.director,
-      developer: item.developer, // ✅ ADD developer field
-      genre: item.genre,
-      // ✅ PRESERVE API DATA for games
-      developers: item.developers,
-      publishers: item.publishers,
-      genres: item.genres,
-      released: item.released,
-      background_image: item.background_image
+      category: item.category || activeTab
     }
 
-    // Sauvegarder avec le service
-    const success = await LibraryService.addToLibrary(newItem, status)
+    console.log('➕ [HomePage] Adding item to library:', itemToAdd.title)
+    const success = await addToLibrary(itemToAdd, status)
     
-    if (success) {
-      // Mettre à jour l'état local
-      setLibrary(prev => {
-        const existingIndex = prev.findIndex((libItem: LibraryItem) => 
-          idsMatch(libItem.id, normalizedId)
-        )
-        
-        if (existingIndex !== -1) {
-          const updated = [...prev]
-          updated[existingIndex] = { 
-            ...updated[existingIndex], 
-            status, 
-            addedAt: new Date().toISOString() 
-          }
-          return updated
-        }
-        
-        return [newItem, ...prev] // Ajouter en premier
-      })
+    if (!success) {
+      console.error('❌ [HomePage] Failed to add item to library')
     }
   }
 
   const handleUpdateItem = async (id: string, updates: Partial<LibraryItem>) => {
-    const success = await LibraryService.updateLibraryItem(id, updates)
+    console.log('📝 [HomePage] Updating item:', id, updates)
+    const success = await updateItem(id, updates)
     
-    if (success) {
-      setLibrary(prev =>
-        prev.map(item =>
-          idsMatch(item.id, id)
-            ? { ...item, ...updates }
-            : item
-        )
-      )
+    if (!success) {
+      console.error('❌ [HomePage] Failed to update item')
     }
   }
 
   const handleDeleteItem = async (id: string) => {
-    const success = await LibraryService.removeFromLibrary(id)
+    console.log('🗑️ [HomePage] Deleting item:', id)
+    const success = await deleteItem(id)
     
-    if (success) {
-      setLibrary(prev => prev.filter(item => !idsMatch(item.id, id)))
+    if (!success) {
+      console.error('❌ [HomePage] Failed to delete item')
     }
   }
 
@@ -747,18 +651,33 @@ export default function Home() {
   }
 
   const renderLibraryContent = () => (
-  <LibrarySection 
-    library={library}
-    onAddToLibrary={handleAddToLibrary}
-    onUpdateItem={handleUpdateItem}
-    onDeleteItem={handleDeleteItem}
-    onOpenGameDetail={handleOpenGameDetail}
-    onOpenMovieDetail={handleOpenMovieDetail}
-    onOpenBookDetail={handleOpenBookDetail}
-    onOpenMusicDetail={handleOpenMusicDetail}
-    onOpenSearch={handleOpenSearch}
-  />
-)
+    <div className="relative">
+      {/* ✅ INDICATEUR DE SYNCHRONISATION */}
+      {libraryLoading && (
+        <div className="absolute top-4 right-4 z-50 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium shadow-sm">
+          🔄 Syncing...
+        </div>
+      )}
+      {libraryError && (
+        <div className="absolute top-4 right-4 z-50 bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium shadow-sm cursor-pointer"
+             onClick={clearError}>
+          ❌ Sync Error (tap to dismiss)
+        </div>
+      )}
+      
+      <LibrarySection 
+        library={library}
+        onAddToLibrary={handleAddToLibrary}
+        onUpdateItem={handleUpdateItem}
+        onDeleteItem={handleDeleteItem}
+        onOpenGameDetail={handleOpenGameDetail}
+        onOpenMovieDetail={handleOpenMovieDetail}
+        onOpenBookDetail={handleOpenBookDetail}
+        onOpenMusicDetail={handleOpenMusicDetail}
+        onOpenSearch={handleOpenSearch}
+      />
+    </div>
+  )
 
   const renderDiscoverContent = () => (
     <DiscoverPage
