@@ -82,12 +82,14 @@ export default function Home() {
   // User reviews state
   const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
 
-  // Charger la bibliothèque au démarrage
+  // ✅ CHARGER LA BIBLIOTHÈQUE AU DÉMARRAGE + SYNCHRONISATION TEMPS RÉEL
   useEffect(() => {
     const loadSavedLibrary = async () => {
       try {
-        const savedLibrary = await LibraryService.getLibrary()
+        // Forcer le rechargement depuis Supabase (ignorer le cache)
+        const savedLibrary = await LibraryService.getLibraryFresh()
         setLibrary(savedLibrary)
+        console.log('📚 Initial library loaded:', savedLibrary.length, 'items')
         
         // Test optionnel de connexion Supabase
         await LibraryService.testSupabaseConnection()
@@ -97,6 +99,66 @@ export default function Home() {
     }
     loadSavedLibrary()
   }, [])
+
+  // ✅ SYNCHRONISATION TEMPS RÉEL - Recharger la bibliothèque périodiquement
+  useEffect(() => {
+    let syncInterval: NodeJS.Timeout
+
+    const syncLibrary = async () => {
+      try {
+        // Recharger depuis Supabase pour synchroniser avec d'autres appareils
+        const freshLibrary = await LibraryService.getLibraryFresh()
+        
+        // Comparer plus intelligemment (ignorer l'ordre et les timestamps)
+        const currentLibraryHash = library.map(item => `${item.id}-${item.status}-${item.title}`).sort().join('|')
+        const freshLibraryHash = freshLibrary.map(item => `${item.id}-${item.status}-${item.title}`).sort().join('|')
+        
+        if (currentLibraryHash !== freshLibraryHash) {
+          console.log('🔄 Library sync: Changes detected, updating...')
+          console.log('📊 Current items:', library.length, 'Fresh items:', freshLibrary.length)
+          setLibrary(freshLibrary)
+        } else {
+          console.log('✅ Library sync: No changes detected')
+        }
+      } catch (error) {
+        console.error('Error syncing library:', error)
+      }
+    }
+
+    // Synchroniser toutes les 30 secondes
+    syncInterval = setInterval(syncLibrary, 30000)
+
+    // Synchroniser aussi quand la fenêtre redevient active
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 Window became active, syncing library...')
+        syncLibrary()
+      }
+    }
+
+    const handleFocus = () => {
+      console.log('🔄 Window focused, syncing library...')
+      syncLibrary()
+    }
+
+    // ✅ ÉCOUTER LES ÉVÉNEMENTS DE CHANGEMENT DE BIBLIOTHÈQUE
+    const handleLibraryChange = (event: CustomEvent) => {
+      console.log('🔔 Library change detected:', event.detail)
+      // Synchroniser immédiatement après un changement
+      setTimeout(syncLibrary, 1000) // Petit délai pour laisser Supabase se synchroniser
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    window.addEventListener('library-changed', handleLibraryChange as EventListener)
+
+    return () => {
+      if (syncInterval) clearInterval(syncInterval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('library-changed', handleLibraryChange as EventListener)
+    }
+  }, [library])
 
   // Charger le contenu selon la catégorie active
   useEffect(() => {

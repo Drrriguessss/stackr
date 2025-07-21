@@ -6,6 +6,98 @@ export class LibraryService {
   // Clé pour localStorage (fallback)
   private static STORAGE_KEY = 'stackr_library'
 
+  // ✅ DÉCLENCHER ÉVÉNEMENT PERSONNALISÉ POUR SYNCHRONISATION
+  private static notifyLibraryChange(action: 'added' | 'updated' | 'deleted', item?: LibraryItem) {
+    const event = new CustomEvent('library-changed', {
+      detail: { action, item, timestamp: Date.now() }
+    })
+    window.dispatchEvent(event)
+    console.log('🔔 Library change event dispatched:', action, item?.title)
+  }
+
+  // ✅ RÉCUPÉRER LA BIBLIOTHÈQUE FRAÎCHE (FORCE SUPABASE, IGNORE CACHE)
+  static async getLibraryFresh(): Promise<LibraryItem[]> {
+    try {
+      // Vérifier si on est côté client
+      if (typeof window === 'undefined') {
+        return []
+      }
+
+      console.log('🔄 [LibraryService] Fetching fresh library from Supabase...')
+
+      // Forcer le rechargement depuis Supabase (ignorer localStorage)
+      const { data, error } = await supabase
+        .from('library_items')
+        .select('*')
+        .order('added_at', { ascending: false })
+
+      if (!error && data) {
+        console.log('📚 Fresh library loaded from Supabase:', data.length, 'items')
+        
+        // Convertir les données Supabase au format LibraryItem
+        const convertedItems: LibraryItem[] = data.map(item => ({
+          id: item.id,
+          title: item.title,
+          category: item.category,
+          status: item.status,
+          addedAt: item.added_at,
+          year: item.year,
+          rating: item.rating,
+          image: item.image,
+          author: item.author,
+          artist: item.artist,
+          director: item.director,
+          developer: item.developer,
+          genre: item.genre,
+          userRating: item.user_rating,
+          progress: item.progress,
+          notes: item.notes,
+          dateStarted: item.date_started,
+          dateCompleted: item.date_completed,
+          
+          // Nouvelles propriétés depuis Supabase
+          developers: item.developers ? JSON.parse(item.developers) : [],
+          publishers: item.publishers ? JSON.parse(item.publishers) : [],
+          genres: item.genres ? JSON.parse(item.genres) : [],
+          background_image: item.background_image,
+          released: item.released,
+          
+          // Films/séries
+          type: item.type,
+          isMovie: item.is_movie,
+          isSeries: item.is_series,
+          totalSeasons: item.total_seasons,
+          displayTitle: item.display_title,
+          overview: item.overview,
+          runtime: item.runtime,
+          actors: item.actors,
+          language: item.language,
+          country: item.country,
+          awards: item.awards,
+          
+          // Infos additionnelles
+          additionalInfo: item.additional_info ? JSON.parse(item.additional_info) : undefined
+        }))
+        
+        // Mettre à jour le cache localStorage avec les données fraîches
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(convertedItems))
+        return convertedItems
+      } else {
+        console.error('🔄 [LibraryService] Supabase error:', error)
+        throw new Error('Failed to fetch from Supabase')
+      }
+
+    } catch (error) {
+      console.error('❌ [LibraryService] Error fetching fresh library:', error)
+      
+      // Fallback vers localStorage seulement en cas d'erreur
+      const stored = localStorage.getItem(this.STORAGE_KEY)
+      const items = stored ? JSON.parse(stored) : []
+      console.log('📚 Fallback to localStorage:', items.length, 'items')
+      return items
+    }
+  }
+
   // Récupérer la bibliothèque (Supabase + fallback localStorage)
   static async getLibrary(): Promise<LibraryItem[]> {
     try {
@@ -191,6 +283,9 @@ export class LibraryService {
           }
           
           localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+          
+          // ✅ DÉCLENCHER ÉVÉNEMENT DE SYNCHRONISATION
+          this.notifyLibraryChange('added', newItem)
           return true
         } else {
           console.error('Supabase error:', error)
@@ -286,6 +381,9 @@ export class LibraryService {
 
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
       console.log('📝 Updated library item:', library[itemIndex].title)
+      
+      // ✅ DÉCLENCHER ÉVÉNEMENT DE SYNCHRONISATION
+      this.notifyLibraryChange('updated', library[itemIndex])
       return true
 
     } catch (error) {
@@ -330,6 +428,9 @@ export class LibraryService {
       const filteredLibrary = library.filter(item => item.id !== itemId)
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredLibrary))
       console.log('🗑️ Removed from library:', itemToRemove.title)
+      
+      // ✅ DÉCLENCHER ÉVÉNEMENT DE SYNCHRONISATION
+      this.notifyLibraryChange('deleted', itemToRemove)
       return true
 
     } catch (error) {
