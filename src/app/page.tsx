@@ -17,7 +17,7 @@ import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
 import { rawgService } from '@/services/rawgService'
-import { useLibrary } from '@/hooks/useLibrary'
+import LibraryService from '@/services/libraryService'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
@@ -30,17 +30,9 @@ export default function Home() {
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   
-  // ✅ NOUVEAU SYSTÈME DE SYNCHRONISATION
-  const { 
-    library, 
-    loading: libraryLoading, 
-    error: libraryError, 
-    addToLibrary, 
-    updateItem, 
-    deleteItem, 
-    forceSync,
-    clearError 
-  } = useLibrary()
+  // Library state
+  const [library, setLibrary] = useState<LibraryItem[]>([])
+  const [libraryLoading, setLibraryLoading] = useState(true)
   
   // State pour le contenu dynamique des jeux
   const [gameContent, setGameContent] = useState<{
@@ -93,13 +85,22 @@ export default function Home() {
   // User reviews state
   const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
 
-  // ✅ AFFICHER LES ERREURS DE SYNCHRONISATION
+  // Load library on component mount
   useEffect(() => {
-    if (libraryError) {
-      console.error('❌ Library error:', libraryError)
-      // Optionnel: afficher une notification à l'utilisateur
+    const loadLibrary = async () => {
+      try {
+        setLibraryLoading(true)
+        const items = await LibraryService.getLibrary()
+        setLibrary(items)
+      } catch (error) {
+        console.error('Error loading library:', error)
+      } finally {
+        setLibraryLoading(false)
+      }
     }
-  }, [libraryError])
+    
+    loadLibrary()
+  }, [])
 
   // Charger le contenu selon la catégorie active
   useEffect(() => {
@@ -254,7 +255,6 @@ export default function Home() {
     }
   }
 
-  // ✅ NOUVELLES FONCTIONS UTILISANT LE SYSTÈME DE SYNCHRONISATION
   const handleAddToLibrary = async (item: any, status: MediaStatus) => {
     const normalizedId = normalizeId(item.id)
     
@@ -264,29 +264,32 @@ export default function Home() {
       category: item.category || activeTab
     }
 
-    console.log('➕ [HomePage] Adding item to library:', itemToAdd.title)
-    const success = await addToLibrary(itemToAdd, status)
-    
-    if (!success) {
-      console.error('❌ [HomePage] Failed to add item to library')
+    try {
+      await LibraryService.addToLibrary(itemToAdd, status)
+      const updatedLibrary = await LibraryService.getLibrary()
+      setLibrary(updatedLibrary)
+    } catch (error) {
+      console.error('Error adding to library:', error)
     }
   }
 
   const handleUpdateItem = async (id: string, updates: Partial<LibraryItem>) => {
-    console.log('📝 [HomePage] Updating item:', id, updates)
-    const success = await updateItem(id, updates)
-    
-    if (!success) {
-      console.error('❌ [HomePage] Failed to update item')
+    try {
+      await LibraryService.updateLibraryItem(id, updates)
+      const updatedLibrary = await LibraryService.getLibrary()
+      setLibrary(updatedLibrary)
+    } catch (error) {
+      console.error('Error updating item:', error)
     }
   }
 
   const handleDeleteItem = async (id: string) => {
-    console.log('🗑️ [HomePage] Deleting item:', id)
-    const success = await deleteItem(id)
-    
-    if (!success) {
-      console.error('❌ [HomePage] Failed to delete item')
+    try {
+      await LibraryService.removeFromLibrary(id)
+      const updatedLibrary = await LibraryService.getLibrary()
+      setLibrary(updatedLibrary)
+    } catch (error) {
+      console.error('Error deleting item:', error)
     }
   }
 
@@ -635,7 +638,7 @@ export default function Home() {
                   items={section.items}
                   category={activeTab}
                   onAddToLibrary={handleAddToLibrary}
-                  onDeleteItem={handleDeleteItem} // ✅ AJOUT NOUVELLE PROP
+                  onDeleteItem={handleDeleteItem}
                   library={library}
                   onOpenGameDetail={handleOpenGameDetail}
                   onOpenMovieDetail={handleOpenMovieDetail}
@@ -651,38 +654,23 @@ export default function Home() {
   }
 
   const renderLibraryContent = () => (
-    <div className="relative">
-      {/* ✅ INDICATEUR DE SYNCHRONISATION */}
-      {libraryLoading && (
-        <div className="absolute top-4 right-4 z-50 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium shadow-sm">
-          🔄 Syncing...
-        </div>
-      )}
-      {libraryError && (
-        <div className="absolute top-4 right-4 z-50 bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium shadow-sm cursor-pointer"
-             onClick={clearError}>
-          ❌ Sync Error (tap to dismiss)
-        </div>
-      )}
-      
-      <LibrarySection 
-        library={library}
-        onAddToLibrary={handleAddToLibrary}
-        onUpdateItem={handleUpdateItem}
-        onDeleteItem={handleDeleteItem}
-        onOpenGameDetail={handleOpenGameDetail}
-        onOpenMovieDetail={handleOpenMovieDetail}
-        onOpenBookDetail={handleOpenBookDetail}
-        onOpenMusicDetail={handleOpenMusicDetail}
-        onOpenSearch={handleOpenSearch}
-      />
-    </div>
+    <LibrarySection 
+      library={library}
+      onAddToLibrary={handleAddToLibrary}
+      onUpdateItem={handleUpdateItem}
+      onDeleteItem={handleDeleteItem}
+      onOpenGameDetail={handleOpenGameDetail}
+      onOpenMovieDetail={handleOpenMovieDetail}
+      onOpenBookDetail={handleOpenBookDetail}
+      onOpenMusicDetail={handleOpenMusicDetail}
+      onOpenSearch={handleOpenSearch}
+    />
   )
 
   const renderDiscoverContent = () => (
     <DiscoverPage
       onAddToLibrary={handleAddToLibrary}
-      onDeleteItem={handleDeleteItem} // ✅ AJOUT NOUVELLE PROP
+      onDeleteItem={handleDeleteItem}
       onOpenGameDetail={handleOpenGameDetail}
       onOpenMovieDetail={handleOpenMovieDetail}
       onOpenBookDetail={handleOpenBookDetail}
@@ -720,13 +708,13 @@ export default function Home() {
         onTabChange={setActiveMainTab} 
       />
 
-      {/* ✅ MODALS AVEC onDeleteItem AJOUTÉ */}
+      {/* Detail Modals */}
       <GameDetailModal
         isOpen={!!selectedGameId}
         onClose={() => setSelectedGameId(null)}
         gameId={selectedGameId || ''}
         onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem} // ✅ AJOUT
+        onDeleteItem={handleDeleteItem}
         library={library}
         userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
         googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
@@ -738,7 +726,7 @@ export default function Home() {
         onClose={() => setSelectedMovieId(null)}
         movieId={selectedMovieId || ''}
         onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem} // ✅ AJOUT
+        onDeleteItem={handleDeleteItem}
         library={library}
         userReviews={selectedMovieId ? userReviews[selectedMovieId] || [] : []}
         imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
@@ -750,7 +738,7 @@ export default function Home() {
         onClose={() => setSelectedBookId(null)}
         bookId={selectedBookId || ''}
         onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem} // ✅ AJOUT
+        onDeleteItem={handleDeleteItem}
         library={library}
         userReviews={selectedBookId ? userReviews[selectedBookId] || [] : []}
         goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
@@ -762,7 +750,7 @@ export default function Home() {
         onClose={() => setSelectedMusicId(null)}
         albumId={selectedMusicId || ''}
         onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem} // ✅ AJOUT
+        onDeleteItem={handleDeleteItem}
         library={library}
         userReviews={selectedMusicId ? userReviews[selectedMusicId] || [] : []}
         spotifyReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}

@@ -816,12 +816,6 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
               onClick={() => {
                 if (onUpdateItem) {
                   onUpdateItem(item.id, { additionalInfo: formData })
-                } else {
-                  setLibrary(prev => prev.map(libItem => 
-                    libItem.id === item.id 
-                      ? { ...libItem, additionalInfo: formData }
-                      : libItem
-                  ))
                 }
                 setShowAddInfoModal(null)
               }}
