@@ -4,7 +4,7 @@ import { Search } from 'lucide-react'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
-import GameDetailPageV2 from '@/components/GameDetailPageV2'
+import GameDetailModal from '@/components/GameDetailModal'
 import MovieDetailModal from '@/components/MovieDetailModal'
 import BookDetailModal from '@/components/BookDetailModal'
 import MusicDetailModal from '@/components/MusicDetailModal'
@@ -781,7 +781,7 @@ export default function Home() {
       />
 
       {/* Detail Modals */}
-      <GameDetailPageV2
+      <GameDetailModal
         isOpen={!!selectedGameId}
         onClose={() => setSelectedGameId(null)}
         gameId={selectedGameId || ''}
