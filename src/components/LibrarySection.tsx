@@ -112,6 +112,59 @@ const fetchDeveloperInfo = async (gameId: string, gameName: string): Promise<str
   return 'Unknown Developer'
 }
 
+// ✅ FETCH DIRECTOR INFO FROM API FOR MOVIES
+const fetchDirectorInfo = async (movieId: string, movieTitle: string): Promise<string> => {
+  const OMDB_API_KEY = '649f9a63'
+  
+  try {
+    // Extract IMDB ID from movie ID
+    let imdbId = movieId
+    if (movieId.startsWith('movie-')) {
+      imdbId = movieId.replace('movie-', '')
+    }
+    
+    // If not a valid IMDB ID, search by title
+    if (!imdbId.startsWith('tt')) {
+      console.log(`🎬 [LibrarySection] Searching for movie: ${movieTitle}`)
+      const searchUrl = `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(movieTitle)}&type=movie`
+      const searchResponse = await fetch(searchUrl)
+      
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json()
+        if (searchData.Search && searchData.Search.length > 0) {
+          imdbId = searchData.Search[0].imdbID
+        } else {
+          throw new Error('Movie not found in search')
+        }
+      }
+    }
+    
+    // Fetch movie details
+    console.log(`🎬 [LibrarySection] Fetching details for movie ID: ${imdbId}`)
+    const detailUrl = `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&i=${imdbId}&plot=full`
+    const detailResponse = await fetch(detailUrl)
+    
+    if (detailResponse.ok) {
+      const movieData = await detailResponse.json()
+      console.log(`🎬 [LibrarySection] Movie details for ${movieTitle}:`, {
+        Director: movieData.Director,
+        Title: movieData.Title
+      })
+      
+      // Extract director name
+      if (movieData.Director && movieData.Director !== 'N/A' && movieData.Director.trim() !== '') {
+        const directorName = movieData.Director
+        console.log(`🎬 [LibrarySection] Found director: ${directorName}`)
+        return directorName
+      }
+    }
+  } catch (error) {
+    console.error(`🎬 [LibrarySection] Failed to fetch director for ${movieTitle}:`, error)
+  }
+  
+  return 'Unknown Director'
+}
+
 // ✅ SIMPLE getCreator FOR SORTING (no API calls)
 const getCreator = (item: LibraryItem): string => {
   switch (item.category) {
@@ -138,8 +191,16 @@ const getCreator = (item: LibraryItem): string => {
   }
 }
 
-// ✅ ENHANCED getCreator WITH CACHING AND STATE MANAGEMENT  
-const getCreatorForItem = (item: LibraryItem, fetchAndUpdateDeveloper: (item: LibraryItem) => void, developerCache: Record<string, string>, fetchingDevelopers: Set<string>): string => {
+// ✅ ENHANCED getCreator WITH CACHING AND STATE MANAGEMENT FOR GAMES AND MOVIES
+const getCreatorForItem = (
+  item: LibraryItem, 
+  fetchAndUpdateDeveloper: (item: LibraryItem) => void, 
+  fetchAndUpdateDirector: (item: LibraryItem) => void,
+  developerCache: Record<string, string>, 
+  directorCache: Record<string, string>,
+  fetchingDevelopers: Set<string>,
+  fetchingDirectors: Set<string>
+): string => {
   let creator = ''
 
   switch (item.category) {
@@ -177,39 +238,45 @@ const getCreatorForItem = (item: LibraryItem, fetchAndUpdateDeveloper: (item: Li
       break
 
     case 'movies':
-      if (item.director && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
+      // First check cache
+      if (directorCache[item.id]) {
+        creator = directorCache[item.id]
+        console.log('🎬 ✅ Found cached director:', creator)
+      }
+      // Then check existing item data
+      else if (item.director && item.director !== 'Unknown Director' && item.director !== 'N/A' && item.director !== 'Unknown') {
         creator = item.director
-      } else if (item.author && item.author !== 'Unknown Director' && item.author !== 'N/A' && item.author !== 'Unknown') {
+        console.log('🎬 ✅ Found existing director:', creator)
+      } else if (item.author && item.author !== 'Unknown Director' && item.author !== 'Director' && item.author !== 'Unknown' && item.author !== 'N/A') {
         creator = item.author
-      } else {
-        creator = 'Director'
+        console.log('🎬 ✅ Found director from author:', creator)
+      }
+      
+      // If no valid director found, trigger fetch
+      if (!creator || creator === 'Unknown Director' || creator === 'N/A') {
+        if (fetchingDirectors.has(item.id)) {
+          creator = 'Loading...'
+        } else {
+          console.log(`🎬 [LibrarySection] No director info found for ${item.title}, triggering fetch...`)
+          fetchAndUpdateDirector(item)
+          creator = 'Loading...'
+        }
       }
       break
 
     case 'music':
-      if (item.artist && item.artist !== 'Unknown Artist' && item.artist !== 'Unknown') {
-        creator = item.artist
-      } else if (item.author && item.author !== 'Unknown Artist' && item.author !== 'Unknown') {
-        creator = item.author
-      } else {
-        creator = 'Artist'
-      }
+      creator = item.artist || 'Unknown Artist'
       break
 
     case 'books':
-      if (item.author && item.author !== 'Unknown Author' && item.author !== 'Unknown') {
-        creator = item.author
-      } else {
-        creator = 'Author'
-      }
+      creator = item.author || 'Unknown Author'
       break
 
     default:
-      creator = item.author || item.artist || item.director || item.developer || 'Creator'
+      creator = item.author || item.artist || item.director || item.developer || 'Unknown Creator'
       break
   }
 
-  console.log('✅ [LibrarySection] Final creator for', item.title, ':', creator)
   return creator
 }
 
@@ -310,9 +377,11 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   onOpenMusicDetail,
   onOpenSearch
 }) => {
-  // ✅ STATE FOR TRACKING DEVELOPER FETCHING
+  // ✅ STATE FOR TRACKING DEVELOPER AND DIRECTOR FETCHING
   const [developerCache, setDeveloperCache] = useState<Record<string, string>>({})
+  const [directorCache, setDirectorCache] = useState<Record<string, string>>({})
   const [fetchingDevelopers, setFetchingDevelopers] = useState<Set<string>>(new Set())
+  const [fetchingDirectors, setFetchingDirectors] = useState<Set<string>>(new Set())
   const fetchTimeouts = useRef<Record<string, NodeJS.Timeout>>({})
   
   // ✅ FUNCTION TO FETCH AND UPDATE DEVELOPER INFO
@@ -353,6 +422,45 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       })
     }
   }
+
+  // ✅ FUNCTION TO FETCH AND UPDATE DIRECTOR INFO
+  const fetchAndUpdateDirector = async (item: LibraryItem) => {
+    const itemId = item.id
+    
+    // Check if already fetching or cached
+    if (fetchingDirectors.has(itemId) || directorCache[itemId]) {
+      return
+    }
+    
+    // Mark as fetching
+    setFetchingDirectors(prev => new Set([...prev, itemId]))
+    
+    try {
+      const director = await fetchDirectorInfo(itemId, item.title)
+      
+      if (director && director !== 'Unknown Director') {
+        // Cache the result
+        setDirectorCache(prev => ({
+          ...prev,
+          [itemId]: director
+        }))
+        
+        // Update the library item if update function is available
+        if (onUpdateItem) {
+          onUpdateItem(itemId, { director })
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to fetch director for ${item.title}:`, error)
+    } finally {
+      // Remove from fetching set
+      setFetchingDirectors(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(itemId)
+        return newSet
+      })
+    }
+  }
   
   // Use prop library or fallback to sample data
   const [library, setLibrary] = useState<LibraryItem[]>(propLibrary.length > 0 ? propLibrary : sampleLibrary)
@@ -387,6 +495,22 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       fetchAndUpdateDeveloper(game)
     })
   }, [library, fetchingDevelopers, developerCache])
+
+  // ✅ FETCH DIRECTOR INFO FOR MOVIES MISSING IT
+  useEffect(() => {
+    const moviesNeedingDirectorInfo = library.filter(item => 
+      item.category === 'movies' && 
+      (!item.director || item.director === 'Unknown Director' || item.director === 'N/A') &&
+      !fetchingDirectors.has(item.id) &&
+      !directorCache[item.id]
+    )
+
+    // Fetch director info for movies that need it (limit to avoid API rate limits)
+    moviesNeedingDirectorInfo.slice(0, 3).forEach(movie => {
+      console.log(`🎬 [LibrarySection] Auto-fetching director for: ${movie.title}`)
+      fetchAndUpdateDirector(movie)
+    })
+  }, [library, fetchingDirectors, directorCache])
 
   // Filter and sort logic
   const filteredAndSortedLibrary = React.useMemo(() => {
@@ -916,7 +1040,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                                   {item.title}
                                 </h3>
                                 <p className="text-gray-600 text-xs mt-1">
-                                  by {getCreatorForItem(item, fetchAndUpdateDeveloper, developerCache, fetchingDevelopers)}
+                                  by {getCreatorForItem(item, fetchAndUpdateDeveloper, fetchAndUpdateDirector, developerCache, directorCache, fetchingDevelopers, fetchingDirectors)}
                                 </p>
                               </div>
                               
@@ -1032,7 +1156,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                               {item.title}
                             </h3>
                             <p className="text-gray-600 text-xs mt-1">
-                              by {getCreatorForItem(item, fetchAndUpdateDeveloper, developerCache, fetchingDevelopers)}
+                              by {getCreatorForItem(item, fetchAndUpdateDeveloper, fetchAndUpdateDirector, developerCache, directorCache, fetchingDevelopers, fetchingDirectors)}
                             </p>
                           </div>
                           
