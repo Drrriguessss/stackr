@@ -168,9 +168,13 @@ export default function GameDetailDarkV2({
       // Fetch trailer
       fetchTrailer(rawgId, data.name)
       
-      // Use mock data for similar and developer games
-      setSimilarGames(mockSimilarGames)
-      setDeveloperGames(mockDeveloperGames)
+      // Fetch real similar games and developer games
+      if (data.genres && data.genres.length > 0) {
+        await fetchRealSimilarGames(data.genres, data.tags, data.id)
+      }
+      if (data.developers && data.developers.length > 0) {
+        await fetchRealDeveloperGames(data.developers[0].name, data.id)
+      }
       
     } catch (error) {
       console.error('Error loading game details:', error)
@@ -202,8 +206,9 @@ export default function GameDetailDarkV2({
         esrb_rating: { name: "Teen" },
         parent_platforms: []
       })
-      setSimilarGames(mockSimilarGames)
-      setDeveloperGames(mockDeveloperGames)
+      // For fallback demo data, also fetch similar games
+      await fetchRealSimilarGames([{name: 'Platformer'}], [], 1)
+      await fetchRealDeveloperGames('Self Made Miracle', 1)
       // Fetch trailer for mock data too
       fetchTrailer('1', 'Penarium')
     } finally {
@@ -222,6 +227,131 @@ export default function GameDetailDarkV2({
     } finally {
       setTrailerLoading(false)
     }
+  }
+
+  const fetchRealSimilarGames = async (genres: any[], tags: any[], excludeGameId: number) => {
+    try {
+      console.log('🎮 Fetching real similar games for genres:', genres.map(g => g.name))
+      
+      // Construire la requête avec le genre principal
+      const mainGenre = genres[0].name.toLowerCase()
+      let searchParams = new URLSearchParams({
+        key: RAWG_API_KEY,
+        page_size: '20',
+        ordering: '-rating',
+        metacritic: '70,100' // Jeux bien notés seulement
+      })
+
+      // Ajouter le genre si possible
+      if (mainGenre) {
+        searchParams.append('genres', mainGenre)
+      }
+
+      const response = await fetch(`https://api.rawg.io/api/games?${searchParams}`)
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      console.log('🎮 Similar games API response:', data)
+      
+      // Filtrer et trier par pertinence
+      let filteredGames = (data.results || [])
+        .filter((game: any) => game.id !== excludeGameId)
+        .filter((game: any) => game.rating >= 3.5) // Minimum rating
+        .slice(0, 8)
+
+      // Calculer un score de pertinence
+      filteredGames = filteredGames.map((game: any) => ({
+        ...game,
+        relevanceScore: calculateRelevanceScore(game, genres, tags)
+      })).sort((a: any, b: any) => b.relevanceScore - a.relevanceScore)
+
+      console.log('🎮 Filtered similar games:', filteredGames.slice(0, 6))
+      setSimilarGames(filteredGames.slice(0, 8))
+      
+    } catch (error) {
+      console.error('🎮 Error fetching real similar games:', error)
+      // Fallback to mock data
+      setSimilarGames(mockSimilarGames.filter(g => g.id !== excludeGameId))
+    }
+  }
+
+  const fetchRealDeveloperGames = async (developerName: string, excludeGameId: number) => {
+    try {
+      console.log('🎮 Fetching real developer games for:', developerName)
+      
+      // Recherche par nom de développeur
+      const searchParams = new URLSearchParams({
+        key: RAWG_API_KEY,
+        search: developerName,
+        page_size: '20',
+        ordering: '-rating'
+      })
+
+      const response = await fetch(`https://api.rawg.io/api/games?${searchParams}`)
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      console.log('🎮 Developer games API response:', data)
+      
+      // Filtrer les jeux du même développeur
+      const developerGames = (data.results || [])
+        .filter((game: any) => game.id !== excludeGameId)
+        .filter((game: any) => {
+          return game.developers?.some((dev: any) => 
+            dev.name.toLowerCase().includes(developerName.toLowerCase()) ||
+            developerName.toLowerCase().includes(dev.name.toLowerCase())
+          )
+        })
+        .slice(0, 6)
+
+      console.log('🎮 Filtered developer games:', developerGames)
+      setDeveloperGames(developerGames)
+      
+    } catch (error) {
+      console.error('🎮 Error fetching real developer games:', error)
+      // Fallback to mock data
+      setDeveloperGames(mockDeveloperGames.filter(g => g.id !== excludeGameId))
+    }
+  }
+
+  const calculateRelevanceScore = (game: any, targetGenres: any[], targetTags: any[]) => {
+    let score = 0
+    
+    // Score de base sur le rating
+    score += game.rating * 10
+    
+    // Bonus pour les genres correspondants
+    if (game.genres) {
+      const matchingGenres = game.genres.filter((genre: any) => 
+        targetGenres.some(targetGenre => 
+          targetGenre.name.toLowerCase() === genre.name.toLowerCase()
+        )
+      )
+      score += matchingGenres.length * 20
+    }
+    
+    // Bonus pour les tags correspondants
+    if (game.tags && targetTags) {
+      const matchingTags = game.tags.filter((tag: any) => 
+        targetTags.some((targetTag: any) => 
+          targetTag.name.toLowerCase() === tag.name.toLowerCase()
+        )
+      )
+      score += matchingTags.length * 5
+    }
+    
+    // Bonus pour les jeux populaires
+    if (game.rating_count > 1000) {
+      score += 10
+    }
+    
+    return score
   }
 
   const handleStatusSelect = (status: MediaStatus | 'remove') => {
@@ -562,18 +692,39 @@ export default function GameDetailDarkV2({
 
                   {/* Review Scores */}
                   <div className="flex space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-12 h-12 bg-green-700 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">74</span>
+                    {/* Metacritic Score */}
+                    {gameDetail.metacritic && (
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                          gameDetail.metacritic >= 80 ? 'bg-green-700' :
+                          gameDetail.metacritic >= 70 ? 'bg-yellow-600' :
+                          gameDetail.metacritic >= 60 ? 'bg-orange-600' : 'bg-red-600'
+                        }`}>
+                          <span className="text-white font-bold text-lg">{gameDetail.metacritic}</span>
+                        </div>
+                        <span className="text-[#B0B0B0] text-sm">Metacritic</span>
                       </div>
-                      <span className="text-[#B0B0B0] text-sm">Metacritic</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-12 h-12 bg-blue-700 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">79</span>
+                    )}
+                    
+                    {/* OpenCritic Score - Calculated from user rating */}
+                    {gameDetail.rating && gameDetail.rating_count >= 10 && (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-12 h-12 bg-blue-700 rounded-lg flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">{Math.round(gameDetail.rating * 20)}</span>
+                        </div>
+                        <span className="text-[#B0B0B0] text-sm">User Score</span>
                       </div>
-                      <span className="text-[#B0B0B0] text-sm">OpenCritic</span>
-                    </div>
+                    )}
+                    
+                    {/* Show placeholder if no scores available */}
+                    {!gameDetail.metacritic && (!gameDetail.rating || gameDetail.rating_count < 10) && (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center">
+                          <span className="text-gray-400 font-bold text-sm">N/A</span>
+                        </div>
+                        <span className="text-[#B0B0B0] text-sm">No Scores</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Where to Play */}
