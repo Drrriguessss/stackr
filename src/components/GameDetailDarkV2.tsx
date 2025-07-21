@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, Send, ChevronDown, ChevronRight, Play, Share } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
+import { trailerService, type GameTrailer } from '@/services/trailerService'
 
 interface GameDetailDarkV2Props {
   isOpen: boolean
@@ -64,6 +65,8 @@ export default function GameDetailDarkV2({
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showAllPlatforms, setShowAllPlatforms] = useState(false)
   const [showPublisher, setShowPublisher] = useState(false)
+  const [gameTrailer, setGameTrailer] = useState<GameTrailer | null>(null)
+  const [trailerLoading, setTrailerLoading] = useState(false)
 
   const scrollableRef = useRef<HTMLDivElement>(null)
   const statusDropdownRef = useRef<HTMLDivElement>(null)
@@ -89,8 +92,6 @@ export default function GameDetailDarkV2({
     { id: 4, name: "Yooka-Laylee", image: "https://media.rawg.io/media/games/966/966de4e9136a63dd13746f45b9326eb7.jpg", rating: 3.5 }
   ]
 
-  // Mock trailer URL
-  const mockTrailerUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ"
 
   useEffect(() => {
     if (isOpen) {
@@ -164,6 +165,9 @@ export default function GameDetailDarkV2({
       const data = await response.json()
       setGameDetail(data)
       
+      // Fetch trailer
+      fetchTrailer(rawgId, data.name)
+      
       // Use mock data for similar and developer games
       setSimilarGames(mockSimilarGames)
       setDeveloperGames(mockDeveloperGames)
@@ -200,8 +204,23 @@ export default function GameDetailDarkV2({
       })
       setSimilarGames(mockSimilarGames)
       setDeveloperGames(mockDeveloperGames)
+      // Fetch trailer for mock data too
+      fetchTrailer('1', 'Penarium')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchTrailer = async (gameId: string, gameName: string) => {
+    setTrailerLoading(true)
+    try {
+      const trailer = await trailerService.getGameTrailer(gameId, gameName)
+      setGameTrailer(trailer)
+    } catch (error) {
+      console.error('Error fetching trailer:', error)
+      setGameTrailer(null)
+    } finally {
+      setTrailerLoading(false)
     }
   }
 
@@ -395,15 +414,24 @@ export default function GameDetailDarkV2({
                   <div className="space-y-4">
                     {/* Trailer */}
                     <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                      <iframe
-                        src={mockTrailerUrl}
-                        title="Game Trailer"
-                        className="w-full h-full"
-                        allowFullScreen
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <Play size={48} className="text-white opacity-80" />
-                      </div>
+                      {trailerLoading ? (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                        </div>
+                      ) : gameTrailer && gameTrailer.provider !== 'none' ? (
+                        <iframe
+                          src={gameTrailer.url}
+                          title={`${gameDetail.name} Trailer`}
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                          <Play size={48} className="mb-2" />
+                          <p className="text-sm">No trailer available</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Screenshots */}
