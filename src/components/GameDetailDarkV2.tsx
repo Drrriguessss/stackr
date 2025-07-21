@@ -418,7 +418,8 @@ export default function GameDetailDarkV2({
                         <div className="absolute inset-0 flex items-center justify-center">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                         </div>
-                      ) : gameTrailer && gameTrailer.provider !== 'none' ? (
+                      ) : gameTrailer && gameTrailer.provider === 'youtube' && gameTrailer.videoId && !gameTrailer.url.includes('results?search_query') ? (
+                        // Trailer YouTube embed direct
                         <iframe
                           src={gameTrailer.url}
                           title={`${gameDetail.name} Trailer`}
@@ -426,10 +427,39 @@ export default function GameDetailDarkV2({
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
                         />
+                      ) : gameTrailer && gameTrailer.url.includes('results?search_query') ? (
+                        // Recherche YouTube - ouvrir dans un nouvel onglet avec image de fond
+                        <div className="relative w-full h-full">
+                          <img
+                            src={gameDetail.background_image || 'https://via.placeholder.com/640x360/1a1a1a/ffffff?text=No+Image'}
+                            alt={`${gameDetail.name} screenshot`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
+                            <Play size={48} className="text-white mb-4" />
+                            <a
+                              href={gameTrailer.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                            >
+                              Watch Trailer on YouTube
+                            </a>
+                          </div>
+                        </div>
                       ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                          <Play size={48} className="mb-2" />
-                          <p className="text-sm">No trailer available</p>
+                        // Pas de trailer - afficher l'image du jeu avec message
+                        <div className="relative w-full h-full">
+                          <img
+                            src={gameDetail.background_image || 'https://via.placeholder.com/640x360/1a1a1a/ffffff?text=No+Image'}
+                            alt={`${gameDetail.name} screenshot`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
+                            <Play size={48} className="text-white mb-2 opacity-50" />
+                            <p className="text-white text-sm opacity-75">No trailer available</p>
+                            <p className="text-gray-300 text-xs opacity-50 mt-1">Showing game artwork</p>
+                          </div>
                         </div>
                       )}
                     </div>

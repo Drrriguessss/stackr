@@ -19,7 +19,7 @@ class TrailerService {
 
   /**
    * Récupère le trailer d'un jeu
-   * Essaie d'abord avec RAWG, puis YouTube en fallback
+   * Nouvelle approche : utilise d'abord la base connue, puis génère une recherche YouTube
    */
   async getGameTrailer(gameId: string, gameName: string): Promise<GameTrailer> {
     console.log('🎬 Getting trailer for:', gameName)
@@ -31,28 +31,17 @@ class TrailerService {
       return this.trailerCache.get(cacheKey)!
     }
 
-    // 1. Essayer avec RAWG API (clips)
-    const rawgTrailer = await this.getTrailerFromRAWG(gameId)
-    if (rawgTrailer) {
-      this.trailerCache.set(cacheKey, rawgTrailer)
-      return rawgTrailer
+    // 1. Utiliser la base de trailers connus d'abord
+    const knownTrailer = this.getKnownTrailer(gameName)
+    if (knownTrailer) {
+      this.trailerCache.set(cacheKey, knownTrailer)
+      return knownTrailer
     }
 
-    // 2. Fallback sur YouTube
-    const youtubeTrailer = await this.searchYouTubeTrailer(gameName)
-    if (youtubeTrailer) {
-      this.trailerCache.set(cacheKey, youtubeTrailer)
-      return youtubeTrailer
-    }
-
-    // 3. Aucun trailer trouvé
-    const noTrailer: GameTrailer = {
-      videoId: '',
-      provider: 'none',
-      url: ''
-    }
-    this.trailerCache.set(cacheKey, noTrailer)
-    return noTrailer
+    // 2. Générer une recherche YouTube automatique
+    const searchTrailer = this.generateYouTubeSearch(gameName)
+    this.trailerCache.set(cacheKey, searchTrailer)
+    return searchTrailer
   }
 
   /**
@@ -106,10 +95,10 @@ class TrailerService {
     try {
       console.log('🎬 Searching YouTube for:', gameName)
       
-      // Si pas de clé API, utiliser directement le fallback
+      // Si pas de clé API, utiliser directement la génération automatique
       if (!this.YOUTUBE_API_KEY) {
-        console.log('🎬 No YouTube API key, using fallback')
-        return this.getFallbackYouTubeTrailer(gameName)
+        console.log('🎬 No YouTube API key, using auto generation')
+        return this.generateYouTubeSearch(gameName)
       }
       
       // Construire la requête de recherche
@@ -151,7 +140,7 @@ class TrailerService {
       return null
     } catch (error) {
       console.error('🎬 YouTube search error:', error)
-      return this.getFallbackYouTubeTrailer(gameName)
+      return this.generateYouTubeSearch(gameName)
     }
   }
 
@@ -225,14 +214,77 @@ class TrailerService {
   }
 
   /**
-   * Fallback : génère une URL de recherche YouTube directe
+   * Récupère un trailer depuis la base de trailers connus
    */
-  private getFallbackYouTubeTrailer(gameName: string): GameTrailer {
-    console.log('🎬 Using fallback YouTube search')
+  private getKnownTrailer(gameName: string): GameTrailer | null {
+    const normalizedName = gameName.toLowerCase()
     
-    // Trailers vérifiés et fonctionnels pour les jeux populaires
-    const knownTrailers: { [key: string]: string } = {
-      'penarium': '4uMb5nQ6MrE', // Trailer officiel Penarium
+    // Recherche exacte d'abord
+    let knownId = this.knownTrailers[normalizedName]
+    
+    // Si pas trouvé, chercher avec des correspondances partielles
+    if (!knownId) {
+      for (const [key, videoId] of Object.entries(this.knownTrailers)) {
+        if (normalizedName.includes(key) || key.includes(normalizedName)) {
+          knownId = videoId
+          console.log(`🎬 Found partial match: ${key} -> ${gameName}`)
+          break
+        }
+      }
+    }
+    
+    if (knownId) {
+      console.log(`🎬 Using known trailer: ${knownId} for ${gameName}`)
+      return {
+        videoId: knownId,
+        provider: 'youtube',
+        url: `https://www.youtube.com/embed/${knownId}?rel=0&modestbranding=1&autoplay=0`
+      }
+    }
+    
+    return null
+  }
+
+  /**
+   * Génère une recherche YouTube automatique
+   */
+  private generateYouTubeSearch(gameName: string): GameTrailer {
+    console.log('🎬 Generating YouTube search for:', gameName)
+    
+    // Nettoyer le nom du jeu pour la recherche
+    let cleanName = gameName
+      .replace(/[™®©]/g, '') // Enlever les symboles
+      .replace(/:/g, '') // Enlever les deux-points
+      .replace(/'/g, '') // Enlever les apostrophes
+      .trim()
+    
+    // Générer différentes variantes de recherche
+    const searchTerms = [
+      `${cleanName} official trailer`,
+      `${cleanName} launch trailer`,
+      `${cleanName} gameplay trailer`,
+      `${cleanName} trailer`
+    ]
+    
+    // Utiliser le premier terme pour la recherche
+    const searchQuery = searchTerms[0]
+    const encodedQuery = encodeURIComponent(searchQuery)
+    
+    console.log(`🎬 YouTube search query: ${searchQuery}`)
+    
+    return {
+      videoId: encodedQuery,
+      provider: 'youtube',
+      url: `https://www.youtube.com/results?search_query=${encodedQuery}`
+    }
+  }
+
+  /**
+   * Base de trailers connus (déplacée ici pour être réutilisable)
+   */
+  private get knownTrailers() {
+    return {
+      'penarium': '4uMb5nQ6MrE',
       'the witcher 3': 'c0i88t0Kacs',
       'the witcher 3: wild hunt': 'c0i88t0Kacs',
       'cyberpunk 2077': '8X2kIfS6fb8',
@@ -286,42 +338,8 @@ class TrailerService {
       'hades ii': 'bCvXVCrlTJ0',
       'lies of p': 'T-yBJGJcxrU'
     }
-
-    const normalizedName = gameName.toLowerCase()
-    
-    // Recherche exacte d'abord
-    let knownId = knownTrailers[normalizedName]
-    
-    // Si pas trouvé, chercher avec des correspondances partielles
-    if (!knownId) {
-      for (const [key, videoId] of Object.entries(knownTrailers)) {
-        if (normalizedName.includes(key) || key.includes(normalizedName)) {
-          knownId = videoId
-          console.log(`🎬 Found partial match: ${key} -> ${gameName}`)
-          break
-        }
-      }
-    }
-    
-    if (knownId) {
-      console.log(`🎬 Using known trailer: ${knownId} for ${gameName}`)
-      return {
-        videoId: knownId,
-        provider: 'youtube',
-        url: `https://www.youtube.com/embed/${knownId}?rel=0&modestbranding=1`
-      }
-    }
-
-    // Si pas dans la base, essayer une recherche simple avec un trailer générique
-    console.log('🎬 Game not in known trailers, trying generic search')
-    
-    // Pour les jeux non trouvés, on retourne null pour éviter les erreurs d'embed
-    return {
-      videoId: '',
-      provider: 'none',
-      url: ''
-    }
   }
+
 
   /**
    * Nettoie le cache (utile pour éviter une consommation mémoire excessive)
