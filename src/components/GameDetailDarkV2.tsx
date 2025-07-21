@@ -282,36 +282,81 @@ export default function GameDetailDarkV2({
     try {
       console.log('🎮 Fetching real developer games for:', developerName)
       
-      // Recherche par nom de développeur
-      const searchParams = new URLSearchParams({
+      // D'abord, essayer de trouver le développeur par son nom exact
+      const devSearchParams = new URLSearchParams({
         key: RAWG_API_KEY,
         search: developerName,
+        page_size: '1'
+      })
+
+      const devResponse = await fetch(`https://api.rawg.io/api/developers?${devSearchParams}`)
+      
+      if (devResponse.ok) {
+        const devData = await devResponse.json()
+        console.log('🎮 Developer search response:', devData)
+        
+        if (devData.results && devData.results.length > 0) {
+          const developer = devData.results[0]
+          console.log('🎮 Found developer:', developer)
+          
+          // Utiliser l'ID du développeur pour chercher ses jeux
+          const gamesParams = new URLSearchParams({
+            key: RAWG_API_KEY,
+            developers: developer.id.toString(),
+            page_size: '20',
+            ordering: '-rating'
+          })
+          
+          const gamesResponse = await fetch(`https://api.rawg.io/api/games?${gamesParams}`)
+          
+          if (gamesResponse.ok) {
+            const gamesData = await gamesResponse.json()
+            console.log('🎮 Games by developer response:', gamesData)
+            
+            const developerGames = (gamesData.results || [])
+              .filter((game: any) => game.id !== excludeGameId)
+              .slice(0, 6)
+
+            console.log('🎮 Final developer games:', developerGames)
+            setDeveloperGames(developerGames)
+            return
+          }
+        }
+      }
+      
+      // Fallback : recherche générale avec filtre manuel
+      console.log('🎮 Fallback: searching by developer name in general search')
+      const fallbackParams = new URLSearchParams({
+        key: RAWG_API_KEY,
+        search: `"${developerName}"`, // Recherche avec guillemets pour plus de précision
         page_size: '20',
         ordering: '-rating'
       })
 
-      const response = await fetch(`https://api.rawg.io/api/games?${searchParams}`)
+      const fallbackResponse = await fetch(`https://api.rawg.io/api/games?${fallbackParams}`)
       
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      console.log('🎮 Developer games API response:', data)
-      
-      // Filtrer les jeux du même développeur
-      const developerGames = (data.results || [])
-        .filter((game: any) => game.id !== excludeGameId)
-        .filter((game: any) => {
-          return game.developers?.some((dev: any) => 
-            dev.name.toLowerCase().includes(developerName.toLowerCase()) ||
-            developerName.toLowerCase().includes(dev.name.toLowerCase())
-          )
-        })
-        .slice(0, 6)
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json()
+        console.log('🎮 Fallback search response:', fallbackData)
+        
+        // Filtrer manuellement les jeux du développeur
+        const developerGames = (fallbackData.results || [])
+          .filter((game: any) => game.id !== excludeGameId)
+          .filter((game: any) => {
+            if (!game.developers || game.developers.length === 0) return false
+            return game.developers.some((dev: any) => {
+              const devNameLower = dev.name.toLowerCase()
+              const targetDevLower = developerName.toLowerCase()
+              return devNameLower.includes(targetDevLower) || 
+                     targetDevLower.includes(devNameLower) ||
+                     devNameLower === targetDevLower
+            })
+          })
+          .slice(0, 6)
 
-      console.log('🎮 Filtered developer games:', developerGames)
-      setDeveloperGames(developerGames)
+        console.log('🎮 Filtered fallback developer games:', developerGames)
+        setDeveloperGames(developerGames)
+      }
       
     } catch (error) {
       console.error('🎮 Error fetching real developer games:', error)
@@ -800,34 +845,68 @@ export default function GameDetailDarkV2({
                     <h3 className="text-white font-medium mb-4">Similar Games</h3>
                     <div className="flex space-x-3 overflow-x-auto pb-2 snap-x">
                       {similarGames.map((game) => (
-                        <div key={game.id} className="flex-shrink-0 w-28 snap-start">
+                        <div 
+                          key={game.id} 
+                          className="flex-shrink-0 w-28 snap-start cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => {
+                            // Ouvrir le détail de ce jeu
+                            window.location.href = `#game-${game.id}`
+                            onClose()
+                          }}
+                        >
                           <img
-                            src={game.image}
+                            src={game.background_image || game.image || 'https://via.placeholder.com/112x144/333/fff?text=No+Image'}
                             alt={game.name}
                             className="w-full h-36 object-cover rounded-lg mb-2"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.src = 'https://via.placeholder.com/112x144/333/fff?text=No+Image'
+                            }}
                           />
-                          <p className="text-white text-sm truncate">{game.name}</p>
+                          <p className="text-white text-sm truncate" title={game.name}>{game.name}</p>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* More from this developer */}
-                  <div>
-                    <h3 className="text-white font-medium mb-4">More from this developer</h3>
-                    <div className="flex space-x-3 overflow-x-auto pb-2 snap-x">
-                      {developerGames.map((game) => (
-                        <div key={game.id} className="flex-shrink-0 w-28 snap-start">
-                          <img
-                            src={game.image}
-                            alt={game.name}
-                            className="w-full h-36 object-cover rounded-lg mb-2"
-                          />
-                          <p className="text-white text-sm truncate">{game.name}</p>
+                  {gameDetail.developers?.[0] && (
+                    <div>
+                      <h3 className="text-white font-medium mb-4">
+                        More from {gameDetail.developers[0].name}
+                      </h3>
+                      {developerGames.length > 0 ? (
+                        <div className="flex space-x-3 overflow-x-auto pb-2 snap-x">
+                          {developerGames.map((game) => (
+                            <div 
+                              key={game.id} 
+                              className="flex-shrink-0 w-28 snap-start cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => {
+                                // Ouvrir le détail de ce jeu
+                                window.location.href = `#game-${game.id}`
+                                onClose()
+                              }}
+                            >
+                              <img
+                                src={game.background_image || game.image || 'https://via.placeholder.com/112x144/333/fff?text=No+Image'}
+                                alt={game.name}
+                                className="w-full h-36 object-cover rounded-lg mb-2"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement
+                                  target.src = 'https://via.placeholder.com/112x144/333/fff?text=No+Image'
+                                }}
+                              />
+                              <p className="text-white text-sm truncate" title={game.name}>{game.name}</p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        <div className="text-[#B0B0B0] text-sm">
+                          No other games found from this developer
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
