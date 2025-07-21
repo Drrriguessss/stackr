@@ -62,14 +62,12 @@ export default function GameDetailDarkV2({
   const [similarGames, setSimilarGames] = useState<any[]>([])
   const [developerGames, setDeveloperGames] = useState<any[]>([])
   const [showFullOverview, setShowFullOverview] = useState(false)
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showAllPlatforms, setShowAllPlatforms] = useState(false)
   const [showPublisher, setShowPublisher] = useState(false)
   const [gameTrailer, setGameTrailer] = useState<GameTrailer | null>(null)
   const [trailerLoading, setTrailerLoading] = useState(false)
 
   const scrollableRef = useRef<HTMLDivElement>(null)
-  const statusDropdownRef = useRef<HTMLDivElement>(null)
 
   const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
 
@@ -97,7 +95,6 @@ export default function GameDetailDarkV2({
     if (isOpen) {
       setActiveTab('overview')
       setShowFullOverview(false)
-      setShowStatusDropdown(false)
       setShowAllPlatforms(false)
       setShowPublisher(false)
     }
@@ -130,18 +127,6 @@ export default function GameDetailDarkV2({
     }
   }, [gameId, library])
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
-        setShowStatusDropdown(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
 
   const fetchGameDetail = async () => {
     if (!gameId) return
@@ -326,57 +311,10 @@ export default function GameDetailDarkV2({
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  {/* Status Dropdown */}
-                  <div className="relative" ref={statusDropdownRef}>
-                    <button
-                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                      className={`px-4 py-2 rounded-full text-white text-sm font-medium flex items-center space-x-2 transition-colors ${getStatusColor(selectedStatus)}`}
-                    >
-                      <span>{getStatusLabel(selectedStatus)}</span>
-                      <ChevronDown size={16} />
-                    </button>
-                    
-                    {showStatusDropdown && (
-                      <div className="absolute top-full right-0 mt-2 bg-[#1A1A1A] rounded-lg shadow-xl z-10 py-1 min-w-40 border border-gray-800">
-                        <button
-                          onClick={() => handleStatusSelect('want-to-play')}
-                          className="w-full text-left px-4 py-2 text-white hover:bg-gray-800 transition-colors text-sm"
-                        >
-                          Want to Play
-                        </button>
-                        <button
-                          onClick={() => handleStatusSelect('currently-playing')}
-                          className="w-full text-left px-4 py-2 text-white hover:bg-gray-800 transition-colors text-sm"
-                        >
-                          Playing
-                        </button>
-                        <button
-                          onClick={() => handleStatusSelect('completed')}
-                          className="w-full text-left px-4 py-2 text-white hover:bg-gray-800 transition-colors text-sm"
-                        >
-                          Completed
-                        </button>
-                        {selectedStatus && (
-                          <>
-                            <div className="border-t border-gray-800 my-1"></div>
-                            <button
-                              onClick={() => handleStatusSelect('remove')}
-                              className="w-full text-left px-4 py-2 text-red-500 hover:bg-gray-800 transition-colors text-sm"
-                            >
-                              Remove from Library
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Share Button */}
-                  <button className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-                    <Send size={18} />
-                  </button>
-                </div>
+                {/* Share Button */}
+                <button className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+                  <Send size={18} />
+                </button>
               </div>
             </div>
 
@@ -477,32 +415,73 @@ export default function GameDetailDarkV2({
                     </div>
                   </div>
 
-                  {/* Rate this game */}
+                  {/* Add to Library / Status Selection */}
                   <div>
-                    <h3 className="text-white font-medium mb-3">Rate this game</h3>
-                    <div className="flex items-center space-x-2">
-                      {[1, 2, 3, 4, 5].map((rating) => (
+                    <h3 className="text-white font-medium mb-4">Add to Library</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {(['want-to-play', 'currently-playing', 'completed'] as const).map((status) => (
                         <button
-                          key={rating}
-                          onClick={() => {
-                            setUserRating(rating)
-                            setShowReviewBox(true)
-                          }}
-                          onMouseEnter={() => setHoverRating(rating)}
-                          onMouseLeave={() => setHoverRating(0)}
-                          className="p-1"
+                          key={status}
+                          onClick={() => handleStatusSelect(status)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                            selectedStatus === status
+                              ? 'bg-blue-600 text-white ring-2 ring-blue-300'
+                              : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
+                          }`}
                         >
-                          <Star
-                            size={24}
-                            className={`transition-colors ${
-                              (hoverRating || userRating) >= rating
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-600'
-                            }`}
-                          />
+                          {status === 'want-to-play' && '📚 Want to Play'}
+                          {status === 'currently-playing' && '🎮 Playing'}
+                          {status === 'completed' && '✅ Completed'}
                         </button>
                       ))}
                     </div>
+                    
+                    {/* Status feedback */}
+                    {selectedStatus && (
+                      <div className="mt-3 p-3 bg-green-900/30 border border-green-700/50 rounded-lg">
+                        <p className="text-green-300 text-sm">
+                          ✓ Added to your library as "{getStatusLabel(selectedStatus)}"
+                        </p>
+                        <button
+                          onClick={() => handleStatusSelect('remove')}
+                          className="text-red-400 hover:text-red-300 text-xs underline mt-1"
+                        >
+                          Remove from library
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rate this game - Only show if Playing or Completed */}
+                  {(selectedStatus === 'currently-playing' || selectedStatus === 'completed') && (
+                    <div>
+                      <h3 className="text-white font-medium mb-3">Rate this game</h3>
+                      <div className="flex items-center space-x-2">
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <button
+                            key={rating}
+                            onClick={() => {
+                              setUserRating(rating)
+                              setShowReviewBox(true)
+                            }}
+                            onMouseEnter={() => setHoverRating(rating)}
+                            onMouseLeave={() => setHoverRating(0)}
+                            className="p-1"
+                          >
+                            <Star
+                              size={24}
+                              className={`transition-colors ${
+                                (hoverRating || userRating) >= rating
+                                  ? 'text-yellow-400 fill-current'
+                                  : 'text-gray-600'
+                              }`}
+                            />
+                          </button>
+                        ))}
+                        {userRating > 0 && (
+                          <span className="text-white ml-2 font-medium">{userRating}/5</span>
+                        )}
+                      </div>
                     
                     {showReviewBox && (
                       <div className="mt-4 p-4 bg-[#1A1A1A] rounded-lg border border-gray-800">
@@ -554,7 +533,8 @@ export default function GameDetailDarkV2({
                         </div>
                       </div>
                     )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* Review Scores */}
                   <div className="flex space-x-4">
