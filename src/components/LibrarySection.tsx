@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus } from 'lucide-react'
 
 // Types
@@ -55,91 +55,125 @@ interface LibrarySectionProps {
   onOpenSearch?: () => void
 }
 
-// ✅ FONCTION getCreator COMPLÈTEMENT RÉÉCRITE ET CORRIGÉE
-const getCreator = (item: LibraryItem): string => {
-  console.log('📚 [LibrarySection] Getting creator for:', item.title, 'Category:', item.category)
-  console.log('📚 [LibrarySection] Available fields:', {
-    author: item.author,
-    artist: item.artist, 
-    director: item.director,
-    developer: item.developer,
-    developers: item.developers,
-    publishers: item.publishers
-  })
+// ✅ FETCH DEVELOPER INFO FROM API FOR GAMES
+const fetchDeveloperInfo = async (gameId: string, gameName: string): Promise<string> => {
+  const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+  
+  try {
+    // Extract numeric ID from game ID
+    let rawgId = gameId
+    if (gameId.startsWith('game-')) {
+      rawgId = gameId.replace('game-', '')
+    }
+    
+    // If ID is not numeric, search by name
+    if (isNaN(Number(rawgId))) {
+      console.log(`🎮 [LibrarySection] Searching for game: ${gameName}`)
+      const searchUrl = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(gameName)}&page_size=1`
+      const searchResponse = await fetch(searchUrl)
+      
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json()
+        if (searchData.results && searchData.results.length > 0) {
+          rawgId = searchData.results[0].id.toString()
+        } else {
+          throw new Error('Game not found in search')
+        }
+      }
+    }
+    
+    // Fetch game details
+    console.log(`🎮 [LibrarySection] Fetching details for game ID: ${rawgId}`)
+    const detailUrl = `https://api.rawg.io/api/games/${rawgId}?key=${RAWG_API_KEY}`
+    const detailResponse = await fetch(detailUrl)
+    
+    if (detailResponse.ok) {
+      const gameData = await detailResponse.json()
+      console.log(`🎮 [LibrarySection] Game details for ${gameName}:`, {
+        developers: gameData.developers,
+        publishers: gameData.publishers
+      })
+      
+      // Extract developer name
+      if (gameData.developers && gameData.developers.length > 0) {
+        const developerName = gameData.developers[0].name
+        console.log(`🎮 [LibrarySection] Found developer: ${developerName}`)
+        return developerName
+      } else if (gameData.publishers && gameData.publishers.length > 0) {
+        const publisherName = gameData.publishers[0].name
+        console.log(`🎮 [LibrarySection] Using publisher as developer: ${publisherName}`)
+        return publisherName
+      }
+    }
+  } catch (error) {
+    console.error(`🎮 [LibrarySection] Failed to fetch developer for ${gameName}:`, error)
+  }
+  
+  return 'Unknown Developer'
+}
 
+// ✅ SIMPLE getCreator FOR SORTING (no API calls)
+const getCreator = (item: LibraryItem): string => {
+  switch (item.category) {
+    case 'games':
+      if (item.developer && item.developer !== 'Unknown Developer' && item.developer !== 'Game Studio') {
+        return item.developer
+      } else if (item.developers && item.developers.length > 0) {
+        const mainDev = item.developers[0].name
+        if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer' && mainDev !== 'Game Studio') {
+          return mainDev
+        }
+      } else if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Developer' && item.author !== 'Unknown' && item.author !== 'Game Studio') {
+        return item.author
+      }
+      return 'Unknown Developer'
+    case 'movies':
+      return item.director || 'Unknown Director'
+    case 'music':
+      return item.artist || 'Unknown Artist'
+    case 'books':
+      return item.author || 'Unknown Author'
+    default:
+      return item.author || item.artist || item.director || item.developer || 'Unknown Creator'
+  }
+}
+
+// ✅ ENHANCED getCreator WITH CACHING AND STATE MANAGEMENT  
+const getCreatorForItem = (item: LibraryItem, fetchAndUpdateDeveloper: (item: LibraryItem) => void, developerCache: Record<string, string>, fetchingDevelopers: Set<string>): string => {
   let creator = ''
 
   switch (item.category) {
     case 'games':
-      // ✅ PRIORITÉ: developer > developers array > author
-      if (item.developer && item.developer !== 'Unknown Developer' && item.developer !== 'Game Studio') {
-        creator = item.developer
-        console.log('🎮 ✅ Found developer from developer field:', creator)
-        break
+      // First check cache
+      if (developerCache[item.id]) {
+        creator = developerCache[item.id]
+        console.log('🎮 ✅ Found cached developer:', creator)
       }
-      
-      if (item.developers && item.developers.length > 0) {
+      // Then check existing item data
+      else if (item.developer && item.developer !== 'Unknown Developer' && item.developer !== 'Game Studio') {
+        creator = item.developer
+        console.log('🎮 ✅ Found existing developer:', creator)
+      } else if (item.developers && item.developers.length > 0) {
         const mainDev = item.developers[0].name
         if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer' && mainDev !== 'Game Studio') {
           creator = mainDev
-          console.log('🎮 ✅ Found developer from developers array:', creator)
-          break
+          console.log('🎮 ✅ Found developer from array:', creator)
         }
-      }
-      
-      if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Developer' && item.author !== 'Unknown' && item.author !== 'Game Studio') {
+      } else if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Developer' && item.author !== 'Unknown' && item.author !== 'Game Studio') {
         creator = item.author
-        console.log('🎮 ✅ Found developer from author field:', creator)
-        break
-      }
-
-      // ✅ MAPPING ÉTENDU pour les jeux populaires
-      const title = item.title?.toLowerCase() || ''
-      const gameStudioMappings: { [key: string]: string } = {
-        'doom eternal': 'id Software',
-        'doom': 'id Software',
-        'ori and the will of the wisps': 'Moon Studios',
-        'ori and the blind forest': 'Moon Studios',
-        'ori and the': 'Moon Studios',
-        'the last of us part ii': 'Naughty Dog',
-        'the last of us': 'Naughty Dog',
-        'last of us': 'Naughty Dog',
-        'cyberpunk 2077': 'CD Projekt RED',
-        'cyberpunk': 'CD Projekt RED',
-        'the witcher 3': 'CD Projekt RED',
-        'the witcher': 'CD Projekt RED',
-        'elden ring': 'FromSoftware',
-        'dark souls': 'FromSoftware',
-        'sekiro': 'FromSoftware',
-        'bloodborne': 'FromSoftware',
-        'god of war': 'Santa Monica Studio',
-        'spider-man': 'Insomniac Games',
-        'marvel\'s spider-man': 'Insomniac Games',
-        'halo infinite': '343 Industries',
-        'halo': '343 Industries',
-        'zelda breath of the wild': 'Nintendo EPD',
-        'zelda tears of the kingdom': 'Nintendo EPD',
-        'zelda': 'Nintendo',
-        'mario': 'Nintendo',
-        'assassin\'s creed': 'Ubisoft',
-        'call of duty': 'Activision',
-        'grand theft auto': 'Rockstar Games',
-        'red dead redemption': 'Rockstar Games',
-        'baldur\'s gate 3': 'Larian Studios',
-        'horizon zero dawn': 'Guerrilla Games',
-        'horizon forbidden west': 'Guerrilla Games',
-        'ghost of tsushima': 'Sucker Punch Productions'
+        console.log('🎮 ✅ Found developer from author:', creator)
       }
       
-      for (const [keyword, studio] of Object.entries(gameStudioMappings)) {
-        if (title.includes(keyword)) {
-          creator = studio
-          console.log('🎮 📋 Found developer via enhanced mapping:', studio)
-          break
+      // If no valid developer found, trigger fetch
+      if (!creator || creator === 'Unknown Developer' || creator === 'Game Studio') {
+        if (fetchingDevelopers.has(item.id)) {
+          creator = 'Loading...'
+        } else {
+          console.log(`🎮 [LibrarySection] No developer info found for ${item.title}, triggering fetch...`)
+          fetchAndUpdateDeveloper(item)
+          creator = 'Loading...'
         }
       }
-      
-      if (!creator) creator = 'Unknown Developer'
       break
 
     case 'movies':
@@ -276,6 +310,50 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   onOpenMusicDetail,
   onOpenSearch
 }) => {
+  // ✅ STATE FOR TRACKING DEVELOPER FETCHING
+  const [developerCache, setDeveloperCache] = useState<Record<string, string>>({})
+  const [fetchingDevelopers, setFetchingDevelopers] = useState<Set<string>>(new Set())
+  const fetchTimeouts = useRef<Record<string, NodeJS.Timeout>>({})
+  
+  // ✅ FUNCTION TO FETCH AND UPDATE DEVELOPER INFO
+  const fetchAndUpdateDeveloper = async (item: LibraryItem) => {
+    const itemId = item.id
+    
+    // Check if already fetching or cached
+    if (fetchingDevelopers.has(itemId) || developerCache[itemId]) {
+      return
+    }
+    
+    // Mark as fetching
+    setFetchingDevelopers(prev => new Set([...prev, itemId]))
+    
+    try {
+      const developer = await fetchDeveloperInfo(itemId, item.title)
+      
+      if (developer && developer !== 'Unknown Developer') {
+        // Cache the result
+        setDeveloperCache(prev => ({
+          ...prev,
+          [itemId]: developer
+        }))
+        
+        // Update the library item if update function is available
+        if (onUpdateItem) {
+          onUpdateItem(itemId, { developer })
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to fetch developer for ${item.title}:`, error)
+    } finally {
+      // Remove from fetching set
+      setFetchingDevelopers(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(itemId)
+        return newSet
+      })
+    }
+  }
+  
   // Use prop library or fallback to sample data
   const [library, setLibrary] = useState<LibraryItem[]>(propLibrary.length > 0 ? propLibrary : sampleLibrary)
   const [searchQuery, setSearchQuery] = useState('')
@@ -293,6 +371,22 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       setLibrary(propLibrary)
     }
   }, [propLibrary])
+
+  // ✅ FETCH DEVELOPER INFO FOR GAMES MISSING IT
+  useEffect(() => {
+    const gamesNeedingDeveloperInfo = library.filter(item => 
+      item.category === 'games' && 
+      (!item.developer || item.developer === 'Unknown Developer' || item.developer === 'Game Studio') &&
+      !fetchingDevelopers.has(item.id) &&
+      !developerCache[item.id]
+    )
+
+    // Fetch developer info for games that need it (limit to avoid API rate limits)
+    gamesNeedingDeveloperInfo.slice(0, 3).forEach(game => {
+      console.log(`🎮 [LibrarySection] Auto-fetching developer for: ${game.title}`)
+      fetchAndUpdateDeveloper(game)
+    })
+  }, [library, fetchingDevelopers, developerCache])
 
   // Filter and sort logic
   const filteredAndSortedLibrary = React.useMemo(() => {
@@ -822,7 +916,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                                   {item.title}
                                 </h3>
                                 <p className="text-gray-600 text-xs mt-1">
-                                  by {getCreator(item)}
+                                  by {getCreatorForItem(item, fetchAndUpdateDeveloper, developerCache, fetchingDevelopers)}
                                 </p>
                               </div>
                               
@@ -938,7 +1032,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                               {item.title}
                             </h3>
                             <p className="text-gray-600 text-xs mt-1">
-                              by {getCreator(item)}
+                              by {getCreatorForItem(item, fetchAndUpdateDeveloper, developerCache, fetchingDevelopers)}
                             </p>
                           </div>
                           
