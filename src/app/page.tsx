@@ -18,6 +18,7 @@ import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
 import { rawgService } from '@/services/rawgService'
 import LibraryService from '@/services/libraryService'
+import { supabase } from '@/lib/supabase'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
 
@@ -100,6 +101,77 @@ export default function Home() {
     }
     
     loadLibrary()
+  }, [])
+
+  // Real-time synchronization system
+  useEffect(() => {
+    let mounted = true
+    
+    // Helper function to refresh library
+    const refreshLibrary = async () => {
+      if (!mounted) return
+      try {
+        console.log('🔄 Refreshing library from Supabase...')
+        const freshLibrary = await LibraryService.getLibraryFresh()
+        if (mounted) {
+          setLibrary(freshLibrary)
+          console.log('✅ Library refreshed:', freshLibrary.length, 'items')
+        }
+      } catch (error) {
+        console.error('❌ Error refreshing library:', error)
+      }
+    }
+
+    // 1. Supabase Real-time subscription for cross-device sync
+    const channel = supabase
+      .channel('library_realtime_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'library_items'
+      }, (payload) => {
+        console.log('📡 Real-time database change detected:', payload.eventType, payload.new?.title || payload.old?.title)
+        refreshLibrary()
+      })
+      .subscribe()
+
+    // 2. Custom event listener for same-device changes
+    const handleLibraryChange = (event: any) => {
+      console.log('🔔 Custom library event received:', event.detail.action, event.detail.item?.title)
+      refreshLibrary()
+    }
+    window.addEventListener('library-changed', handleLibraryChange)
+
+    // 3. Page focus refresh for when user switches back to app
+    const handlePageFocus = () => {
+      if (document.hidden === false) {
+        console.log('👁️ Page focused, refreshing library...')
+        refreshLibrary()
+      }
+    }
+    window.addEventListener('focus', handlePageFocus)
+    document.addEventListener('visibilitychange', handlePageFocus)
+
+    // 4. Periodic background sync (every 30 seconds)
+    const syncInterval = setInterval(() => {
+      if (document.hasFocus() && !document.hidden) {
+        console.log('⏰ Periodic sync triggered')
+        refreshLibrary()
+      }
+    }, 30000)
+
+    console.log('🔧 Real-time synchronization system initialized')
+
+    // Cleanup function
+    return () => {
+      mounted = false
+      supabase.removeChannel(channel)
+      window.removeEventListener('library-changed', handleLibraryChange)
+      window.removeEventListener('focus', handlePageFocus)
+      document.removeEventListener('visibilitychange', handlePageFocus)
+      clearInterval(syncInterval)
+      console.log('🧹 Real-time synchronization system cleaned up')
+    }
   }, [])
 
   // Charger le contenu selon la catégorie active
