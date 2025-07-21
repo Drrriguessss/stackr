@@ -267,7 +267,14 @@ export default function Home() {
       author: item.author,
       artist: item.artist,
       director: item.director,
-      genre: item.genre
+      developer: item.developer, // ✅ ADD developer field
+      genre: item.genre,
+      // ✅ PRESERVE API DATA for games
+      developers: item.developers,
+      publishers: item.publishers,
+      genres: item.genres,
+      released: item.released,
+      background_image: item.background_image
     }
 
     // Sauvegarder avec le service

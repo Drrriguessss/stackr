@@ -71,23 +71,23 @@ const getCreator = (item: LibraryItem): string => {
 
   switch (item.category) {
     case 'games':
-      // ✅ PRIORITÉ STRICTE: developers array > developer > author > mapping
+      // ✅ PRIORITÉ: developer > developers array > author
+      if (item.developer && item.developer !== 'Unknown Developer' && item.developer !== 'Game Studio') {
+        creator = item.developer
+        console.log('🎮 ✅ Found developer from developer field:', creator)
+        break
+      }
+      
       if (item.developers && item.developers.length > 0) {
         const mainDev = item.developers[0].name
-        if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer') {
+        if (mainDev && mainDev.trim() !== '' && mainDev !== 'Unknown' && mainDev !== 'Developer' && mainDev !== 'Game Studio') {
           creator = mainDev
           console.log('🎮 ✅ Found developer from developers array:', creator)
           break
         }
       }
       
-      if (item.developer && item.developer !== 'Unknown Developer' && item.developer !== 'Developer' && item.developer !== 'Unknown') {
-        creator = item.developer
-        console.log('🎮 ✅ Found developer from developer field:', creator)
-        break
-      }
-      
-      if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Developer' && item.author !== 'Unknown') {
+      if (item.author && item.author !== 'Unknown Developer' && item.author !== 'Developer' && item.author !== 'Unknown' && item.author !== 'Game Studio') {
         creator = item.author
         console.log('🎮 ✅ Found developer from author field:', creator)
         break
@@ -139,7 +139,7 @@ const getCreator = (item: LibraryItem): string => {
         }
       }
       
-      if (!creator) creator = 'Game Developer'
+      if (!creator) creator = 'Unknown Developer'
       break
 
     case 'movies':
