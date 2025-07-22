@@ -123,18 +123,38 @@ export async function fetchWithCache(url: string, cacheKey?: string): Promise<an
     return cached
   }
 
-  // Faire l'appel API
-  apiCache.trackAPICall(url)
-  const response = await fetch(url)
-  
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.status}`)
-  }
+  try {
+    // Faire l'appel API
+    apiCache.trackAPICall(url)
+    
+    // Ajouter un timeout pour éviter les blocages
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 secondes
+    
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+      }
+    })
+    
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} - ${response.statusText}`)
+    }
 
-  const data = await response.json()
-  
-  // Mettre en cache
-  apiCache.set(key, data)
-  
-  return data
+    const data = await response.json()
+    
+    // Mettre en cache seulement si les données sont valides
+    if (data) {
+      apiCache.set(key, data)
+    }
+    
+    return data
+  } catch (error) {
+    console.error(`🚨 [FETCH ERROR] ${url}:`, error)
+    // Re-throw l'erreur pour que les composants puissent la gérer
+    throw error
+  }
 }

@@ -150,8 +150,20 @@ export default function SearchModal({
       
       console.log('🎮 [SearchModal] Searching with URL:', searchUrl)
       const cacheKey = `games-search-${encodeURIComponent(query)}`
-      const data = await fetchWithCache(searchUrl, cacheKey)
-      console.log('🎮 [SearchModal] API Response:', data)
+      
+      let data
+      try {
+        data = await fetchWithCache(searchUrl, cacheKey)
+        console.log('🎮 [SearchModal] API Response:', data)
+      } catch (error) {
+        console.error('🎮 [SearchModal] Cache fetch failed, trying direct:', error)
+        // Fallback: essayer fetch direct si le cache échoue
+        const response = await fetch(searchUrl)
+        if (!response.ok) {
+          throw new Error(`Direct fetch failed: ${response.status}`)
+        }
+        data = await response.json()
+      }
       
       // Vérifier si l'API retourne une erreur de limite
       if (data.error && data.error.includes('API limit')) {
