@@ -174,18 +174,47 @@ export default function Home() {
     }
   }, [])
 
-  // Charger le contenu selon la catégorie active
+  // TEMPORAIREMENT DÉSACTIVÉ pour économiser les API calls
+  // useEffect(() => {
+  //   if (activeTab === 'games') {
+  //     loadGameContent()
+  //   } else if (activeTab === 'movies') {
+  //     loadMovieContent()
+  //   } else if (activeTab === 'books') {
+  //     loadBookContent()
+  //   } else if (activeTab === 'music') {
+  //     loadMusicContent()
+  //   }
+  // }, [activeTab])
+
+  // Utiliser les données de fallback immédiatement
   useEffect(() => {
-    if (activeTab === 'games') {
-      loadGameContent()
-    } else if (activeTab === 'movies') {
-      loadMovieContent()
-    } else if (activeTab === 'books') {
-      loadBookContent()
-    } else if (activeTab === 'music') {
-      loadMusicContent()
-    }
-  }, [activeTab])
+    console.log('🔧 Utilisation du mode économie API - contenu statique')
+    setGameContent({
+      popular: sampleContent.games.slice(0, 4),
+      topRated: sampleContent.games.slice(4, 8),
+      newReleases: sampleContent.games.slice(0, 4)
+    })
+    setMovieContent({
+      popular: sampleContent.movies.slice(0, 4),
+      topRated: sampleContent.movies.slice(4, 8),
+      newReleases: sampleContent.movies.slice(0, 4)
+    })
+    setBookContent({
+      fiction: sampleContent.books.slice(0, 4),
+      nonFiction: sampleContent.books.slice(4, 8),
+      newReleases: sampleContent.books.slice(0, 4)
+    })
+    setMusicContent({
+      popular: sampleContent.music.slice(0, 4),
+      topRated: sampleContent.music.slice(4, 8),
+      newReleases: sampleContent.music.slice(0, 4)
+    })
+    setGamesLoading(false)
+    setMoviesLoading(false)
+    setBooksLoading(false)
+    setMusicLoading(false)
+  }, [])
 
   const loadGameContent = async () => {
     try {

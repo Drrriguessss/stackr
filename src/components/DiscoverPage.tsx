@@ -112,19 +112,40 @@ export default function DiscoverPage({
   const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState<string | null>(null)
 
-  // ✅ CHARGEMENT DU CONTENU TRENDING AU DÉMARRAGE
-  useEffect(() => {
-    loadTrendingContent()
-    loadAllContent()
-    if (library.length >= MIN_LIBRARY_ITEMS) {
-      loadForYouRecommendations()
-    }
-  }, [library.length])
+  // ❌ TEMPORAIREMENT DÉSACTIVÉ pour économiser les API calls
+  // useEffect(() => {
+  //   loadTrendingContent()
+  //   loadAllContent()
+  //   if (library.length >= MIN_LIBRARY_ITEMS) {
+  //     loadForYouRecommendations()
+  //   }
+  // }, [library.length])
 
-  // ✅ SETUP AUTO-REFRESH DU TRENDING
+  // Utiliser contenu statique temporairement
   useEffect(() => {
-    TrendingDiscoveryService.setupAutoRefresh()
+    console.log('🔧 Mode économie API - Discover avec contenu statique')
+    setTrendingContent([
+      {
+        id: 'static-1',
+        title: 'Mode Économie API',
+        category: 'games',
+        image: 'https://via.placeholder.com/800x400/1a1a1a/white?text=Mode+Economie+API',
+        rating: 4.5,
+        description: 'Les requêtes API ont été temporairement désactivées pour économiser votre quota.',
+        trending: { engagement: '100%', sources: 1 }
+      }
+    ])
+    setTrendingLoading(false)
+    setGamesLoading(false)
+    setMoviesLoading(false)
+    setBooksLoading(false)
+    setMusicLoading(false)
   }, [])
+
+  // ❌ TEMPORAIREMENT DÉSACTIVÉ pour économiser les API calls
+  // useEffect(() => {
+  //   TrendingDiscoveryService.setupAutoRefresh()
+  // }, [])
 
   // ✅ AUTO-ROTATION DU TRENDING HERO
   useEffect(() => {

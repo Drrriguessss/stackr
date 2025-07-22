@@ -104,7 +104,7 @@ export default function GameDetailDarkV2({
       setShowPublisher(false)
       setShowLibraryDropdown(false)
     }
-  }, [isOpen, gameId])
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen) {
@@ -118,9 +118,16 @@ export default function GameDetailDarkV2({
     }
   }, [isOpen])
 
+  // Ref pour éviter les appels API multiples
+  const hasLoadedRef = useRef<string | null>(null)
+
   useEffect(() => {
-    if (isOpen && gameId) {
+    if (isOpen && gameId && hasLoadedRef.current !== gameId) {
+      hasLoadedRef.current = gameId
       fetchGameDetail()
+    }
+    if (!isOpen) {
+      hasLoadedRef.current = null
     }
   }, [isOpen, gameId])
 
