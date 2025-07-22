@@ -520,7 +520,7 @@ export default function GameDetailDarkV2({
                     <span>•</span>
                     <span>{gameDetail.genres?.[0]?.name || 'Unknown'}</span>
                     <span>•</span>
-                    <span>None</span>
+                    <span>{gameDetail.platforms?.map(p => p.platform.name).slice(0, 2).join(', ') || 'PC'}</span>
                   </div>
                 </div>
 
@@ -531,27 +531,24 @@ export default function GameDetailDarkV2({
               </div>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="border-b border-gray-800">
-              <div className="flex px-4">
+            {/* Navigation Tabs - Pill Style */}
+            <div className="px-4 py-3 border-b border-gray-800">
+              <div className="flex space-x-2">
                 {[
                   { key: 'overview' as const, label: 'Overview' },
                   { key: 'reviews' as const, label: 'Reviews' },
-                  { key: 'moreinfo' as const, label: 'More Info' }
+                  { key: 'moreinfo' as const, label: 'My Game Card' }
                 ].map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`flex-1 py-4 font-medium transition-colors relative ${
+                    className={`px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 ease-in-out ${
                       activeTab === tab.key
-                        ? 'text-white'
-                        : 'text-[#B0B0B0] hover:text-white'
+                        ? 'bg-[#1DB954] text-white font-bold shadow-lg border border-[#1DB954]'
+                        : 'bg-transparent text-[#B0B0B0] border border-gray-600 hover:bg-gray-800 hover:text-white hover:border-gray-500'
                     }`}
                   >
                     {tab.label}
-                    {activeTab === tab.key && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white" />
-                    )}
                   </button>
                 ))}
               </div>
@@ -844,6 +841,15 @@ export default function GameDetailDarkV2({
                     )}
                   </div>
 
+                  {/* Release Date */}
+                  <div className="text-[#B0B0B0] text-sm">
+                    Released: {gameDetail.released ? new Date(gameDetail.released).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    }) : 'TBA'}
+                  </div>
+
                   {/* Overview */}
                   <div>
                     <h3 className="text-white font-medium mb-3">Overview</h3>
@@ -930,6 +936,17 @@ export default function GameDetailDarkV2({
                       )}
                     </div>
                   )}
+
+                  {/* ESRB Rating at bottom */}
+                  <div className="mt-8 pt-4 border-t border-gray-800">
+                    <div className="flex justify-center">
+                      <div className="bg-[#1A1A1A] border border-gray-700 rounded-lg px-4 py-2">
+                        <span className="text-[#B0B0B0] text-sm">
+                          {gameDetail.esrb_rating?.name ? `Rated ${gameDetail.esrb_rating.name}` : 'Not Rated'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1043,24 +1060,95 @@ export default function GameDetailDarkV2({
               )}
 
               {activeTab === 'moreinfo' && (
-                <div className="p-4 space-y-4">
-                  <h3 className="text-white font-medium">More Information</h3>
-                  <div className="space-y-3 text-[#B0B0B0]">
-                    <div className="flex justify-between">
-                      <span>ESRB Rating</span>
-                      <span className="text-white">{gameDetail.esrb_rating?.name || 'Not Rated'}</span>
+                <div className="p-4 space-y-6">
+                  <div className="text-center mb-6">
+                    <h3 className="text-white font-medium text-lg mb-2">My Game Card</h3>
+                    <p className="text-[#B0B0B0] text-sm">Track your personal gaming experience</p>
+                  </div>
+
+                  {/* Personal Gaming Info Form */}
+                  <div className="space-y-4">
+                    {/* Date Played */}
+                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                      <label className="block text-white font-medium mb-2 text-sm">Date Played</label>
+                      <input 
+                        type="date" 
+                        className="w-full bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors"
+                        placeholder="When did you play this?"
+                      />
                     </div>
-                    <div className="flex justify-between">
-                      <span>Release Date</span>
-                      <span className="text-white">
-                        {gameDetail.released ? new Date(gameDetail.released).toLocaleDateString() : 'TBA'}
-                      </span>
+
+                    {/* Platform Used */}
+                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                      <label className="block text-white font-medium mb-2 text-sm">Platform Used</label>
+                      <select className="w-full bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors">
+                        <option value="">Select platform...</option>
+                        <option value="pc">PC (Steam)</option>
+                        <option value="ps5">PlayStation 5</option>
+                        <option value="ps4">PlayStation 4</option>
+                        <option value="xbox-series">Xbox Series X/S</option>
+                        <option value="xbox-one">Xbox One</option>
+                        <option value="nintendo-switch">Nintendo Switch</option>
+                        <option value="other">Other</option>
+                      </select>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Platforms</span>
-                      <span className="text-white">
-                        {gameDetail.platforms?.map(p => p.platform.name).join(', ') || 'N/A'}
-                      </span>
+
+                    {/* Access Method */}
+                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                      <label className="block text-white font-medium mb-2 text-sm">How did you access it?</label>
+                      <select className="w-full bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors">
+                        <option value="">Select access method...</option>
+                        <option value="purchased-full">Purchased (Full Price)</option>
+                        <option value="purchased-sale">Purchased (On Sale)</option>
+                        <option value="game-pass">Xbox Game Pass</option>
+                        <option value="ps-plus">PlayStation Plus</option>
+                        <option value="epic-free">Epic Games (Free)</option>
+                        <option value="beta">Beta Access</option>
+                        <option value="demo">Demo</option>
+                        <option value="borrowed">Borrowed/Shared</option>
+                      </select>
+                    </div>
+
+                    {/* Purchase Price */}
+                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                      <label className="block text-white font-medium mb-2 text-sm">Purchase Price (Optional)</label>
+                      <div className="flex space-x-2">
+                        <span className="bg-[#0B0B0B] text-[#B0B0B0] text-sm rounded-lg p-3 border border-gray-700 flex items-center">$</span>
+                        <input 
+                          type="number" 
+                          step="0.01"
+                          className="flex-1 bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Custom Tags */}
+                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                      <label className="block text-white font-medium mb-2 text-sm">Custom Tags</label>
+                      <input 
+                        type="text" 
+                        className="w-full bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors"
+                        placeholder="Add tags (e.g., multiplayer, story-rich, challenging...)"
+                      />
+                      <p className="text-[#B0B0B0] text-xs mt-2">Separate tags with commas</p>
+                    </div>
+
+                    {/* Personal Notes */}
+                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                      <label className="block text-white font-medium mb-2 text-sm">Personal Notes</label>
+                      <textarea 
+                        rows={4}
+                        className="w-full bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors resize-none"
+                        placeholder="Your thoughts, memories, or notes about this game..."
+                      />
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="pt-4">
+                      <button className="w-full bg-[#1DB954] hover:bg-[#1ed760] text-white font-medium py-3 px-4 rounded-lg transition-colors">
+                        Save Game Card
+                      </button>
                     </div>
                   </div>
                 </div>
