@@ -4,6 +4,7 @@ import { X, Star, Send, ChevronDown, ChevronRight, Play, Share } from 'lucide-re
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { trailerService, type GameTrailer } from '@/services/trailerService'
 import { reviewsService, type GameReview, type ReviewsResponse } from '@/services/reviewsService'
+import { fetchWithCache, apiCache } from '@/utils/apiCache'
 
 interface GameDetailDarkV2Props {
   isOpen: boolean
@@ -63,6 +64,10 @@ export default function GameDetailDarkV2({
   const [similarGames, setSimilarGames] = useState<any[]>([])
   const [developerGames, setDeveloperGames] = useState<any[]>([])
   const [showFullOverview, setShowFullOverview] = useState(false)
+  const [loadingSimilar, setLoadingSimilar] = useState(false)
+  const [loadingDeveloper, setLoadingDeveloper] = useState(false)
+  const [similarGamesLoaded, setSimilarGamesLoaded] = useState(false)
+  const [developerGamesLoaded, setDeveloperGamesLoaded] = useState(false)
   const [showAllPlatforms, setShowAllPlatforms] = useState(false)
   const [showPublisher, setShowPublisher] = useState(false)
   const [gameTrailer, setGameTrailer] = useState<GameTrailer | null>(null)
@@ -164,15 +169,10 @@ export default function GameDetailDarkV2({
         rawgId = gameId.replace('game-', '')
       }
       
-      const response = await fetch(
-        `https://api.rawg.io/api/games/${rawgId}?key=${RAWG_API_KEY}`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`)
-      }
-      
-      const data = await response.json()
+      // 🚀 OPTIMISATION: Utiliser le cache pour éviter les requêtes répétées
+      const gameUrl = `https://api.rawg.io/api/games/${rawgId}?key=${RAWG_API_KEY}`
+      const cacheKey = `game-detail-${rawgId}`
+      const data = await fetchWithCache(gameUrl, cacheKey)
       
       // Vérifier si l'API retourne une erreur de limite
       if (data.error && data.error.includes('API limit')) {
@@ -188,13 +188,9 @@ export default function GameDetailDarkV2({
       // Fetch real reviews
       fetchReviews(rawgId, data.name)
       
-      // Fetch real similar games and developer games
-      if (data.genres && data.genres.length > 0) {
-        await fetchRealSimilarGames(data.genres, data.tags, data.id)
-      }
-      if (data.developers && data.developers.length > 0) {
-        await fetchRealDeveloperGames(data.developers[0].name, data.id)
-      }
+      // 🚀 LAZY LOADING: Ne plus charger automatiquement les recommandations
+      // Les utilisateurs pourront cliquer sur un bouton pour les charger
+      console.log('🎮 [GameDetail] Game details loaded. Recommendations available on demand.')
       
     } catch (error) {
       console.error('Error loading game details:', error)
@@ -281,6 +277,7 @@ export default function GameDetailDarkV2({
   }
 
   const fetchRealSimilarGames = async (genres: any[], tags: any[], excludeGameId: number) => {
+    setLoadingSimilar(true)
     try {
       console.log('🎮 Fetching real similar games for genres:', genres.map(g => g.name))
       
@@ -288,48 +285,45 @@ export default function GameDetailDarkV2({
       const mainGenre = genres[0].name.toLowerCase()
       let searchParams = new URLSearchParams({
         key: RAWG_API_KEY,
-        page_size: '20',
+        page_size: '12', // Réduit de 20 à 12
         ordering: '-rating',
-        metacritic: '70,100' // Jeux bien notés seulement
+        metacritic: '70,100'
       })
 
-      // Ajouter le genre si possible
       if (mainGenre) {
         searchParams.append('genres', mainGenre)
       }
 
-      const response = await fetch(`https://api.rawg.io/api/games?${searchParams}`)
-      
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      console.log('🎮 Similar games API response:', data)
+      // 🚀 OPTIMISATION: Utiliser le cache
+      const similarUrl = `https://api.rawg.io/api/games?${searchParams}`
+      const cacheKey = `similar-${mainGenre}-${excludeGameId}`
+      const data = await fetchWithCache(similarUrl, cacheKey)
       
       // Filtrer et trier par pertinence
       let filteredGames = (data.results || [])
         .filter((game: any) => game.id !== excludeGameId)
-        .filter((game: any) => game.rating >= 3.5) // Minimum rating
+        .filter((game: any) => game.rating >= 3.5)
         .slice(0, 8)
 
-      // Calculer un score de pertinence
       filteredGames = filteredGames.map((game: any) => ({
         ...game,
         relevanceScore: calculateRelevanceScore(game, genres, tags)
       })).sort((a: any, b: any) => b.relevanceScore - a.relevanceScore)
 
-      console.log('🎮 Filtered similar games:', filteredGames.slice(0, 6))
       setSimilarGames(filteredGames.slice(0, 8))
+      setSimilarGamesLoaded(true)
       
     } catch (error) {
       console.error('🎮 Error fetching real similar games:', error)
-      // Fallback to mock data
       setSimilarGames(mockSimilarGames.filter(g => g.id !== excludeGameId))
+      setSimilarGamesLoaded(true)
+    } finally {
+      setLoadingSimilar(false)
     }
   }
 
   const fetchRealDeveloperGames = async (developerName: string, excludeGameId: number) => {
+    setLoadingDeveloper(true)
     try {
       console.log('🎮 Fetching real developer games for:', developerName)
       
@@ -370,6 +364,7 @@ export default function GameDetailDarkV2({
 
             console.log('🎮 Final developer games:', developerGames)
             setDeveloperGames(developerGames)
+            setDeveloperGamesLoaded(true)
             return
           }
         }
@@ -407,12 +402,16 @@ export default function GameDetailDarkV2({
 
         console.log('🎮 Filtered fallback developer games:', developerGames)
         setDeveloperGames(developerGames)
+        setDeveloperGamesLoaded(true)
       }
       
     } catch (error) {
       console.error('🎮 Error fetching real developer games:', error)
       // Fallback to mock data
       setDeveloperGames(mockDeveloperGames.filter(g => g.id !== excludeGameId))
+      setDeveloperGamesLoaded(true)
+    } finally {
+      setLoadingDeveloper(false)
     }
   }
 

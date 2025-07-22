@@ -8,6 +8,7 @@ import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
 import { rawgService } from '@/services/rawgService'
 import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
+import { fetchWithCache, apiCache } from '@/utils/apiCache'
 
 interface SearchModalProps {
   isOpen: boolean
@@ -144,17 +145,12 @@ export default function SearchModal({
     
     try {
       // Search for games including recent ones (up to next year for upcoming games)
-      const searchUrl = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=15&dates=2000-01-01,${currentYear + 1}-12-31`
+      // 🚀 OPTIMISATION: Réduit à 8 résultats pour économiser l'API
+      const searchUrl = `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=8&dates=2000-01-01,${currentYear + 1}-12-31`
       
       console.log('🎮 [SearchModal] Searching with URL:', searchUrl)
-      const response = await fetch(searchUrl)
-      
-      if (!response.ok) {
-        console.error('🎮 [SearchModal] Search failed:', response.status)
-        throw new Error(`Game search failed: ${response.status}`)
-      }
-      
-      const data = await response.json()
+      const cacheKey = `games-search-${encodeURIComponent(query)}`
+      const data = await fetchWithCache(searchUrl, cacheKey)
       console.log('🎮 [SearchModal] API Response:', data)
       
       // Vérifier si l'API retourne une erreur de limite
@@ -167,16 +163,18 @@ export default function SearchModal({
         return []
       }
 
-      // Fetch detailed information for each game to get developer info
-      const detailedGames = await Promise.all(
-        data.results.slice(0, 10).map(async (game: any) => {
+      // 🚀 OPTIMISATION: Ne récupérer les détails que pour les 3 premiers résultats
+      const topResults = data.results.slice(0, 3)
+      const remainingResults = data.results.slice(3)
+      
+      // Fetch detailed information only for top 3 games to save API calls
+      const detailedTopGames = await Promise.all(
+        topResults.map(async (game: any) => {
           try {
             // Fetch full game details to get developer information
             const detailUrl = `https://api.rawg.io/api/games/${game.id}?key=${RAWG_API_KEY}`
-            const detailResponse = await fetch(detailUrl)
-            
-            if (detailResponse.ok) {
-              const detailData = await detailResponse.json()
+            const cacheKey = `game-detail-${game.id}`
+            const detailData = await fetchWithCache(detailUrl, cacheKey)
               console.log(`🎮 [SearchModal] Got details for ${game.name}:`, {
                 developers: detailData.developers,
                 publishers: detailData.publishers
@@ -184,7 +182,6 @@ export default function SearchModal({
               
               // Use detailed data which includes developers
               return detailData
-            }
           } catch (error) {
             console.warn(`🎮 [SearchModal] Failed to get details for ${game.name}:`, error)
           }
@@ -193,6 +190,9 @@ export default function SearchModal({
           return game
         })
       )
+      
+      // Combiner les résultats détaillés + les résultats basiques
+      const detailedGames = [...detailedTopGames, ...remainingResults]
 
       // Convert to our app format with proper developer information
       const convertedGames: SearchResult[] = detailedGames.map((game: any) => {
@@ -509,7 +509,7 @@ export default function SearchModal({
   const debouncedSearch = useCallback(
     debounce((searchQuery: string, category: string) => {
       performSearch(searchQuery, category)
-    }, 500),
+    }, 1000), // Augmenté à 1000ms pour réduire les appels
     []
   )
 
