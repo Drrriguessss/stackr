@@ -5,9 +5,9 @@ import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
 import GameDetailDarkV2 from '@/components/GameDetailDarkV2'
-import MovieDetailModal from '@/components/MovieDetailModal'
-import BookDetailModal from '@/components/BookDetailModal'
-import MusicDetailModal from '@/components/MusicDetailModal'
+import MovieDetailDarkV2 from '@/components/MovieDetailDarkV2'
+import BookDetailDarkV2 from '@/components/BookDetailDarkV2'
+import MusicDetailDarkV2 from '@/components/MusicDetailDarkV2'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
@@ -829,7 +829,7 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
-      <MovieDetailModal
+      <MovieDetailDarkV2
         isOpen={!!selectedMovieId}
         onClose={() => setSelectedMovieId(null)}
         movieId={selectedMovieId || ''}
@@ -837,11 +837,11 @@ export default function Home() {
         onDeleteItem={handleDeleteItem}
         library={library}
         userReviews={selectedMovieId ? userReviews[selectedMovieId] || [] : []}
-        imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
+        googleReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
         onReviewSubmit={handleReviewSubmit}
       />
 
-      <BookDetailModal
+      <BookDetailDarkV2
         isOpen={!!selectedBookId}
         onClose={() => setSelectedBookId(null)}
         bookId={selectedBookId || ''}
@@ -849,11 +849,11 @@ export default function Home() {
         onDeleteItem={handleDeleteItem}
         library={library}
         userReviews={selectedBookId ? userReviews[selectedBookId] || [] : []}
-        goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
+        googleReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
         onReviewSubmit={handleReviewSubmit}
       />
 
-      <MusicDetailModal
+      <MusicDetailDarkV2
         isOpen={!!selectedMusicId}
         onClose={() => setSelectedMusicId(null)}
         albumId={selectedMusicId || ''}
@@ -861,7 +861,7 @@ export default function Home() {
         onDeleteItem={handleDeleteItem}
         library={library}
         userReviews={selectedMusicId ? userReviews[selectedMusicId] || [] : []}
-        spotifyReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}
+        googleReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}
         onReviewSubmit={handleReviewSubmit}
       />
 
