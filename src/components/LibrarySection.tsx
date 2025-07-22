@@ -474,36 +474,37 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   const [showLocalSearchModal, setShowLocalSearchModal] = useState(false)
 
   // ✅ FETCH DEVELOPER INFO FOR GAMES MISSING IT
-  useEffect(() => {
-    const gamesNeedingDeveloperInfo = library.filter(item => 
-      item.category === 'games' && 
-      (!item.developer || item.developer === 'Unknown Developer' || item.developer === 'Game Studio') &&
-      !fetchingDevelopers.has(item.id) &&
-      !developerCache[item.id]
-    )
+  // ❌ TEMPORAIREMENT DÉSACTIVÉ - causait des milliers d'appels API
+  // useEffect(() => {
+  //   const gamesNeedingDeveloperInfo = library.filter(item => 
+  //     item.category === 'games' && 
+  //     (!item.developer || item.developer === 'Unknown Developer' || item.developer === 'Game Studio') &&
+  //     !fetchingDevelopers.has(item.id) &&
+  //     !developerCache[item.id]
+  //   )
 
-    // Fetch developer info for games that need it (limit to avoid API rate limits)
-    gamesNeedingDeveloperInfo.slice(0, 3).forEach(game => {
-      console.log(`🎮 [LibrarySection] Auto-fetching developer for: ${game.title}`)
-      fetchAndUpdateDeveloper(game)
-    })
-  }, [library, fetchingDevelopers, developerCache])
+  //   // Fetch developer info for games that need it (limit to avoid API rate limits)
+  //   gamesNeedingDeveloperInfo.slice(0, 3).forEach(game => {
+  //     console.log(`🎮 [LibrarySection] Auto-fetching developer for: ${game.title}`)
+  //     fetchAndUpdateDeveloper(game)
+  //   })
+  // }, [library, fetchingDevelopers, developerCache])
 
-  // ✅ FETCH DIRECTOR INFO FOR MOVIES MISSING IT
-  useEffect(() => {
-    const moviesNeedingDirectorInfo = library.filter(item => 
-      item.category === 'movies' && 
-      (!item.director || item.director === 'Unknown Director' || item.director === 'N/A') &&
-      !fetchingDirectors.has(item.id) &&
-      !directorCache[item.id]
-    )
+  // ❌ TEMPORAIREMENT DÉSACTIVÉ - causait des milliers d'appels API  
+  // useEffect(() => {
+  //   const moviesNeedingDirectorInfo = library.filter(item => 
+  //     item.category === 'movies' && 
+  //     (!item.director || item.director === 'Unknown Director' || item.director === 'N/A') &&
+  //     !fetchingDirectors.has(item.id) &&
+  //     !directorCache[item.id]
+  //   )
 
-    // Fetch director info for movies that need it (limit to avoid API rate limits)
-    moviesNeedingDirectorInfo.slice(0, 3).forEach(movie => {
-      console.log(`🎬 [LibrarySection] Auto-fetching director for: ${movie.title}`)
-      fetchAndUpdateDirector(movie)
-    })
-  }, [library, fetchingDirectors, directorCache])
+  //   // Fetch director info for movies that need it (limit to avoid API rate limits)
+  //   moviesNeedingDirectorInfo.slice(0, 3).forEach(movie => {
+  //     console.log(`🎬 [LibrarySection] Auto-fetching director for: ${movie.title}`)
+  //     fetchAndUpdateDirector(movie)
+  //   })
+  // }, [library, fetchingDirectors, directorCache])
 
   // Filter and sort logic
   const filteredAndSortedLibrary = React.useMemo(() => {

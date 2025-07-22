@@ -152,13 +152,14 @@ export default function Home() {
     window.addEventListener('focus', handlePageFocus)
     document.addEventListener('visibilitychange', handlePageFocus)
 
+    // ❌ TEMPORAIREMENT DÉSACTIVÉ - causait 21 000 requêtes API/heure
     // 4. Periodic background sync (every 30 seconds)
-    const syncInterval = setInterval(() => {
-      if (document.hasFocus() && !document.hidden) {
-        console.log('⏰ Periodic sync triggered')
-        refreshLibrary()
-      }
-    }, 30000)
+    // const syncInterval = setInterval(() => {
+    //   if (document.hasFocus() && !document.hidden) {
+    //     console.log('⏰ Periodic sync triggered')
+    //     refreshLibrary()
+    //   }
+    // }, 30000)
 
     console.log('🔧 Real-time synchronization system initialized')
 
@@ -169,7 +170,7 @@ export default function Home() {
       window.removeEventListener('library-changed', handleLibraryChange)
       window.removeEventListener('focus', handlePageFocus)
       document.removeEventListener('visibilitychange', handlePageFocus)
-      clearInterval(syncInterval)
+      // clearInterval(syncInterval) // ❌ DÉSACTIVÉ temporairement
       console.log('🧹 Real-time synchronization system cleaned up')
     }
   }, [])
