@@ -155,7 +155,13 @@ export default function SearchModal({
       }
       
       const data = await response.json()
-      console.log('🎮 [SearchModal] Found', data.results?.length || 0, 'games')
+      console.log('🎮 [SearchModal] API Response:', data)
+      
+      // Vérifier si l'API retourne une erreur de limite
+      if (data.error && data.error.includes('API limit')) {
+        console.error('🎮 [SearchModal] API limit reached, using fallback')
+        throw new Error('API_LIMIT_REACHED')
+      }
       
       if (!data.results || data.results.length === 0) {
         return []
@@ -355,6 +361,20 @@ export default function SearchModal({
             .then(results => ({ category: 'games', results }))
             .catch(err => {
               console.error('❌ [SearchModal] Games search failed:', err)
+              
+              // Fallback vers les données statiques si l'API échoue
+              if (err.message.includes('API_LIMIT_REACHED') || err.message.includes('API limit')) {
+                console.log('🎮 [SearchModal] Using fallback sample data for games')
+                // Importer les données statiques
+                const { sampleContent } = require('@/data/sampleContent')
+                const filteredGames = sampleContent.games.filter((game: any) => 
+                  game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  game.author?.toLowerCase().includes(searchQuery.toLowerCase())
+                ).slice(0, 5)
+                
+                return { category: 'games', results: filteredGames }
+              }
+              
               errors.push(`Games: ${err.message}`)
               return { category: 'games', results: [] }
             })

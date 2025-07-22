@@ -203,6 +203,12 @@ export default function Home() {
         )
       ])
 
+      // Vérifier si l'API a retourné des données valides
+      if (popularGames.length === 0 && topRatedGames.length === 0 && newReleaseGames.length === 0) {
+        console.warn('🎮 API RAWG: Aucune donnée reçue, utilisation du fallback')
+        throw new Error('API_EMPTY_RESPONSE')
+      }
+
       setGameContent({
         popular: popularGames,
         topRated: topRatedGames,

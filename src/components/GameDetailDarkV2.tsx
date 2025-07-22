@@ -166,6 +166,13 @@ export default function GameDetailDarkV2({
       }
       
       const data = await response.json()
+      
+      // Vérifier si l'API retourne une erreur de limite
+      if (data.error && data.error.includes('API limit')) {
+        console.error('🎮 [GameDetail] API limit reached, using fallback')
+        throw new Error('API_LIMIT_REACHED')
+      }
+      
       setGameDetail(data)
       
       // Fetch trailer
@@ -184,41 +191,55 @@ export default function GameDetailDarkV2({
       
     } catch (error) {
       console.error('Error loading game details:', error)
-      // Mock data for demo
+      
+      // Fallback vers les données statiques
+      const { sampleContent } = require('@/data/sampleContent')
+      
+      // Essayer de trouver le jeu correspondant dans sampleContent
+      let fallbackGame = sampleContent.games.find((game: any) => 
+        game.id === gameId || game.id === `game-${rawgId}` || game.id === rawgId
+      )
+      
+      // Si pas trouvé, utiliser le premier jeu comme fallback
+      if (!fallbackGame) {
+        fallbackGame = sampleContent.games[0]
+      }
+      
+      // Convertir en format GameDetail
       setGameDetail({
-        id: 1,
-        name: "Penarium",
-        background_image: "https://media.rawg.io/media/games/3ea/3ea3c9bbd940b6cb7f2139e42d3d443f.jpg",
-        description_raw: "Penarium is a frantic 2D arena arcade game where you take on the role of Willy, a trapped circus worker trying to survive sadistic circus acts for the amusement of a twisted audience.",
-        rating: 3.8,
-        rating_count: 245,
-        released: "2015-09-22",
-        platforms: [{ platform: { name: "PC" } }, { platform: { name: "PlayStation 4" } }],
-        developers: [{ name: "Self Made Miracle" }],
-        publishers: [{ name: "Team17" }],
-        genres: [{ name: "Platformer" }],
+        id: parseInt(rawgId) || 1,
+        name: fallbackGame.title,
+        background_image: fallbackGame.image || "https://via.placeholder.com/640x360/1a1a1a/ffffff?text=Game+Image",
+        description_raw: `${fallbackGame.title} is an exciting ${fallbackGame.genre} game released in ${fallbackGame.year}. Experience amazing gameplay and immersive storytelling in this fantastic ${fallbackGame.genre} adventure.`,
+        rating: fallbackGame.rating || 4.0,
+        rating_count: 150 + Math.floor(Math.random() * 1000),
+        released: `${fallbackGame.year}-01-01`,
+        platforms: [{ platform: { name: "PC" } }, { platform: { name: "PlayStation" } }],
+        developers: [{ name: fallbackGame.author || "Unknown Developer" }],
+        publishers: [{ name: fallbackGame.author || "Unknown Publisher" }],
+        genres: [{ name: fallbackGame.genre || "Game" }],
         tags: [],
-        website: "https://penarium-game.com",
+        website: "#",
         stores: [
-          { store: { name: "Steam" }, url: "https://store.steampowered.com/app/307590/Penarium/" },
+          { store: { name: "Steam" }, url: "#" },
           { store: { name: "PlayStation Store" }, url: "#" }
         ],
         screenshots: [
-          { image: "https://media.rawg.io/media/screenshots/5f5/5f5a38a222252d996b18962806eed707.jpg" },
-          { image: "https://media.rawg.io/media/screenshots/e19/e196cb3b24fecc914d59f3d076366e5b.jpg" },
-          { image: "https://media.rawg.io/media/screenshots/dbb/dbb69b101dc23fc4667de8db03dee36d.jpg" }
+          { image: fallbackGame.image || "https://via.placeholder.com/640x360" },
+          { image: fallbackGame.image || "https://via.placeholder.com/640x360" }
         ],
-        metacritic: 74,
-        esrb_rating: { name: "Teen" },
+        metacritic: Math.floor(fallbackGame.rating * 20) || 75,
+        esrb_rating: { name: "Everyone" },
         parent_platforms: []
       })
+      
       // For fallback demo data, also fetch similar games
-      await fetchRealSimilarGames([{name: 'Platformer'}], [], 1)
-      await fetchRealDeveloperGames('Self Made Miracle', 1)
+      await fetchRealSimilarGames([{name: fallbackGame.genre}], [], parseInt(rawgId) || 1)
+      await fetchRealDeveloperGames(fallbackGame.author || 'Unknown Developer', parseInt(rawgId) || 1)
       // Fetch trailer for mock data too
-      fetchTrailer('1', 'Penarium')
+      fetchTrailer(rawgId, fallbackGame.title)
       // Fetch reviews for mock data too
-      fetchReviews('1', 'Penarium')
+      fetchReviews(rawgId, fallbackGame.title)
     } finally {
       setLoading(false)
     }
