@@ -71,7 +71,7 @@ export default function GameDetailPageV2({
 
   const scrollableRef = useRef<HTMLDivElement>(null)
 
-  const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+  const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || ''
 
   // Steam Reviews (fallback data)
   const steamReviews = [

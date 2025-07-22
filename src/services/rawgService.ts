@@ -28,7 +28,7 @@ export interface RAWGSearchResponse {
 }
 
 class RAWGService {
-  private readonly apiKey = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+  private readonly apiKey = process.env.NEXT_PUBLIC_RAWG_API_KEY || ''
   private readonly baseURL = 'https://api.rawg.io/api'
 
   /**

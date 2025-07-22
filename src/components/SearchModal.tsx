@@ -139,7 +139,7 @@ export default function SearchModal({
   const searchGames = async (query: string): Promise<SearchResult[]> => {
     console.log('🎮 [SearchModal] Starting complete game search for:', query)
     
-    const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+    const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || ''
     const currentYear = new Date().getFullYear()
     
     try {

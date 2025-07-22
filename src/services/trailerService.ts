@@ -12,7 +12,7 @@ class TrailerService {
   // Pour le moment, on utilise le fallback avec des trailers connus
   private readonly YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || ''
   private readonly YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search'
-  private readonly RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+  private readonly RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || ''
   
   // Cache pour éviter les appels API répétés
   private trailerCache: Map<string, GameTrailer> = new Map()

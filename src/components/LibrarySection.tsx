@@ -57,7 +57,7 @@ interface LibrarySectionProps {
 
 // ✅ FETCH DEVELOPER INFO FROM API FOR GAMES
 const fetchDeveloperInfo = async (gameId: string, gameName: string): Promise<string> => {
-  const RAWG_API_KEY = '517c9101ad6b4cb0a1f8cd5c91ce57ec'
+  const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || ''
   
   try {
     // Extract numeric ID from game ID
