@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus } from 'lucide-react'
+import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus, Download } from 'lucide-react'
 
 // Types
 type MediaCategory = 'games' | 'movies' | 'music' | 'books'
@@ -464,6 +464,66 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       })
     }
   }
+
+  // ✅ FONCTION POUR RÉCUPÉRER MANUELLEMENT LES INFOS MANQUANTES
+  const handleFetchMissingInfo = async () => {
+    if (fetchingMissingInfo) return
+
+    setFetchingMissingInfo(true)
+    
+    try {
+      // Identifier les items avec des informations manquantes
+      const itemsNeedingInfo = library.filter(item => {
+        if (item.category === 'games') {
+          return !item.developer || 
+                 item.developer === 'Unknown Developer' || 
+                 item.developer === 'Game Studio' ||
+                 !developerCache[item.id]
+        }
+        if (item.category === 'movies') {
+          return !item.director || 
+                 item.director === 'Unknown Director' || 
+                 item.director === 'N/A' ||
+                 !directorCache[item.id]
+        }
+        return false
+      })
+
+      console.log(`🔄 [Manual Fetch] Found ${itemsNeedingInfo.length} items needing info`)
+
+      // Traiter les items par lots pour éviter la surcharge
+      const batchSize = 3
+      const batches = []
+      for (let i = 0; i < itemsNeedingInfo.length; i += batchSize) {
+        batches.push(itemsNeedingInfo.slice(i, i + batchSize))
+      }
+
+      for (const batch of batches) {
+        const promises = batch.map(item => {
+          if (item.category === 'games') {
+            return fetchAndUpdateDeveloper(item)
+          } else if (item.category === 'movies') {
+            return fetchAndUpdateDirector(item)
+          }
+          return Promise.resolve()
+        })
+
+        // Attendre que le lot soit terminé avant de passer au suivant
+        await Promise.all(promises)
+        
+        // Pause entre les lots pour respecter les limites d'API
+        if (batches.indexOf(batch) < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+      }
+
+      console.log('✅ [Manual Fetch] All missing info fetched successfully')
+    } catch (error) {
+      console.error('❌ [Manual Fetch] Error fetching missing info:', error)
+    } finally {
+      setFetchingMissingInfo(false)
+    }
+  }
   
   // ✅ UTILISER UNIQUEMENT LES PROPS - PAS D'ÉTAT LOCAL POUR LA BIBLIOTHÈQUE
   const library = propLibrary.length > 0 ? propLibrary : sampleLibrary
@@ -475,6 +535,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showAddInfoModal, setShowAddInfoModal] = useState<string | null>(null)
   const [showLocalSearchModal, setShowLocalSearchModal] = useState(false)
+  const [fetchingMissingInfo, setFetchingMissingInfo] = useState(false)
 
   // ✅ FETCH DEVELOPER INFO FOR GAMES MISSING IT
   // ❌ TEMPORAIREMENT DÉSACTIVÉ - causait des milliers d'appels API
@@ -855,6 +916,23 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 title="Search in your library"
               >
                 <Search size={20} className="text-gray-600" />
+              </button>
+
+              {/* Bouton Fetch missing info */}
+              <button
+                onClick={handleFetchMissingInfo}
+                disabled={fetchingMissingInfo}
+                className={`p-2 rounded-full transition-colors ${
+                  fetchingMissingInfo 
+                    ? 'bg-blue-100 text-blue-600 cursor-not-allowed' 
+                    : 'hover:bg-gray-200 text-gray-600'
+                }`}
+                title={fetchingMissingInfo ? 'Fetching missing info...' : 'Fetch missing developer/director info'}
+              >
+                <Download 
+                  size={20} 
+                  className={fetchingMissingInfo ? 'animate-pulse' : ''} 
+                />
               </button>
               
               {/* Icône ajout global */}
