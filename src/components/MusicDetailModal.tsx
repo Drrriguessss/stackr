@@ -96,8 +96,8 @@ export default function MusicDetailModal({
     { id: 4, name: "King of Limbs", artist: "Radiohead", image: "https://i.scdn.co/image/ab67616d0000b273f4543c8ff7ae9b1bf2c12c10", rating: 3.8 }
   ]
 
-  // Spotify/Apple Music Reviews mockées
-  const spotifyReviews = [
+  // Spotify/Apple Music Reviews mockées pour fallback
+  const mockSpotifyReviews = [
     { id: 1, username: 'MusicLover2024', rating: 5, text: 'Absolute masterpiece! Every track is perfection.', date: '2024-01-15', platform: 'Spotify' },
     { id: 2, username: 'VinylCollector', rating: 5, text: 'Classic album that never gets old. Essential listening.', date: '2024-01-12', platform: 'Apple Music' },
     { id: 3, username: 'AudiophileMax', rating: 4, text: 'Great production quality and timeless songs.', date: '2024-01-10', platform: 'Spotify' },
@@ -689,7 +689,7 @@ export default function MusicDetailModal({
                       <div>
                         <h3 className="text-xl font-semibold text-white mb-4">Community Reviews</h3>
                         <div className="space-y-4">
-                          {spotifyReviews.map((review) => (
+                          {(spotifyReviews.length > 0 ? spotifyReviews : mockSpotifyReviews).map((review) => (
                             <div key={review.id} className="bg-gray-800 rounded-xl p-6 border border-gray-700">
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center space-x-3">
@@ -796,7 +796,7 @@ export default function MusicDetailModal({
               <p className="text-sm text-gray-400">Unable to load album details. Please try again.</p>
             </div>
           </div>
-        )
+        )}
       </div>
     </div>
   )
