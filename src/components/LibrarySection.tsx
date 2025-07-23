@@ -230,9 +230,11 @@ const getCreatorForItem = (
         if (fetchingDevelopers.has(item.id)) {
           creator = 'Loading...'
         } else {
-          console.log(`🎮 [LibrarySection] No developer info found for ${item.title}, triggering fetch...`)
-          fetchAndUpdateDeveloper(item)
-          creator = 'Loading...'
+          // ❌ CRITIQUE: NE JAMAIS DÉCLENCHER DE FETCH PENDANT LE RENDER!
+          // Cela cause une boucle infinie de re-renders
+          // console.log(`🎮 [LibrarySection] No developer info found for ${item.title}`)
+          // fetchAndUpdateDeveloper(item) // DÉSACTIVÉ - causait 1000+ requêtes
+          creator = item.developer || 'Unknown Developer'
         }
       }
       break
@@ -257,9 +259,10 @@ const getCreatorForItem = (
         if (fetchingDirectors.has(item.id)) {
           creator = 'Loading...'
         } else {
-          console.log(`🎬 [LibrarySection] No director info found for ${item.title}, triggering fetch...`)
-          fetchAndUpdateDirector(item)
-          creator = 'Loading...'
+          // ❌ CRITIQUE: NE JAMAIS DÉCLENCHER DE FETCH PENDANT LE RENDER!
+          // console.log(`🎬 [LibrarySection] No director info found for ${item.title}`)
+          // fetchAndUpdateDirector(item) // DÉSACTIVÉ - causait des requêtes infinies
+          creator = item.director || 'Unknown Director'
         }
       }
       break
