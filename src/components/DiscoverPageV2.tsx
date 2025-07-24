@@ -467,68 +467,101 @@ export default function DiscoverPageV2({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            <div className="flex h-48 bg-white">
-              {currentHero.image ? (
-                <img
-                  src={currentHero.image}
-                  alt={currentHero.title}
-                  className="w-full h-full object-contain border-2 border-gray-400 rounded-lg shadow-sm"
+            <div className="flex h-56 bg-white">
+              {/* Info à gauche (50%) */}
+              <div className="w-1/2 p-3 bg-black text-white flex flex-col justify-between">
+                <div>
+                  <h3 className="text-lg font-medium mb-2 text-white leading-tight">{currentHero.title}</h3>
+                  
+                  <div className="flex items-center gap-2 text-xs mb-2 text-gray-400">
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={10}
+                          className={`${
+                            star <= (currentHero.rating || 0) ? 'text-white fill-current' : 'text-gray-700'
+                          }`}
+                        />
+                      ))}
+                      <span className="ml-1 text-white text-xs">{currentHero.rating}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1 text-xs text-gray-400 mb-3">
+                    <span>{currentHero.year}</span>
+                    <span>{currentHero.platform || 'PC'}</span>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleItemClick(currentHero)
+                  }}
+                  className="bg-white text-black px-3 py-2 rounded-lg text-xs font-medium w-full hover:bg-gray-100 transition-colors"
+                >
+                  View Details
+                </button>
+              </div>
+              
+              {/* Image à droite (50%) */}
+              <div className="w-1/2 h-full bg-white p-2 flex items-center justify-center relative">
+                {/* Category Sticker */}
+                <div className={`absolute top-1 right-1 px-2 py-1 rounded-full text-xs font-medium text-white z-10 ${
+                  currentHero.category === 'games' ? 'bg-blue-600' :
+                  currentHero.category === 'movies' ? 'bg-red-600' :
+                  currentHero.category === 'books' ? 'bg-green-600' :
+                  'bg-purple-600'
+                }`}>
+                  {currentHero.category === 'games' ? 'GAME' :
+                   currentHero.category === 'movies' ? 'MOVIE' :
+                   currentHero.category === 'books' ? 'BOOK' :
+                   'MUSIC'}
+                </div>
+                {currentHero.image ? (
+                  <img
+                    src={currentHero.image}
+                    alt={currentHero.title}
+                    className="max-w-full max-h-full object-contain border-2 border-gray-400 rounded-lg shadow-sm"
                   onError={(e) => {
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODY IDE4MCAxNTAgMjAyLjM4NiAxNTAgMjMwQzE1MCAyNTcuNjE0IDE3Mi4zODYgMjgwIDIwMCAyODBaIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMzIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPg=='
                   }}
                 />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center border-2 border-gray-400 rounded-lg bg-gray-50">
-                  <div className="text-center text-gray-600">
-                    <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p className="text-sm">Image not available</p>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center border-2 border-gray-400 rounded-lg bg-gray-50">
+                    <div className="text-center text-gray-600">
+                      <svg className="w-12 h-12 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-xs">Image not available</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
             
-            {/* Instructions swipe dans la partie blanche */}
+            {/* Instructions swipe en bas */}
             <div className="text-center py-2 bg-white border-t border-gray-200">
               <span className="text-xs text-gray-500">← Swipe →</span>
-            </div>
-            
-            <div className="p-4 text-white bg-black">
-              <h3 className="text-xl font-medium mb-3 text-white">{currentHero.title}</h3>
-              
-              <div className="flex items-center gap-4 text-sm mb-4 text-gray-400">
-                <div className="flex items-center">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      size={14}
-                      className={`${
-                        star <= (currentHero.rating || 0) ? 'text-white fill-current' : 'text-gray-700'
-                      }`}
-                    />
-                  ))}
-                  <span className="ml-2 text-white">{currentHero.rating}</span>
-                </div>
-                <span>{currentHero.year}</span>
-                <span>{currentHero.platform || 'PC'}</span>
-              </div>
-              
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleItemClick(currentHero)
-                }}
-                className="bg-white text-black px-4 py-2 rounded-lg text-sm font-medium w-full hover:bg-gray-100 transition-colors"
-              >
-                View Details
-              </button>
             </div>
           </div>
 
           {/* Desktop Layout */}
           <div className="hidden sm:flex items-center h-64">
             <div className="w-2/5 lg:w-1/3 h-full relative bg-white p-3 flex items-center justify-center">
+              {/* Category Sticker */}
+              <div className={`absolute top-2 right-2 px-3 py-1 rounded-full text-sm font-medium text-white z-10 ${
+                currentHero.category === 'games' ? 'bg-blue-600' :
+                currentHero.category === 'movies' ? 'bg-red-600' :
+                currentHero.category === 'books' ? 'bg-green-600' :
+                'bg-purple-600'
+              }`}>
+                {currentHero.category === 'games' ? 'GAME' :
+                 currentHero.category === 'movies' ? 'MOVIE' :
+                 currentHero.category === 'books' ? 'BOOK' :
+                 'MUSIC'}
+              </div>
               {currentHero.image ? (
                 <img
                   src={currentHero.image}
