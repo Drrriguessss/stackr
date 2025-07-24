@@ -246,8 +246,8 @@ class CheapSharkGameService {
       image: imageUrl,
       category: 'games' as const,
       rating: Math.min(5, Math.max(1, Math.round(rating * 10) / 10)),
-      genre: 'PC Game',
-      developer: 'Various',
+      genre: this.getGenreFromTitle(deal.title),
+      developer: null, // Ne pas afficher si on ne connait pas
       
       // ✅ NOUVEAU: Nom original pour la recherche RAWG
       originalTitle: deal.title,
@@ -288,6 +288,26 @@ class CheapSharkGameService {
       .replace(/[:\-–—]/g, ' ') // Remplacer les deux-points et tirets par des espaces
       .replace(/\s+/g, ' ') // Normaliser les espaces multiples
       .trim()
+  }
+
+  // ✅ NOUVEAU: Deviner le genre d'après le titre
+  private getGenreFromTitle(title: string): string {
+    const lowerTitle = title.toLowerCase()
+    
+    // Patterns de genres
+    if (lowerTitle.includes('rpg') || lowerTitle.includes('role playing')) return 'RPG'
+    if (lowerTitle.includes('shooter') || lowerTitle.includes('fps')) return 'Shooter'
+    if (lowerTitle.includes('strategy') || lowerTitle.includes('rts')) return 'Strategy'
+    if (lowerTitle.includes('racing') || lowerTitle.includes('race')) return 'Racing'
+    if (lowerTitle.includes('sports') || lowerTitle.includes('football') || lowerTitle.includes('basketball')) return 'Sports'
+    if (lowerTitle.includes('horror') || lowerTitle.includes('scary')) return 'Horror'
+    if (lowerTitle.includes('simulation') || lowerTitle.includes('simulator')) return 'Simulation'
+    if (lowerTitle.includes('puzzle')) return 'Puzzle'
+    if (lowerTitle.includes('adventure')) return 'Adventure'
+    if (lowerTitle.includes('action')) return 'Action'
+    
+    // Par défaut
+    return 'PC Game'
   }
 
   private generatePlaceholderImage(title: string): string {
