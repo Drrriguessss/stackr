@@ -2,7 +2,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, Loader2, Sparkles, Zap } from 'lucide-react'
-import { steamSpyService } from '@/services/steamSpyService'
+import { freeToGameService } from '@/services/freeToGameService'
 import { omdbService } from '@/services/omdbService'
 import { tmdbService } from '@/services/tmdbService'
 import { googleBooksService } from '@/services/googleBooksService'
@@ -183,7 +183,7 @@ export default function DiscoverPage({
       const promises: Promise<any[]>[] = []
       
       if (selectedFilters.includes('games')) {
-        promises.push(steamSpyService.getPopularGames().catch(() => []))
+        promises.push(freeToGameService.getPopularGames().catch(() => []))
       }
       if (selectedFilters.includes('movies')) {
         promises.push(tmdbService.getTrendingMovies('day').catch(() => []))
@@ -202,8 +202,8 @@ export default function DiscoverPage({
 
       if (selectedFilters.includes('games') && results[resultIndex]?.[0]) {
         heroItems.push({ 
-          ...results[resultIndex][0], // SteamSpy retourne déjà le bon format
-          description: 'An epic gaming experience that redefines entertainment.',
+          ...results[resultIndex][0], // FreeToGame retourne déjà le bon format
+          description: 'An epic free-to-play gaming experience.',
           callToAction: 'Play Now',
           categoryLabel: 'Games'
         })
@@ -490,38 +490,38 @@ export default function DiscoverPage({
 
   const loadGamesContent = async () => {
     try {
-      console.log('🎮 Loading games content from SteamSpy...')
+      console.log('🎮 Loading games content from FreeToGame...')
       
-      // Charger plusieurs catégories de jeux en parallèle depuis SteamSpy
-      const [popularGames, topOwned, newReleases] = await Promise.all([
-        steamSpyService.getTop100In2Weeks().catch(() => []),
-        steamSpyService.getTop100Owned().catch(() => []),
-        steamSpyService.getNewReleases().catch(() => [])
+      // Charger plusieurs catégories de jeux en parallèle depuis FreeToGame
+      const [popularGames, newReleases, pcGames] = await Promise.all([
+        freeToGameService.getPopularGames().catch(() => []),
+        freeToGameService.getNewReleases().catch(() => []),
+        freeToGameService.getPCGames().catch(() => [])
       ])
 
       setCategorySections(prev => prev.map(section => {
         if (section.id === 'trending-games') {
-          // Utiliser les nouveautés au lieu des trending
+          // Utiliser les nouveautés FreeToGame
           return { 
             ...section, 
             items: newReleases.slice(0, 8), // Top 8 nouvelles sorties
             loading: false,
-            title: '🆕 New Releases',
-            subtitle: 'Latest games on Steam'
+            title: '🆕 Latest Free Games',
+            subtitle: 'New free-to-play games trending now'
           }
         }
         return section
       }))
 
       // Log des statistiques
-      console.log('🎮 SteamSpy Games loaded:', {
+      console.log('🎮 FreeToGame Games loaded:', {
         popular: popularGames.length,
-        topOwned: topOwned.length,
-        newReleases: newReleases.length
+        newReleases: newReleases.length,
+        pcGames: pcGames.length
       })
 
     } catch (error) {
-      console.error('Error loading games from SteamSpy:', error)
+      console.error('Error loading games from FreeToGame:', error)
       setCategorySections(prev => prev.map(section => 
         section.id === 'trending-games' 
           ? { ...section, loading: false }
@@ -689,7 +689,7 @@ export default function DiscoverPage({
         const favoriteGenre = preferences.topGenres[0]
         
         const allContent = await Promise.all([
-          steamSpyService.getPopularGames().catch(() => []),
+          freeToGameService.getPopularGames().catch(() => []),
           tmdbService.getPopularMovies().catch(() => []),
           googleBooksService.getFictionBooks().catch(() => []),
           musicService.getPopularAlbums().catch(() => [])
@@ -698,10 +698,10 @@ export default function DiscoverPage({
         const genreMatches: any[] = []
         
         allContent[0].forEach(game => {
-          // SteamSpy utilise un champ 'genre' string au lieu d'un array 'genres'
+          // FreeToGame utilise un champ 'genre' string
           if (game.genre && game.genre.toLowerCase().includes(favoriteGenre.toLowerCase())) {
             if (!library.some(item => item.id === game.id)) {
-              genreMatches.push(game) // SteamSpy retourne déjà le bon format
+              genreMatches.push(game) // FreeToGame retourne déjà le bon format
             }
           }
         })
