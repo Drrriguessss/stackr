@@ -76,7 +76,7 @@ export default function DiscoverPageV2({
 
   const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState<string | null>(null)
-  const [heroGames, setHeroGames] = useState<ContentItem[]>([])
+  const [heroItems, setHeroItems] = useState<ContentItem[]>([])
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
   const [heroLoading, setHeroLoading] = useState(true)
   const [touchStart, setTouchStart] = useState<number | null>(null)
@@ -93,9 +93,10 @@ export default function DiscoverPageV2({
     console.log('🔥 [DiscoverV2] Starting content loading...')
     
     try {
-      // Charger les 4 hero games quotidiens et le contenu en parallèle
-      const [dailyHeroGames, games, movies, books, music] = await Promise.all([
+      // Charger 4 jeux + 4 films quotidiens et le contenu en parallèle
+      const [dailyHeroGames, dailyHeroMovies, games, movies, books, music] = await Promise.all([
         cheapSharkGameService.getDailyHeroGames(),
+        tmdbService.getDailyHeroMovies(),
         loadGames(),
         loadMovies(), 
         loadBooks(),
@@ -104,15 +105,17 @@ export default function DiscoverPageV2({
 
       console.log('🔥 [DiscoverV2] All content loaded:', {
         heroGames: dailyHeroGames.length,
+        heroMovies: dailyHeroMovies.length,
         games: games.length,
         movies: movies.length, 
         books: books.length,
         music: music.length
       })
 
-      // Utiliser les 4 hero games quotidiens
-      if (dailyHeroGames.length > 0) {
-        setHeroGames(dailyHeroGames)
+      // Combiner 4 jeux + 4 films pour Today's Picks (8 total pour l'instant)
+      const combinedHeroItems = [...dailyHeroGames, ...dailyHeroMovies]
+      if (combinedHeroItems.length > 0) {
+        setHeroItems(combinedHeroItems)
       }
       setHeroLoading(false)
 
@@ -345,7 +348,7 @@ export default function DiscoverPageV2({
 
   // 🎨 Hero Carousel avec 4 jeux quotidiens
   const renderHeroSection = () => {
-    if (heroLoading || heroGames.length === 0) {
+    if (heroLoading || heroItems.length === 0) {
       return (
         <div className="bg-black rounded-2xl h-64 animate-pulse flex items-center justify-center mb-8">
           <div className="text-center">
@@ -356,9 +359,9 @@ export default function DiscoverPageV2({
       )
     }
 
-    const currentHero = heroGames[currentHeroIndex]
-    const nextSlide = () => setCurrentHeroIndex((prev) => (prev + 1) % heroGames.length)
-    const prevSlide = () => setCurrentHeroIndex((prev) => (prev - 1 + heroGames.length) % heroGames.length)
+    const currentHero = heroItems[currentHeroIndex]
+    const nextSlide = () => setCurrentHeroIndex((prev) => (prev + 1) % heroItems.length)
+    const prevSlide = () => setCurrentHeroIndex((prev) => (prev - 1 + heroItems.length) % heroItems.length)
 
     // 👆 Gestionnaires de swipe tactile
     const minSwipeDistance = 50
@@ -392,7 +395,7 @@ export default function DiscoverPageV2({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Today's Picks</h2>
-            <p className="text-sm text-gray-500">4 premium games, updated daily</p>
+            <p className="text-sm text-gray-500">Premium content, updated daily</p>
           </div>
           {/* Boutons navigation seulement sur desktop */}
           <div className="hidden sm:flex items-center space-x-2">
@@ -409,9 +412,9 @@ export default function DiscoverPageV2({
               <ChevronRight size={20} className="text-gray-600" />
             </button>
           </div>
-          {/* Instructions swipe pour mobile */}
-          <div className="block sm:hidden text-xs text-gray-400">
-            <span>← Swipe →</span>
+          {/* Compteur pour mobile */}
+          <div className="block sm:hidden text-xs text-gray-600 font-medium">
+            <span>{currentHeroIndex + 1}/{heroItems.length}</span>
           </div>
         </div>
 
@@ -450,6 +453,10 @@ export default function DiscoverPageV2({
             </div>
             
             <div className="p-4 text-white bg-black">
+              {/* Instructions swipe sous l'image */}
+              <div className="text-center mb-3">
+                <span className="text-xs text-gray-400">← Swipe →</span>
+              </div>
               <h3 className="text-xl font-medium mb-3 text-white">{currentHero.title}</h3>
               
               <div className="flex items-center gap-4 text-sm mb-4 text-gray-400">
@@ -546,17 +553,11 @@ export default function DiscoverPageV2({
           </div>
         </div>
 
-        {/* Indicateurs de pagination */}
-        <div className="flex justify-center mt-4 space-x-2">
-          {heroGames.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentHeroIndex(index)}
-              className={`w-3 h-3 rounded-full transition-colors ${
-                index === currentHeroIndex ? 'bg-black' : 'bg-gray-300 hover:bg-gray-400'
-              }`}
-            />
-          ))}
+        {/* Compteur de pagination */}
+        <div className="flex justify-center mt-4">
+          <div className="text-sm text-gray-600 font-medium">
+            <span>{currentHeroIndex + 1} / {heroItems.length}</span>
+          </div>
         </div>
       </div>
     )

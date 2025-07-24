@@ -74,6 +74,192 @@ const GENRE_MAP: Record<number, string> = {
 }
 
 class TMDBService {
+  
+  // 🌟 4 Films quotidiens pour Hero Carousel
+  async getDailyHeroMovies(): Promise<any[]> {
+    try {
+      console.log('🌟 [TMDB] Fetching daily hero movies (4 per day rotation)...')
+      
+      if (!TMDB_API_KEY) {
+        console.warn('🚨 TMDB API key not configured, using fallback movies')
+        return this.getFallbackHeroMovies()
+      }
+      
+      const currentYear = new Date().getFullYear()
+      
+      // Combiner plusieurs sources pour diversité
+      const [recentMovies, popularMovies, topRatedMovies] = await Promise.all([
+        // Films récents 2024+
+        fetchWithCache(
+          this.buildUrl('/discover/movie', {
+            'primary_release_date.gte': '2024-01-01',
+            'vote_average.gte': 7.0,
+            'vote_count.gte': 100,
+            sort_by: 'popularity.desc',
+            page: 1
+          }),
+          'tmdb-hero-recent',
+          30
+        ),
+        // Films populaires actuels
+        fetchWithCache(
+          this.buildUrl('/movie/popular', { page: 1 }),
+          'tmdb-hero-popular',
+          30
+        ),
+        // Classiques bien notés
+        fetchWithCache(
+          this.buildUrl('/discover/movie', {
+            'primary_release_date.lte': '2023-12-31',
+            'primary_release_date.gte': '1990-01-01',
+            'vote_average.gte': 8.0,
+            'vote_count.gte': 1000,
+            sort_by: 'vote_average.desc',
+            page: 1
+          }),
+          'tmdb-hero-classics',
+          30
+        )
+      ])
+      
+      // Combiner et filtrer
+      const allMovies = [
+        ...(recentMovies.results || []),
+        ...(popularMovies.results || []),
+        ...(topRatedMovies.results || [])
+      ]
+      
+      const qualityMovies = allMovies
+        .filter(movie => {
+          const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : 0
+          const rating = movie.vote_average || 0
+          const voteCount = movie.vote_count || 0
+          
+          // Films récents (2024+) OU classiques excellents (8.0+)
+          const isRecentOrClassic = (releaseYear >= 2024) || (rating >= 8.0 && releaseYear >= 1990)
+          
+          // Score décent et popularité minimum
+          const hasDecentScore = rating >= 7.0 && voteCount >= 100
+          
+          // Doit avoir un poster
+          const hasPoster = movie.poster_path
+          
+          return isRecentOrClassic && hasDecentScore && hasPoster && !movie.adult
+        })
+        .map(movie => this.convertToAppFormat(movie))
+      
+      // Déduplication par titre
+      const uniqueMovies = this.deduplicateMovies(qualityMovies)
+      
+      // Sélection quotidienne déterministe
+      const dailySelection = this.selectDailyMovies(uniqueMovies, 4)
+      
+      console.log(`🌟 [TMDB] Selected daily hero movies:`, dailySelection.map(m => `${m.title} (${m.year})`))
+      
+      return dailySelection.length >= 4 ? dailySelection : this.getFallbackHeroMovies()
+      
+    } catch (error) {
+      console.error('🌟 [TMDB] Error fetching daily hero movies:', error)
+      return this.getFallbackHeroMovies()
+    }
+  }
+
+  // Sélection quotidienne déterministe basée sur la date
+  private selectDailyMovies(movies: any[], count: number): any[] {
+    if (movies.length < count) return movies
+    
+    // Utiliser la date comme seed pour avoir les mêmes films toute la journée
+    const today = new Date()
+    const dateString = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`
+    const seed = this.hashString(dateString)
+    
+    // Mélanger de façon déterministe
+    const shuffled = [...movies]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = (seed + i) % (i + 1)
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    
+    return shuffled.slice(0, count)
+  }
+
+  // Fonction de hash simple pour créer un seed reproductible
+  private hashString(str: string): number {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    return Math.abs(hash)
+  }
+
+  // Déduplication des films par titre similaire
+  private deduplicateMovies(movies: any[]): any[] {
+    const seen = new Set<string>()
+    return movies.filter(movie => {
+      const cleanTitle = movie.title.toLowerCase().replace(/[^a-z0-9]/g, '')
+      if (seen.has(cleanTitle)) {
+        return false
+      }
+      seen.add(cleanTitle)
+      return true
+    })
+  }
+
+  // Fallback : 4 films premium sélectionnés
+  private getFallbackHeroMovies(): any[] {
+    const fallbackMovies = [
+      {
+        id: 'movie-tmdb-hero-1',
+        title: 'Oppenheimer',
+        year: 2023,
+        image: 'https://image.tmdb.org/t/p/w342/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
+        category: 'movies' as const,
+        rating: 4.4,
+        genre: 'Biography',
+        director: 'Christopher Nolan',
+        description: 'The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb.'
+      },
+      {
+        id: 'movie-tmdb-hero-2',
+        title: 'Dune: Part Two',
+        year: 2024,
+        image: 'https://image.tmdb.org/t/p/w342/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg',
+        category: 'movies' as const,
+        rating: 4.3,
+        genre: 'Science Fiction',
+        director: 'Denis Villeneuve',
+        description: 'Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.'
+      },
+      {
+        id: 'movie-tmdb-hero-3',
+        title: 'The Godfather',
+        year: 1972,
+        image: 'https://image.tmdb.org/t/p/w342/3bhkrj58Vtu7enYsRolD1fZdja1.jpg',
+        category: 'movies' as const,
+        rating: 4.7,
+        genre: 'Crime',
+        director: 'Francis Ford Coppola',
+        description: 'The aging patriarch of an organized crime dynasty transfers control to his reluctant son.'
+      },
+      {
+        id: 'movie-tmdb-hero-4',
+        title: 'Pulp Fiction',
+        year: 1994,
+        image: 'https://image.tmdb.org/t/p/w342/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
+        category: 'movies' as const,
+        rating: 4.6,
+        genre: 'Crime',
+        director: 'Quentin Tarantino',
+        description: 'The lives of two mob hitmen, a boxer, a gangster and his wife intertwine in four tales of violence and redemption.'
+      }
+    ]
+
+    // Appliquer la même logique de sélection quotidienne
+    return this.selectDailyMovies(fallbackMovies, 4)
+  }
+
   private buildUrl(endpoint: string, params: Record<string, any> = {}): string {
     // Vérifier si la clé API est disponible
     if (!TMDB_API_KEY) {
