@@ -14,7 +14,8 @@
       "Bash(npm run dev:*)",
       "Bash(vercel env:*)",
       "Bash(git revert:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": []
   }

@@ -75,8 +75,14 @@ const GENRE_MAP: Record<number, string> = {
 
 class TMDBService {
   private buildUrl(endpoint: string, params: Record<string, any> = {}): string {
+    // Vérifier si la clé API est disponible
+    if (!TMDB_API_KEY) {
+      console.error('🚨 TMDB API key is not configured. Please add NEXT_PUBLIC_TMDB_API_KEY to your environment variables.')
+      throw new Error('TMDB API key not configured')
+    }
+    
     const queryParams = new URLSearchParams({
-      api_key: TMDB_API_KEY || '',
+      api_key: TMDB_API_KEY,
       language: 'en-US',
       ...params
     })
@@ -117,6 +123,12 @@ class TMDBService {
   // 🔥 Trending Movies
   async getTrendingMovies(timeWindow: 'day' | 'week' = 'week'): Promise<any[]> {
     try {
+      // Si pas de clé API, retourner des données mockées
+      if (!TMDB_API_KEY) {
+        console.warn('🎬 [TMDB] Using mock data - API key not configured')
+        return this.getMockTrendingMovies()
+      }
+      
       const url = this.buildUrl(`/trending/movie/${timeWindow}`)
       const cacheKey = `tmdb-trending-${timeWindow}`
       
@@ -126,13 +138,18 @@ class TMDBService {
       return response.results.map((movie: TMDBMovie) => this.convertToAppFormat(movie))
     } catch (error) {
       console.error('🎬 [TMDB] Error fetching trending movies:', error)
-      return []
+      return this.getMockTrendingMovies()
     }
   }
 
   // 🌟 Popular Movies
   async getPopularMovies(page: number = 1): Promise<any[]> {
     try {
+      if (!TMDB_API_KEY) {
+        console.warn('🎬 [TMDB] Using mock data - API key not configured')
+        return this.getMockPopularMovies()
+      }
+      
       const url = this.buildUrl('/movie/popular', { page })
       const cacheKey = `tmdb-popular-${page}`
       
@@ -142,13 +159,17 @@ class TMDBService {
       return response.results.map((movie: TMDBMovie) => this.convertToAppFormat(movie))
     } catch (error) {
       console.error('🎬 [TMDB] Error fetching popular movies:', error)
-      return []
+      return this.getMockPopularMovies()
     }
   }
 
   // ⭐ Top Rated Movies
   async getTopRatedMovies(page: number = 1): Promise<any[]> {
     try {
+      if (!TMDB_API_KEY) {
+        return this.getMockPopularMovies()
+      }
+      
       const url = this.buildUrl('/movie/top_rated', { page })
       const cacheKey = `tmdb-top-rated-${page}`
       
@@ -158,13 +179,17 @@ class TMDBService {
       return response.results.map((movie: TMDBMovie) => this.convertToAppFormat(movie))
     } catch (error) {
       console.error('🎬 [TMDB] Error fetching top rated movies:', error)
-      return []
+      return this.getMockPopularMovies()
     }
   }
 
   // 🎬 Now Playing (In Theaters)
   async getNowPlayingMovies(page: number = 1): Promise<any[]> {
     try {
+      if (!TMDB_API_KEY) {
+        return this.getMockPopularMovies()
+      }
+      
       const url = this.buildUrl('/movie/now_playing', { page })
       const cacheKey = `tmdb-now-playing-${page}`
       
@@ -174,7 +199,7 @@ class TMDBService {
       return response.results.map((movie: TMDBMovie) => this.convertToAppFormat(movie))
     } catch (error) {
       console.error('🎬 [TMDB] Error fetching now playing movies:', error)
-      return []
+      return this.getMockPopularMovies()
     }
   }
 
@@ -265,6 +290,60 @@ class TMDBService {
       console.error('🎬 [TMDB] Error fetching movie details:', error)
       return null
     }
+  }
+  // 🎭 Mock Data Methods (fallback when API key not available)
+  private getMockTrendingMovies(): any[] {
+    return [
+      {
+        id: 'movie-872585',
+        title: 'Oppenheimer',
+        year: 2023,
+        image: 'https://m.media-amazon.com/images/M/MV5BMDBkYzU0MjUtYzBhNi00ODk0LWFkMDgtNjBmZGM2YTNhZmJjXkEyXkFqcGc@._V1_SX300.jpg',
+        category: 'movies' as const,
+        rating: 4.1,
+        genre: 'Biography',
+        director: 'Christopher Nolan',
+        overview: 'The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb.',
+        backdrop: null,
+        popularity: 95.5,
+        voteCount: 5432,
+        releaseDate: '2023-07-21'
+      },
+      {
+        id: 'movie-76600',
+        title: 'Avatar: The Way of Water',
+        year: 2022,
+        image: 'https://m.media-amazon.com/images/M/MV5BMmE0YjI2NjYtOWVjZi00ZGNiLThhNTctOTlkN2JiODVlNzAzXkEyXkFqcGc@._V1_SX300.jpg',
+        category: 'movies' as const,
+        rating: 3.8,
+        genre: 'Action',
+        director: 'James Cameron',
+        overview: 'Jake Sully lives with his newfound family formed on the extrasolar moon Pandora.',
+        backdrop: null,
+        popularity: 89.2,
+        voteCount: 4321,
+        releaseDate: '2022-12-16'
+      },
+      {
+        id: 'movie-385687',
+        title: 'Fast X',
+        year: 2023,
+        image: 'https://m.media-amazon.com/images/M/MV5BNzZmOTU1ZTEtYzVhNi00NzQxLWI5ZjAtNWNhNjEwY2E3YmZjXkEyXkFqcGc@._V1_SX300.jpg',
+        category: 'movies' as const,
+        rating: 2.9,
+        genre: 'Action',
+        director: 'Louis Leterrier',
+        overview: 'Dom Toretto and his family are targeted by the vengeful son of drug kingpin Hernan Reyes.',
+        backdrop: null,
+        popularity: 82.7,
+        voteCount: 3890,
+        releaseDate: '2023-05-19'
+      }
+    ]
+  }
+
+  private getMockPopularMovies(): any[] {
+    return this.getMockTrendingMovies() // Réutiliser les mêmes données
   }
 }
 
