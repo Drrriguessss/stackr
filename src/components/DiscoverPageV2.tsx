@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Star, Plus, Film, Book, Headphones, Play, Check, Loader2, TrendingUp } from 'lucide-react'
 import { cheapSharkGameService } from '@/services/cheapSharkService'
+import { gameSearchService } from '@/services/gameSearchService'
 import { tmdbService } from '@/services/tmdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
@@ -224,24 +225,49 @@ export default function DiscoverPageV2({
   }
 
   // 🎯 Gestionnaires d'événements
-  const handleItemClick = (item: ContentItem) => {
+  const handleItemClick = async (item: ContentItem) => {
     console.log('🎯 [DiscoverV2] Item clicked:', item.id, item.category)
-    
-    // Nettoyer l'ID pour les callbacks
-    const cleanId = item.id.replace(/^(game-cs-|game-|movie-|book-|music-)/, '')
     
     switch (item.category) {
       case 'games':
-        onOpenGameDetail?.(cleanId)
+        // ✅ NOUVEAU: Pour les jeux CheapShark, rechercher sur RAWG
+        if (item.id.startsWith('game-cs-')) {
+          console.log('🔍 [DiscoverV2] CheapShark game clicked, searching RAWG for:', item.title)
+          
+          try {
+            const rawgId = await gameSearchService.searchGameByName(item.title)
+            if (rawgId) {
+              console.log('✅ [DiscoverV2] Found RAWG ID:', rawgId, 'for', item.title)
+              onOpenGameDetail?.(rawgId)
+            } else {
+              console.log('❌ [DiscoverV2] No RAWG match found for:', item.title)
+              // Fallback vers ID CheapShark (utilisera les données mockées)
+              const cleanId = item.id.replace('game-cs-', '')
+              onOpenGameDetail?.(cleanId)
+            }
+          } catch (error) {
+            console.error('❌ [DiscoverV2] Error searching RAWG:', error)
+            // Fallback vers ID CheapShark
+            const cleanId = item.id.replace('game-cs-', '')
+            onOpenGameDetail?.(cleanId)
+          }
+        } else {
+          // Jeux non-CheapShark (RAWG classique)
+          const cleanId = item.id.replace(/^game-/, '')
+          onOpenGameDetail?.(cleanId)
+        }
         break
       case 'movies':
-        onOpenMovieDetail?.(cleanId)
+        const cleanMovieId = item.id.replace(/^movie-/, '')
+        onOpenMovieDetail?.(cleanMovieId)
         break
       case 'books':
-        onOpenBookDetail?.(cleanId)
+        const cleanBookId = item.id.replace(/^book-/, '')
+        onOpenBookDetail?.(cleanBookId)
         break
       case 'music':
-        onOpenMusicDetail?.(cleanId)
+        const cleanMusicId = item.id.replace(/^music-/, '')
+        onOpenMusicDetail?.(cleanMusicId)
         break
     }
   }

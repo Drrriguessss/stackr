@@ -130,15 +130,22 @@ class CheapSharkGameService {
     const releaseYear = deal.releaseDate ? new Date(deal.releaseDate * 1000).getFullYear() : 2024
     const rating = deal.metacriticScore ? parseInt(deal.metacriticScore) / 20 : 4.0 // Convertir 0-100 en 0-5
     
+    // ✅ AMÉLIORATION: Utiliser l'image Steam si disponible
+    const imageUrl = this.getSteamImageUrl(deal.steamAppID, deal.title) || deal.thumb || this.generatePlaceholderImage(deal.title)
+    
     return {
       id: `game-cs-${deal.gameID}`,
       title: deal.title,
       year: releaseYear,
-      image: deal.thumb || this.generatePlaceholderImage(deal.title),
+      image: imageUrl,
       category: 'games' as const,
       rating: Math.min(5, Math.max(1, Math.round(rating * 10) / 10)),
       genre: 'PC Game',
       developer: 'Various',
+      
+      // ✅ NOUVEAU: Nom original pour la recherche RAWG
+      originalTitle: deal.title,
+      searchableTitle: this.cleanTitleForSearch(deal.title),
       
       // Données CheapShark
       cheapSharkId: deal.gameID,
@@ -155,6 +162,26 @@ class CheapSharkGameService {
       owners: this.estimateOwners(deal.steamRatingCount),
       ownersCount: this.estimateOwnersCount(deal.steamRatingCount),
     }
+  }
+
+  // ✅ NOUVEAU: Obtenir l'URL d'image Steam de meilleure qualité
+  private getSteamImageUrl(steamAppId: string, title: string): string | null {
+    if (!steamAppId || steamAppId === '0') return null
+    
+    // Steam store images de haute qualité
+    // Format: https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg
+    return `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppId}/header.jpg`
+  }
+
+  // ✅ NOUVEAU: Nettoyer le titre pour la recherche RAWG
+  private cleanTitleForSearch(title: string): string {
+    return title
+      .replace(/™|®|©/g, '') // Supprimer les symboles de marque
+      .replace(/\s*-\s*(Game of the Year|GOTY|Definitive|Enhanced|Special|Deluxe|Ultimate|Complete|Director's Cut).*$/i, '') // Supprimer les éditions spéciales
+      .replace(/\s*\(.*\)$/g, '') // Supprimer le contenu entre parenthèses en fin
+      .replace(/[:\-–—]/g, ' ') // Remplacer les deux-points et tirets par des espaces
+      .replace(/\s+/g, ' ') // Normaliser les espaces multiples
+      .trim()
   }
 
   private generatePlaceholderImage(title: string): string {
@@ -181,92 +208,108 @@ class CheapSharkGameService {
     return reviews * 50
   }
 
-  // Jeux de fallback si l'API échoue
+  // Jeux de fallback si l'API échoue (avec vraies images Steam)
   private getFallbackGames(): any[] {
     const fallbackGames = [
       {
         id: 'game-cs-fallback-1',
         title: 'Cyberpunk 2077',
         year: 2020,
-        image: 'https://via.placeholder.com/600x800/ff6b35/ffffff?text=Cyberpunk+2077',
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/1091500/header.jpg',
         category: 'games' as const,
         rating: 4.1,
         genre: 'RPG',
-        developer: 'CD Projekt Red'
+        developer: 'CD Projekt Red',
+        originalTitle: 'Cyberpunk 2077',
+        searchableTitle: 'cyberpunk 2077'
       },
       {
         id: 'game-cs-fallback-2',
-        title: 'The Witcher 3',
+        title: 'The Witcher 3: Wild Hunt',
         year: 2015,
-        image: 'https://via.placeholder.com/600x800/4285f4/ffffff?text=The+Witcher+3',
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/292030/header.jpg',
         category: 'games' as const,
         rating: 4.8,
         genre: 'RPG',
-        developer: 'CD Projekt Red'
+        developer: 'CD Projekt Red',
+        originalTitle: 'The Witcher 3: Wild Hunt',
+        searchableTitle: 'witcher 3'
       },
       {
         id: 'game-cs-fallback-3',
         title: 'Grand Theft Auto V',
         year: 2013,
-        image: 'https://via.placeholder.com/600x800/34a853/ffffff?text=GTA+V',
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/271590/header.jpg',
         category: 'games' as const,
         rating: 4.5,
         genre: 'Action',
-        developer: 'Rockstar Games'
+        developer: 'Rockstar Games',
+        originalTitle: 'Grand Theft Auto V',
+        searchableTitle: 'grand theft auto v'
       },
       {
         id: 'game-cs-fallback-4',
         title: 'Red Dead Redemption 2',
         year: 2018,
-        image: 'https://via.placeholder.com/600x800/ea4335/ffffff?text=RDR2',
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/1174180/header.jpg',
         category: 'games' as const,
         rating: 4.7,
         genre: 'Action',
-        developer: 'Rockstar Games'
+        developer: 'Rockstar Games',
+        originalTitle: 'Red Dead Redemption 2',
+        searchableTitle: 'red dead redemption 2'
       },
       {
         id: 'game-cs-fallback-5',
         title: 'Baldurs Gate 3',
         year: 2023,
-        image: 'https://via.placeholder.com/600x800/9c27b0/ffffff?text=Baldurs+Gate+3',
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/1086940/header.jpg',
         category: 'games' as const,
         rating: 4.9,
         genre: 'RPG',
-        developer: 'Larian Studios'
+        developer: 'Larian Studios',
+        originalTitle: 'Baldurs Gate 3',
+        searchableTitle: 'baldurs gate 3'
       },
       {
         id: 'game-cs-fallback-6',
         title: 'Elden Ring',
         year: 2022,
-        image: 'https://via.placeholder.com/600x800/fbbc04/ffffff?text=Elden+Ring',
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/1245620/header.jpg',
         category: 'games' as const,
         rating: 4.6,
         genre: 'Action RPG',
-        developer: 'FromSoftware'
+        developer: 'FromSoftware',
+        originalTitle: 'Elden Ring',
+        searchableTitle: 'elden ring'
       },
       {
         id: 'game-cs-fallback-7',
         title: 'Hades',
         year: 2020,
-        image: 'https://via.placeholder.com/600x800/ff6d01/ffffff?text=Hades',
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/1145360/header.jpg',
         category: 'games' as const,
         rating: 4.4,
         genre: 'Roguelike',
-        developer: 'Supergiant Games'
+        developer: 'Supergiant Games',
+        originalTitle: 'Hades',
+        searchableTitle: 'hades'
       },
       {
         id: 'game-cs-fallback-8',
         title: 'Portal 2',
         year: 2011,
-        image: 'https://via.placeholder.com/600x800/9aa0a6/ffffff?text=Portal+2',
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/620/header.jpg',
         category: 'games' as const,
         rating: 4.8,
         genre: 'Puzzle',
-        developer: 'Valve'
+        developer: 'Valve',
+        originalTitle: 'Portal 2',
+        searchableTitle: 'portal 2'
       }
     ]
     
-    console.log('🎮 [CheapShark] Using fallback games')
+    console.log('🎮 [CheapShark] Using fallback games with Steam images')
     return fallbackGames
   }
 }
