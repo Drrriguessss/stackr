@@ -1,6 +1,7 @@
 // src/services/trendingDiscoveryService.ts - VERSION FINALE OPTIMISÉE
 import { rawgService } from './rawgService'
 import { omdbService } from './omdbService'
+import { tmdbService } from './tmdbService'
 import { googleBooksService } from './googleBooksService'
 import { musicService } from './musicService'
 import type { ContentItem } from '@/types'
@@ -62,20 +63,26 @@ export class TrendingDiscoveryService {
       console.warn('🎮 Games fetch failed:', error)
     }
 
-    // 🎬 Films - Priorité 2
+    // 🎬 Films - Priorité 2 (TMDB)
     try {
-      console.log('🎬 Fetching trending movies...')
-      const movies = await omdbService.getPopularMovies()
+      console.log('🎬 Fetching trending movies from TMDB...')
+      const movies = await tmdbService.getTrendingMovies('week')
       if (movies && movies.length > 0) {
-        const topMovie = movies[0]
+        // Prendre le film avec le meilleur score de popularité/rating
+        const topMovie = movies.sort((a, b) => {
+          const scoreA = (a.rating || 0) * (a.popularity || 1)
+          const scoreB = (b.rating || 0) * (b.popularity || 1)
+          return scoreB - scoreA
+        })[0]
+        
         const enhanced = this.enhanceWithAdvancedTrendingData(
-          omdbService.convertToAppFormat(topMovie), 
+          topMovie, 
           'movies', 
-          this.calculateDynamicScore(parseFloat(topMovie.imdbRating || '0'), topMovie.Released, 'medium')
+          this.calculateDynamicScore(topMovie.rating || 0, topMovie.releaseDate, 'high')
         )
         trendingItems.push(enhanced)
         successfulFetches++
-        console.log('✅ Movies added:', enhanced.title, 'by', enhanced.director)
+        console.log('✅ Movies added:', enhanced.title, '(TMDB)')
       }
     } catch (error) {
       console.warn('🎬 Movies fetch failed:', error)

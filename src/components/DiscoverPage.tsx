@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, Loader2, Sparkles, Zap } from 'lucide-react'
 import { rawgService } from '@/services/rawgService'
 import { omdbService } from '@/services/omdbService'
+import { tmdbService } from '@/services/tmdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
 import { TrendingDiscoveryService } from '@/services/trendingDiscoveryService' // ✅ NOUVEAU IMPORT
@@ -199,7 +200,7 @@ export default function DiscoverPage({
         promises.push(rawgService.getPopularGames().catch(() => []))
       }
       if (selectedFilters.includes('movies')) {
-        promises.push(omdbService.getPopularMovies().catch(() => []))
+        promises.push(tmdbService.getTrendingMovies('day').catch(() => []))
       }
       if (selectedFilters.includes('books')) {
         promises.push(googleBooksService.getFictionBooks().catch(() => []))
@@ -225,8 +226,8 @@ export default function DiscoverPage({
       
       if (selectedFilters.includes('movies') && results[resultIndex]?.[0]) {
         heroItems.push({ 
-          ...omdbService.convertToAppFormat(results[resultIndex][0]), 
-          description: 'A cinematic masterpiece that captivates audiences.',
+          ...results[resultIndex][0], // TMDB retourne déjà le bon format
+          description: results[resultIndex][0].overview || 'A cinematic masterpiece that captivates audiences worldwide.',
           callToAction: 'Watch Now',
           categoryLabel: 'Movies'
         })
@@ -523,16 +524,41 @@ export default function DiscoverPage({
 
   const loadMoviesContent = async () => {
     try {
-      const movies = await omdbService.getPopularMovies()
-      const convertedMovies = movies.map(movie => omdbService.convertToAppFormat(movie))
+      console.log('🎬 Loading movies content from TMDB...')
+      
+      // Charger plusieurs catégories de films en parallèle
+      const [trending, popular, topRated, nowPlaying] = await Promise.all([
+        tmdbService.getTrendingMovies('week').catch(() => []),
+        tmdbService.getPopularMovies().catch(() => []),
+        tmdbService.getTopRatedMovies().catch(() => []),
+        tmdbService.getNowPlayingMovies().catch(() => [])
+      ])
 
-      setCategorySections(prev => prev.map(section => 
-        section.id === 'popular-movies' 
-          ? { ...section, items: convertedMovies, loading: false }
-          : section
-      ))
+      // Mettre à jour la section principale avec les films populaires
+      setCategorySections(prev => prev.map(section => {
+        if (section.id === 'popular-movies') {
+          // Utiliser les films tendance pour la section principale
+          return { 
+            ...section, 
+            items: trending.slice(0, 8), // Top 8 trending
+            loading: false,
+            title: '🔥 Trending Movies This Week',
+            subtitle: 'What everyone is watching right now'
+          }
+        }
+        return section
+      }))
+
+      // Si on veut ajouter d'autres sections de films (pour le futur)
+      console.log('🎬 TMDB Movies loaded:', {
+        trending: trending.length,
+        popular: popular.length,
+        topRated: topRated.length,
+        nowPlaying: nowPlaying.length
+      })
+
     } catch (error) {
-      console.error('Error loading movies:', error)
+      console.error('Error loading movies from TMDB:', error)
       setCategorySections(prev => prev.map(section => 
         section.id === 'popular-movies' 
           ? { ...section, loading: false }
@@ -656,7 +682,7 @@ export default function DiscoverPage({
         
         const allContent = await Promise.all([
           rawgService.getPopularGames().catch(() => []),
-          omdbService.getPopularMovies().catch(() => []),
+          tmdbService.getPopularMovies().catch(() => []),
           googleBooksService.getFictionBooks().catch(() => []),
           musicService.getPopularAlbums().catch(() => [])
         ])
@@ -673,10 +699,10 @@ export default function DiscoverPage({
         })
 
         allContent[1].forEach(movie => {
-          if (movie.Genre && movie.Genre.toLowerCase().includes(favoriteGenre.toLowerCase())) {
-            const converted = omdbService.convertToAppFormat(movie)
-            if (!library.some(item => item.id === converted.id)) {
-              genreMatches.push(converted)
+          if (movie.genre && movie.genre.toLowerCase().includes(favoriteGenre.toLowerCase())) {
+            // TMDB retourne déjà le bon format
+            if (!library.some(item => item.id === movie.id)) {
+              genreMatches.push(movie)
             }
           }
         })
