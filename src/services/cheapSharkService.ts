@@ -115,7 +115,7 @@ class CheapSharkGameService {
       const allDeals = [...recentDeals, ...topRated, ...popularDeals]
       const currentYear = new Date().getFullYear()
       
-      // Filtrer pour des jeux de qualité
+      // Filtrer pour des jeux de qualité (minimum 4/5 étoiles)
       const qualityGames = allDeals
         .filter(deal => {
           const releaseYear = deal.releaseDate ? new Date(deal.releaseDate * 1000).getFullYear() : 0
@@ -125,13 +125,13 @@ class CheapSharkGameService {
           // Jeux récents (3 dernières années) OU excellent score
           const isRecentOrExcellent = (releaseYear >= currentYear - 2) || (metacritic >= 85)
           
-          // Score décent: 75+ Metacritic OU 85+ Steam
-          const hasDecentScore = metacritic >= 75 || steamRating >= 85
+          // Score élevé: 80+ Metacritic OU 90+ Steam (équivalent 4/5 étoiles)
+          const hasHighScore = metacritic >= 80 || steamRating >= 90
           
           // Doit avoir une image Steam
           const hasImage = deal.steamAppID && deal.steamAppID !== '0'
           
-          return isRecentOrExcellent && hasDecentScore && hasImage
+          return isRecentOrExcellent && hasHighScore && hasImage
         })
         .map(deal => this.convertDealToGame(deal))
       
