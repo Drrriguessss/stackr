@@ -100,6 +100,75 @@ class CheapSharkGameService {
     }
   }
 
+  // 🌟 Jeux ultra récents avec excellent score pour Hero
+  async getHeroGame(): Promise<any | null> {
+    try {
+      console.log('🌟 [CheapShark] Fetching hero game (ultra recent + high score)...')
+      
+      const [recentDeals, topRated] = await Promise.all([
+        fetchWithCache(`${this.baseUrl}/deals?storeID=1&upperPrice=70&pageSize=50&sortBy=recent`, 'cheapshark-hero-recent'),
+        fetchWithCache(`${this.baseUrl}/deals?storeID=1&upperPrice=70&pageSize=30&sortBy=Metacritic`, 'cheapshark-hero-rated')
+      ])
+      
+      // Combiner et filtrer pour ultra récent + excellent score
+      const allDeals = [...recentDeals, ...topRated]
+      const currentYear = new Date().getFullYear()
+      const currentMonth = new Date().getMonth()
+      
+      const heroCandidate = allDeals
+        .filter(deal => {
+          const releaseYear = deal.releaseDate ? new Date(deal.releaseDate * 1000).getFullYear() : 0
+          const releaseMonth = deal.releaseDate ? new Date(deal.releaseDate * 1000).getMonth() : 0
+          const metacritic = parseInt(deal.metacriticScore) || 0
+          
+          // Ultra récent: cette année ou les 3 derniers mois de l'année dernière
+          const isUltraRecent = (releaseYear === currentYear) || 
+                               (releaseYear === currentYear - 1 && releaseMonth >= 9)
+          
+          // Excellent score: 80+ Metacritic
+          const hasExcellentScore = metacritic >= 80
+          
+          return isUltraRecent && hasExcellentScore
+        })
+        .sort((a, b) => {
+          // Trier par score Metacritic décroissant
+          const scoreA = parseInt(a.metacriticScore) || 0
+          const scoreB = parseInt(b.metacriticScore) || 0
+          return scoreB - scoreA
+        })
+        .find(deal => deal.steamAppID && deal.steamAppID !== '0') // Prendre le premier avec image Steam
+      
+      if (heroCandidate) {
+        const heroGame = this.convertDealToGame(heroCandidate)
+        console.log(`🌟 [CheapShark] Found hero game: ${heroGame.title} (${heroGame.year}) - Score: ${heroGame.rating}`)
+        return heroGame
+      }
+      
+      console.log('🌟 [CheapShark] No suitable hero game found, using fallback')
+      return this.getFallbackHeroGame()
+      
+    } catch (error) {
+      console.error('🌟 [CheapShark] Error fetching hero game:', error)
+      return this.getFallbackHeroGame()
+    }
+  }
+
+  // Fallback hero game
+  private getFallbackHeroGame(): any {
+    return {
+      id: 'game-cs-hero-fallback',
+      title: 'Baldurs Gate 3',
+      year: 2023,
+      image: 'https://cdn.akamai.steamstatic.com/steam/apps/1086940/header.jpg',
+      category: 'games' as const,
+      rating: 4.9,
+      genre: 'RPG',
+      platform: 'PC',
+      metacriticScore: '96',
+      description: 'An epic role-playing game that sets new standards for the genre.'
+    }
+  }
+
   // 🔥 Jeux tendance (privilégiant les jeux récents avec activité)
   async getTrendingGames(): Promise<any[]> {
     try {
