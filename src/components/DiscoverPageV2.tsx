@@ -393,15 +393,11 @@ export default function DiscoverPageV2({
       <div className="relative mb-8">
         {/* Header du carrousel */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Today's Picks</h2>
-              <p className="text-sm text-gray-500">Ideas to enlarge your library</p>
-            </div>
-            {/* Compteur à côté du titre */}
-            <div className="text-sm text-gray-600 font-medium bg-gray-100 px-2 py-1 rounded-full">
-              <span>{currentHeroIndex + 1}/{heroItems.length}</span>
-            </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Today's Picks <span className="text-xl font-semibold text-gray-900">({currentHeroIndex + 1}/{heroItems.length})</span>
+            </h2>
+            <p className="text-sm text-gray-500">Ideas to enlarge your library</p>
           </div>
           {/* Boutons navigation seulement sur desktop */}
           <div className="hidden sm:flex items-center space-x-2">
@@ -432,18 +428,18 @@ export default function DiscoverPageV2({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            <div className="relative h-48 bg-white p-6">
+            <div className="relative h-48 bg-white p-3">
               {currentHero.image ? (
                 <img
                   src={currentHero.image}
                   alt={currentHero.title}
-                  className="w-full h-full object-contain border-2 border-gray-300 rounded-lg shadow-sm"
+                  className="w-full h-full object-contain border-2 border-gray-400 rounded-lg shadow-sm"
                   onError={(e) => {
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODY IDE4MCAxNTAgMjAyLjM4NiAxNTAgMjMwQzE1MCAyNTcuNjE0IDE3Mi4zODYgMjgwIDIwMCAyODBaIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMzIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPg=='
                   }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center border-2 border-gray-300 rounded-lg bg-gray-50">
+                <div className="w-full h-full flex items-center justify-center border-2 border-gray-400 rounded-lg bg-gray-50">
                   <div className="text-center text-gray-600">
                     <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -493,18 +489,18 @@ export default function DiscoverPageV2({
 
           {/* Desktop Layout */}
           <div className="hidden sm:flex items-center h-64">
-            <div className="w-2/5 lg:w-1/3 h-full relative bg-white p-6 flex items-center justify-center">
+            <div className="w-2/5 lg:w-1/3 h-full relative bg-white p-3 flex items-center justify-center">
               {currentHero.image ? (
                 <img
                   src={currentHero.image}
                   alt={currentHero.title}
-                  className="max-w-full max-h-full object-contain border-2 border-gray-300 rounded-lg shadow-sm"
+                  className="max-w-full max-h-full object-contain border-2 border-gray-400 rounded-lg shadow-sm"
                   onError={(e) => {
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDIuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiMzMzMzMzMiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzY2NjY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
                   }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center border-2 border-gray-300 rounded-lg bg-gray-50">
+                <div className="w-full h-full flex items-center justify-center border-2 border-gray-400 rounded-lg bg-gray-50">
                   <div className="text-center text-gray-600">
                     <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />

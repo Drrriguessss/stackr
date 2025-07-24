@@ -138,8 +138,13 @@ class CheapSharkGameService {
       // Déduplication par titre
       const uniqueGames = this.deduplicateGames(qualityGames)
       
+      // ✅ FILTRAGE FINAL: Garantir 4/5 étoiles minimum
+      const premiumGames = uniqueGames.filter(game => game.rating >= 4.0)
+      
+      console.log(`🌟 [CheapShark] Games after 4+ stars filter: ${premiumGames.length}/${uniqueGames.length}`)
+      
       // Sélection quotidienne déterministe
-      const dailySelection = this.selectDailyGames(uniqueGames, 4)
+      const dailySelection = this.selectDailyGames(premiumGames, 4)
       
       console.log(`🌟 [CheapShark] Selected daily hero games:`, dailySelection.map(g => `${g.title} (${g.year})`))
       
@@ -372,7 +377,17 @@ class CheapSharkGameService {
   // Convertir un deal CheapShark en format de l'app
   private convertDealToGame(deal: CheapSharkDeal): any {
     const releaseYear = deal.releaseDate ? new Date(deal.releaseDate * 1000).getFullYear() : 2024
-    const rating = deal.metacriticScore ? parseInt(deal.metacriticScore) / 20 : 4.0 // Convertir 0-100 en 0-5
+    
+    // ✅ CALCUL CORRIGÉ: Rating basé sur les deux sources
+    let rating = 4.0 // Default fallback
+    const metacriticScore = parseInt(deal.metacriticScore) || 0
+    const steamRating = parseInt(deal.steamRatingPercent) || 0
+    
+    if (metacriticScore > 0) {
+      rating = metacriticScore / 20 // Convertir 0-100 en 0-5
+    } else if (steamRating > 0) {
+      rating = steamRating / 20 // Convertir 0-100 en 0-5
+    }
     
     // ✅ AMÉLIORATION: Utiliser l'image Steam si disponible
     const imageUrl = this.getSteamImageUrl(deal.steamAppID, deal.title) || deal.thumb || this.generatePlaceholderImage(deal.title)
@@ -383,7 +398,7 @@ class CheapSharkGameService {
       year: releaseYear,
       image: imageUrl,
       category: 'games' as const,
-      rating: Math.min(5, Math.max(1, Math.round(rating * 10) / 10)),
+      rating: Math.min(5, Math.max(0, Math.round(rating * 10) / 10)), // Permettre 0, pas de minimum artificiel
       genre: this.getGenreFromTitle(deal.title),
       developer: null, // Ne pas afficher si on ne connait pas
       
