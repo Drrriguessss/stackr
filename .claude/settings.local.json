@@ -15,7 +15,8 @@
       "Bash(vercel env:*)",
       "Bash(git revert:*)",
       "Bash(mv:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(del test-tmdb.js test-env.js)"
     ],
     "deny": []
   }

@@ -1,5 +1,5 @@
 // src/services/trendingDiscoveryService.ts - VERSION FINALE OPTIMISÉE
-import { rawgService } from './rawgService'
+import { steamSpyService } from './steamSpyService'
 import { omdbService } from './omdbService'
 import { tmdbService } from './tmdbService'
 import { googleBooksService } from './googleBooksService'
@@ -43,24 +43,29 @@ export class TrendingDiscoveryService {
     const trendingItems: ContentItem[] = []
     let successfulFetches = 0
 
-    // 🎮 Jeux - Priorité 1
+    // 🎮 Jeux - Priorité 1 (SteamSpy)
     try {
-      console.log('🎮 Fetching trending games...')
-      const games = await rawgService.getPopularGames()
+      console.log('🎮 Fetching trending games from SteamSpy...')
+      const games = await steamSpyService.getTop100In2Weeks()
       if (games && games.length > 0) {
-        // Prendre le jeu avec le meilleur rating
-        const topGame = games.sort((a, b) => (b.rating || 0) - (a.rating || 0))[0]
+        // Prendre le jeu avec le meilleur rating et le plus de propriétaires
+        const topGame = games.sort((a, b) => {
+          const scoreA = (a.rating || 0) * Math.log10(a.ownersCount || 1)
+          const scoreB = (b.rating || 0) * Math.log10(b.ownersCount || 1)
+          return scoreB - scoreA
+        })[0]
+        
         const enhanced = this.enhanceWithAdvancedTrendingData(
-          rawgService.convertToAppFormat(topGame), 
+          topGame, // SteamSpy retourne déjà le bon format
           'games', 
-          this.calculateDynamicScore(topGame.rating || 0, topGame.released, 'high')
+          this.calculateDynamicScore(topGame.rating || 0, topGame.year?.toString(), 'high')
         )
         trendingItems.push(enhanced)
         successfulFetches++
-        console.log('✅ Games added:', enhanced.title, 'by', enhanced.developer)
+        console.log('✅ SteamSpy Games added:', enhanced.title, 'by', enhanced.developer)
       }
     } catch (error) {
-      console.warn('🎮 Games fetch failed:', error)
+      console.warn('🎮 SteamSpy Games fetch failed:', error)
     }
 
     // 🎬 Films - Priorité 2 (TMDB)

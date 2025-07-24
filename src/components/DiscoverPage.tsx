@@ -2,7 +2,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { Star, Plus, TrendingUp, Play, Book, Headphones, Film, Check, Loader2, Sparkles, Zap } from 'lucide-react'
-import { rawgService } from '@/services/rawgService'
+import { steamSpyService } from '@/services/steamSpyService'
 import { omdbService } from '@/services/omdbService'
 import { tmdbService } from '@/services/tmdbService'
 import { googleBooksService } from '@/services/googleBooksService'
@@ -183,7 +183,7 @@ export default function DiscoverPage({
       const promises: Promise<any[]>[] = []
       
       if (selectedFilters.includes('games')) {
-        promises.push(rawgService.getPopularGames().catch(() => []))
+        promises.push(steamSpyService.getPopularGames().catch(() => []))
       }
       if (selectedFilters.includes('movies')) {
         promises.push(tmdbService.getTrendingMovies('day').catch(() => []))
@@ -202,7 +202,7 @@ export default function DiscoverPage({
 
       if (selectedFilters.includes('games') && results[resultIndex]?.[0]) {
         heroItems.push({ 
-          ...rawgService.convertToAppFormat(results[resultIndex][0]), 
+          ...results[resultIndex][0], // SteamSpy retourne déjà le bon format
           description: 'An epic gaming experience that redefines entertainment.',
           callToAction: 'Play Now',
           categoryLabel: 'Games'
@@ -490,16 +490,38 @@ export default function DiscoverPage({
 
   const loadGamesContent = async () => {
     try {
-      const games = await rawgService.getPopularGames()
-      const convertedGames = games.map(game => rawgService.convertToAppFormat(game))
+      console.log('🎮 Loading games content from SteamSpy...')
+      
+      // Charger plusieurs catégories de jeux en parallèle depuis SteamSpy
+      const [popularGames, topOwned, newReleases] = await Promise.all([
+        steamSpyService.getTop100In2Weeks().catch(() => []),
+        steamSpyService.getTop100Owned().catch(() => []),
+        steamSpyService.getNewReleases().catch(() => [])
+      ])
 
-      setCategorySections(prev => prev.map(section => 
-        section.id === 'trending-games' 
-          ? { ...section, items: convertedGames, loading: false }
-          : section
-      ))
+      setCategorySections(prev => prev.map(section => {
+        if (section.id === 'trending-games') {
+          // Utiliser les jeux populaires des 2 dernières semaines
+          return { 
+            ...section, 
+            items: popularGames.slice(0, 8), // Top 8 popular
+            loading: false,
+            title: '🔥 Trending Games (2 weeks)',
+            subtitle: 'Most active games on Steam right now'
+          }
+        }
+        return section
+      }))
+
+      // Log des statistiques
+      console.log('🎮 SteamSpy Games loaded:', {
+        popular: popularGames.length,
+        topOwned: topOwned.length,
+        newReleases: newReleases.length
+      })
+
     } catch (error) {
-      console.error('Error loading games:', error)
+      console.error('Error loading games from SteamSpy:', error)
       setCategorySections(prev => prev.map(section => 
         section.id === 'trending-games' 
           ? { ...section, loading: false }
@@ -667,7 +689,7 @@ export default function DiscoverPage({
         const favoriteGenre = preferences.topGenres[0]
         
         const allContent = await Promise.all([
-          rawgService.getPopularGames().catch(() => []),
+          steamSpyService.getPopularGames().catch(() => []),
           tmdbService.getPopularMovies().catch(() => []),
           googleBooksService.getFictionBooks().catch(() => []),
           musicService.getPopularAlbums().catch(() => [])
@@ -676,10 +698,10 @@ export default function DiscoverPage({
         const genreMatches: any[] = []
         
         allContent[0].forEach(game => {
-          if (game.genres?.some((g: any) => g.name.toLowerCase().includes(favoriteGenre.toLowerCase()))) {
-            const converted = rawgService.convertToAppFormat(game)
-            if (!library.some(item => item.id === converted.id)) {
-              genreMatches.push(converted)
+          // SteamSpy utilise un champ 'genre' string au lieu d'un array 'genres'
+          if (game.genre && game.genre.toLowerCase().includes(favoriteGenre.toLowerCase())) {
+            if (!library.some(item => item.id === game.id)) {
+              genreMatches.push(game) // SteamSpy retourne déjà le bon format
             }
           }
         })
