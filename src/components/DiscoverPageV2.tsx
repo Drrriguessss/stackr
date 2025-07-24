@@ -372,8 +372,13 @@ export default function DiscoverPageV2({
             <div className="flex items-center space-x-2 mb-3">
               <TrendingUp size={20} className="text-yellow-300" />
               <span className="bg-yellow-300 text-blue-900 px-3 py-1 rounded-full text-sm font-bold">
-                TRENDING NOW
+                {heroItem.trendingReason || 'TRENDING NOW'}
               </span>
+              {heroItem.year >= 2024 && (
+                <span className="bg-green-400 text-white px-2 py-1 rounded-full text-xs font-bold">
+                  NEW
+                </span>
+              )}
             </div>
             
             <h1 className="text-3xl font-bold mb-3 leading-tight">

@@ -100,29 +100,135 @@ class CheapSharkGameService {
     }
   }
 
-  // 🔥 Jeux tendance (avec plus de reviews récentes)
+  // 🔥 Jeux tendance (privilégiant les jeux récents avec activité)
   async getTrendingGames(): Promise<any[]> {
     try {
-      console.log('🎮 [CheapShark] Fetching trending games...')
+      console.log('🎮 [CheapShark] Fetching truly trending games...')
       
-      const dealsUrl = `${this.baseUrl}/deals?storeID=1&upperPrice=40&pageSize=30&sortBy=Deal Rating`
-      const deals: CheapSharkDeal[] = await fetchWithCache(dealsUrl, 'cheapshark-trending')
+      // Combiner plusieurs sources pour un vrai trending
+      const [recentDeals, popularDeals] = await Promise.all([
+        // 1. Jeux récents avec deals (activité récente)
+        fetchWithCache(`${this.baseUrl}/deals?storeID=1&upperPrice=60&pageSize=25&sortBy=recent`, 'cheapshark-recent-activity'),
+        // 2. Jeux populaires actuels
+        fetchWithCache(`${this.baseUrl}/deals?storeID=1&upperPrice=50&pageSize=25&sortBy=Metacritic`, 'cheapshark-popular-current')
+      ])
       
-      const trendingGames = deals
-        .filter(deal => {
-          return deal.steamRatingCount && parseInt(deal.steamRatingCount) >= 1000 &&
-                 deal.steamRatingPercent && parseInt(deal.steamRatingPercent) >= 75
-        })
-        .slice(0, 12)
-        .map(deal => this.convertDealToGame(deal))
+      // Combiner et scorer les jeux
+      const allDeals = [...recentDeals, ...popularDeals]
+      const scoredGames = allDeals
+        .map(deal => ({
+          ...deal,
+          trendingScore: this.calculateTrendingScore(deal)
+        }))
+        .filter(deal => deal.trendingScore > 0)
+        .sort((a, b) => b.trendingScore - a.trendingScore)
+        .slice(0, 15) // Top 15 pour diversité
       
-      console.log(`🎮 [CheapShark] Found ${trendingGames.length} trending games`)
-      return trendingGames.slice(0, 8)
+      // Déduplication par titre
+      const uniqueGames = this.deduplicateGames(scoredGames)
+      
+      const trendingGames = uniqueGames
+        .slice(0, 8)
+        .map(deal => this.convertToAppFormat(deal))
+      
+      console.log(`🎮 [CheapShark] Found ${trendingGames.length} truly trending games`)
+      console.log(`🎮 [CheapShark] Top trending titles:`, trendingGames.slice(0, 3).map(g => `${g.title} (${g.year})`))
+      
+      return trendingGames
       
     } catch (error) {
       console.error('🎮 [CheapShark] Error fetching trending games:', error)
       return this.getFallbackGames()
     }
+  }
+
+  // 📊 Calculer le score de trending d'un jeu
+  private calculateTrendingScore(deal: CheapSharkDeal): number {
+    let score = 0
+    
+    const currentYear = new Date().getFullYear()
+    const releaseYear = deal.releaseDate ? new Date(deal.releaseDate * 1000).getFullYear() : 0
+    const age = currentYear - releaseYear
+    
+    // 1. Bonus pour les jeux récents (facteur le plus important)
+    if (age <= 1) score += 100 // Jeux de cette année ou l'année dernière
+    else if (age <= 2) score += 80 // 2024-2023
+    else if (age <= 3) score += 60 // 2022
+    else if (age <= 5) score += 30 // 2020-2021
+    else if (age <= 8) score += 10 // 2017-2019
+    // Jeux plus anciens : score de base seulement
+    
+    // 2. Score Metacritic (qualité)
+    const metacritic = parseInt(deal.metacriticScore) || 0
+    if (metacritic >= 90) score += 25
+    else if (metacritic >= 80) score += 20
+    else if (metacritic >= 70) score += 15
+    else if (metacritic >= 60) score += 10
+    
+    // 3. Popularité Steam (nombre de reviews)
+    const reviews = parseInt(deal.steamRatingCount) || 0
+    if (reviews >= 50000) score += 20
+    else if (reviews >= 10000) score += 15
+    else if (reviews >= 5000) score += 10
+    else if (reviews >= 1000) score += 5
+    
+    // 4. Rating Steam (satisfaction)
+    const steamRating = parseInt(deal.steamRatingPercent) || 0
+    if (steamRating >= 95) score += 15
+    else if (steamRating >= 85) score += 10
+    else if (steamRating >= 75) score += 5
+    
+    // 5. Bonus pour les deals récents (activité marketplace)
+    const lastChangeHours = deal.lastChange ? (Date.now() / 1000 - deal.lastChange) / 3600 : 999999
+    if (lastChangeHours <= 24) score += 20 // Deal dans les 24h
+    else if (lastChangeHours <= 168) score += 10 // Deal cette semaine
+    
+    // 6. Bonus pour les économies importantes
+    const savings = parseFloat(deal.savings) || 0
+    if (savings >= 75) score += 15
+    else if (savings >= 50) score += 10
+    else if (savings >= 25) score += 5
+    
+    return score
+  }
+
+  // 🎯 Déduplication des jeux par titre similaire
+  private deduplicateGames(games: any[]): any[] {
+    const seen = new Set<string>()
+    return games.filter(game => {
+      const cleanTitle = game.title.toLowerCase().replace(/[^a-z0-9]/g, '')
+      if (seen.has(cleanTitle)) {
+        return false
+      }
+      seen.add(cleanTitle)
+      return true
+    })
+  }
+
+  // 🎮 Convertir avec données de trending
+  private convertToAppFormat(deal: any): any {
+    const converted = this.convertDealToGame(deal)
+    
+    // Ajouter les métadonnées de trending
+    converted.trendingScore = deal.trendingScore
+    converted.trendingReason = this.getTrendingReason(deal)
+    
+    return converted
+  }
+
+  // 📈 Expliquer pourquoi ce jeu est trending
+  private getTrendingReason(deal: any): string {
+    const currentYear = new Date().getFullYear()
+    const releaseYear = deal.releaseDate ? new Date(deal.releaseDate * 1000).getFullYear() : 0
+    const age = currentYear - releaseYear
+    
+    if (age <= 1) return "New Release"
+    if (age <= 2) return "Recently Popular"
+    if (parseFloat(deal.savings) >= 50) return "Major Sale"
+    if (parseInt(deal.steamRatingCount) >= 20000) return "Community Favorite"
+    if (parseInt(deal.metacriticScore) >= 85) return "Critically Acclaimed"
+    
+    return "Trending Now"
   }
 
   // Convertir un deal CheapShark en format de l'app
