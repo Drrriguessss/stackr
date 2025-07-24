@@ -79,6 +79,8 @@ export default function DiscoverPageV2({
   const [heroGames, setHeroGames] = useState<ContentItem[]>([])
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
   const [heroLoading, setHeroLoading] = useState(true)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
   // 🚀 Charger tout le contenu au démarrage
   useEffect(() => {
@@ -358,6 +360,32 @@ export default function DiscoverPageV2({
     const nextSlide = () => setCurrentHeroIndex((prev) => (prev + 1) % heroGames.length)
     const prevSlide = () => setCurrentHeroIndex((prev) => (prev - 1 + heroGames.length) % heroGames.length)
 
+    // 👆 Gestionnaires de swipe tactile
+    const minSwipeDistance = 50
+
+    const onTouchStart = (e: React.TouchEvent) => {
+      setTouchEnd(null)
+      setTouchStart(e.targetTouches[0].clientX)
+    }
+
+    const onTouchMove = (e: React.TouchEvent) => {
+      setTouchEnd(e.targetTouches[0].clientX)
+    }
+
+    const onTouchEnd = () => {
+      if (!touchStart || !touchEnd) return
+      
+      const distance = touchStart - touchEnd
+      const isLeftSwipe = distance > minSwipeDistance
+      const isRightSwipe = distance < -minSwipeDistance
+
+      if (isLeftSwipe) {
+        nextSlide() // Swipe gauche = slide suivant
+      } else if (isRightSwipe) {
+        prevSlide() // Swipe droite = slide précédent
+      }
+    }
+
     return (
       <div className="relative mb-8">
         {/* Header du carrousel */}
@@ -366,7 +394,8 @@ export default function DiscoverPageV2({
             <h2 className="text-xl font-semibold text-gray-900">Today's Picks</h2>
             <p className="text-sm text-gray-500">4 premium games, updated daily</p>
           </div>
-          <div className="flex items-center space-x-2">
+          {/* Boutons navigation seulement sur desktop */}
+          <div className="hidden sm:flex items-center space-x-2">
             <button
               onClick={prevSlide}
               className="p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm"
@@ -380,27 +409,36 @@ export default function DiscoverPageV2({
               <ChevronRight size={20} className="text-gray-600" />
             </button>
           </div>
+          {/* Instructions swipe pour mobile */}
+          <div className="block sm:hidden text-xs text-gray-400">
+            <span>← Swipe →</span>
+          </div>
         </div>
 
         {/* Carrousel principal */}
         <div 
-          className="bg-black rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
+          className="bg-white rounded-2xl overflow-hidden shadow-2xl cursor-pointer border-2 border-black"
           onClick={() => handleItemClick(currentHero)}
         >
-          {/* Mobile Layout */}
-          <div className="block sm:hidden">
-            <div className="relative h-48 bg-black">
+          {/* Mobile Layout avec swipe */}
+          <div 
+            className="block sm:hidden"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            <div className="relative h-48 bg-white p-3">
               {currentHero.image ? (
                 <img
                   src={currentHero.image}
                   alt={currentHero.title}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain border border-gray-200 rounded-lg"
                   onError={(e) => {
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODY IDE4MCAxNTAgMjAyLjM4NiAxNTAgMjMwQzE1MCAyNTcuNjE0IDE3Mi4zODYgMjgwIDIwMCAyODBaIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMzIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPg=='
                   }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
+                <div className="w-full h-full flex items-center justify-center border border-gray-200 rounded-lg bg-gray-50">
                   <div className="text-center text-gray-600">
                     <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -411,7 +449,7 @@ export default function DiscoverPageV2({
               )}
             </div>
             
-            <div className="p-4 text-white">
+            <div className="p-4 text-white bg-black">
               <h3 className="text-xl font-medium mb-3 text-white">{currentHero.title}</h3>
               
               <div className="flex items-center gap-4 text-sm mb-4 text-gray-400">
@@ -445,18 +483,18 @@ export default function DiscoverPageV2({
 
           {/* Desktop Layout */}
           <div className="hidden sm:flex items-center h-64">
-            <div className="w-2/5 lg:w-1/3 h-full relative bg-black">
+            <div className="w-2/5 lg:w-1/3 h-full relative bg-white p-4 flex items-center justify-center">
               {currentHero.image ? (
                 <img
                   src={currentHero.image}
                   alt={currentHero.title}
-                  className="w-full h-full object-contain"
+                  className="max-w-full max-h-full object-contain border border-gray-200 rounded-lg shadow-sm"
                   onError={(e) => {
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDIuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiMzMzMzMzMiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzY2NjY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
                   }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
+                <div className="w-full h-full flex items-center justify-center border border-gray-200 rounded-lg bg-gray-50">
                   <div className="text-center text-gray-600">
                     <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -467,7 +505,7 @@ export default function DiscoverPageV2({
               )}
             </div>
             
-            <div className="w-3/5 lg:w-2/3 p-8 lg:p-12 text-white flex flex-col justify-center">
+            <div className="w-3/5 lg:w-2/3 p-8 lg:p-12 text-white flex flex-col justify-center bg-black">
               <h1 className="text-3xl lg:text-4xl font-light mb-4 text-white">
                 {currentHero.title}
               </h1>
