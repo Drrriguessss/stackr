@@ -412,7 +412,7 @@ export default function DiscoverPageV2({
             </div>
             
             <div className="p-4 text-white">
-              <h3 className="text-xl font-medium mb-3">{currentHero.title}</h3>
+              <h3 className="text-xl font-medium mb-3 text-white">{currentHero.title}</h3>
               
               <div className="flex items-center gap-4 text-sm mb-4 text-gray-400">
                 <div className="flex items-center">
@@ -468,7 +468,7 @@ export default function DiscoverPageV2({
             </div>
             
             <div className="w-3/5 lg:w-2/3 p-8 lg:p-12 text-white flex flex-col justify-center">
-              <h1 className="text-3xl lg:text-4xl font-light mb-4">
+              <h1 className="text-3xl lg:text-4xl font-light mb-4 text-white">
                 {currentHero.title}
               </h1>
               
@@ -666,10 +666,6 @@ export default function DiscoverPageV2({
         <div className="px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">Discover</h1>
-            <div className="text-xs text-gray-500 flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Live trending data</span>
-            </div>
           </div>
         </div>
       </div>

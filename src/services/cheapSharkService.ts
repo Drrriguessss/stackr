@@ -412,9 +412,12 @@ class CheapSharkGameService {
   private getSteamImageUrl(steamAppId: string, title: string): string | null {
     if (!steamAppId || steamAppId === '0') return null
     
-    // Steam store images de haute qualité
-    // Format: https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg
-    return `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppId}/header.jpg`
+    // ✨ Utiliser les capsules Steam (format plus vertical) au lieu des headers
+    // Capsule: ~231x87 px (plus compact, moins bannière)
+    // Library: ~600x900 px (portrait vertical comme les films)
+    
+    // Essayer d'abord le format library (vertical)
+    return `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppId}/library_600x900.jpg`
   }
 
   // ✅ NOUVEAU: Nettoyer le titre pour la recherche RAWG
