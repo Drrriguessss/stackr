@@ -24,6 +24,38 @@ class FreeToGameService {
     return `${FREETOGAME_BASE_URL}${endpoint}${query ? '?' + query : ''}`
   }
 
+  private generateImageUrl(game: FreeToGameItem): string {
+    // FreeToGame bloque le hotlinking, utiliser des alternatives
+    
+    // 1. Essayer une image placeholder avec le titre et genre
+    const gameTitle = encodeURIComponent(game.title.replace(/[^a-zA-Z0-9\s]/g, ''))
+    const genreColor = this.getGenreColor(game.genre)
+    
+    // Utiliser un service de placeholder avec le nom du jeu
+    return `https://via.placeholder.com/800x450/${genreColor}/ffffff?text=${gameTitle}`
+  }
+
+  private getGenreColor(genre: string): string {
+    const genreColors: { [key: string]: string } = {
+      'Shooter': 'ff4757',           // Rouge
+      'MMORPG': '5352ed',            // Violet 
+      'Action RPG': 'ff6b35',        // Orange
+      'Battle Royale': '2ed573',     // Vert
+      'Racing': 'ffa502',            // Jaune
+      'Strategy': '3742fa',          // Bleu
+      'Card Game': 'a4b0be',         // Gris
+      'Fighting': 'fd79a8',          // Rose
+      'Sports': '00d2d3',            // Cyan
+      'MOBA': '9c88ff',              // Lavande
+      'RPG': 'ff7675',               // Rouge clair
+      'Puzzle': '74b9ff',            // Bleu clair
+      'Platformer': 'fd79a8',        // Magenta
+      'Simulation': '55a3ff'         // Bleu vif
+    }
+    
+    return genreColors[genre] || '70a1ff' // Bleu par défaut
+  }
+
   // Convertir un jeu FreeToGame vers notre format d'application
   convertToAppFormat(game: FreeToGameItem): any {
     // Générer un rating basé sur la popularité et le genre
@@ -51,7 +83,7 @@ class FreeToGameService {
       id: `game-ftg-${game.id}`,
       title: game.title,
       year: releaseYear,
-      image: game.thumbnail,
+      image: this.generateImageUrl(game),
       category: 'games' as const,
       rating: Math.round(rating * 10) / 10, // 1 décimale
       genre: game.genre,
@@ -155,16 +187,34 @@ class FreeToGameService {
       console.log('🎮 [FreeToGame] Fetching new releases...')
       const response: FreeToGameItem[] = await fetchWithCache(url, cacheKey)
       
-      return response
-        .slice(0, 25) // Top 25 plus récents
+      const converted = response
+        .slice(0, 30) // Top 30 plus récents
         .map(game => this.convertToAppFormat(game))
-        .filter(game => {
-          // Favoriser les jeux récents et de qualité
-          const currentYear = new Date().getFullYear()
-          return game.rating >= 3.2 && game.year >= currentYear - 2 // 2 dernières années
-        })
-        .sort((a, b) => b.year - a.year) // Tri par année décroissante  
-        .slice(0, 15) // Top 15 récents
+      
+      console.log(`🎮 [FreeToGame] Converted ${converted.length} games`)
+      
+      const filtered = converted.filter(game => {
+        // Filtres très permissifs pour avoir plus de jeux
+        const currentYear = new Date().getFullYear()
+        const isRecentish = game.year >= currentYear - 3 // 3 dernières années (plus permissif)
+        const hasDecentRating = game.rating >= 3.0 // Rating plus bas
+        
+        if (!isRecentish) {
+          console.log(`🎮 [FreeToGame] Filtered out ${game.title}: too old (${game.year})`)
+        }
+        if (!hasDecentRating) {
+          console.log(`🎮 [FreeToGame] Filtered out ${game.title}: low rating (${game.rating})`)
+        }
+        
+        return isRecentish && hasDecentRating
+      })
+      
+      console.log(`🎮 [FreeToGame] After filtering: ${filtered.length} games`)
+      
+      const sorted = filtered.sort((a, b) => b.year - a.year) // Tri par année décroissante
+      
+      console.log(`🎮 [FreeToGame] Final result: ${Math.min(sorted.length, 12)} games`)
+      return sorted.slice(0, 12) // Top 12 pour avoir du choix
     } catch (error) {
       console.error('🎮 [FreeToGame] Error fetching new releases:', error)
       return this.getMockGames()
