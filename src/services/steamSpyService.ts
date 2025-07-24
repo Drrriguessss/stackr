@@ -69,8 +69,8 @@ class SteamSpyService {
       steamAppId: parseInt(appid),
       owners: game.owners,
       ownersCount: minOwners,
-      positiveReviews: game.positive,
-      negativeReviews: game.negative,
+      positiveReviews: game.positive || 0,
+      negativeReviews: game.negative || 0,
       price: game.price,
       discount: game.discount,
       averagePlaytime: game.average_forever,
@@ -163,9 +163,17 @@ class SteamSpyService {
       // Trier avec diversité forcée et filtrage intelligent
       const sortedGames = uniqueGames
         .filter(game => {
-          // Filtrer les jeux avec trop peu de reviews (probablement vieux ou nichés)
+          // Filtrage plus permissif pour débugger
           const totalReviews = (game.positiveReviews || 0) + (game.negativeReviews || 0)
-          return totalReviews >= 1000 && game.rating >= 3.5
+          const hasMinReviews = totalReviews >= 500  // Réduit de 1000 à 500
+          const hasDecentRating = game.rating >= 3.0  // Réduit de 3.5 à 3.0
+          
+          // Log pour débugger
+          if (!hasMinReviews || !hasDecentRating) {
+            console.log(`🔍 [SteamSpy Filter] ${game.title}: reviews=${totalReviews}, rating=${game.rating}, pass=${hasMinReviews && hasDecentRating}`)
+          }
+          
+          return hasMinReviews && hasDecentRating
         })
         .sort((a, b) => {
           // Pénaliser les développeurs sur-représentés (comme Valve)
