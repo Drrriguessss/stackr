@@ -93,10 +93,11 @@ export default function DiscoverPageV2({
     console.log('🔥 [DiscoverV2] Starting content loading...')
     
     try {
-      // Charger 4 jeux + 4 films quotidiens et le contenu en parallèle
-      const [dailyHeroGames, dailyHeroMovies, games, movies, books, music] = await Promise.all([
-        cheapSharkGameService.getDailyHeroGames(),
+      // Charger 4 jeux trending + 4 films + 4 livres quotidiens et le contenu en parallèle
+      const [trendingGames, dailyHeroMovies, dailyHeroBooks, games, movies, books, music] = await Promise.all([
+        cheapSharkGameService.getTrendingGames(),
         tmdbService.getDailyHeroMovies(),
+        googleBooksService.getDailyHeroBooks(),
         loadGames(),
         loadMovies(), 
         loadBooks(),
@@ -104,16 +105,18 @@ export default function DiscoverPageV2({
       ])
 
       console.log('🔥 [DiscoverV2] All content loaded:', {
-        heroGames: dailyHeroGames.length,
+        trendingGames: trendingGames.length,
         heroMovies: dailyHeroMovies.length,
+        heroBooks: dailyHeroBooks.length,
         games: games.length,
         movies: movies.length, 
         books: books.length,
         music: music.length
       })
 
-      // Combiner 4 jeux + 4 films pour Today's Picks (8 total pour l'instant)
-      const combinedHeroItems = [...dailyHeroGames, ...dailyHeroMovies]
+      // Combiner 4 jeux trending + 4 films + 4 livres pour Today's Picks (12 total)
+      const heroGames = trendingGames.slice(0, 4) // Prendre 4 jeux de trending
+      const combinedHeroItems = [...heroGames, ...dailyHeroMovies, ...dailyHeroBooks]
       if (combinedHeroItems.length > 0) {
         setHeroItems(combinedHeroItems)
       }
@@ -266,11 +269,29 @@ export default function DiscoverPageV2({
         }
         break
       case 'movies':
-        const cleanMovieId = item.id.replace(/^movie-/, '')
+        // Gérer les différents formats d'ID de films
+        let cleanMovieId = item.id
+        if (item.id.startsWith('movie-tmdb-hero-')) {
+          cleanMovieId = item.id.replace('movie-tmdb-hero-', '')
+        } else if (item.id.startsWith('movie-tmdb-')) {
+          cleanMovieId = item.id.replace('movie-tmdb-', '')
+        } else {
+          cleanMovieId = item.id.replace(/^movie-/, '')
+        }
+        console.log('🎬 [DiscoverV2] Opening movie detail for ID:', cleanMovieId)
         onOpenMovieDetail?.(cleanMovieId)
         break
       case 'books':
-        const cleanBookId = item.id.replace(/^book-/, '')
+        // Gérer les différents formats d'ID de livres
+        let cleanBookId = item.id
+        if (item.id.startsWith('book-gb-hero-')) {
+          cleanBookId = item.id.replace('book-gb-hero-', '')
+        } else if (item.id.startsWith('book-gb-')) {
+          cleanBookId = item.id.replace('book-gb-', '')
+        } else {
+          cleanBookId = item.id.replace(/^book-/, '')
+        }
+        console.log('📚 [DiscoverV2] Opening book detail for ID:', cleanBookId)
         onOpenBookDetail?.(cleanBookId)
         break
       case 'music':

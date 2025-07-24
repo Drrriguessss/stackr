@@ -58,6 +58,162 @@ export interface GoogleBooksSearchResponse {
 class GoogleBooksService {
   private readonly baseURL = 'https://www.googleapis.com/books/v1/volumes'
   
+  // 📚 4 Livres quotidiens pour Hero Carousel
+  async getDailyHeroBooks(): Promise<any[]> {
+    try {
+      console.log('📚 [GoogleBooks] Fetching daily hero books (4 per day rotation)...')
+      
+      const currentYear = new Date().getFullYear()
+      
+      // Combiner plusieurs sources pour diversité
+      const [recentBooks, bestSellers, classicBooks] = await Promise.all([
+        // Livres récents bien notés (2022+)
+        this.searchBooks(`publishedDate:${currentYear-2}..${currentYear}&orderBy=relevance&maxResults=20`),
+        // Best-sellers actuels
+        this.searchBooks('subject:bestseller&orderBy=relevance&maxResults=15'),
+        // Classiques intemporels bien notés
+        this.searchBooks('subject:classic literature&orderBy=relevance&maxResults=15')
+      ])
+      
+      // Combiner toutes les sources
+      const allBooks = [
+        ...(Array.isArray(recentBooks) ? recentBooks : []),
+        ...(Array.isArray(bestSellers) ? bestSellers : []),
+        ...(Array.isArray(classicBooks) ? classicBooks : [])
+      ]
+      
+      const qualityBooks = allBooks
+        .filter(book => {
+          const publishYear = this.extractYear(book.volumeInfo.publishedDate)
+          const rating = book.volumeInfo.averageRating || 0
+          const ratingsCount = book.volumeInfo.ratingsCount || 0
+          
+          // Livres récents (2022+) OU classiques excellents
+          const isRecentOrClassic = (publishYear >= 2022) || (rating >= 4.0 && publishYear <= 2021)
+          
+          // Score décent et popularité minimum
+          const hasDecentScore = rating >= 3.8 || ratingsCount >= 50
+          
+          // Doit avoir une image et des auteurs
+          const hasImage = book.volumeInfo.imageLinks?.thumbnail
+          const hasAuthors = book.volumeInfo.authors && book.volumeInfo.authors.length > 0
+          
+          return isRecentOrClassic && hasDecentScore && hasImage && hasAuthors
+        })
+        .map(book => this.convertToAppFormat(book))
+      
+      // Déduplication par titre
+      const uniqueBooks = this.deduplicateBooks(qualityBooks)
+      
+      // Sélection quotidienne déterministe
+      const dailySelection = this.selectDailyBooks(uniqueBooks, 4)
+      
+      console.log(`📚 [GoogleBooks] Selected daily hero books:`, dailySelection.map(b => `${b.title} by ${b.author} (${b.year})`))
+      
+      return dailySelection.length >= 4 ? dailySelection : this.getFallbackHeroBooks()
+      
+    } catch (error) {
+      console.error('📚 [GoogleBooks] Error fetching daily hero books:', error)
+      return this.getFallbackHeroBooks()
+    }
+  }
+
+  // Sélection quotidienne déterministe basée sur la date
+  private selectDailyBooks(books: any[], count: number): any[] {
+    if (books.length < count) return books
+    
+    // Utiliser la date comme seed pour avoir les mêmes livres toute la journée
+    const today = new Date()
+    const dateString = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`
+    const seed = this.hashString(dateString)
+    
+    // Mélanger de façon déterministe
+    const shuffled = [...books]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = (seed + i) % (i + 1)
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    
+    return shuffled.slice(0, count)
+  }
+
+  // Fonction de hash simple pour créer un seed reproductible
+  private hashString(str: string): number {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    return Math.abs(hash)
+  }
+
+  // Déduplication des livres par titre similaire
+  private deduplicateBooks(books: any[]): any[] {
+    const seen = new Set<string>()
+    return books.filter(book => {
+      const cleanTitle = book.title.toLowerCase().replace(/[^a-z0-9]/g, '')
+      if (seen.has(cleanTitle)) {
+        return false
+      }
+      seen.add(cleanTitle)
+      return true
+    })
+  }
+
+  // Fallback : 4 livres premium sélectionnés
+  private getFallbackHeroBooks(): any[] {
+    const fallbackBooks = [
+      {
+        id: 'book-gb-hero-1',
+        title: 'Fourth Wing',
+        author: 'Rebecca Yarros',
+        year: 2023,
+        image: 'https://books.google.com/books/content?id=fakeid&printsec=frontcover&img=1&zoom=1',
+        category: 'books' as const,
+        rating: 4.5,
+        genre: 'Fantasy Romance',
+        description: 'A thrilling fantasy romance that took the world by storm.'
+      },
+      {
+        id: 'book-gb-hero-2',
+        title: 'Tomorrow, and Tomorrow, and Tomorrow',
+        author: 'Gabrielle Zevin',
+        year: 2022,
+        image: 'https://books.google.com/books/content?id=fakeid2&printsec=frontcover&img=1&zoom=1',
+        category: 'books' as const,
+        rating: 4.3,
+        genre: 'Literary Fiction',
+        description: 'A novel about friendship, art, and the world of video game design.'
+      },
+      {
+        id: 'book-gb-hero-3',
+        title: 'To Kill a Mockingbird',
+        author: 'Harper Lee',
+        year: 1960,
+        image: 'https://books.google.com/books/content?id=fakeid3&printsec=frontcover&img=1&zoom=1',
+        category: 'books' as const,
+        rating: 4.8,
+        genre: 'Classic Literature',
+        description: 'A timeless classic exploring themes of justice and morality in the American South.'
+      },
+      {
+        id: 'book-gb-hero-4',
+        title: '1984',
+        author: 'George Orwell',
+        year: 1949,
+        image: 'https://books.google.com/books/content?id=fakeid4&printsec=frontcover&img=1&zoom=1',
+        category: 'books' as const,
+        rating: 4.7,
+        genre: 'Dystopian Fiction',
+        description: 'A dystopian masterpiece that remains more relevant than ever.'
+      }
+    ]
+
+    // Appliquer la même logique de sélection quotidienne
+    return this.selectDailyBooks(fallbackBooks, 4)
+  }
+  
   /**
    * ✅ FONCTION CORRIGÉE : Obtenir le vrai auteur
    */
