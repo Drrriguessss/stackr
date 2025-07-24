@@ -353,24 +353,22 @@ export default function DiscoverPageV2({
 
     return (
       <div 
-        className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl overflow-hidden shadow-xl mb-8 cursor-pointer transform hover:scale-[1.02] transition-transform"
+        className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl overflow-hidden shadow-xl mb-8 cursor-pointer"
         onClick={() => handleItemClick(heroItem)}
       >
-        <div className="flex items-center h-64">
-          {/* Image */}
-          <div className="w-1/3 h-full relative bg-gray-200">
+        {/* Mobile Layout (stacked) */}
+        <div className="block sm:hidden">
+          {/* Image mobile */}
+          <div className="relative h-48 bg-gray-900">
             {heroItem.image ? (
-              <>
-                <img
-                  src={heroItem.image}
-                  alt={heroItem.title}
-                  className="w-full h-full object-cover object-center"
-                  onError={(e) => {
-                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRTVFN0VCIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDIuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiM2QjcyODAiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzRCNTU2MyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-blue-600/20"></div>
-              </>
+              <img
+                src={heroItem.image}
+                alt={heroItem.title}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRTVFN0VCIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDIuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiM2QjcyODAiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzRCNTU2MyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
+                }}
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center text-white/70">
@@ -383,8 +381,79 @@ export default function DiscoverPageV2({
             )}
           </div>
           
-          {/* Contenu */}
-          <div className="w-2/3 p-8 text-white">
+          {/* Content mobile */}
+          <div className="p-4 text-white">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className="bg-yellow-300 text-blue-900 px-2 py-1 rounded-full text-xs font-bold">
+                {heroItem.trendingReason || 'TRENDING NOW'}
+              </span>
+              {heroItem.year >= 2024 && (
+                <span className="bg-green-400 text-white px-2 py-1 rounded-full text-xs font-bold">
+                  NEW
+                </span>
+              )}
+            </div>
+            
+            <h2 className="text-xl font-bold mb-2">{heroItem.title}</h2>
+            
+            <div className="flex items-center gap-3 text-sm mb-3">
+              <div className="flex items-center">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={14}
+                    className={`${
+                      star <= (heroItem.rating || 0) ? 'text-yellow-300 fill-current' : 'text-white/40'
+                    }`}
+                  />
+                ))}
+                <span className="ml-1">{heroItem.rating}/5</span>
+              </div>
+              <span>•</span>
+              <span>{heroItem.year}</span>
+              <span>•</span>
+              <span>{heroItem.genre}</span>
+            </div>
+            
+            <button 
+              onClick={(e) => {
+                e.stopPropagation()
+                handleItemClick(heroItem)
+              }}
+              className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold w-full"
+            >
+              View Details
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop Layout (horizontal) */}
+        <div className="hidden sm:flex items-center h-64">
+          {/* Image desktop */}
+          <div className="w-2/5 lg:w-1/3 h-full relative bg-gray-900">
+            {heroItem.image ? (
+              <img
+                src={heroItem.image}
+                alt={heroItem.title}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRTVFN0VCIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDIuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiM2QjcyODAiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzRCNTU2MyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
+                }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center text-white/70">
+                  <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm">Image not available</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Content desktop */}
+          <div className="w-3/5 lg:w-2/3 p-6 lg:p-8 text-white">
             <div className="flex items-center space-x-2 mb-3">
               <TrendingUp size={20} className="text-yellow-300" />
               <span className="bg-yellow-300 text-blue-900 px-3 py-1 rounded-full text-sm font-bold">
@@ -397,7 +466,7 @@ export default function DiscoverPageV2({
               )}
             </div>
             
-            <h1 className="text-3xl font-bold mb-3 leading-tight">
+            <h1 className="text-2xl lg:text-3xl font-bold mb-3 leading-tight">
               {heroItem.title}
             </h1>
             
@@ -420,7 +489,7 @@ export default function DiscoverPageV2({
               <span className="text-white/90">{heroItem.genre}</span>
             </div>
             
-            <p className="text-white/90 mb-6 leading-relaxed">
+            <p className="text-white/90 mb-6 leading-relaxed hidden lg:block">
               {heroItem.description || `Experience the best of ${heroItem.category} with this trending title that's capturing everyone's attention.`}
             </p>
             
@@ -454,10 +523,10 @@ export default function DiscoverPageV2({
             <img
               src={item.image}
               alt={item.title}
-              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-contain bg-gray-900 group-hover:scale-105 transition-transform duration-500"
               onError={(e) => {
                 // Remplacer par placeholder si l'image ne charge pas
-                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRTVFN0VCIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDIuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiM2QjcyODAiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzRCNTU2MyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
+                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRTVFN0VCIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDyuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiM2QjcyODAiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzRCNTU2MyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
               }}
             />
           ) : (
