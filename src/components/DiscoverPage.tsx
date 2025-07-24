@@ -56,6 +56,12 @@ export default function DiscoverPage({
   const [trendingLoading, setTrendingLoading] = useState(true)
   const [isAutoplay, setIsAutoplay] = useState(true)
 
+  // ✅ ÉTATS POUR LES SECTIONS DE CONTENU
+  const [gamesLoading, setGamesLoading] = useState(false)
+  const [moviesLoading, setMoviesLoading] = useState(false)
+  const [booksLoading, setBooksLoading] = useState(false)
+  const [musicLoading, setMusicLoading] = useState(false)
+
   // États existants
   const [selectedFilters, setSelectedFilters] = useState<CategoryFilter[]>(() => {
     if (typeof window !== 'undefined') {
