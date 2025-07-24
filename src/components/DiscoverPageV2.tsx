@@ -9,6 +9,7 @@ import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
 import { movieCorrelationService } from '@/services/movieCorrelationService'
 import { omdbService } from '@/services/omdbService'
+import { movieSearchService } from '@/services/movieSearchService'
 import type { ContentItem, LibraryItem, MediaStatus } from '@/types'
 
 interface DiscoverPageProps {
@@ -271,48 +272,25 @@ export default function DiscoverPageV2({
         }
         break
       case 'movies':
-        console.log('🎬 [DiscoverV2] Movie clicked:', item.title, item.id)
+        // ✅ SIMILAIRE AUX JEUX: Pour tous les films, rechercher sur OMDB par titre
+        console.log('🔍 [DiscoverV2] Movie clicked, searching OMDB for:', item.title)
         
-        // Pour tous les films (TMDB et fallback), utiliser le service de corrélation
-        if (item.id.startsWith('movie-')) {
-          try {
-            console.log('🔗 [DiscoverV2] Correlating movie to OMDB:', item.title)
-            const omdbDetails = await movieCorrelationService.getOMDBDetailsForTMDB(item)
-            
-            if (omdbDetails && omdbDetails.imdbID) {
-              console.log('✅ [DiscoverV2] Found OMDB correlation:', omdbDetails.imdbID)
-              const cleanImdbId = omdbDetails.imdbID.replace('tt', '') // Supprimer préfixe tt
-              onOpenMovieDetail?.(cleanImdbId)
-            } else {
-              console.log('❌ [DiscoverV2] No OMDB correlation found, trying direct search by title')
-              // Fallback : recherche directe par titre dans OMDB
-              try {
-                const directSearchResult = await searchMovieByTitle(item.title)
-                if (directSearchResult) {
-                  console.log('✅ [DiscoverV2] Found movie by direct search:', directSearchResult)
-                  onOpenMovieDetail?.(directSearchResult)
-                } else {
-                  console.log('❌ [DiscoverV2] No movie found by title, using fallback ID')
-                  // En dernier recours, utiliser un ID basé sur le titre
-                  const fallbackId = item.title.toLowerCase().replace(/[^a-z0-9]/g, '')
-                  onOpenMovieDetail?.(fallbackId)
-                }
-              } catch (searchError) {
-                console.error('❌ [DiscoverV2] Error in direct search:', searchError)
-                const fallbackId = item.title.toLowerCase().replace(/[^a-z0-9]/g, '')
-                onOpenMovieDetail?.(fallbackId)
-              }
-            }
-          } catch (error) {
-            console.error('❌ [DiscoverV2] Error correlating movie:', error)
-            // Fallback vers recherche directe
+        try {
+          const omdbId = await movieSearchService.searchMovieByName(item.title)
+          if (omdbId) {
+            console.log('✅ [DiscoverV2] Found OMDB ID:', omdbId, 'for', item.title)
+            onOpenMovieDetail?.(omdbId)
+          } else {
+            console.log('❌ [DiscoverV2] No OMDB match found for:', item.title)
+            // Fallback vers ID basé sur le titre
             const fallbackId = item.title.toLowerCase().replace(/[^a-z0-9]/g, '')
             onOpenMovieDetail?.(fallbackId)
           }
-        } else {
-          // Films non-TMDB (traitement classique)
-          const cleanMovieId = item.id.replace(/^movie-/, '')
-          onOpenMovieDetail?.(cleanMovieId)
+        } catch (error) {
+          console.error('❌ [DiscoverV2] Error searching OMDB:', error)
+          // Fallback vers ID basé sur le titre
+          const fallbackId = item.title.toLowerCase().replace(/[^a-z0-9]/g, '')
+          onOpenMovieDetail?.(fallbackId)
         }
         break
       case 'books':
@@ -332,34 +310,6 @@ export default function DiscoverPageV2({
         const cleanMusicId = item.id.replace(/^music-/, '')
         onOpenMusicDetail?.(cleanMusicId)
         break
-    }
-  }
-
-  // Méthode pour rechercher un film par titre dans OMDB
-  const searchMovieByTitle = async (title: string): Promise<string | null> => {
-    try {
-      console.log('🔍 [DiscoverV2] Searching OMDB by title:', title)
-      const results = await omdbService.searchMovies(title)
-      
-      if (results && results.length > 0) {
-        // Prendre le premier résultat qui correspond
-        const match = results.find(movie => 
-          movie.Title.toLowerCase().includes(title.toLowerCase()) || 
-          title.toLowerCase().includes(movie.Title.toLowerCase())
-        )
-        
-        if (match && match.imdbID) {
-          const cleanId = match.imdbID.replace('tt', '')
-          console.log('✅ [DiscoverV2] Found match by title search:', match.Title, '→', cleanId)
-          return cleanId
-        }
-      }
-      
-      console.log('❌ [DiscoverV2] No match found in OMDB by title')
-      return null
-    } catch (error) {
-      console.error('❌ [DiscoverV2] Error searching OMDB by title:', error)
-      return null
     }
   }
 
