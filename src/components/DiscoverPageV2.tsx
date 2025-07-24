@@ -1,7 +1,7 @@
 // src/components/DiscoverPageV2.tsx - Version complètement réécrite
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Star, Plus, Film, Book, Headphones, Play, Check, Loader2, TrendingUp } from 'lucide-react'
+import { Star, Plus, Film, Book, Headphones, Play, Check, Loader2, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cheapSharkGameService } from '@/services/cheapSharkService'
 import { gameSearchService } from '@/services/gameSearchService'
 import { tmdbService } from '@/services/tmdbService'
@@ -76,7 +76,8 @@ export default function DiscoverPageV2({
 
   const [showStatusPopup, setShowStatusPopup] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState<string | null>(null)
-  const [heroItem, setHeroItem] = useState<ContentItem | null>(null)
+  const [heroGames, setHeroGames] = useState<ContentItem[]>([])
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
   const [heroLoading, setHeroLoading] = useState(true)
 
   // 🚀 Charger tout le contenu au démarrage
@@ -90,9 +91,9 @@ export default function DiscoverPageV2({
     console.log('🔥 [DiscoverV2] Starting content loading...')
     
     try {
-      // Charger le hero game spécial et le contenu en parallèle
-      const [heroGame, games, movies, books, music] = await Promise.all([
-        cheapSharkGameService.getHeroGame(),
+      // Charger les 4 hero games quotidiens et le contenu en parallèle
+      const [dailyHeroGames, games, movies, books, music] = await Promise.all([
+        cheapSharkGameService.getDailyHeroGames(),
         loadGames(),
         loadMovies(), 
         loadBooks(),
@@ -100,16 +101,16 @@ export default function DiscoverPageV2({
       ])
 
       console.log('🔥 [DiscoverV2] All content loaded:', {
-        heroGame: heroGame?.title,
+        heroGames: dailyHeroGames.length,
         games: games.length,
         movies: movies.length, 
         books: books.length,
         music: music.length
       })
 
-      // Utiliser le hero game spécial
-      if (heroGame) {
-        setHeroItem(heroGame)
+      // Utiliser les 4 hero games quotidiens
+      if (dailyHeroGames.length > 0) {
+        setHeroGames(dailyHeroGames)
       }
       setHeroLoading(false)
 
@@ -340,146 +341,184 @@ export default function DiscoverPageV2({
     }
   }
 
-  // 🎨 Composant Hero Section
+  // 🎨 Hero Carousel avec 4 jeux quotidiens
   const renderHeroSection = () => {
-    if (heroLoading || !heroItem) {
+    if (heroLoading || heroGames.length === 0) {
       return (
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl h-64 animate-pulse flex items-center justify-center mb-8">
+        <div className="bg-black rounded-2xl h-64 animate-pulse flex items-center justify-center mb-8">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-2" />
-            <p className="text-gray-500 text-sm">Loading trending content...</p>
+            <Loader2 className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-2" />
+            <p className="text-gray-500 text-sm">Loading daily games...</p>
           </div>
         </div>
       )
     }
 
+    const currentHero = heroGames[currentHeroIndex]
+    const nextSlide = () => setCurrentHeroIndex((prev) => (prev + 1) % heroGames.length)
+    const prevSlide = () => setCurrentHeroIndex((prev) => (prev - 1 + heroGames.length) % heroGames.length)
+
     return (
-      <div 
-        className="bg-black rounded-2xl overflow-hidden shadow-2xl mb-8 cursor-pointer"
-        onClick={() => handleItemClick(heroItem)}
-      >
-        {/* Mobile Layout (stacked) */}
-        <div className="block sm:hidden">
-          {/* Image mobile */}
-          <div className="relative h-48 bg-black">
-            {heroItem.image ? (
-              <img
-                src={heroItem.image}
-                alt={heroItem.title}
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDIuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiMzMzMzMzMiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzY2NjY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
-                }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center text-gray-600">
-                  <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-sm">Image not available</p>
-                </div>
-              </div>
-            )}
+      <div className="relative mb-8">
+        {/* Header du carrousel */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Today's Picks</h2>
+            <p className="text-sm text-gray-500">4 premium games, updated daily</p>
           </div>
-          
-          {/* Content mobile */}
-          <div className="p-4 text-white">
-            <h2 className="text-xl font-medium mb-3">{heroItem.title}</h2>
-            
-            <div className="flex items-center gap-4 text-sm mb-4 text-gray-400">
-              <div className="flex items-center">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={14}
-                    className={`${
-                      star <= (heroItem.rating || 0) ? 'text-white fill-current' : 'text-gray-700'
-                    }`}
-                  />
-                ))}
-                <span className="ml-2 text-white">{heroItem.rating}</span>
-              </div>
-              <span>{heroItem.year}</span>
-              <span>{heroItem.platform || 'PC'}</span>
-            </div>
-            
-            <button 
-              onClick={(e) => {
-                e.stopPropagation()
-                handleItemClick(heroItem)
-              }}
-              className="bg-white text-black px-4 py-2 rounded-lg text-sm font-medium w-full hover:bg-gray-100 transition-colors"
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={prevSlide}
+              className="p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm"
             >
-              View Details
+              <ChevronLeft size={20} className="text-gray-600" />
+            </button>
+            <button
+              onClick={nextSlide}
+              className="p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              <ChevronRight size={20} className="text-gray-600" />
             </button>
           </div>
         </div>
 
-        {/* Desktop Layout (horizontal) */}
-        <div className="hidden sm:flex items-center h-64">
-          {/* Image desktop */}
-          <div className="w-2/5 lg:w-1/3 h-full relative bg-black">
-            {heroItem.image ? (
-              <img
-                src={heroItem.image}
-                alt={heroItem.title}
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDIuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiMzMzMzMzMiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzY2NjY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
-                }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center text-gray-600">
-                  <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-sm">Image not available</p>
+        {/* Carrousel principal */}
+        <div 
+          className="bg-black rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
+          onClick={() => handleItemClick(currentHero)}
+        >
+          {/* Mobile Layout */}
+          <div className="block sm:hidden">
+            <div className="relative h-48 bg-black">
+              {currentHero.image ? (
+                <img
+                  src={currentHero.image}
+                  alt={currentHero.title}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODY IDE4MCAxNTAgMjAyLjM4NiAxNTAgMjMwQzE1MCAyNTcuNjE0IDE3Mi4zODYgMjgwIDIwMCAyODBaIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMzIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPg=='
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="text-center text-gray-600">
+                    <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-sm">Image not available</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Content desktop */}
-          <div className="w-3/5 lg:w-2/3 p-8 lg:p-12 text-white flex flex-col justify-center">
-            <h1 className="text-3xl lg:text-4xl font-light mb-4">
-              {heroItem.title}
-            </h1>
-            
-            <div className="flex items-center space-x-6 mb-6 text-gray-400">
-              <div className="flex items-center">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={18}
-                    className={`${
-                      star <= (heroItem.rating || 0) ? 'text-white fill-current' : 'text-gray-700'
-                    }`}
-                  />
-                ))}
-                <span className="ml-2 text-white text-lg">{heroItem.rating}</span>
-              </div>
-              <span className="text-white">{heroItem.year}</span>
-              <span className="text-white">{heroItem.platform || 'PC'}</span>
+              )}
             </div>
             
-            <p className="text-gray-400 mb-8 leading-relaxed max-w-2xl hidden lg:block">
-              {heroItem.description || 'An exceptional gaming experience that redefines the genre.'}
-            </p>
-            
-            <div>
+            <div className="p-4 text-white">
+              <h3 className="text-xl font-medium mb-3">{currentHero.title}</h3>
+              
+              <div className="flex items-center gap-4 text-sm mb-4 text-gray-400">
+                <div className="flex items-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={14}
+                      className={`${
+                        star <= (currentHero.rating || 0) ? 'text-white fill-current' : 'text-gray-700'
+                      }`}
+                    />
+                  ))}
+                  <span className="ml-2 text-white">{currentHero.rating}</span>
+                </div>
+                <span>{currentHero.year}</span>
+                <span>{currentHero.platform || 'PC'}</span>
+              </div>
+              
               <button 
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleItemClick(heroItem)
+                  handleItemClick(currentHero)
                 }}
-                className="bg-white text-black px-8 py-3 rounded-xl font-medium hover:bg-gray-100 transition-all duration-200 shadow-lg"
+                className="bg-white text-black px-4 py-2 rounded-lg text-sm font-medium w-full hover:bg-gray-100 transition-colors"
               >
                 View Details
               </button>
             </div>
           </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex items-center h-64">
+            <div className="w-2/5 lg:w-1/3 h-full relative bg-black">
+              {currentHero.image ? (
+                <img
+                  src={currentHero.image}
+                  alt={currentHero.title}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDIuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiMzMzMzMzMiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzY2NjY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="text-center text-gray-600">
+                    <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-sm">Image not available</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="w-3/5 lg:w-2/3 p-8 lg:p-12 text-white flex flex-col justify-center">
+              <h1 className="text-3xl lg:text-4xl font-light mb-4">
+                {currentHero.title}
+              </h1>
+              
+              <div className="flex items-center space-x-6 mb-6 text-gray-400">
+                <div className="flex items-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={18}
+                      className={`${
+                        star <= (currentHero.rating || 0) ? 'text-white fill-current' : 'text-gray-700'
+                      }`}
+                    />
+                  ))}
+                  <span className="ml-2 text-white text-lg">{currentHero.rating}</span>
+                </div>
+                <span className="text-white">{currentHero.year}</span>
+                <span className="text-white">{currentHero.platform || 'PC'}</span>
+              </div>
+              
+              <p className="text-gray-400 mb-8 leading-relaxed max-w-2xl hidden lg:block">
+                {currentHero.description || 'An exceptional gaming experience that redefines the genre.'}
+              </p>
+              
+              <div>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleItemClick(currentHero)
+                  }}
+                  className="bg-white text-black px-8 py-3 rounded-xl font-medium hover:bg-gray-100 transition-all duration-200 shadow-lg"
+                >
+                  View Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Indicateurs de pagination */}
+        <div className="flex justify-center mt-4 space-x-2">
+          {heroGames.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentHeroIndex(index)}
+              className={`w-3 h-3 rounded-full transition-colors ${
+                index === currentHeroIndex ? 'bg-black' : 'bg-gray-300 hover:bg-gray-400'
+              }`}
+            />
+          ))}
         </div>
       </div>
     )

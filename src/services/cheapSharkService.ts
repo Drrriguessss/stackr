@@ -100,73 +100,142 @@ class CheapSharkGameService {
     }
   }
 
-  // 🌟 Jeux ultra récents avec excellent score pour Hero
-  async getHeroGame(): Promise<any | null> {
+  // 🌟 4 Jeux quotidiens pour Hero Carousel
+  async getDailyHeroGames(): Promise<any[]> {
     try {
-      console.log('🌟 [CheapShark] Fetching hero game (ultra recent + high score)...')
+      console.log('🌟 [CheapShark] Fetching daily hero games (4 per day rotation)...')
       
-      const [recentDeals, topRated] = await Promise.all([
-        fetchWithCache(`${this.baseUrl}/deals?storeID=1&upperPrice=70&pageSize=50&sortBy=recent`, 'cheapshark-hero-recent'),
-        fetchWithCache(`${this.baseUrl}/deals?storeID=1&upperPrice=70&pageSize=30&sortBy=Metacritic`, 'cheapshark-hero-rated')
+      const [recentDeals, topRated, popularDeals] = await Promise.all([
+        fetchWithCache(`${this.baseUrl}/deals?storeID=1&upperPrice=80&pageSize=60&sortBy=recent`, 'cheapshark-hero-recent'),
+        fetchWithCache(`${this.baseUrl}/deals?storeID=1&upperPrice=80&pageSize=40&sortBy=Metacritic`, 'cheapshark-hero-rated'),
+        fetchWithCache(`${this.baseUrl}/deals?storeID=1&upperPrice=60&pageSize=40&sortBy=Deal Rating`, 'cheapshark-hero-popular')
       ])
       
-      // Combiner et filtrer pour ultra récent + excellent score
-      const allDeals = [...recentDeals, ...topRated]
+      // Combiner toutes les sources
+      const allDeals = [...recentDeals, ...topRated, ...popularDeals]
       const currentYear = new Date().getFullYear()
-      const currentMonth = new Date().getMonth()
       
-      const heroCandidate = allDeals
+      // Filtrer pour des jeux de qualité
+      const qualityGames = allDeals
         .filter(deal => {
           const releaseYear = deal.releaseDate ? new Date(deal.releaseDate * 1000).getFullYear() : 0
-          const releaseMonth = deal.releaseDate ? new Date(deal.releaseDate * 1000).getMonth() : 0
           const metacritic = parseInt(deal.metacriticScore) || 0
+          const steamRating = parseInt(deal.steamRatingPercent) || 0
           
-          // Ultra récent: cette année ou les 3 derniers mois de l'année dernière
-          const isUltraRecent = (releaseYear === currentYear) || 
-                               (releaseYear === currentYear - 1 && releaseMonth >= 9)
+          // Jeux récents (3 dernières années) OU excellent score
+          const isRecentOrExcellent = (releaseYear >= currentYear - 2) || (metacritic >= 85)
           
-          // Excellent score: 80+ Metacritic
-          const hasExcellentScore = metacritic >= 80
+          // Score décent: 75+ Metacritic OU 85+ Steam
+          const hasDecentScore = metacritic >= 75 || steamRating >= 85
           
-          return isUltraRecent && hasExcellentScore
+          // Doit avoir une image Steam
+          const hasImage = deal.steamAppID && deal.steamAppID !== '0'
+          
+          return isRecentOrExcellent && hasDecentScore && hasImage
         })
-        .sort((a, b) => {
-          // Trier par score Metacritic décroissant
-          const scoreA = parseInt(a.metacriticScore) || 0
-          const scoreB = parseInt(b.metacriticScore) || 0
-          return scoreB - scoreA
-        })
-        .find(deal => deal.steamAppID && deal.steamAppID !== '0') // Prendre le premier avec image Steam
+        .map(deal => this.convertDealToGame(deal))
       
-      if (heroCandidate) {
-        const heroGame = this.convertDealToGame(heroCandidate)
-        console.log(`🌟 [CheapShark] Found hero game: ${heroGame.title} (${heroGame.year}) - Score: ${heroGame.rating}`)
-        return heroGame
-      }
+      // Déduplication par titre
+      const uniqueGames = this.deduplicateGames(qualityGames)
       
-      console.log('🌟 [CheapShark] No suitable hero game found, using fallback')
-      return this.getFallbackHeroGame()
+      // Sélection quotidienne déterministe
+      const dailySelection = this.selectDailyGames(uniqueGames, 4)
+      
+      console.log(`🌟 [CheapShark] Selected daily hero games:`, dailySelection.map(g => `${g.title} (${g.year})`))
+      
+      return dailySelection.length >= 4 ? dailySelection : this.getFallbackHeroGames()
       
     } catch (error) {
-      console.error('🌟 [CheapShark] Error fetching hero game:', error)
-      return this.getFallbackHeroGame()
+      console.error('🌟 [CheapShark] Error fetching daily hero games:', error)
+      return this.getFallbackHeroGames()
     }
   }
 
-  // Fallback hero game
-  private getFallbackHeroGame(): any {
-    return {
-      id: 'game-cs-hero-fallback',
-      title: 'Baldurs Gate 3',
-      year: 2023,
-      image: 'https://cdn.akamai.steamstatic.com/steam/apps/1086940/header.jpg',
-      category: 'games' as const,
-      rating: 4.9,
-      genre: 'RPG',
-      platform: 'PC',
-      metacriticScore: '96',
-      description: 'An epic role-playing game that sets new standards for the genre.'
+  // Sélection quotidienne déterministe basée sur la date
+  private selectDailyGames(games: any[], count: number): any[] {
+    if (games.length < count) return games
+    
+    // Utiliser la date comme seed pour avoir les mêmes jeux toute la journée
+    const today = new Date()
+    const dateString = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`
+    const seed = this.hashString(dateString)
+    
+    // Mélanger de façon déterministe
+    const shuffled = [...games]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = (seed + i) % (i + 1)
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
+    
+    return shuffled.slice(0, count)
+  }
+
+  // Fonction de hash simple pour créer un seed reproductible
+  private hashString(str: string): number {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    return Math.abs(hash)
+  }
+
+  // Fallback : 4 jeux premium sélectionnés
+  private getFallbackHeroGames(): any[] {
+    const fallbackGames = [
+      {
+        id: 'game-cs-hero-1',
+        title: 'Baldurs Gate 3',
+        year: 2023,
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/1086940/header.jpg',
+        category: 'games' as const,
+        rating: 4.9,
+        genre: 'RPG',
+        platform: 'PC',
+        metacriticScore: '96',
+        description: 'An epic role-playing game that sets new standards for the genre.'
+      },
+      {
+        id: 'game-cs-hero-2',
+        title: 'Elden Ring',
+        year: 2022,
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/1245620/header.jpg',
+        category: 'games' as const,
+        rating: 4.6,
+        genre: 'Action RPG',
+        platform: 'PC',
+        metacriticScore: '94',
+        description: 'A masterpiece that redefines the open-world action RPG genre.'
+      },
+      {
+        id: 'game-cs-hero-3',
+        title: 'Hades',
+        year: 2020,
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/1145360/header.jpg',
+        category: 'games' as const,
+        rating: 4.8,
+        genre: 'Roguelike',
+        platform: 'PC',
+        metacriticScore: '93',
+        description: 'A superbly crafted roguelike with incredible storytelling.'
+      },
+      {
+        id: 'game-cs-hero-4',
+        title: 'The Witcher 3: Wild Hunt',
+        year: 2015,
+        image: 'https://cdn.akamai.steamstatic.com/steam/apps/292030/header.jpg',
+        category: 'games' as const,
+        rating: 4.8,
+        genre: 'RPG',
+        platform: 'PC',
+        metacriticScore: '92',
+        description: 'An immersive open-world RPG with unparalleled depth.'
+      }
+    ]
+
+    // Appliquer la même logique de sélection quotidienne
+    return this.selectDailyGames(fallbackGames, 4)
   }
 
   // 🔥 Jeux tendance (privilégiant les jeux récents avec activité)
