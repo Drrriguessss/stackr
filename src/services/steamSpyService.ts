@@ -160,21 +160,52 @@ class SteamSpyService {
         index === self.findIndex(g => g.steamAppId === game.steamAppId)
       )
 
-      // Trier par une combinaison de facteurs pour les "nouveautés"
-      const sortedGames = uniqueGames.sort((a, b) => {
-        // Priorité aux jeux avec bon ratio reviews/owners (indica de nouveauté)
-        const ratioA = (a.positiveReviews || 0) / Math.max(a.ownersCount || 1, 1000)
-        const ratioB = (b.positiveReviews || 0) / Math.max(b.ownersCount || 1, 1000)
-        
-        // Score combiné : rating * ratio (favorise les bons jeux récents)
-        const scoreA = (a.rating || 0) * Math.min(ratioA * 1000, 10)
-        const scoreB = (b.rating || 0) * Math.min(ratioB * 1000, 10)
-        
-        return scoreB - scoreA
-      })
+      // Trier avec diversité forcée et filtrage intelligent
+      const sortedGames = uniqueGames
+        .filter(game => {
+          // Filtrer les jeux avec trop peu de reviews (probablement vieux ou nichés)
+          const totalReviews = (game.positiveReviews || 0) + (game.negativeReviews || 0)
+          return totalReviews >= 1000 && game.rating >= 3.5
+        })
+        .sort((a, b) => {
+          // Pénaliser les développeurs sur-représentés (comme Valve)
+          const developerPenalty = (dev: string) => {
+            if (dev?.toLowerCase().includes('valve')) return 0.7
+            if (dev?.toLowerCase().includes('microsoft')) return 0.8
+            return 1.0
+          }
+          
+          // Priorité aux jeux avec bon ratio reviews/owners
+          const ratioA = (a.positiveReviews || 0) / Math.max(a.ownersCount || 1, 1000)
+          const ratioB = (b.positiveReviews || 0) / Math.max(b.ownersCount || 1, 1000)
+          
+          // Score avec diversité et qualité
+          const diversityA = developerPenalty(a.developer)
+          const diversityB = developerPenalty(b.developer)
+          
+          const scoreA = (a.rating || 0) * Math.min(ratioA * 1000, 10) * diversityA
+          const scoreB = (b.rating || 0) * Math.min(ratioB * 1000, 10) * diversityB
+          
+          return scoreB - scoreA
+        })
 
-      // Retourner le top 12 pour avoir du choix
-      return sortedGames.slice(0, 12)
+      // Forcer la diversité : max 2 jeux par développeur
+      const diverseGames = []
+      const developerCount: { [key: string]: number } = {}
+      
+      for (const game of sortedGames) {
+        const dev = game.developer?.toLowerCase() || 'unknown'
+        const currentCount = developerCount[dev] || 0
+        
+        if (currentCount < 2) { // Max 2 jeux par dev
+          diverseGames.push(game)
+          developerCount[dev] = currentCount + 1
+          
+          if (diverseGames.length >= 12) break // Arrêter à 12 jeux
+        }
+      }
+      
+      return diverseGames
     } catch (error) {
       console.error('🎮 [SteamSpy] Error fetching new releases:', error)
       return this.getMockGames()
