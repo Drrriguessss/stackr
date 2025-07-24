@@ -11,7 +11,7 @@ import MusicDetailModal from '@/components/MusicDetailModal'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
-import DiscoverPage from '@/components/DiscoverPage'
+import DiscoverPageV2 from '@/components/DiscoverPageV2'
 import FeedPage from '@/components/FeedPage'
 import { sampleContent } from '@/data/sampleContent'
 import { omdbService } from '@/services/omdbService'
@@ -795,7 +795,7 @@ export default function Home() {
   )
 
   const renderDiscoverContent = () => (
-    <DiscoverPage
+    <DiscoverPageV2
       onAddToLibrary={handleAddToLibrary}
       onDeleteItem={handleDeleteItem}
       onOpenGameDetail={handleOpenGameDetail}

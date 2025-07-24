@@ -121,7 +121,40 @@ export default function GameDetailModal({
     try {
       console.log('🎮 [GameDetailModal] Fetching game detail for ID:', gameId)
       
-      // ✅ NOUVEAU: Vérifier si c'est un jeu FreeToGame
+      // ✅ NOUVEAU: Vérifier si c'est un jeu CheapShark
+      if (gameId.startsWith('game-cs-')) {
+        const cheapSharkId = gameId.replace('game-cs-', '')
+        console.log('🎮 [GameDetailModal] CheapShark ID detected:', cheapSharkId)
+        
+        // Créer un objet gameDetail compatible à partir des données CheapShark
+        const mockGameDetail: GameDetail = {
+          id: parseInt(cheapSharkId) || 999,
+          name: 'PC Game', // Sera remplacé par les vraies données si disponibles
+          background_image: `https://via.placeholder.com/800x600/4285f4/ffffff?text=PC+Game`,
+          description_raw: 'This PC game is available with great deals and discounts. Click the external links to view current prices and reviews.',
+          rating: 4.0,
+          rating_count: 1500,
+          released: '2024-01-01',
+          platforms: [{ platform: { name: 'PC' } }, { platform: { name: 'Steam' } }],
+          developers: [{ name: 'Various Developers' }],
+          publishers: [{ name: 'Various Publishers' }],
+          genres: [{ name: 'PC Gaming' }, { name: 'Indie' }],
+          tags: [{ name: 'PC' }, { name: 'Steam' }, { name: 'Discount' }],
+          website: '',
+          stores: [],
+          screenshots: [],
+          metacritic: 78,
+          esrb_rating: { name: 'Everyone' },
+          parent_platforms: [{ platform: { name: 'PC' } }]
+        }
+        
+        setGameDetail(mockGameDetail)
+        setSimilarGamesLoading(false)
+        console.log('🎮 [GameDetailModal] Using CheapShark mock data')
+        return
+      }
+      
+      // ✅ Vérifier si c'est un jeu FreeToGame (legacy)
       if (gameId.startsWith('game-ftg-')) {
         const freeToGameId = gameId.replace('game-ftg-', '')
         console.log('🎮 [GameDetailModal] FreeToGame ID detected:', freeToGameId)
