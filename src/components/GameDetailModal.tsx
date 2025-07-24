@@ -119,6 +119,42 @@ export default function GameDetailModal({
     
     setLoading(true)
     try {
+      console.log('🎮 [GameDetailModal] Fetching game detail for ID:', gameId)
+      
+      // ✅ NOUVEAU: Vérifier si c'est un jeu FreeToGame
+      if (gameId.startsWith('game-ftg-')) {
+        const freeToGameId = gameId.replace('game-ftg-', '')
+        console.log('🎮 [GameDetailModal] FreeToGame ID detected:', freeToGameId)
+        
+        // Créer un objet gameDetail compatible à partir des données FreeToGame
+        const mockGameDetail: GameDetail = {
+          id: parseInt(freeToGameId),
+          name: 'Free Game Title', // Sera remplacé par les vraies données
+          background_image: '',
+          description_raw: 'This is a free-to-play game. Click the external links to learn more.',
+          rating: 4.0,
+          rating_count: 1000,
+          released: '2024-01-01',
+          platforms: [{ platform: { name: 'PC' } }],
+          developers: [{ name: 'Unknown Developer' }],
+          publishers: [{ name: 'Unknown Publisher' }],
+          genres: [{ name: 'Free-to-Play' }],
+          tags: [{ name: 'Free' }, { name: 'Multiplayer' }],
+          website: '',
+          stores: [],
+          screenshots: [],
+          metacritic: 75,
+          esrb_rating: { name: 'Everyone' },
+          parent_platforms: [{ platform: { name: 'PC' } }]
+        }
+        
+        setGameDetail(mockGameDetail)
+        setSimilarGamesLoading(false)
+        console.log('🎮 [GameDetailModal] Using FreeToGame mock data')
+        return
+      }
+      
+      // ✅ RAWG API pour les anciens jeux
       let rawgId = gameId
       
       if (gameId.startsWith('game-')) {

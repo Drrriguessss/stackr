@@ -184,20 +184,24 @@ class FreeToGameService {
       const url = this.buildUrl('/games', { 'sort-by': 'release-date' })
       const cacheKey = 'freetogame-new-releases'
       
-      console.log('🎮 [FreeToGame] Fetching new releases...')
+      console.log('🎮 [FreeToGame] Fetching new releases from:', url)
       const response: FreeToGameItem[] = await fetchWithCache(url, cacheKey)
+      
+      console.log(`🎮 [FreeToGame] Raw API response: ${response.length} games`)
+      console.log('🎮 [FreeToGame] Sample games:', response.slice(0, 3).map(g => ({ id: g.id, title: g.title, year: g.release_date })))
       
       const converted = response
         .slice(0, 30) // Top 30 plus récents
         .map(game => this.convertToAppFormat(game))
       
       console.log(`🎮 [FreeToGame] Converted ${converted.length} games`)
+      console.log('🎮 [FreeToGame] Sample converted:', converted.slice(0, 3).map(g => ({ id: g.id, title: g.title, year: g.year, rating: g.rating })))
       
       const filtered = converted.filter(game => {
         // Filtres très permissifs pour avoir plus de jeux
         const currentYear = new Date().getFullYear()
-        const isRecentish = game.year >= currentYear - 3 // 3 dernières années (plus permissif)
-        const hasDecentRating = game.rating >= 3.0 // Rating plus bas
+        const isRecentish = game.year >= currentYear - 5 // ✅ ÉLARGI: 5 dernières années
+        const hasDecentRating = game.rating >= 2.5 // ✅ ÉLARGI: Rating plus bas
         
         if (!isRecentish) {
           console.log(`🎮 [FreeToGame] Filtered out ${game.title}: too old (${game.year})`)
@@ -210,6 +214,7 @@ class FreeToGameService {
       })
       
       console.log(`🎮 [FreeToGame] After filtering: ${filtered.length} games`)
+      console.log('🎮 [FreeToGame] Filtered games:', filtered.map(g => ({ title: g.title, year: g.year, rating: g.rating })))
       
       const sorted = filtered.sort((a, b) => b.year - a.year) // Tri par année décroissante
       
