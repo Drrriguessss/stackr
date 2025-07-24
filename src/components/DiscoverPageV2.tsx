@@ -7,6 +7,7 @@ import { gameSearchService } from '@/services/gameSearchService'
 import { tmdbService } from '@/services/tmdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicService } from '@/services/musicService'
+import { movieCorrelationService } from '@/services/movieCorrelationService'
 import type { ContentItem, LibraryItem, MediaStatus } from '@/types'
 
 interface DiscoverPageProps {
@@ -269,17 +270,34 @@ export default function DiscoverPageV2({
         }
         break
       case 'movies':
-        // Gérer les différents formats d'ID de films
-        let cleanMovieId = item.id
-        if (item.id.startsWith('movie-tmdb-hero-')) {
-          cleanMovieId = item.id.replace('movie-tmdb-hero-', '')
-        } else if (item.id.startsWith('movie-tmdb-')) {
-          cleanMovieId = item.id.replace('movie-tmdb-', '')
+        console.log('🎬 [DiscoverV2] Movie clicked:', item.title, item.id)
+        
+        // Pour les films TMDB, utiliser le service de corrélation
+        if (item.id.startsWith('movie-tmdb-')) {
+          try {
+            console.log('🔗 [DiscoverV2] Correlating TMDB movie to OMDB...')
+            const omdbDetails = await movieCorrelationService.getOMDBDetailsForTMDB(item)
+            
+            if (omdbDetails && omdbDetails.imdbID) {
+              console.log('✅ [DiscoverV2] Found OMDB correlation:', omdbDetails.imdbID)
+              onOpenMovieDetail?.(omdbDetails.imdbID.replace('tt', '')) // Supprimer préfixe tt
+            } else {
+              console.log('❌ [DiscoverV2] No OMDB correlation found, using fallback')
+              // Fallback vers l'ID original
+              const cleanMovieId = item.id.replace(/^movie-tmdb-.*?-/, '')
+              onOpenMovieDetail?.(cleanMovieId)
+            }
+          } catch (error) {
+            console.error('❌ [DiscoverV2] Error correlating movie:', error)
+            // Fallback vers l'ID original
+            const cleanMovieId = item.id.replace(/^movie-tmdb-.*?-/, '')
+            onOpenMovieDetail?.(cleanMovieId)
+          }
         } else {
-          cleanMovieId = item.id.replace(/^movie-/, '')
+          // Films non-TMDB (traitement classique)
+          const cleanMovieId = item.id.replace(/^movie-/, '')
+          onOpenMovieDetail?.(cleanMovieId)
         }
-        console.log('🎬 [DiscoverV2] Opening movie detail for ID:', cleanMovieId)
-        onOpenMovieDetail?.(cleanMovieId)
         break
       case 'books':
         // Gérer les différents formats d'ID de livres
@@ -449,7 +467,7 @@ export default function DiscoverPageV2({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            <div className="relative h-48 bg-white p-3">
+            <div className="flex h-48 bg-white">
               {currentHero.image ? (
                 <img
                   src={currentHero.image}
