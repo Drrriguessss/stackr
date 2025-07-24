@@ -32,9 +32,9 @@ class MovieSearchService {
       const bestMatch = this.findBestMatch(movieTitle, results)
       
       if (bestMatch && bestMatch.imdbID) {
-        const cleanId = bestMatch.imdbID.replace('tt', '') // Supprimer préfixe tt
-        console.log('✅ [MovieSearch] Found match:', bestMatch.Title, '→ ID:', cleanId)
-        return cleanId
+        // ✅ GARDER le préfixe 'tt' car OMDB en a besoin !
+        console.log('✅ [MovieSearch] Found match:', bestMatch.Title, '→ ID:', bestMatch.imdbID)
+        return bestMatch.imdbID
       }
 
       console.log('❌ [MovieSearch] No good match found for:', movieTitle)
