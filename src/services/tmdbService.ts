@@ -77,8 +77,8 @@ class TMDBService {
   private buildUrl(endpoint: string, params: Record<string, any> = {}): string {
     // Vérifier si la clé API est disponible
     if (!TMDB_API_KEY) {
-      console.error('🚨 TMDB API key is not configured. Please add NEXT_PUBLIC_TMDB_API_KEY to your environment variables.')
-      throw new Error('TMDB API key not configured')
+      console.warn('🚨 TMDB API key is not configured. Using mock data fallback.')
+      return '' // Return empty string to trigger fallback in calling methods
     }
     
     const queryParams = new URLSearchParams({
@@ -130,6 +130,10 @@ class TMDBService {
       }
       
       const url = this.buildUrl(`/trending/movie/${timeWindow}`)
+      if (!url) {
+        return this.getMockTrendingMovies()
+      }
+      
       const cacheKey = `tmdb-trending-${timeWindow}`
       
       console.log('🎬 [TMDB] Fetching trending movies:', timeWindow)
@@ -151,6 +155,10 @@ class TMDBService {
       }
       
       const url = this.buildUrl('/movie/popular', { page })
+      if (!url) {
+        return this.getMockPopularMovies()
+      }
+      
       const cacheKey = `tmdb-popular-${page}`
       
       console.log('🎬 [TMDB] Fetching popular movies, page:', page)
@@ -171,6 +179,10 @@ class TMDBService {
       }
       
       const url = this.buildUrl('/movie/top_rated', { page })
+      if (!url) {
+        return this.getMockPopularMovies()
+      }
+      
       const cacheKey = `tmdb-top-rated-${page}`
       
       console.log('🎬 [TMDB] Fetching top rated movies, page:', page)
@@ -191,6 +203,10 @@ class TMDBService {
       }
       
       const url = this.buildUrl('/movie/now_playing', { page })
+      if (!url) {
+        return this.getMockPopularMovies()
+      }
+      
       const cacheKey = `tmdb-now-playing-${page}`
       
       console.log('🎬 [TMDB] Fetching now playing movies, page:', page)
@@ -206,7 +222,15 @@ class TMDBService {
   // 🔜 Upcoming Movies
   async getUpcomingMovies(page: number = 1): Promise<any[]> {
     try {
+      if (!TMDB_API_KEY) {
+        return this.getMockPopularMovies()
+      }
+      
       const url = this.buildUrl('/movie/upcoming', { page })
+      if (!url) {
+        return this.getMockPopularMovies()
+      }
+      
       const cacheKey = `tmdb-upcoming-${page}`
       
       console.log('🎬 [TMDB] Fetching upcoming movies, page:', page)
@@ -215,7 +239,7 @@ class TMDBService {
       return response.results.map((movie: TMDBMovie) => this.convertToAppFormat(movie))
     } catch (error) {
       console.error('🎬 [TMDB] Error fetching upcoming movies:', error)
-      return []
+      return this.getMockPopularMovies()
     }
   }
 
@@ -228,10 +252,18 @@ class TMDBService {
     page?: number
   } = {}): Promise<any[]> {
     try {
+      if (!TMDB_API_KEY) {
+        return this.getMockPopularMovies()
+      }
+      
       const url = this.buildUrl('/discover/movie', {
         sort_by: params.sortBy || 'popularity.desc',
         ...params
       })
+      if (!url) {
+        return this.getMockPopularMovies()
+      }
+      
       const cacheKey = `tmdb-discover-${JSON.stringify(params)}`
       
       console.log('🎬 [TMDB] Discovering movies with params:', params)
@@ -240,14 +272,22 @@ class TMDBService {
       return response.results.map((movie: TMDBMovie) => this.convertToAppFormat(movie))
     } catch (error) {
       console.error('🎬 [TMDB] Error discovering movies:', error)
-      return []
+      return this.getMockPopularMovies()
     }
   }
 
   // 🎭 Get Movie Genres
   async getMovieGenres(): Promise<TMDBGenre[]> {
     try {
+      if (!TMDB_API_KEY) {
+        return []
+      }
+      
       const url = this.buildUrl('/genre/movie/list')
+      if (!url) {
+        return []
+      }
+      
       const cacheKey = 'tmdb-genres'
       
       const response = await fetchWithCache(url, cacheKey)
@@ -261,9 +301,17 @@ class TMDBService {
   // 📊 Get Movie Details (for additional info if needed)
   async getMovieDetails(movieId: number): Promise<any | null> {
     try {
+      if (!TMDB_API_KEY) {
+        return null
+      }
+      
       const url = this.buildUrl(`/movie/${movieId}`, {
         append_to_response: 'credits,videos,similar'
       })
+      if (!url) {
+        return null
+      }
+      
       const cacheKey = `tmdb-movie-${movieId}`
       
       console.log('🎬 [TMDB] Fetching movie details:', movieId)
