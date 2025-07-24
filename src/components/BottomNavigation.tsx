@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Home, Library, Compass, Search, MoreHorizontal } from 'lucide-react'
+import { Rss, Library, Compass, Search, MoreHorizontal } from 'lucide-react'
 
 interface BottomNavigationProps {
   activeTab: string
@@ -11,7 +11,7 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
   const [showMoreMenu, setShowMoreMenu] = useState(false)
 
   const mainTabs = [
-    { id: 'home', label: 'Home', icon: Home },
+    { id: 'feed', label: 'Feed', icon: Rss },
     { id: 'library', label: 'Library', icon: Library },
     { id: 'discover', label: 'Discover', icon: Compass },
     { id: 'search', label: 'Search', icon: Search },

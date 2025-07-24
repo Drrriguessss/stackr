@@ -12,6 +12,7 @@ import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
 import DiscoverPage from '@/components/DiscoverPage'
+import FeedPage from '@/components/FeedPage'
 import { sampleContent } from '@/data/sampleContent'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
@@ -24,7 +25,7 @@ import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } fro
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<MediaCategory>('games')
-  const [activeMainTab, setActiveMainTab] = useState('home')
+  const [activeMainTab, setActiveMainTab] = useState('feed')
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
@@ -661,6 +662,16 @@ export default function Home() {
   // Rendu selon l'onglet principal actif
   const renderMainContent = () => {
     switch (activeMainTab) {
+      case 'feed':
+        return (
+          <FeedPage 
+            library={library}
+            onOpenGameDetail={(gameId) => setSelectedGameId(gameId)}
+            onOpenMovieDetail={(movieId) => setSelectedMovieId(movieId)}
+            onOpenBookDetail={(bookId) => setSelectedBookId(bookId)}
+            onOpenMusicDetail={(musicId) => setSelectedMusicId(musicId)}
+          />
+        )
       case 'home':
         return renderHomeContent()
       case 'library':
@@ -670,9 +681,17 @@ export default function Home() {
       case 'search':
         return renderSearchContent()
       case 'roadmap':
-        return <RoadmapPage onBack={() => setActiveMainTab('home')} />
+        return <RoadmapPage onBack={() => setActiveMainTab('feed')} />
       default:
-        return renderHomeContent()
+        return (
+          <FeedPage 
+            library={library}
+            onOpenGameDetail={(gameId) => setSelectedGameId(gameId)}
+            onOpenMovieDetail={(movieId) => setSelectedMovieId(movieId)}
+            onOpenBookDetail={(bookId) => setSelectedBookId(bookId)}
+            onOpenMusicDetail={(musicId) => setSelectedMusicId(musicId)}
+          />
+        )
     }
   }
 
