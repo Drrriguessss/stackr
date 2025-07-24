@@ -142,16 +142,39 @@ class SteamSpyService {
     }
   }
 
-  // 🆕 Nouveautés Steam (simulation avec owned + filtres récents)
+  // 🆕 Nouveautés Steam (combinaison intelligente pour de meilleurs résultats)
   async getNewReleases(): Promise<any[]> {
     try {
       console.log('🎮 [SteamSpy] Fetching new releases...')
       
-      // Utiliser la page 1 des top owned pour avoir des jeux plus récents
-      const games = await this.getTop100Owned(1)
-      
-      // Filtrer et retourner les 10 premiers comme "nouveautés"
-      return games.slice(0, 10)
+      // Combiner plusieurs sources pour avoir de vrais "nouveaux" jeux
+      const [recentActive, ownedPage1, ownedPage2] = await Promise.all([
+        this.getTop100In2Weeks().catch(() => []),
+        this.getTop100Owned(1).catch(() => []),
+        this.getTop100Owned(2).catch(() => [])
+      ])
+
+      // Créer un pool de jeux uniques
+      const allGames = [...recentActive, ...ownedPage1, ...ownedPage2]
+      const uniqueGames = allGames.filter((game, index, self) => 
+        index === self.findIndex(g => g.steamAppId === game.steamAppId)
+      )
+
+      // Trier par une combinaison de facteurs pour les "nouveautés"
+      const sortedGames = uniqueGames.sort((a, b) => {
+        // Priorité aux jeux avec bon ratio reviews/owners (indica de nouveauté)
+        const ratioA = (a.positiveReviews || 0) / Math.max(a.ownersCount || 1, 1000)
+        const ratioB = (b.positiveReviews || 0) / Math.max(b.ownersCount || 1, 1000)
+        
+        // Score combiné : rating * ratio (favorise les bons jeux récents)
+        const scoreA = (a.rating || 0) * Math.min(ratioA * 1000, 10)
+        const scoreB = (b.rating || 0) * Math.min(ratioB * 1000, 10)
+        
+        return scoreB - scoreA
+      })
+
+      // Retourner le top 12 pour avoir du choix
+      return sortedGames.slice(0, 12)
     } catch (error) {
       console.error('🎮 [SteamSpy] Error fetching new releases:', error)
       return this.getMockGames()

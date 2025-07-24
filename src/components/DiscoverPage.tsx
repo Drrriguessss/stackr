@@ -501,13 +501,13 @@ export default function DiscoverPage({
 
       setCategorySections(prev => prev.map(section => {
         if (section.id === 'trending-games') {
-          // Utiliser les jeux populaires des 2 dernières semaines
+          // Utiliser les nouveautés au lieu des trending
           return { 
             ...section, 
-            items: popularGames.slice(0, 8), // Top 8 popular
+            items: newReleases.slice(0, 8), // Top 8 nouvelles sorties
             loading: false,
-            title: '🔥 Trending Games (2 weeks)',
-            subtitle: 'Most active games on Steam right now'
+            title: '🆕 New Releases',
+            subtitle: 'Latest games on Steam'
           }
         }
         return section
