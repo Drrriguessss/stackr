@@ -574,11 +574,26 @@ class MusicService {
     for (const size of preferences) {
       const url = album[size as keyof iTunesAlbum] as string
       if (url) {
-        // Améliorer la qualité de l'image
-        return url.replace('100x100', '400x400').replace('60x60', '400x400').replace('30x30', '400x400')
+        console.log(`🎵 ✅ Found ${size} for album:`, album.collectionName, url)
+        
+        // Améliorer drastiquement la qualité de l'image iTunes
+        let improvedUrl = url
+          .replace('100x100', '600x600') // Plus grande que 400x400
+          .replace('60x60', '600x600')
+          .replace('30x30', '600x600')
+        
+        // Si on a toujours une petite image, forcer une grande taille
+        if (improvedUrl === url) {
+          // Remplacer tout suffixe de taille par une grande taille
+          improvedUrl = url.replace(/\/(\d+x\d+)/, '/600x600')
+        }
+        
+        console.log('🎵 ✅ Improved iTunes URL:', improvedUrl)
+        return improvedUrl
       }
     }
 
+    console.log('🎵 ❌ No image URL found for album:', album.collectionName)
     return null
   }
 

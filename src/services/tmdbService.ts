@@ -277,9 +277,14 @@ class TMDBService {
 
   // Helpers pour les images
   getImageUrl(path: string | null, type: 'poster' | 'backdrop' = 'poster', size: 'small' | 'medium' | 'large' | 'original' = 'medium'): string | null {
-    if (!path) return null
+    if (!path) {
+      console.log('🎬 ❌ No image path provided')
+      return null
+    }
     const imageSize = IMAGE_SIZES[type][size]
-    return `${TMDB_IMAGE_BASE}/${imageSize}${path}`
+    const fullUrl = `${TMDB_IMAGE_BASE}/${imageSize}${path}`
+    console.log('🎬 ✅ TMDB image URL generated:', fullUrl)
+    return fullUrl
   }
 
   // Convertir TMDB movie vers notre format
@@ -287,11 +292,24 @@ class TMDBService {
     const year = movie.release_date ? new Date(movie.release_date).getFullYear() : new Date().getFullYear()
     const genres = movie.genre_ids.map(id => GENRE_MAP[id]).filter(Boolean)
     
+    // Debug image availability
+    console.log('🎬 Converting movie:', movie.title, 'Poster path:', movie.poster_path, 'Backdrop path:', movie.backdrop_path)
+    
+    const posterUrl = this.getImageUrl(movie.poster_path, 'poster', 'medium')
+    const backdropUrl = this.getImageUrl(movie.backdrop_path, 'backdrop', 'large')
+    
+    // Use backdrop as fallback if no poster
+    const finalImageUrl = posterUrl || backdropUrl || null
+    
+    if (!finalImageUrl) {
+      console.log('🎬 ❌ No valid image found for movie:', movie.title)
+    }
+    
     return {
       id: `movie-${movie.id}`,
       title: movie.title,
       year: year,
-      image: this.getImageUrl(movie.poster_path, 'poster', 'medium'),
+      image: finalImageUrl,
       category: 'movies' as const,
       rating: movie.vote_average / 2, // Convert from 10-scale to 5-scale
       genre: genres[0] || 'Unknown',
@@ -299,7 +317,7 @@ class TMDBService {
       // Additional TMDB data
       tmdbId: movie.id,
       overview: movie.overview,
-      backdrop: this.getImageUrl(movie.backdrop_path, 'backdrop', 'large'),
+      backdrop: backdropUrl,
       popularity: movie.popularity,
       voteCount: movie.vote_count,
       releaseDate: movie.release_date

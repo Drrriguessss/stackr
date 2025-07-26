@@ -405,7 +405,10 @@ class GoogleBooksService {
 
   getBestImageURL(book: GoogleBook, preferredSize: 'small' | 'medium' | 'large' = 'medium'): string | null {
     const imageLinks = book.volumeInfo.imageLinks
-    if (!imageLinks) return null
+    if (!imageLinks) {
+      console.log('📚 ❌ No imageLinks found for book:', book.volumeInfo.title)
+      return null
+    }
 
     const sizePreferences = {
       small: ['thumbnail', 'smallThumbnail', 'small', 'medium'],
@@ -418,6 +421,8 @@ class GoogleBooksService {
     for (const size of preferences) {
       const url = imageLinks[size as keyof typeof imageLinks]
       if (url) {
+        console.log(`📚 ✅ Found ${size} image for:`, book.volumeInfo.title, url)
+        
         // Améliorer la qualité de l'image Google Books
         let improvedUrl = url
           .replace('http://', 'https://')
@@ -430,10 +435,17 @@ class GoogleBooksService {
           improvedUrl = improvedUrl.replace(/zoom=\d/, 'zoom=2') // Zoom maximum
         }
         
+        // Forcer une taille minimale de 300px
+        if (improvedUrl.includes('books.googleusercontent.com')) {
+          improvedUrl = improvedUrl.replace(/&w=\d+/, '&w=400').replace(/&h=\d+/, '&h=600')
+        }
+        
+        console.log('📚 ✅ Final improved URL:', improvedUrl)
         return improvedUrl
       }
     }
 
+    console.log('📚 ❌ No valid image URL found for book:', book.volumeInfo.title)
     return null
   }
 

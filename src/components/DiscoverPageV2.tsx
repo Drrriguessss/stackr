@@ -122,6 +122,13 @@ export default function DiscoverPageV2({
 
       // Combiner 4 jeux + 4 films + 4 livres + 4 musiques pour Today's Picks (16 total)
       const heroGames = trendingGames.slice(0, 4) // Prendre 4 jeux de trending
+      
+      // Debug: vérifier les images de chaque catégorie
+      console.log('🎮 Hero Games:', heroGames.map(g => ({ title: g.title, image: g.image, hasImage: !!g.image })))
+      console.log('🎬 Hero Movies:', dailyHeroMovies.map(m => ({ title: m.title, image: m.image, hasImage: !!m.image })))
+      console.log('📚 Hero Books:', dailyHeroBooks.map(b => ({ title: b.title, image: b.image, hasImage: !!b.image })))
+      console.log('🎵 Hero Music:', dailyHeroMusic.map(m => ({ title: m.title, image: m.image, hasImage: !!m.image })))
+      
       const combinedHeroItems = [...heroGames, ...dailyHeroMovies, ...dailyHeroBooks, ...dailyHeroMusic]
       if (combinedHeroItems.length > 0) {
         setHeroItems(combinedHeroItems)
@@ -532,6 +539,12 @@ export default function DiscoverPageV2({
                     alt={currentHero.title}
                     className="max-w-full max-h-full object-contain border-2 border-gray-400 rounded-lg shadow-sm"
                   onError={(e) => {
+                    console.error(`🖼️ Mobile hero image failed to load:`, {
+                      title: currentHero.title,
+                      category: currentHero.category,
+                      originalSrc: currentHero.image,
+                      error: 'Image load failed'
+                    })
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODY IDE4MCAxNTAgMjAyLjM4NiAxNTAgMjMwQzE1MCAyNTcuNjE0IDE3Mi4zODYgMjgwIDIwMCAyODBaIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMzIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPg=='
                   }}
                 />
@@ -575,6 +588,12 @@ export default function DiscoverPageV2({
                   alt={currentHero.title}
                   className="max-w-full max-h-full object-contain border-2 border-gray-400 rounded-lg shadow-sm"
                   onError={(e) => {
+                    console.error(`🖼️ Hero image failed to load:`, {
+                      title: currentHero.title,
+                      category: currentHero.category,
+                      originalSrc: currentHero.image,
+                      error: 'Image load failed'
+                    })
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiMyMjIyMjIiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDIuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiMzMzMzMzMiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzY2NjY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
                   }}
                 />
@@ -656,6 +675,12 @@ export default function DiscoverPageV2({
               alt={item.title}
               className="w-full h-full object-contain bg-gray-900 group-hover:scale-105 transition-transform duration-500"
               onError={(e) => {
+                console.error(`🖼️ Content card image failed to load:`, {
+                  title: item.title,
+                  category: item.category,
+                  originalSrc: item.image,
+                  error: 'Image load failed'
+                })
                 // Remplacer par placeholder si l'image ne charge pas
                 e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRTVFN0VCIi8+CjxwYXRoIGQ9Ik0xNjAgMTYwSDI0MFYyNDBIMTYwVjE2MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTIwMCAyODBDMjI3LjYxNCAyODAgMjUwIDI1Ny42MTQgMjUwIDIzMEMyNTAgMjAyLjM4NiAyMjcuNjE0IDE4MCAyMDAgMTgwQzE3Mi4zODYgMTgwIDE1MCAyMDyuMzg2IDE1MCAyMzBDMTUwIDI1Ny42MTQgMTcyLjM4NiAyODAgMjAwIDI4MFoiIGZpbGw9IiM2QjcyODAiLz4KPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzRCNTU2MyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD4KPC9zdmc+'
               }}

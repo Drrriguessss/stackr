@@ -423,16 +423,18 @@ class CheapSharkGameService {
     }
   }
 
-  // ✅ NOUVEAU: Obtenir l'URL d'image Steam de meilleure qualité
+  // ✅ AMÉLIORÉ: Obtenir l'URL d'image Steam avec fallbacks
   private getSteamImageUrl(steamAppId: string, title: string): string | null {
-    if (!steamAppId || steamAppId === '0') return null
+    if (!steamAppId || steamAppId === '0') {
+      console.log('🎮 ❌ No Steam App ID for game:', title)
+      return null
+    }
     
-    // ✨ Utiliser les capsules Steam (format plus vertical) au lieu des headers
-    // Capsule: ~231x87 px (plus compact, moins bannière)
-    // Library: ~600x900 px (portrait vertical comme les films)
-    
-    // Essayer d'abord le format library (vertical)
-    return `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppId}/library_600x900.jpg`
+    // Utiliser le format header qui existe pour tous les jeux Steam
+    // Format: 460x215 px (plus fiable que library)
+    const headerUrl = `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppId}/header.jpg`
+    console.log('🎮 ✅ Steam header URL for', title, ':', headerUrl)
+    return headerUrl
   }
 
   // ✅ NOUVEAU: Nettoyer le titre pour la recherche RAWG
