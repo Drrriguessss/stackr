@@ -62,7 +62,7 @@ export default function DiscoverPageV2({
     },
     {
       id: 'new-books',
-      title: '📚 Bestselling Books',
+      title: 'Bestselling Books',
       subtitle: 'Popular fiction and non-fiction',
       icon: <Book size={20} />,
       items: [],
@@ -70,7 +70,7 @@ export default function DiscoverPageV2({
     },
     {
       id: 'hot-music',
-      title: '🎵 Hot Albums',
+      title: 'Hot Albums',
       subtitle: 'Trending music and albums',
       icon: <Headphones size={20} />,
       items: [],
