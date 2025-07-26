@@ -10,6 +10,7 @@ import { musicService } from '@/services/musicService'
 import { movieCorrelationService } from '@/services/movieCorrelationService'
 import { omdbService } from '@/services/omdbService'
 import { movieSearchService } from '@/services/movieSearchService'
+import { bookSearchService } from '@/services/bookSearchService'
 import type { ContentItem, LibraryItem, MediaStatus } from '@/types'
 
 interface DiscoverPageProps {
@@ -294,17 +295,27 @@ export default function DiscoverPageV2({
         }
         break
       case 'books':
-        // Gérer les différents formats d'ID de livres
-        let cleanBookId = item.id
-        if (item.id.startsWith('book-gb-hero-')) {
-          cleanBookId = item.id.replace('book-gb-hero-', '')
-        } else if (item.id.startsWith('book-gb-')) {
-          cleanBookId = item.id.replace('book-gb-', '')
-        } else {
-          cleanBookId = item.id.replace(/^book-/, '')
+        // ✅ SIMILAIRE AUX FILMS: Pour tous les livres, rechercher sur Google Books par titre
+        console.log('🔍 [DiscoverV2] Book clicked, searching Google Books for:', item.title)
+        
+        try {
+          const author = (item as any).author // Les livres ont une propriété author
+          const googleBookId = await bookSearchService.searchBookByName(item.title, author)
+          if (googleBookId) {
+            console.log('✅ [DiscoverV2] Found Google Books ID:', googleBookId, 'for', item.title)
+            onOpenBookDetail?.(googleBookId)
+          } else {
+            console.log('❌ [DiscoverV2] No Google Books match found for:', item.title)
+            // Fallback vers ID basé sur le titre
+            const fallbackId = item.title.toLowerCase().replace(/[^a-z0-9]/g, '')
+            onOpenBookDetail?.(fallbackId)
+          }
+        } catch (error) {
+          console.error('❌ [DiscoverV2] Error searching Google Books:', error)
+          // Fallback vers ID basé sur le titre
+          const fallbackId = item.title.toLowerCase().replace(/[^a-z0-9]/g, '')
+          onOpenBookDetail?.(fallbackId)
         }
-        console.log('📚 [DiscoverV2] Opening book detail for ID:', cleanBookId)
-        onOpenBookDetail?.(cleanBookId)
         break
       case 'music':
         const cleanMusicId = item.id.replace(/^music-/, '')
