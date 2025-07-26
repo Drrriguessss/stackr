@@ -61,7 +61,7 @@ class GoogleBooksService {
   // 📚 4 Livres quotidiens pour Hero Carousel
   async getDailyHeroBooks(): Promise<any[]> {
     try {
-      console.log('📚 [GoogleBooks] Fetching daily hero books (4 per day rotation)...')
+      console.log('📚 [GoogleBooks] Fetching daily hero books (4 per day rotation)... v2')
       
       const currentYear = new Date().getFullYear()
       
@@ -169,7 +169,7 @@ class GoogleBooksService {
         title: 'Fourth Wing',
         author: 'Rebecca Yarros',
         year: 2023,
-        image: 'https://books.google.com/books/content?id=qbGsEAAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api',
+        image: 'https://books.google.com/books/content?id=qbGsEAAAQBAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api',
         category: 'books' as const,
         rating: 4.5,
         genre: 'Fantasy Romance',

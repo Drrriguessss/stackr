@@ -88,7 +88,7 @@ export default function DiscoverPageV2({
 
   // 🚀 Charger tout le contenu au démarrage
   useEffect(() => {
-    console.log('🔥 [DiscoverV2] Loading all content...')
+    console.log('🔥 [DiscoverV2] Loading all content... VERSION 2 (Fixed URLs)')
     loadAllContent()
   }, [])
 

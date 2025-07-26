@@ -34,7 +34,7 @@ class MusicService {
   // 🎵 4 Albums quotidiens pour Hero Carousel
   async getDailyHeroMusic(): Promise<any[]> {
     try {
-      console.log('🎵 [iTunes] Fetching daily hero music (4 per day rotation)...')
+      console.log('🎵 [iTunes] Fetching daily hero music (4 per day rotation)... v2')
       
       const currentYear = new Date().getFullYear()
       
