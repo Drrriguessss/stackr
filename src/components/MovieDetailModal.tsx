@@ -188,12 +188,12 @@ export default function MovieDetailModal({
 
   const getStatusColor = (status: MediaStatus) => {
     switch (status) {
-      case 'want-to-play': return 'bg-orange-500 hover:bg-orange-600 text-white'
-      case 'currently-playing': return 'bg-green-500 hover:bg-green-600 text-white'
-      case 'completed': return 'bg-blue-500 hover:bg-blue-600 text-white'
-      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600 text-white'
-      case 'dropped': return 'bg-red-500 hover:bg-red-600 text-white'
-      default: return 'bg-gray-500 hover:bg-gray-600 text-white'
+      case 'want-to-play': return 'bg-orange-600 hover:bg-orange-700 text-white'
+      case 'currently-playing': return 'bg-green-600 hover:bg-green-700 text-white'
+      case 'completed': return 'bg-blue-600 hover:bg-blue-700 text-white'
+      case 'paused': return 'bg-yellow-600 hover:bg-yellow-700 text-white'
+      case 'dropped': return 'bg-red-600 hover:bg-red-700 text-white'
+      default: return 'bg-gray-600 hover:bg-gray-700 text-white'
     }
   }
 
