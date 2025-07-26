@@ -54,7 +54,7 @@ export default function DiscoverPageV2({
     },
     {
       id: 'popular-movies',
-      title: '🎬 Popular Movies',
+      title: 'Popular Movies',
       subtitle: 'Top-rated movies this week',
       icon: <Film size={20} />,
       items: [],

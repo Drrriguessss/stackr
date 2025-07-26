@@ -1,4 +1,6 @@
 // src/services/musicService.ts - VERSION CORRIGÉE POUR ARTISTES
+import { lastFmService } from './lastfmService'
+
 export interface iTunesAlbum {
   collectionId: number
   artistId: number
@@ -31,66 +33,127 @@ export interface iTunesSearchResponse {
 class MusicService {
   private readonly baseURL = 'https://itunes.apple.com'
   
-  // 🎵 4 Albums quotidiens pour Hero Carousel
+  // 🎵 4 Morceaux tendance du jour pour Hero Carousel
   async getDailyHeroMusic(): Promise<any[]> {
     try {
-      console.log('🎵 [iTunes] Fetching daily hero music (4 per day rotation)... v2')
+      console.log('🎵 [Music] Fetching today\'s trending tracks for hero carousel...')
       
-      const currentYear = new Date().getFullYear()
+      // Utiliser Last.fm pour obtenir les vraies tendances du jour
+      const trendingTracks = await lastFmService.getDailyTrendingTracks()
       
-      // Combiner plusieurs sources pour diversité
-      const [topAlbums, newReleases, popularAlbums] = await Promise.all([
-        // Top albums actuels
-        this.getTopAlbums(20),
-        // Nouveautés
-        this.searchAlbums(`year:${currentYear}`, 15),
-        // Albums populaires par genre
-        this.searchAlbums('pop rock hip-hop', 15)
-      ])
-      
-      // Combiner toutes les sources
-      const allAlbums = [
-        ...(Array.isArray(topAlbums) ? topAlbums : []),
-        ...(Array.isArray(newReleases) ? newReleases : []),
-        ...(Array.isArray(popularAlbums) ? popularAlbums : [])
-      ]
-      
-      const qualityAlbums = allAlbums
-        .filter(album => {
-          const releaseYear = this.extractYear(album.releaseDate)
-          
-          // Albums récents (2 dernières années) OU classiques populaires
-          const isRecentOrClassic = (releaseYear >= currentYear - 2) || (album.trackCount >= 10)
-          
-          // Doit avoir une image et un artiste valide
-          const hasImage = album.artworkUrl100
-          const hasValidArtist = album.artistName && album.artistName !== 'Various Artists'
-          
-          return isRecentOrClassic && hasImage && hasValidArtist
-        })
-        .map(album => this.convertToAppFormat(album))
-      
-      // Déduplication par titre
-      const uniqueAlbums = this.deduplicateAlbums(qualityAlbums)
-      
-      // Sélection quotidienne déterministe
-      const dailySelection = this.selectDailyAlbums(uniqueAlbums, 4)
-      
-      console.log(`🎵 [iTunes] Selected daily hero albums:`, dailySelection.map(a => `${a.title} by ${a.artist} (${a.year})`))
-      
-      if (dailySelection.length >= 4) {
-        console.log('🎵 [iTunes] Using API data for hero music')
-        return dailySelection
-      } else {
-        console.log('🎵 [iTunes] Using fallback data for hero music')
-        return this.getFallbackHeroMusic()
+      if (trendingTracks && trendingTracks.length >= 4) {
+        console.log('🎵 [Music] Successfully fetched trending tracks from Last.fm/iTunes')
+        return trendingTracks
       }
       
+      // Si Last.fm échoue, essayer avec iTunes Top Songs
+      console.log('🎵 [Music] Trying iTunes Top Songs as fallback...')
+      return this.getITunesTrendingSongs()
+      
     } catch (error) {
-      console.error('🎵 [iTunes] Error fetching daily hero music:', error)
-      console.log('🎵 [iTunes] Using fallback data due to error')
-      return this.getFallbackHeroMusic()
+      console.error('🎵 [Music] Error fetching trending music:', error)
+      return this.getFallbackTrendingSongs()
     }
+  }
+  
+  // Nouvelle méthode pour obtenir les top songs iTunes
+  private async getITunesTrendingSongs(): Promise<any[]> {
+    try {
+      // Rechercher les singles/chansons populaires (pas les albums)
+      const response = await fetch(
+        'https://itunes.apple.com/search?term=top+hits+2024&media=music&entity=song&limit=10&sort=popular'
+      )
+      
+      if (!response.ok) {
+        throw new Error('iTunes search failed')
+      }
+      
+      const data = await response.json()
+      const songs = data.results || []
+      
+      // Prendre les 4 premières chansons et les formater
+      const topSongs = songs.slice(0, 4).map((song: any, index: number) => ({
+        id: `music-itunes-song-${song.trackId}`,
+        title: song.trackName,
+        artist: song.artistName,
+        author: song.artistName,
+        year: new Date(song.releaseDate).getFullYear(),
+        rating: 4.5 - (index * 0.1),
+        genre: song.primaryGenreName || 'Pop',
+        category: 'music' as const,
+        image: song.artworkUrl100?.replace('100x100', '400x400') || song.artworkUrl60?.replace('60x60', '400x400'),
+        album: song.collectionName,
+        preview: song.previewUrl,
+        trendingRank: index + 1
+      }))
+      
+      console.log('🎵 [iTunes] Found trending songs:', topSongs.map(s => `${s.title} by ${s.artist}`))
+      return topSongs
+      
+    } catch (error) {
+      console.error('🎵 [iTunes] Song search failed:', error)
+      return this.getFallbackTrendingSongs()
+    }
+  }
+  
+  // Nouveau fallback avec des vraies chansons tendance (pas des albums)
+  private getFallbackTrendingSongs(): any[] {
+    console.log('🎵 [Music] Using static trending songs fallback')
+    
+    return [
+      {
+        id: 'music-trending-1',
+        title: 'Flowers',
+        artist: 'Miley Cyrus',
+        author: 'Miley Cyrus',
+        year: 2023,
+        rating: 4.8,
+        genre: 'Pop',
+        category: 'music' as const,
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b6/4f/a1/b64fa1f3-6c36-57a5-1c19-2ba61e315816/196589703958.jpg/400x400bb.jpg',
+        album: 'Endless Summer Vacation',
+        trendingRank: 1
+      },
+      {
+        id: 'music-trending-2',
+        title: 'Paint The Town Red',
+        artist: 'Doja Cat',
+        author: 'Doja Cat',
+        year: 2023,
+        rating: 4.6,
+        genre: 'Hip-Hop/Rap',
+        category: 'music' as const,
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/cd/82/fe/cd82fed8-6a87-a505-2e61-96f23a4b0ea0/196871404518.jpg/400x400bb.jpg',
+        album: 'Scarlet',
+        trendingRank: 2
+      },
+      {
+        id: 'music-trending-3',
+        title: 'Cruel Summer',
+        artist: 'Taylor Swift',
+        author: 'Taylor Swift',
+        year: 2019,
+        rating: 4.7,
+        genre: 'Pop',
+        category: 'music' as const,
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/49/3d/ab/493dab54-f920-9043-6181-80993b8116c9/19UMGIM53909.rgb.jpg/400x400bb.jpg',
+        album: 'Lover',
+        trendingRank: 3
+      },
+      {
+        id: 'music-trending-4',
+        title: 'Vampire',
+        artist: 'Olivia Rodrigo',
+        author: 'Olivia Rodrigo',
+        year: 2023,
+        rating: 4.5,
+        genre: 'Pop',
+        category: 'music' as const,
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/3a/0f/42/3a0f42a5-903d-3e62-cd6f-bdb3ad5e4c09/23UMGIM66423.rgb.jpg/400x400bb.jpg',
+        album: 'Guts',
+        trendingRank: 4
+      }
+    ]
   }
 
   // Sélection quotidienne déterministe basée sur la date
@@ -136,58 +199,6 @@ class MusicService {
     })
   }
 
-  // Fallback : 4 albums premium sélectionnés
-  private getFallbackHeroMusic(): any[] {
-    const fallbackAlbums = [
-      {
-        id: 'music-itunes-hero-1',
-        title: '1989 (Taylor\'s Version)',
-        artist: 'Taylor Swift',
-        year: 2023,
-        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/54/df/18/54df1841-79aa-0bb5-6993-bef0e565502b/23UMGIM71510.rgb.jpg/400x400bb.jpg',
-        category: 'music' as const,
-        rating: 4.8,
-        genre: 'Pop',
-        trackCount: 22
-      },
-      {
-        id: 'music-itunes-hero-2',
-        title: 'Guts',
-        artist: 'Olivia Rodrigo',
-        year: 2023,
-        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/63/a9/47/63a947bb-93ed-67bc-4f07-16e16f433791/23UMGIM66401.rgb.jpg/400x400bb.jpg',
-        category: 'music' as const,
-        rating: 4.5,
-        genre: 'Pop',
-        trackCount: 12
-      },
-      {
-        id: 'music-itunes-hero-3',
-        title: 'One Thing At A Time',
-        artist: 'Morgan Wallen',
-        year: 2023,
-        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/f6/e7/0f/f6e70f93-4fb7-ba87-e6f7-e5739c3f5e3e/22UM1IM25821.rgb.jpg/400x400bb.jpg',
-        category: 'music' as const,
-        rating: 4.3,
-        genre: 'Country',
-        trackCount: 36
-      },
-      {
-        id: 'music-itunes-hero-4',
-        title: 'Midnights',
-        artist: 'Taylor Swift',
-        year: 2022,
-        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/a0/5e/c5/a05ec526-7153-09d2-1e4e-3e2757185e19/22UM1IM43045.rgb.jpg/400x400bb.jpg',
-        category: 'music' as const,
-        rating: 4.7,
-        genre: 'Pop',
-        trackCount: 13
-      }
-    ]
-
-    // Appliquer la même logique de sélection quotidienne
-    return this.selectDailyAlbums(fallbackAlbums, 4)
-  }
 
   // Extraire l'année d'une date
   private extractYear(dateString?: string): number {

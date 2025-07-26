@@ -78,10 +78,10 @@ const GENRE_MAP: Record<number, string> = {
 
 class TMDBService {
   
-  // 🌟 4 Films quotidiens pour Hero Carousel
+  // 🌟 4 Films quotidiens pour Hero Carousel avec détails complets
   async getDailyHeroMovies(): Promise<any[]> {
     try {
-      console.log('🌟 [TMDB] Fetching daily hero movies (4 per day rotation)...')
+      console.log('🌟 [TMDB] Fetching daily hero movies with full details (4 per day rotation)...')
       
       if (!TMDB_API_KEY) {
         console.warn('🚨 TMDB API key not configured, using fallback movies')
@@ -157,9 +157,26 @@ class TMDBService {
       // Sélection quotidienne déterministe
       const dailySelection = this.selectDailyMovies(uniqueMovies, 4)
       
-      console.log(`🌟 [TMDB] Selected daily hero movies:`, dailySelection.map(m => `${m.title} (${m.year})`))
+      // Enrichir les 4 films sélectionnés avec les détails (dont le réalisateur)
+      const enrichedMovies = await Promise.all(
+        dailySelection.map(async (movie) => {
+          try {
+            if (movie.tmdbId) {
+              const details = await this.getMovieDetails(movie.tmdbId)
+              if (details && details.director) {
+                movie.director = details.director
+              }
+            }
+          } catch (error) {
+            console.warn(`🌟 [TMDB] Could not fetch details for ${movie.title}`)
+          }
+          return movie
+        })
+      )
       
-      return dailySelection.length >= 4 ? dailySelection : this.getFallbackHeroMovies()
+      console.log(`🌟 [TMDB] Selected daily hero movies:`, enrichedMovies.map(m => `${m.title} (${m.year}) - ${m.director}`))
+      
+      return enrichedMovies.length >= 4 ? enrichedMovies : this.getFallbackHeroMovies()
       
     } catch (error) {
       console.error('🌟 [TMDB] Error fetching daily hero movies:', error)
