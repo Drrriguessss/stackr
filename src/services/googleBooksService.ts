@@ -161,7 +161,7 @@ class GoogleBooksService {
     })
   }
 
-  // Fallback : 4 livres premium sélectionnés avec vraies images
+  // Fallback : 4 livres premium sélectionnés avec vraies images Google Books
   private getFallbackHeroBooks(): any[] {
     const fallbackBooks = [
       {
@@ -169,7 +169,7 @@ class GoogleBooksService {
         title: 'Fourth Wing',
         author: 'Rebecca Yarros',
         year: 2023,
-        image: 'https://m.media-amazon.com/images/I/91M71M9+zZL._AC_UF1000,1000_QL80_.jpg',
+        image: 'https://books.google.com/books/content?id=qbGsEAAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api',
         category: 'books' as const,
         rating: 4.5,
         genre: 'Fantasy Romance',
@@ -180,7 +180,7 @@ class GoogleBooksService {
         title: 'Tomorrow, and Tomorrow, and Tomorrow',
         author: 'Gabrielle Zevin',
         year: 2022,
-        image: 'https://m.media-amazon.com/images/I/71M6WS9gD7L._AC_UF1000,1000_QL80_.jpg',
+        image: 'https://books.google.com/books/content?id=3_E5EAAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api',
         category: 'books' as const,
         rating: 4.3,
         genre: 'Literary Fiction',
@@ -191,7 +191,7 @@ class GoogleBooksService {
         title: 'To Kill a Mockingbird',
         author: 'Harper Lee',
         year: 1960,
-        image: 'https://m.media-amazon.com/images/I/71FxgtFKcQL._AC_UF1000,1000_QL80_.jpg',
+        image: 'https://books.google.com/books/content?id=PGR2AwAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api',
         category: 'books' as const,
         rating: 4.8,
         genre: 'Classic Literature',
@@ -202,7 +202,7 @@ class GoogleBooksService {
         title: '1984',
         author: 'George Orwell',
         year: 1949,
-        image: 'https://m.media-amazon.com/images/I/61NAx5pd6XL._AC_UF1000,1000_QL80_.jpg',
+        image: 'https://books.google.com/books/content?id=kotPYEqx7kMC&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api',
         category: 'books' as const,
         rating: 4.7,
         genre: 'Dystopian Fiction',

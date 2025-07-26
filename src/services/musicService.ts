@@ -137,7 +137,7 @@ class MusicService {
         title: '1989 (Taylor\'s Version)',
         artist: 'Taylor Swift',
         year: 2023,
-        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/54/df/18/54df1841-79aa-0bb5-6993-bef0e565502b/23UMGIM71510.rgb.jpg/600x600bb.jpg',
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/54/df/18/54df1841-79aa-0bb5-6993-bef0e565502b/23UMGIM71510.rgb.jpg/400x400bb.jpg',
         category: 'music' as const,
         rating: 4.8,
         genre: 'Pop',
@@ -148,7 +148,7 @@ class MusicService {
         title: 'Guts',
         artist: 'Olivia Rodrigo',
         year: 2023,
-        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/63/a9/47/63a947bb-93ed-67bc-4f07-16e16f433791/23UMGIM66401.rgb.jpg/600x600bb.jpg',
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/63/a9/47/63a947bb-93ed-67bc-4f07-16e16f433791/23UMGIM66401.rgb.jpg/400x400bb.jpg',
         category: 'music' as const,
         rating: 4.5,
         genre: 'Pop',
@@ -159,7 +159,7 @@ class MusicService {
         title: 'One Thing At A Time',
         artist: 'Morgan Wallen',
         year: 2023,
-        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/f6/e7/0f/f6e70f93-4fb7-ba87-e6f7-e5739c3f5e3e/22UM1IM25821.rgb.jpg/600x600bb.jpg',
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/f6/e7/0f/f6e70f93-4fb7-ba87-e6f7-e5739c3f5e3e/22UM1IM25821.rgb.jpg/400x400bb.jpg',
         category: 'music' as const,
         rating: 4.3,
         genre: 'Country',
@@ -170,7 +170,7 @@ class MusicService {
         title: 'Midnights',
         artist: 'Taylor Swift',
         year: 2022,
-        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/a0/5e/c5/a05ec526-7153-09d2-1e4e-3e2757185e19/22UM1IM43045.rgb.jpg/600x600bb.jpg',
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/a0/5e/c5/a05ec526-7153-09d2-1e4e-3e2757185e19/22UM1IM43045.rgb.jpg/400x400bb.jpg',
         category: 'music' as const,
         rating: 4.7,
         genre: 'Pop',
@@ -576,16 +576,16 @@ class MusicService {
       if (url) {
         console.log(`🎵 ✅ Found ${size} for album:`, album.collectionName, url)
         
-        // Améliorer drastiquement la qualité de l'image iTunes
+        // Améliorer la qualité de l'image iTunes avec des tailles supportées
         let improvedUrl = url
-          .replace('100x100', '600x600') // Plus grande que 400x400
-          .replace('60x60', '600x600')
-          .replace('30x30', '600x600')
+          .replace('100x100', '400x400') // Taille raisonnable et supportée
+          .replace('60x60', '400x400')
+          .replace('30x30', '400x400')
         
-        // Si on a toujours une petite image, forcer une grande taille
+        // Si on a toujours une petite image, essayer une taille standard
         if (improvedUrl === url) {
-          // Remplacer tout suffixe de taille par une grande taille
-          improvedUrl = url.replace(/\/(\d+x\d+)/, '/600x600')
+          // Remplacer tout suffixe de taille par une taille standard
+          improvedUrl = url.replace(/(\d+x\d+)bb\.jpg$/, '400x400bb.jpg')
         }
         
         console.log('🎵 ✅ Improved iTunes URL:', improvedUrl)
