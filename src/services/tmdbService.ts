@@ -4,6 +4,9 @@ const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3'
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p'
 
+// Debug: Vérifier si la clé API est chargée
+console.log('🎬 [TMDB] API Key loaded:', TMDB_API_KEY ? 'YES' : 'NO')
+
 // Types TMDB
 export interface TMDBMovie {
   id: number

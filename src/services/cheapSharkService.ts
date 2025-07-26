@@ -389,8 +389,26 @@ class CheapSharkGameService {
       rating = steamRating / 20 // Convertir 0-100 en 0-5
     }
     
-    // ✅ AMÉLIORATION: Utiliser l'image Steam si disponible
-    const imageUrl = this.getSteamImageUrl(deal.steamAppID, deal.title) || deal.thumb || this.generatePlaceholderImage(deal.title)
+    // ✅ AMÉLIORATION: Utiliser l'image disponible par ordre de priorité
+    let imageUrl = null
+    
+    // 1. D'abord essayer Steam header si steamAppID disponible
+    if (deal.steamAppID && deal.steamAppID !== '0') {
+      imageUrl = this.getSteamImageUrl(deal.steamAppID, deal.title)
+      console.log('🎮 Using Steam header image for:', deal.title, imageUrl)
+    }
+    
+    // 2. Fallback vers thumb de CheapShark (toujours disponible)
+    if (!imageUrl && deal.thumb) {
+      imageUrl = deal.thumb
+      console.log('🎮 Using CheapShark thumb for:', deal.title, imageUrl)
+    }
+    
+    // 3. Dernière option : placeholder
+    if (!imageUrl) {
+      imageUrl = this.generatePlaceholderImage(deal.title)
+      console.log('🎮 ❌ No image found, using placeholder for:', deal.title)
+    }
     
     return {
       id: `game-cs-${deal.gameID}`,

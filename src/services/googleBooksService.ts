@@ -486,8 +486,9 @@ class GoogleBooksService {
    */
   convertToAppFormat(book: GoogleBook): any {
     const author = this.getCorrectAuthor(book) // ✅ UTILISE LA FONCTION CORRIGÉE
+    const imageUrl = this.getBestImageURL(book, 'large') // Utiliser 'large' pour meilleure qualité
     
-    console.log('📚 Converting book:', book.volumeInfo.title, 'Author:', author)
+    console.log('📚 Converting book:', book.volumeInfo.title, 'Author:', author, 'Image:', imageUrl ? 'YES' : 'NO')
     
     return {
       id: `book-${book.id}`,
@@ -497,7 +498,7 @@ class GoogleBooksService {
       rating: book.volumeInfo.averageRating ? Number(book.volumeInfo.averageRating.toFixed(1)) : 0,
       genre: book.volumeInfo.categories?.[0]?.split(' / ')[0] || 'Unknown',
       category: 'books' as const,
-      image: this.getBestImageURL(book, 'large'), // Utiliser 'large' pour meilleure qualité
+      image: imageUrl,
       
       // Données spécifiques aux livres
       subtitle: book.volumeInfo.subtitle,

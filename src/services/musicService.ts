@@ -616,8 +616,9 @@ class MusicService {
    */
   convertToAppFormat(album: iTunesAlbum): any {
     const artist = this.getCorrectArtist(album) // ✅ UTILISE LA FONCTION CORRIGÉE
+    const imageUrl = this.getBestImageURL(album, 'medium')
     
-    console.log('🎵 Converting album:', album.collectionName, 'Artist:', artist)
+    console.log('🎵 Converting album:', album.collectionName, 'Artist:', artist, 'Image:', imageUrl ? 'YES' : 'NO')
     
     return {
       id: `music-${album.collectionId}`,
@@ -628,7 +629,7 @@ class MusicService {
       rating: 0,
       genre: album.primaryGenreName || 'Unknown',
       category: 'music' as const,
-      image: this.getBestImageURL(album, 'medium'),
+      image: imageUrl,
       
       trackCount: album.trackCount || 0,
       copyright: album.copyright,
