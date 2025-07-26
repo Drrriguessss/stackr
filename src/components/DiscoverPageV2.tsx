@@ -97,11 +97,12 @@ export default function DiscoverPageV2({
     console.log('🔥 [DiscoverV2] Starting content loading...')
     
     try {
-      // Charger 4 jeux trending + 4 films + 4 livres quotidiens et le contenu en parallèle
-      const [trendingGames, dailyHeroMovies, dailyHeroBooks, games, movies, books, music] = await Promise.all([
+      // Charger 4 jeux trending + 4 films + 4 livres + 4 musiques quotidiens et le contenu en parallèle
+      const [trendingGames, dailyHeroMovies, dailyHeroBooks, dailyHeroMusic, games, movies, books, music] = await Promise.all([
         cheapSharkGameService.getTrendingGames(),
         tmdbService.getDailyHeroMovies(),
         googleBooksService.getDailyHeroBooks(),
+        musicService.getDailyHeroMusic(),
         loadGames(),
         loadMovies(), 
         loadBooks(),
@@ -112,15 +113,16 @@ export default function DiscoverPageV2({
         trendingGames: trendingGames.length,
         heroMovies: dailyHeroMovies.length,
         heroBooks: dailyHeroBooks.length,
+        heroMusic: dailyHeroMusic.length,
         games: games.length,
         movies: movies.length, 
         books: books.length,
         music: music.length
       })
 
-      // Combiner 4 jeux trending + 4 films + 4 livres pour Today's Picks (12 total)
+      // Combiner 4 jeux + 4 films + 4 livres + 4 musiques pour Today's Picks (16 total)
       const heroGames = trendingGames.slice(0, 4) // Prendre 4 jeux de trending
-      const combinedHeroItems = [...heroGames, ...dailyHeroMovies, ...dailyHeroBooks]
+      const combinedHeroItems = [...heroGames, ...dailyHeroMovies, ...dailyHeroBooks, ...dailyHeroMusic]
       if (combinedHeroItems.length > 0) {
         setHeroItems(combinedHeroItems)
       }

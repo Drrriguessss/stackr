@@ -418,7 +418,19 @@ class GoogleBooksService {
     for (const size of preferences) {
       const url = imageLinks[size as keyof typeof imageLinks]
       if (url) {
-        return url.replace('http://', 'https://').replace('&edge=curl', '')
+        // Améliorer la qualité de l'image Google Books
+        let improvedUrl = url
+          .replace('http://', 'https://')
+          .replace('&edge=curl', '')
+          .replace('zoom=5', 'zoom=1') // Meilleure qualité
+          .replace('zoom=0', 'zoom=1')
+        
+        // Si c'est une URL Google Books, essayer d'obtenir une version plus grande
+        if (improvedUrl.includes('books.google.com/books/content')) {
+          improvedUrl = improvedUrl.replace(/zoom=\d/, 'zoom=2') // Zoom maximum
+        }
+        
+        return improvedUrl
       }
     }
 
@@ -473,7 +485,7 @@ class GoogleBooksService {
       rating: book.volumeInfo.averageRating ? Number(book.volumeInfo.averageRating.toFixed(1)) : 0,
       genre: book.volumeInfo.categories?.[0]?.split(' / ')[0] || 'Unknown',
       category: 'books' as const,
-      image: this.getBestImageURL(book, 'medium'),
+      image: this.getBestImageURL(book, 'large'), // Utiliser 'large' pour meilleure qualité
       
       // Données spécifiques aux livres
       subtitle: book.volumeInfo.subtitle,

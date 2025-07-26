@@ -31,6 +31,164 @@ export interface iTunesSearchResponse {
 class MusicService {
   private readonly baseURL = 'https://itunes.apple.com'
   
+  // 🎵 4 Albums quotidiens pour Hero Carousel
+  async getDailyHeroMusic(): Promise<any[]> {
+    try {
+      console.log('🎵 [iTunes] Fetching daily hero music (4 per day rotation)...')
+      
+      const currentYear = new Date().getFullYear()
+      
+      // Combiner plusieurs sources pour diversité
+      const [topAlbums, newReleases, popularAlbums] = await Promise.all([
+        // Top albums actuels
+        this.getTopAlbums(20),
+        // Nouveautés
+        this.searchAlbums(`year:${currentYear}`, 15),
+        // Albums populaires par genre
+        this.searchAlbums('pop rock hip-hop', 15)
+      ])
+      
+      // Combiner toutes les sources
+      const allAlbums = [
+        ...(Array.isArray(topAlbums) ? topAlbums : []),
+        ...(Array.isArray(newReleases) ? newReleases : []),
+        ...(Array.isArray(popularAlbums) ? popularAlbums : [])
+      ]
+      
+      const qualityAlbums = allAlbums
+        .filter(album => {
+          const releaseYear = this.extractYear(album.releaseDate)
+          
+          // Albums récents (2 dernières années) OU classiques populaires
+          const isRecentOrClassic = (releaseYear >= currentYear - 2) || (album.trackCount >= 10)
+          
+          // Doit avoir une image et un artiste valide
+          const hasImage = album.artworkUrl100
+          const hasValidArtist = album.artistName && album.artistName !== 'Various Artists'
+          
+          return isRecentOrClassic && hasImage && hasValidArtist
+        })
+        .map(album => this.convertToAppFormat(album))
+      
+      // Déduplication par titre
+      const uniqueAlbums = this.deduplicateAlbums(qualityAlbums)
+      
+      // Sélection quotidienne déterministe
+      const dailySelection = this.selectDailyAlbums(uniqueAlbums, 4)
+      
+      console.log(`🎵 [iTunes] Selected daily hero albums:`, dailySelection.map(a => `${a.title} by ${a.artist} (${a.year})`)
+      
+      return dailySelection.length >= 4 ? dailySelection : this.getFallbackHeroMusic()
+      
+    } catch (error) {
+      console.error('🎵 [iTunes] Error fetching daily hero music:', error)
+      return this.getFallbackHeroMusic()
+    }
+  }
+
+  // Sélection quotidienne déterministe basée sur la date
+  private selectDailyAlbums(albums: any[], count: number): any[] {
+    if (albums.length < count) return albums
+    
+    // Utiliser la date comme seed pour avoir les mêmes albums toute la journée
+    const today = new Date()
+    const dateString = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`
+    const seed = this.hashString(dateString)
+    
+    // Mélanger de façon déterministe
+    const shuffled = [...albums]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = (seed + i) % (i + 1)
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    
+    return shuffled.slice(0, count)
+  }
+
+  // Fonction de hash simple pour créer un seed reproductible
+  private hashString(str: string): number {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    return Math.abs(hash)
+  }
+
+  // Déduplication des albums par titre similaire
+  private deduplicateAlbums(albums: any[]): any[] {
+    const seen = new Set<string>()
+    return albums.filter(album => {
+      const cleanTitle = album.title.toLowerCase().replace(/[^a-z0-9]/g, '')
+      if (seen.has(cleanTitle)) {
+        return false
+      }
+      seen.add(cleanTitle)
+      return true
+    })
+  }
+
+  // Fallback : 4 albums premium sélectionnés
+  private getFallbackHeroMusic(): any[] {
+    const fallbackAlbums = [
+      {
+        id: 'music-itunes-hero-1',
+        title: '1989 (Taylor\'s Version)',
+        artist: 'Taylor Swift',
+        year: 2023,
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/54/df/18/54df1841-79aa-0bb5-6993-bef0e565502b/23UMGIM71510.rgb.jpg/600x600bb.jpg',
+        category: 'music' as const,
+        rating: 4.8,
+        genre: 'Pop',
+        trackCount: 22
+      },
+      {
+        id: 'music-itunes-hero-2',
+        title: 'Guts',
+        artist: 'Olivia Rodrigo',
+        year: 2023,
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/63/a9/47/63a947bb-93ed-67bc-4f07-16e16f433791/23UMGIM66401.rgb.jpg/600x600bb.jpg',
+        category: 'music' as const,
+        rating: 4.5,
+        genre: 'Pop',
+        trackCount: 12
+      },
+      {
+        id: 'music-itunes-hero-3',
+        title: 'One Thing At A Time',
+        artist: 'Morgan Wallen',
+        year: 2023,
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/f6/e7/0f/f6e70f93-4fb7-ba87-e6f7-e5739c3f5e3e/22UM1IM25821.rgb.jpg/600x600bb.jpg',
+        category: 'music' as const,
+        rating: 4.3,
+        genre: 'Country',
+        trackCount: 36
+      },
+      {
+        id: 'music-itunes-hero-4',
+        title: 'Midnights',
+        artist: 'Taylor Swift',
+        year: 2022,
+        image: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/a0/5e/c5/a05ec526-7153-09d2-1e4e-3e2757185e19/22UM1IM43045.rgb.jpg/600x600bb.jpg',
+        category: 'music' as const,
+        rating: 4.7,
+        genre: 'Pop',
+        trackCount: 13
+      }
+    ]
+
+    // Appliquer la même logique de sélection quotidienne
+    return this.selectDailyAlbums(fallbackAlbums, 4)
+  }
+
+  // Extraire l'année d'une date
+  private extractYear(dateString?: string): number {
+    if (!dateString) return 0
+    const year = parseInt(dateString.split('-')[0])
+    return isNaN(year) ? 0 : year
+  }
+  
   /**
    * ✅ FONCTION CORRIGÉE : Obtenir le vrai artiste
    */
