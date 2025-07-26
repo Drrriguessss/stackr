@@ -78,10 +78,17 @@ class MusicService {
       
       console.log(`🎵 [iTunes] Selected daily hero albums:`, dailySelection.map(a => `${a.title} by ${a.artist} (${a.year})`))
       
-      return dailySelection.length >= 4 ? dailySelection : this.getFallbackHeroMusic()
+      if (dailySelection.length >= 4) {
+        console.log('🎵 [iTunes] Using API data for hero music')
+        return dailySelection
+      } else {
+        console.log('🎵 [iTunes] Using fallback data for hero music')
+        return this.getFallbackHeroMusic()
+      }
       
     } catch (error) {
       console.error('🎵 [iTunes] Error fetching daily hero music:', error)
+      console.log('🎵 [iTunes] Using fallback data due to error')
       return this.getFallbackHeroMusic()
     }
   }
