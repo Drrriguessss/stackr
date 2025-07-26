@@ -782,19 +782,16 @@ export default function MusicDetailModal({
                       </div>
                     </div>
                   )}
-                </div>
               </div>
             </div>
-          </div>
+          </>
         ) : (
-          <div className="flex items-center justify-center py-20 bg-[#1a1a1a]">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-700">
-                <span className="text-2xl">🎵</span>
-              </div>
-              <p className="text-lg font-medium text-white mb-2">Album not found</p>
-              <p className="text-sm text-gray-400">Unable to load album details. Please try again.</p>
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Music size={32} className="text-gray-600" />
             </div>
+            <p className="text-lg font-medium text-white mb-2">Album not found</p>
+            <p className="text-sm text-gray-400">Unable to load album details. Please try again.</p>
           </div>
         )}
       </div>
