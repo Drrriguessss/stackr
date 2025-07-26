@@ -76,7 +76,7 @@ class MusicService {
       // Sélection quotidienne déterministe
       const dailySelection = this.selectDailyAlbums(uniqueAlbums, 4)
       
-      console.log(`🎵 [iTunes] Selected daily hero albums:`, dailySelection.map(a => `${a.title} by ${a.artist} (${a.year})`)
+      console.log(`🎵 [iTunes] Selected daily hero albums:`, dailySelection.map(a => `${a.title} by ${a.artist} (${a.year})`))
       
       return dailySelection.length >= 4 ? dailySelection : this.getFallbackHeroMusic()
       
