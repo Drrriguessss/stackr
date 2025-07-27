@@ -422,17 +422,18 @@ export default function MovieDetailModal({
               </div>
 
               {/* Reviews Section */}
-              <div className="p-6 border-b border-gray-700">
-                <h3 className="text-white font-semibold mb-4">Recent Reviews</h3>
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-gray-900 font-semibold mb-4">Recent Reviews</h3>
                 <div className="flex space-x-4 overflow-x-auto pb-2">
+                  {/* User reviews first */}
                   {userReviews.map((review) => (
-                    <div key={review.id} className="flex-shrink-0 w-64 bg-red-900/20 rounded-xl p-4 border border-red-700">
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-blue-50 rounded-xl p-4 border border-blue-100">
                       <div className="flex items-center space-x-2 mb-3">
-                        <div className="w-8 h-8 bg-red-800/50 rounded-full flex items-center justify-center">
-                          <span className="text-red-400 text-sm">👤</span>
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 text-sm">👤</span>
                         </div>
-                        <span className="text-white text-sm font-medium">{review.username}</span>
-                        <span className="text-xs text-red-400 bg-red-800/50 px-2 py-1 rounded-full font-medium">You</span>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-blue-600 bg-blue-200 px-2 py-1 rounded-full font-medium">You</span>
                       </div>
                       <div className="flex items-center space-x-1 mb-2">
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -444,22 +445,23 @@ export default function MovieDetailModal({
                             }`}
                           />
                         ))}
-                        <span className="text-xs text-gray-400 ml-1">{review.rating}/5</span>
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
                       </div>
-                      <p className="text-gray-300 text-sm leading-relaxed">
+                      <p className="text-gray-700 text-sm leading-relaxed">
                         {review.review || review.text}
                       </p>
                     </div>
                   ))}
                   
+                  {/* IMDb reviews */}
                   {imdbReviews.slice(0, 5).map((review) => (
-                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <div key={review.id} className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 border border-gray-200">
                       <div className="flex items-center space-x-2 mb-3">
-                        <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
-                          <span className="text-gray-400 text-sm">🎬</span>
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-gray-600 text-sm">🎬</span>
                         </div>
-                        <span className="text-white text-sm font-medium">{review.username}</span>
-                        <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full font-medium">IMDb</span>
+                        <span className="text-gray-900 text-sm font-medium">{review.username}</span>
+                        <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded-full font-medium">IMDb</span>
                       </div>
                       <div className="flex items-center space-x-1 mb-2">
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -471,9 +473,9 @@ export default function MovieDetailModal({
                             }`}
                           />
                         ))}
-                        <span className="text-xs text-gray-400 ml-1">{review.rating}/5</span>
+                        <span className="text-xs text-gray-600 ml-1">{review.rating}/5</span>
                       </div>
-                      <p className="text-gray-300 text-sm leading-relaxed">
+                      <p className="text-gray-700 text-sm leading-relaxed">
                         {review.text}
                       </p>
                     </div>
@@ -482,7 +484,7 @@ export default function MovieDetailModal({
               </div>
 
               {/* Tabs */}
-              <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700">
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
                 <div className="flex px-6">
                   {(['info', 'social', 'more'] as const).map((tab) => (
                     <button
@@ -490,13 +492,13 @@ export default function MovieDetailModal({
                       onClick={() => setActiveTab(tab)}
                       className={`flex-1 py-4 px-4 font-medium transition-colors relative ${
                         activeTab === tab
-                          ? 'text-white'
-                          : 'text-gray-400 hover:text-gray-300'
+                          ? 'text-gray-900'
+                          : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
                       {tab.charAt(0).toUpperCase() + tab.slice(1)}
                       {activeTab === tab && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
                       )}
                     </button>
                   ))}
@@ -508,45 +510,45 @@ export default function MovieDetailModal({
                 {activeTab === 'info' && (
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-white font-semibold mb-3">About</h4>
-                      <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-                        <p className="text-gray-300 leading-relaxed">
+                      <h4 className="text-gray-900 font-semibold mb-3">About</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <p className="text-gray-700 leading-relaxed">
                           {movieDetail.Plot || 'No plot available.'}
                         </p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-6">
-                      <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-                        <h5 className="text-white font-medium mb-2">Director</h5>
-                        <p className="text-gray-300 text-sm">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Director</h5>
+                        <p className="text-gray-600 text-sm">
                           {movieDetail.Director || 'N/A'}
                         </p>
                       </div>
-                      <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-                        <h5 className="text-white font-medium mb-2">Release Date</h5>
-                        <p className="text-gray-300 text-sm">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Release Date</h5>
+                        <p className="text-gray-600 text-sm">
                           {movieDetail.Released || 'N/A'}
                         </p>
                       </div>
-                      <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-                        <h5 className="text-white font-medium mb-2">Genre</h5>
-                        <p className="text-gray-300 text-sm">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Genre</h5>
+                        <p className="text-gray-600 text-sm">
                           {movieDetail.Genre || 'N/A'}
                         </p>
                       </div>
-                      <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-                        <h5 className="text-white font-medium mb-2">Runtime</h5>
-                        <p className="text-gray-300 text-sm">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <h5 className="text-gray-900 font-medium mb-2">Runtime</h5>
+                        <p className="text-gray-600 text-sm">
                           {movieDetail.Runtime || 'N/A'}
                         </p>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="text-white font-semibold mb-3">Cast</h4>
-                      <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-                        <p className="text-gray-300 text-sm">
+                      <h4 className="text-gray-900 font-semibold mb-3">Cast</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <p className="text-gray-700 text-sm">
                           {movieDetail.Actors || 'Cast information not available.'}
                         </p>
                       </div>
@@ -554,9 +556,9 @@ export default function MovieDetailModal({
 
                     {movieDetail.Awards && movieDetail.Awards !== 'N/A' && (
                       <div>
-                        <h4 className="text-white font-semibold mb-3">Awards</h4>
-                        <div className="bg-yellow-900/20 rounded-xl p-4 border border-yellow-700">
-                          <p className="text-yellow-400 text-sm">
+                        <h4 className="text-gray-900 font-semibold mb-3">Awards</h4>
+                        <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                          <p className="text-yellow-700 text-sm">
                             {movieDetail.Awards}
                           </p>
                         </div>
@@ -568,30 +570,60 @@ export default function MovieDetailModal({
                 {activeTab === 'social' && (
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-white font-semibold mb-4">Community Stats</h4>
+                      <h4 className="text-gray-900 font-semibold mb-4">Community Stats</h4>
                       <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-orange-900/20 border border-orange-700 p-4 rounded-xl text-center">
-                          <div className="text-2xl font-bold text-orange-400">{movieStats['want-to-play'].toLocaleString()}</div>
-                          <div className="text-sm text-orange-300 font-medium">Want to Watch</div>
+                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-orange-600">{movieStats['want-to-play'].toLocaleString()}</div>
+                          <div className="text-sm text-orange-700 font-medium">Want to Watch</div>
                         </div>
-                        <div className="bg-green-900/20 border border-green-700 p-4 rounded-xl text-center">
-                          <div className="text-2xl font-bold text-green-400">{movieStats['currently-playing'].toLocaleString()}</div>
-                          <div className="text-sm text-green-300 font-medium">Watching</div>
+                        <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-green-600">{movieStats['currently-playing'].toLocaleString()}</div>
+                          <div className="text-sm text-green-700 font-medium">Watching</div>
                         </div>
-                        <div className="bg-blue-900/20 border border-blue-700 p-4 rounded-xl text-center">
-                          <div className="text-2xl font-bold text-blue-400">{movieStats['completed'].toLocaleString()}</div>
-                          <div className="text-sm text-blue-300 font-medium">Watched</div>
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
+                          <div className="text-2xl font-bold text-blue-600">{movieStats['completed'].toLocaleString()}</div>
+                          <div className="text-sm text-blue-700 font-medium">Watched</div>
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="text-white font-semibold mb-4">Ratings</h4>
+                      <h4 className="text-gray-900 font-semibold mb-4">Recent Activity</h4>
+                      <div className="space-y-3">
+                        {[
+                          { user: 'MovieBuff23', action: 'marked as watched', time: '1 hour ago', type: 'completed' },
+                          { user: 'CinemaLover', action: 'added to watchlist', time: '3 hours ago', type: 'want' },
+                          { user: 'FilmCritic', action: 'rated 4 stars', time: '5 hours ago', type: 'rating' },
+                          { user: 'StreamerPro', action: 'started watching', time: '7 hours ago', type: 'playing' }
+                        ].map((activity, index) => (
+                          <div key={index} className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gray-200 shadow-sm">
+                              <span className="text-sm">
+                                {activity.type === 'completed' && '✅'}
+                                {activity.type === 'want' && '❤️'}
+                                {activity.type === 'rating' && '⭐'}
+                                {activity.type === 'playing' && '🎬'}
+                              </span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm">
+                                <span className="font-medium text-gray-900">{activity.user}</span>{' '}
+                                <span className="text-gray-600">{activity.action}</span>
+                              </p>
+                              <p className="text-xs text-gray-500">{activity.time}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-4">Ratings</h4>
                       <div className="space-y-3">
                         {movieDetail.Ratings?.map((rating, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700">
-                            <span className="font-medium text-white">{rating.Source}</span>
-                            <span className="text-gray-300">{rating.Value}</span>
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <span className="font-medium text-gray-900">{rating.Source}</span>
+                            <span className="text-gray-600">{rating.Value}</span>
                           </div>
                         ))}
                       </div>
@@ -602,24 +634,35 @@ export default function MovieDetailModal({
                 {activeTab === 'more' && (
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-white font-semibold mb-4">External Links</h4>
+                      <h4 className="text-gray-900 font-semibold mb-4">External Links</h4>
                       <div className="space-y-3">
-                        <a 
-                          href={`https://www.imdb.com/title/${movieDetail.imdbID}/`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          View on IMDb
-                        </a>
+                        <div className="flex flex-wrap gap-3">
+                          <a 
+                            href={`https://www.imdb.com/title/${movieDetail.imdbID}/`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            View on IMDb
+                          </a>
+                          <a 
+                            href={`https://www.rottentomatoes.com/search?search=${encodeURIComponent(movieDetail.Title)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Rotten Tomatoes
+                          </a>
+                        </div>
 
                         {movieDetail.Website && movieDetail.Website !== 'N/A' && (
                           <a
                             href={movieDetail.Website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 p-4 rounded-xl text-gray-300 hover:text-white transition-colors border border-gray-700"
+                            className="flex items-center space-x-2 bg-gray-50 hover:bg-gray-100 p-4 rounded-xl text-gray-700 hover:text-gray-900 transition-colors border border-gray-200"
                           >
                             <Globe size={16} />
                             <span className="font-medium">Official Website</span>
@@ -631,23 +674,25 @@ export default function MovieDetailModal({
 
                     {similarMovies.length > 0 && (
                       <div>
-                        <h4 className="text-white font-semibold mb-4">Similar Movies</h4>
+                        <h4 className="text-gray-900 font-semibold mb-4">
+                          Similar Movies {movieDetail.Genre?.split(',')[0] && `(${movieDetail.Genre.split(',')[0].trim()})`}
+                        </h4>
                         <div className="flex space-x-3 overflow-x-auto pb-2">
-                          {similarMovies.map((movie) => (
-                            <div key={movie.id} className="flex-shrink-0 w-40 bg-gray-800 rounded-xl p-3 border border-gray-700 hover:border-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+                          {similarMovies.slice(0, 6).map((movie) => (
+                            <div key={movie.id} className="flex-shrink-0 w-40 bg-white rounded-xl p-3 border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm hover:shadow-md">
                               {movie.image && (
                                 <img
                                   src={movie.image}
                                   alt={movie.title}
-                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-600"
+                                  className="w-full h-20 object-cover rounded-lg mb-2 border border-gray-100"
                                 />
                               )}
-                              <h5 className="text-sm font-medium text-white truncate mb-1" title={movie.title}>
+                              <h5 className="text-sm font-medium text-gray-900 truncate mb-1" title={movie.title}>
                                 {movie.title}
                               </h5>
                               <div className="flex items-center">
                                 <Star size={12} className="text-yellow-500 fill-current mr-1" />
-                                <span className="text-xs text-gray-400">{movie.rating?.toFixed(1) || 'N/A'}</span>
+                                <span className="text-xs text-gray-600">{movie.rating?.toFixed(1) || 'N/A'}</span>
                               </div>
                             </div>
                           ))}
@@ -656,33 +701,45 @@ export default function MovieDetailModal({
                     )}
 
                     <div>
-                      <h4 className="text-white font-semibold mb-4">Additional Information</h4>
-                      <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                      <h4 className="text-gray-900 font-semibold mb-4">Technical Information</h4>
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div className="flex justify-between">
-                            <span className="font-medium text-white">Language:</span>
-                            <span className="text-gray-300">
+                            <span className="font-medium text-gray-900">Language:</span>
+                            <span className="text-gray-600">
                               {movieDetail.Language || 'N/A'}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="font-medium text-white">Country:</span>
-                            <span className="text-gray-300">
+                            <span className="font-medium text-gray-900">Country:</span>
+                            <span className="text-gray-600">
                               {movieDetail.Country || 'N/A'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">Rating:</span>
+                            <span className="text-gray-600">
+                              {movieDetail.Rated || 'Not Rated'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-900">Metascore:</span>
+                            <span className="text-gray-600">
+                              {movieDetail.Metascore ? `${movieDetail.Metascore}/100` : 'N/A'}
                             </span>
                           </div>
                           {movieDetail.BoxOffice && movieDetail.BoxOffice !== 'N/A' && (
                             <div className="flex justify-between col-span-2">
-                              <span className="font-medium text-white">Box Office:</span>
-                              <span className="text-gray-300 text-right">
+                              <span className="font-medium text-gray-900">Box Office:</span>
+                              <span className="text-gray-600 text-right">
                                 {movieDetail.BoxOffice}
                               </span>
                             </div>
                           )}
                           {movieDetail.Production && movieDetail.Production !== 'N/A' && (
                             <div className="flex justify-between col-span-2">
-                              <span className="font-medium text-white">Production:</span>
-                              <span className="text-gray-300 text-right">
+                              <span className="font-medium text-gray-900">Production:</span>
+                              <span className="text-gray-600 text-right">
                                 {movieDetail.Production}
                               </span>
                             </div>
@@ -696,11 +753,11 @@ export default function MovieDetailModal({
             </div>
           </>
         ) : (
-          <div className="p-8 text-center text-gray-400 bg-gray-900">
-            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="p-8 text-center text-gray-600">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🎬</span>
             </div>
-            <p className="text-lg font-medium text-white mb-2">Movie not found</p>
+            <p className="text-lg font-medium text-gray-900 mb-2">Movie not found</p>
             <p className="text-sm">Unable to load movie details. Please try again.</p>
           </div>
         )}
