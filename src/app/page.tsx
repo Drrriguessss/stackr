@@ -6,8 +6,8 @@ import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
 import GameDetailDarkV2 from '@/components/GameDetailDarkV2'
 import MovieDetailModalV2 from '@/components/MovieDetailModalV2'
-import BookDetailModal from '@/components/BookDetailModal'
-import MusicDetailModal from '@/components/MusicDetailModal'
+import BookDetailModalV2 from '@/components/BookDetailModalV2'
+import MusicDetailModalV2 from '@/components/MusicDetailModalV2'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
@@ -860,7 +860,7 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
-      <BookDetailModal
+      <BookDetailModalV2
         isOpen={!!selectedBookId}
         onClose={() => setSelectedBookId(null)}
         bookId={selectedBookId || ''}
@@ -872,7 +872,7 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
-      <MusicDetailModal
+      <MusicDetailModalV2
         isOpen={!!selectedMusicId}
         onClose={() => setSelectedMusicId(null)}
         albumId={selectedMusicId || ''}
