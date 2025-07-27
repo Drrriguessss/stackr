@@ -5,7 +5,7 @@ import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
 import GameDetailDarkV2 from '@/components/GameDetailDarkV2'
-import MovieDetailModal from '@/components/MovieDetailModal'
+import MovieDetailModalV2 from '@/components/MovieDetailModalV2'
 import BookDetailModal from '@/components/BookDetailModal'
 import MusicDetailModal from '@/components/MusicDetailModal'
 import SearchModal from '@/components/SearchModal'
@@ -848,7 +848,7 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
-      <MovieDetailModal
+      <MovieDetailModalV2
         isOpen={!!selectedMovieId}
         onClose={() => setSelectedMovieId(null)}
         movieId={selectedMovieId || ''}
