@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Star, Send, ChevronDown, ChevronRight, Play, Share } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { musicService } from '@/services/musicService'
+import { musicReviewsService, type MusicReview } from '@/services/musicReviewsService'
+import { userReviewsService, type UserReview } from '@/services/userReviewsService'
 
 interface MusicDetailModalV2Props {
   isOpen: boolean
@@ -68,6 +70,8 @@ export default function MusicDetailModalV2({
   const [showLibraryDropdown, setShowLibraryDropdown] = useState(false)
   const [musicReviews, setMusicReviews] = useState<any[]>([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [userPublicReviews, setUserPublicReviews] = useState<UserReview[]>([])
+  const [currentUserReview, setCurrentUserReview] = useState<UserReview | null>(null)
 
   const scrollableRef = useRef<HTMLDivElement>(null)
   const libraryDropdownRef = useRef<HTMLDivElement>(null)
@@ -230,44 +234,29 @@ export default function MusicDetailModalV2({
     setReviewsLoading(true)
     try {
       console.log('📝 Fetching reviews for album:', albumTitle, 'by', artist)
-      // Mock reviews for now
-      const mockReviews = [
-        {
-          id: 1,
-          username: "MusicLover92",
-          rating: 5,
-          text: "Absolutely phenomenal album! Every track is a masterpiece.",
-          date: "2024-01-15",
-          platform: "spotify",
-          verified: true,
-          helpful: 24
-        },
-        {
-          id: 2,
-          username: "AudiophileReviewer",
-          rating: 4,
-          text: "Great production quality and solid songwriting throughout.",
-          date: "2024-01-12",
-          platform: "apple-music",
-          verified: false,
-          helpful: 18
-        },
-        {
-          id: 3,
-          username: "CriticPro",
-          rating: 5,
-          text: "A game-changing release that pushes musical boundaries.",
-          date: "2024-01-10",
-          platform: "pitchfork",
-          verified: true,
-          helpful: 42
-        }
-      ]
-      setMusicReviews(mockReviews)
-      console.log('📝 Loaded', mockReviews.length, 'reviews')
+      
+      // Fetch API reviews
+      const reviewsResponse = await musicReviewsService.getMusicReviews(albumId, albumTitle, artist)
+      setMusicReviews(reviewsResponse.reviews)
+      console.log('📝 Loaded', reviewsResponse.reviews.length, 'API reviews')
+      
+      // Fetch user public reviews
+      const publicReviews = await userReviewsService.getPublicReviewsForMedia(albumId)
+      setUserPublicReviews(publicReviews)
+      console.log('📝 Loaded', publicReviews.length, 'user public reviews')
+      
+      // Fetch current user's review (if any)
+      const userReview = await userReviewsService.getUserReviewForMedia(albumId)
+      setCurrentUserReview(userReview)
+      if (userReview) {
+        setUserRating(userReview.rating)
+        setUserReview(userReview.review_text || '')
+        console.log('📝 Found existing user review')
+      }
     } catch (error) {
       console.error('📝 Error fetching reviews:', error)
       setMusicReviews([])
+      setUserPublicReviews([])
     } finally {
       setReviewsLoading(false)
     }
@@ -354,8 +343,32 @@ export default function MusicDetailModalV2({
     }
   }
 
-  const handleSubmitReview = () => {
-    if (userRating > 0) {
+  const handleSubmitReview = async () => {
+    if (userRating > 0 && albumDetail) {
+      // Sauvegarder dans notre nouveau système
+      const savedReview = await userReviewsService.submitReview({
+        mediaId: albumId,
+        mediaTitle: albumDetail.title,
+        mediaCategory: 'music',
+        rating: userRating,
+        reviewText: userReview.trim(),
+        isPublic: reviewPrivacy === 'public'
+      })
+      
+      if (savedReview) {
+        console.log('✅ Review saved successfully')
+        
+        // Si publique, actualiser la liste des reviews publiques
+        if (reviewPrivacy === 'public') {
+          const updatedPublicReviews = await userReviewsService.getPublicReviewsForMedia(albumId)
+          setUserPublicReviews(updatedPublicReviews)
+        }
+        
+        // Mettre à jour l'état de la review actuelle
+        setCurrentUserReview(savedReview)
+      }
+      
+      // Appeler aussi l'ancien système si nécessaire
       onReviewSubmit({
         rating: userRating,
         review: userReview.trim(),
@@ -363,8 +376,7 @@ export default function MusicDetailModalV2({
       })
       
       setShowReviewBox(false)
-      setUserReview('')
-      setUserRating(0)
+      // Ne pas réinitialiser rating et review car l'utilisateur a maintenant une review existante
     }
   }
 
@@ -807,10 +819,41 @@ export default function MusicDetailModalV2({
                 <div className="p-4 space-y-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-white font-medium">Reviews</h3>
-                    {musicReviews.length > 0 && (
-                      <span className="text-[#B0B0B0] text-sm">{musicReviews.length} reviews</span>
-                    )}
+                    <span className="text-[#B0B0B0] text-sm">
+                      {musicReviews.length + userPublicReviews.length} reviews
+                    </span>
                   </div>
+                  
+                  {/* Current user's review if exists */}
+                  {currentUserReview && (
+                    <div className="bg-[#1DB954]/10 border border-[#1DB954]/30 rounded-lg p-4 mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[#1DB954] text-sm font-medium">Your Review</span>
+                        <span className="text-[#B0B0B0] text-xs">
+                          {currentUserReview.is_public ? '🌍 Public' : '🔒 Private'}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={12}
+                              className={`${
+                                star <= currentUserReview.rating
+                                  ? 'text-yellow-400 fill-current'
+                                  : 'text-gray-600'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[#B0B0B0] text-xs">{currentUserReview.created_at.split('T')[0]}</span>
+                      </div>
+                      {currentUserReview.review_text && (
+                        <p className="text-[#B0B0B0] text-sm">{currentUserReview.review_text}</p>
+                      )}
+                    </div>
+                  )}
                   
                   {reviewsLoading ? (
                     <div className="space-y-4">
@@ -831,8 +874,62 @@ export default function MusicDetailModalV2({
                         </div>
                       ))}
                     </div>
-                  ) : musicReviews.length > 0 ? (
+                  ) : musicReviews.length > 0 || userPublicReviews.length > 0 ? (
                     <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {/* User Public Reviews First */}
+                      {userPublicReviews.map((review) => (
+                        <div key={review.id} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                                <span className="text-white text-sm font-medium">
+                                  {(review.username || 'U').charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-white font-medium text-sm">{review.username || 'Anonymous User'}</span>
+                                  <span className="text-purple-400 text-xs">✓ Stackr User</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <div className="flex">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <Star
+                                        key={star}
+                                        size={12}
+                                        className={`${
+                                          star <= review.rating
+                                            ? 'text-yellow-400 fill-current'
+                                            : 'text-gray-600'
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-[#B0B0B0] text-xs">{review.created_at.split('T')[0]}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <span className="px-2 py-1 bg-purple-900/50 text-purple-200 rounded text-xs font-medium">
+                              User Review
+                            </span>
+                          </div>
+                          {review.review_text && (
+                            <p className="text-[#B0B0B0] text-sm leading-relaxed mb-3">
+                              {review.review_text}
+                            </p>
+                          )}
+                          <div className="flex items-center space-x-4 text-xs text-gray-500">
+                            <button 
+                              className="hover:text-white transition-colors"
+                              onClick={() => userReviewsService.markReviewAsHelpful(review.id, true)}
+                            >
+                              👍 {review.helpful_count || 0} helpful
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* API Reviews */}
                       {musicReviews.map((review) => (
                         <div key={review.id} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
                           {/* Review Header */}

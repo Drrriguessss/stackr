@@ -4,8 +4,12 @@ import { X, Star, Send, ChevronDown, ChevronRight, Play, Share } from 'lucide-re
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { omdbService } from '@/services/omdbService'
 import { trailerService, type MovieTrailer } from '@/services/trailerService'
-import { reviewsService, type MovieReview, type ReviewsResponse } from '@/services/reviewsService'
+import { movieReviewsService, type MovieReview } from '@/services/movieReviewsService'
+import { userReviewsService, type UserReview } from '@/services/userReviewsService'
 import { fetchWithCache, apiCache } from '@/utils/apiCache'
+import { imageService } from '@/services/imageService'
+import MediaCarousel from './MediaCarousel'
+import type { MediaGallery } from '@/services/imageService'
 
 interface MovieDetailModalV2Props {
   isOpen: boolean
@@ -82,6 +86,10 @@ export default function MovieDetailModalV2({
   const [showLibraryDropdown, setShowLibraryDropdown] = useState(false)
   const [movieReviews, setMovieReviews] = useState<MovieReview[]>([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [userPublicReviews, setUserPublicReviews] = useState<UserReview[]>([])
+  const [currentUserReview, setCurrentUserReview] = useState<UserReview | null>(null)
+  const [mediaGallery, setMediaGallery] = useState<MediaGallery | null>(null)
+  const [galleryLoading, setGalleryLoading] = useState(false)
 
   const scrollableRef = useRef<HTMLDivElement>(null)
   const libraryDropdownRef = useRef<HTMLDivElement>(null)
@@ -178,8 +186,8 @@ export default function MovieDetailModalV2({
       const data = await omdbService.getMovieDetails(imdbId)
       setMovieDetail(data as MovieDetail)
       
-      // Fetch trailer
-      fetchTrailer(imdbId, data.Title)
+      // Fetch media gallery (trailer + images)
+      loadMediaGallery(imdbId, data.Title)
       
       // Fetch real reviews
       fetchReviews(imdbId, data.Title)
@@ -250,8 +258,8 @@ export default function MovieDetailModalV2({
       // For fallback demo data, also fetch similar movies
       await fetchSimilarMovies(fallbackMovie.genre || "Drama")
       await fetchDirectorMovies(fallbackMovie.director || "Unknown Director")
-      // Fetch trailer for mock data too
-      fetchTrailer(imdbId, fallbackMovie.title)
+      // Fetch media gallery for mock data too
+      loadMediaGallery(imdbId, fallbackMovie.title)
       // Fetch reviews for mock data too
       fetchReviews(imdbId, fallbackMovie.title)
     } finally {
@@ -272,16 +280,57 @@ export default function MovieDetailModalV2({
     }
   }
 
+  const loadMediaGallery = async (movieId: string, movieTitle: string) => {
+    setGalleryLoading(true)
+    try {
+      console.log('🖼️ Loading movie gallery for:', movieTitle)
+      
+      // Récupérer le trailer
+      const trailer = await trailerService.getMovieTrailer(movieId, movieTitle)
+      
+      // Récupérer la galerie complète (trailer + images)
+      const gallery = await imageService.getMovieGallery(movieId, movieTitle, trailer)
+      
+      console.log('🖼️ Movie gallery loaded:', gallery)
+      setMediaGallery(gallery)
+      
+      // Mettre à jour aussi le trailer state pour compatibilité
+      setMovieTrailer(trailer)
+    } catch (error) {
+      console.error('🖼️ Error loading movie gallery:', error)
+      setMediaGallery(null)
+    } finally {
+      setGalleryLoading(false)
+    }
+  }
+
   const fetchReviews = async (movieId: string, movieTitle: string) => {
     setReviewsLoading(true)
     try {
       console.log('📝 Fetching reviews for movie:', movieTitle)
-      const reviewsResponse = await reviewsService.getMovieReviews(movieId, movieTitle)
+      
+      // Fetch API reviews
+      const reviewsResponse = await movieReviewsService.getMovieReviews(movieId, movieTitle)
       setMovieReviews(reviewsResponse.reviews)
-      console.log('📝 Loaded', reviewsResponse.reviews.length, 'reviews')
+      console.log('📝 Loaded', reviewsResponse.reviews.length, 'API reviews')
+      
+      // Fetch user public reviews
+      const publicReviews = await userReviewsService.getPublicReviewsForMedia(movieId)
+      setUserPublicReviews(publicReviews)
+      console.log('📝 Loaded', publicReviews.length, 'user public reviews')
+      
+      // Fetch current user's review (if any)
+      const userReview = await userReviewsService.getUserReviewForMedia(movieId)
+      setCurrentUserReview(userReview)
+      if (userReview) {
+        setUserRating(userReview.rating)
+        setUserReview(userReview.review_text || '')
+        console.log('📝 Found existing user review')
+      }
     } catch (error) {
       console.error('📝 Error fetching reviews:', error)
       setMovieReviews([])
+      setUserPublicReviews([])
     } finally {
       setReviewsLoading(false)
     }
@@ -378,8 +427,32 @@ export default function MovieDetailModalV2({
     }
   }
 
-  const handleSubmitReview = () => {
-    if (userRating > 0) {
+  const handleSubmitReview = async () => {
+    if (userRating > 0 && movieDetail) {
+      // Sauvegarder dans notre nouveau système
+      const savedReview = await userReviewsService.submitReview({
+        mediaId: movieId,
+        mediaTitle: movieDetail.Title,
+        mediaCategory: 'movies',
+        rating: userRating,
+        reviewText: userReview.trim(),
+        isPublic: reviewPrivacy === 'public'
+      })
+      
+      if (savedReview) {
+        console.log('✅ Review saved successfully')
+        
+        // Si publique, actualiser la liste des reviews publiques
+        if (reviewPrivacy === 'public') {
+          const updatedPublicReviews = await userReviewsService.getPublicReviewsForMedia(movieId)
+          setUserPublicReviews(updatedPublicReviews)
+        }
+        
+        // Mettre à jour l'état de la review actuelle
+        setCurrentUserReview(savedReview)
+      }
+      
+      // Appeler aussi l'ancien système si nécessaire
       onReviewSubmit({
         rating: userRating,
         review: userReview.trim(),
@@ -387,8 +460,7 @@ export default function MovieDetailModalV2({
       })
       
       setShowReviewBox(false)
-      setUserReview('')
-      setUserRating(0)
+      // Ne pas réinitialiser rating et review car l'utilisateur a maintenant une review existante
     }
   }
 
@@ -470,59 +542,38 @@ export default function MovieDetailModalV2({
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
               {activeTab === 'overview' && (
                 <div className="p-4 space-y-6">
-                  {/* Media Section */}
+                  {/* Media Gallery - Carousel pour trailer et images */}
                   <div className="space-y-4">
-                    {/* Trailer */}
-                    <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                      {trailerLoading ? (
+                    {!galleryLoading && mediaGallery ? (
+                      <MediaCarousel 
+                        gallery={mediaGallery} 
+                        itemTitle={movieDetail.Title}
+                        className="rounded-lg overflow-hidden shadow-lg"
+                      />
+                    ) : galleryLoading ? (
+                      <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                          <div className="text-center text-white">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                            <p className="text-sm">Loading media gallery...</p>
+                          </div>
                         </div>
-                      ) : movieTrailer && movieTrailer.provider === 'youtube' && movieTrailer.videoId && !movieTrailer.url.includes('results?search_query') ? (
-                        // Trailer YouTube embed direct
-                        <iframe
-                          src={movieTrailer.url}
-                          title={`${movieDetail.Title} Trailer`}
-                          className="w-full h-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
+                      </div>
+                    ) : (
+                      // Fallback - afficher le poster du film
+                      <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                        <img
+                          src={movieDetail.Poster !== 'N/A' ? movieDetail.Poster : 'https://via.placeholder.com/640x360/1a1a1a/ffffff?text=No+Image'}
+                          alt={`${movieDetail.Title} poster`}
+                          className="w-full h-full object-cover"
                         />
-                      ) : movieTrailer && movieTrailer.url.includes('results?search_query') ? (
-                        // Recherche YouTube - ouvrir dans un nouvel onglet avec image de fond
-                        <div className="relative w-full h-full">
-                          <img
-                            src={movieDetail.Poster !== 'N/A' ? movieDetail.Poster : 'https://via.placeholder.com/640x360/1a1a1a/ffffff?text=No+Image'}
-                            alt={`${movieDetail.Title} poster`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
-                            <Play size={48} className="text-white mb-4" />
-                            <a
-                              href={movieTrailer.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-                            >
-                              Watch Trailer on YouTube
-                            </a>
-                          </div>
+                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
+                          <div className="w-12 h-12 mx-auto mb-2 opacity-50">📷</div>
+                          <p className="text-white text-sm opacity-75">No media available</p>
+                          <p className="text-gray-300 text-xs opacity-50 mt-1">Showing movie poster</p>
                         </div>
-                      ) : (
-                        // Pas de trailer - afficher le poster du film avec message
-                        <div className="relative w-full h-full">
-                          <img
-                            src={movieDetail.Poster !== 'N/A' ? movieDetail.Poster : 'https://via.placeholder.com/640x360/1a1a1a/ffffff?text=No+Image'}
-                            alt={`${movieDetail.Title} poster`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
-                            <Play size={48} className="text-white mb-2 opacity-50" />
-                            <p className="text-white text-sm opacity-75">No trailer available</p>
-                            <p className="text-gray-300 text-xs opacity-50 mt-1">Showing movie poster</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Add to Library Button */}
@@ -835,10 +886,41 @@ export default function MovieDetailModalV2({
                 <div className="p-4 space-y-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-white font-medium">Reviews</h3>
-                    {movieReviews.length > 0 && (
-                      <span className="text-[#B0B0B0] text-sm">{movieReviews.length} reviews</span>
-                    )}
+                    <span className="text-[#B0B0B0] text-sm">
+                      {movieReviews.length + userPublicReviews.length} reviews
+                    </span>
                   </div>
+                  
+                  {/* Current user's review if exists */}
+                  {currentUserReview && (
+                    <div className="bg-[#1DB954]/10 border border-[#1DB954]/30 rounded-lg p-4 mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[#1DB954] text-sm font-medium">Your Review</span>
+                        <span className="text-[#B0B0B0] text-xs">
+                          {currentUserReview.is_public ? '🌍 Public' : '🔒 Private'}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={12}
+                              className={`${
+                                star <= currentUserReview.rating
+                                  ? 'text-yellow-400 fill-current'
+                                  : 'text-gray-600'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[#B0B0B0] text-xs">{currentUserReview.created_at.split('T')[0]}</span>
+                      </div>
+                      {currentUserReview.review_text && (
+                        <p className="text-[#B0B0B0] text-sm">{currentUserReview.review_text}</p>
+                      )}
+                    </div>
+                  )}
                   
                   {reviewsLoading ? (
                     <div className="space-y-4">
@@ -859,8 +941,62 @@ export default function MovieDetailModalV2({
                         </div>
                       ))}
                     </div>
-                  ) : movieReviews.length > 0 ? (
+                  ) : movieReviews.length > 0 || userPublicReviews.length > 0 ? (
                     <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {/* User Public Reviews First */}
+                      {userPublicReviews.map((review) => (
+                        <div key={review.id} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                                <span className="text-white text-sm font-medium">
+                                  {(review.username || 'U').charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-white font-medium text-sm">{review.username || 'Anonymous User'}</span>
+                                  <span className="text-purple-400 text-xs">✓ Stackr User</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <div className="flex">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <Star
+                                        key={star}
+                                        size={12}
+                                        className={`${
+                                          star <= review.rating
+                                            ? 'text-yellow-400 fill-current'
+                                            : 'text-gray-600'
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-[#B0B0B0] text-xs">{review.created_at.split('T')[0]}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <span className="px-2 py-1 bg-purple-900/50 text-purple-200 rounded text-xs font-medium">
+                              User Review
+                            </span>
+                          </div>
+                          {review.review_text && (
+                            <p className="text-[#B0B0B0] text-sm leading-relaxed mb-3">
+                              {review.review_text}
+                            </p>
+                          )}
+                          <div className="flex items-center space-x-4 text-xs text-gray-500">
+                            <button 
+                              className="hover:text-white transition-colors"
+                              onClick={() => userReviewsService.markReviewAsHelpful(review.id, true)}
+                            >
+                              👍 {review.helpful_count || 0} helpful
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* API Reviews */}
                       {movieReviews.map((review) => (
                         <div key={review.id} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
                           {/* Review Header */}

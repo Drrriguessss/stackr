@@ -7,15 +7,23 @@ interface GameTrailer {
   url: string
 }
 
+interface MovieTrailer {
+  videoId: string
+  provider: 'youtube' | 'tmdb' | 'none'
+  url: string
+}
+
 class TrailerService {
   // Note: En production, utiliser une variable d'environnement
   // Pour le moment, on utilise le fallback avec des trailers connus
   private readonly YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || ''
   private readonly YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search'
   private readonly RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || ''
+  private readonly TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY || ''
+  private readonly TMDB_BASE_URL = 'https://api.themoviedb.org/3'
   
   // Cache pour éviter les appels API répétés
-  private trailerCache: Map<string, GameTrailer> = new Map()
+  private trailerCache: Map<string, GameTrailer | MovieTrailer> = new Map()
 
   /**
    * Récupère le trailer d'un jeu
@@ -38,7 +46,14 @@ class TrailerService {
       return knownTrailer
     }
 
-    // 2. Générer une recherche YouTube automatique
+    // 2. Essayer l'API YouTube pour une recherche intelligente
+    const youtubeTrailer = await this.searchYouTubeTrailer(gameName)
+    if (youtubeTrailer) {
+      this.trailerCache.set(cacheKey, youtubeTrailer)
+      return youtubeTrailer
+    }
+
+    // 3. Fallback : générer une recherche YouTube automatique
     const searchTrailer = this.generateYouTubeSearch(gameName)
     this.trailerCache.set(cacheKey, searchTrailer)
     return searchTrailer
@@ -89,7 +104,7 @@ class TrailerService {
   }
 
   /**
-   * Recherche un trailer sur YouTube
+   * Recherche un trailer de jeu sur YouTube via l'API
    */
   private async searchYouTubeTrailer(gameName: string): Promise<GameTrailer | null> {
     try {
@@ -342,6 +357,398 @@ class TrailerService {
 
 
   /**
+   * Récupère le trailer d'un film
+   */
+  async getMovieTrailer(movieId: string, movieTitle: string): Promise<MovieTrailer> {
+    console.log('🎬 Getting movie trailer for:', movieTitle)
+    
+    // Vérifier le cache d'abord
+    const cacheKey = `movie-${movieId}-${movieTitle}`
+    if (this.trailerCache.has(cacheKey)) {
+      console.log('🎬 Movie trailer found in cache')
+      return this.trailerCache.get(cacheKey) as MovieTrailer
+    }
+
+    // 1. Utiliser la base de trailers de films connus d'abord
+    const knownTrailer = this.getKnownMovieTrailer(movieTitle)
+    if (knownTrailer) {
+      this.trailerCache.set(cacheKey, knownTrailer)
+      return knownTrailer
+    }
+
+    // 2. Essayer TMDB API pour récupérer le trailer officiel
+    const tmdbTrailer = await this.getTrailerFromTMDB(movieId, movieTitle)
+    if (tmdbTrailer) {
+      this.trailerCache.set(cacheKey, tmdbTrailer)
+      return tmdbTrailer
+    }
+
+    // 3. Essayer l'API YouTube pour une recherche intelligente
+    const youtubeTrailer = await this.searchYouTubeMovieTrailer(movieTitle)
+    if (youtubeTrailer) {
+      this.trailerCache.set(cacheKey, youtubeTrailer)
+      return youtubeTrailer
+    }
+
+    // 4. Fallback : générer une recherche YouTube manuelle
+    const searchTrailer = this.generateYouTubeMovieSearch(movieTitle)
+    this.trailerCache.set(cacheKey, searchTrailer)
+    return searchTrailer
+  }
+
+  /**
+   * Récupère le trailer depuis TMDB API
+   */
+  private async getTrailerFromTMDB(movieId: string, movieTitle: string): Promise<MovieTrailer | null> {
+    try {
+      if (!this.TMDB_API_KEY) {
+        console.log('🎬 No TMDB API key available')
+        return null
+      }
+
+      console.log('🎬 Searching TMDB for trailer:', movieTitle)
+      
+      // D'abord, chercher le film par titre pour obtenir l'ID TMDB
+      const searchUrl = `${this.TMDB_BASE_URL}/search/movie?api_key=${this.TMDB_API_KEY}&query=${encodeURIComponent(movieTitle)}`
+      const searchResponse = await fetch(searchUrl)
+      
+      if (!searchResponse.ok) {
+        console.log('🎬 TMDB search failed:', searchResponse.status)
+        return null
+      }
+
+      const searchData = await searchResponse.json()
+      
+      if (!searchData.results || searchData.results.length === 0) {
+        console.log('🎬 No TMDB results for:', movieTitle)
+        return null
+      }
+
+      // Prendre le premier résultat (le plus pertinent)
+      const movie = searchData.results[0]
+      const tmdbMovieId = movie.id
+
+      // Récupérer les vidéos pour ce film
+      const videosUrl = `${this.TMDB_BASE_URL}/movie/${tmdbMovieId}/videos?api_key=${this.TMDB_API_KEY}`
+      const videosResponse = await fetch(videosUrl)
+
+      if (!videosResponse.ok) {
+        console.log('🎬 TMDB videos fetch failed:', videosResponse.status)
+        return null
+      }
+
+      const videosData = await videosResponse.json()
+
+      if (!videosData.results || videosData.results.length === 0) {
+        console.log('🎬 No videos found on TMDB for:', movieTitle)
+        return null
+      }
+
+      // Filtrer pour trouver le meilleur trailer
+      const trailers = videosData.results.filter((video: any) => 
+        video.type === 'Trailer' && video.site === 'YouTube'
+      )
+
+      if (trailers.length === 0) {
+        console.log('🎬 No YouTube trailers found on TMDB for:', movieTitle)
+        return null
+      }
+
+      // Prioriser les trailers officiels
+      const officialTrailer = trailers.find((trailer: any) => 
+        trailer.official === true || 
+        trailer.name.toLowerCase().includes('official')
+      ) || trailers[0]
+
+      console.log('🎬 Found TMDB trailer:', officialTrailer.name)
+      
+      return {
+        videoId: officialTrailer.key,
+        provider: 'youtube',
+        url: `https://www.youtube.com/embed/${officialTrailer.key}?rel=0&modestbranding=1&autoplay=0`
+      }
+
+    } catch (error) {
+      console.error('🎬 TMDB trailer error:', error)
+      return null
+    }
+  }
+
+  /**
+   * Recherche un trailer sur YouTube via l'API
+   */
+  private async searchYouTubeMovieTrailer(movieTitle: string): Promise<MovieTrailer | null> {
+    try {
+      if (!this.YOUTUBE_API_KEY) {
+        console.log('🎬 No YouTube API key available')
+        return null
+      }
+
+      console.log('🎬 Searching YouTube API for movie trailer:', movieTitle)
+      
+      // Construire la requête de recherche
+      const searchQuery = `${movieTitle} official trailer`
+      const params = new URLSearchParams({
+        part: 'snippet',
+        q: searchQuery,
+        type: 'video',
+        maxResults: '10',
+        key: this.YOUTUBE_API_KEY,
+        videoDuration: 'short', // Préférer les vidéos courtes (< 4 min)
+        order: 'relevance'
+      })
+
+      const response = await fetch(`${this.YOUTUBE_API_URL}?${params}`)
+      
+      if (!response.ok) {
+        console.error('🎬 YouTube API error:', response.status)
+        return null
+      }
+
+      const data = await response.json()
+      
+      if (data.items && data.items.length > 0) {
+        // Filtrer pour trouver le meilleur trailer
+        const bestTrailer = this.findBestMovieTrailer(data.items, movieTitle)
+        
+        if (bestTrailer) {
+          console.log('🎬 Found YouTube movie trailer:', bestTrailer.snippet.title)
+          return {
+            videoId: bestTrailer.id.videoId,
+            provider: 'youtube',
+            url: `https://www.youtube.com/embed/${bestTrailer.id.videoId}?rel=0&modestbranding=1&autoplay=0`
+          }
+        }
+      }
+
+      console.log('🎬 No suitable YouTube trailer found for:', movieTitle)
+      return null
+    } catch (error) {
+      console.error('🎬 YouTube movie search error:', error)
+      return null
+    }
+  }
+
+  /**
+   * Trouve le meilleur trailer de film parmi les résultats YouTube
+   */
+  private findBestMovieTrailer(items: any[], movieTitle: string): any {
+    // Priorités pour sélectionner le meilleur trailer de film
+    const priorities = [
+      'official trailer',
+      'final trailer',
+      'main trailer', 
+      'teaser trailer',
+      'trailer'
+    ]
+
+    // Score chaque vidéo
+    const scoredItems = items.map(item => {
+      const title = item.snippet.title.toLowerCase()
+      const channelTitle = item.snippet.channelTitle.toLowerCase()
+      let score = 0
+
+      // Points pour les mots-clés dans le titre
+      priorities.forEach((keyword, index) => {
+        if (title.includes(keyword)) {
+          score += (priorities.length - index) * 10
+        }
+      })
+
+      // Points bonus pour les chaînes officielles de films
+      if (channelTitle.includes('sony pictures') || 
+          channelTitle.includes('warner bros') || 
+          channelTitle.includes('disney') ||
+          channelTitle.includes('marvel') ||
+          channelTitle.includes('universal') ||
+          channelTitle.includes('paramount') ||
+          channelTitle.includes('20th century') ||
+          channelTitle.includes('netflix') ||
+          channelTitle.includes('amazon') ||
+          channelTitle.includes('hbo') ||
+          channelTitle.includes('movieclips')) {
+        score += 25
+      }
+
+      // Points si le titre du film est dans le titre de la vidéo
+      if (title.includes(movieTitle.toLowerCase())) {
+        score += 20
+      }
+
+      // Bonus pour "official"
+      if (title.includes('official')) {
+        score += 15
+      }
+
+      // Pénalité pour les vidéos probablement non officielles
+      if (title.includes('reaction') || 
+          title.includes('review') || 
+          title.includes('breakdown') ||
+          title.includes('fan made') ||
+          title.includes('parody')) {
+        score -= 20
+      }
+
+      return { item, score }
+    })
+
+    // Trier par score et retourner le meilleur
+    scoredItems.sort((a, b) => b.score - a.score)
+    return scoredItems[0]?.score > 0 ? scoredItems[0].item : null
+  }
+
+  /**
+   * Récupère un trailer depuis la base de trailers de films connus
+   */
+  private getKnownMovieTrailer(movieTitle: string): MovieTrailer | null {
+    const normalizedTitle = movieTitle.toLowerCase()
+    
+    // Recherche exacte d'abord
+    let knownId = this.knownMovieTrailers[normalizedTitle]
+    
+    // Si pas trouvé, chercher avec des correspondances partielles
+    if (!knownId) {
+      for (const [key, videoId] of Object.entries(this.knownMovieTrailers)) {
+        if (normalizedTitle.includes(key) || key.includes(normalizedTitle)) {
+          knownId = videoId
+          console.log(`🎬 Found partial movie match: ${key} -> ${movieTitle}`)
+          break
+        }
+      }
+    }
+    
+    if (knownId) {
+      console.log(`🎬 Using known movie trailer: ${knownId} for ${movieTitle}`)
+      return {
+        videoId: knownId,
+        provider: 'youtube',
+        url: `https://www.youtube.com/embed/${knownId}?rel=0&modestbranding=1&autoplay=0`
+      }
+    }
+    
+    return null
+  }
+
+  /**
+   * Base de trailers de films connus
+   */
+  private get knownMovieTrailers() {
+    return {
+      'avatar': 'd9MyW72ELq0',
+      'avatar: the way of water': 'a8Gx8wiNbs8',
+      'avengers: endgame': 'TcMBFSGVi1c',
+      'avengers: infinity war': '6ZfuNTqbHE8',
+      'black panther': 'xjDjIWPwcPU',
+      'spider-man: no way home': 'JfVOs4VSpmA',
+      'the batman': 'mqqft2x_Aa4',
+      'dune': '8g18jFHCLXk',
+      'dune: part two': 'Way9Dexny3w',
+      'top gun: maverick': 'g4U4BQW9OEk',
+      'jurassic world dominion': 'fb5ELWi-ekk',
+      'thor: love and thunder': 'tgB1wUcmbbw',
+      'doctor strange in the multiverse of madness': 'aWzlQ2N6qqg',
+      'minions: the rise of gru': '6DxjJzmYsXo',
+      'lightyear': 'BwPL0Md_QFQ',
+      'turning red': 'XdKzUbAiswE',
+      'encanto': 'CaimKeDcudo',
+      'spider-man: into the spider-verse': 'tg52up16eq0',
+      'the lion king': '4CbLXeGSDxg',
+      'frozen ii': 'Zi4LMpSDccc',
+      'toy story 4': 'wmiIUN-7qhE',
+      'incredibles 2': 'i5qOzqD9Rms',
+      'coco': 'Ga6RYejo6Hk',
+      'moana': '7dCJuqnR6uM',
+      'finding dory': 'INYBRQhJJNY',
+      'inside out': 'yRUAzGQ3nSY',
+      'the matrix resurrections': '9ix7TUGVYIo',
+      'john wick: chapter 4': 'qEVUtrk8_B4',
+      'fast x': '32RAq6JzY-w',
+      'mission: impossible – dead reckoning part one': 'avz06PDqDbM',
+      'indiana jones and the dial of destiny': 'eQfMbSe7F2w',
+      'scream vi': 'h74AXqw4Opc',
+      'the flash': 'hebWYacbdvc',
+      'guardians of the galaxy vol. 3': 'u3V5KDHRQvk',
+      'ant-man and the wasp: quantumania': 'ZlNFpri-Y40',
+      'creed iii': 'AHmCH7iB_IM',
+      'cocaine bear': 'fYqfbgNb-8Q',
+      'scream': 'beToTslH17s',
+      'the northman': 'oMSdFM12hOw',
+      'morbius': 'oZ6iiRrz1SY',
+      'sonic the hedgehog 2': 'G5kzUpWAusI',
+      'the bad guys': 'vvzjkrb7laY',
+      'doctor strange': 'Lt-U_t2pUHI',
+      'the suicide squad': 'JuDLepNa7hw',
+      'black widow': 'Fp9pNPdNwjI',
+      'eternals': 'x_me3xsvDgk',
+      'shang-chi and the legend of the ten rings': '8YjFbMbfXaQ',
+      'no time to die': 'BIhNsAtPbPI',
+      'the french dispatch': 'TcPk2p0Zaw4',
+      'tenet': 'LdOM0x0XDMo',
+      'wonder woman 1984': 'sf_1zuiDBN0',
+      'mulan': 'KK8FHdFluOQ',
+      'soul': 'xOsLIiBStEs',
+      'onward': 'OmP0vF_LgkY',
+      'the gentlemen': 'Ify9S7hj760',
+      'bad boys for life': 'jKCj3XuPG8M',
+      'birds of prey': 'hAQA3oGhrp8',
+      '1917': 'gZjQROMAh_s',
+      'parasite': '5xH0HfJHsaY',
+      'joker': 'zAGVQLHvwOY',
+      'once upon a time in hollywood': 'ELeMaP8EPAA',
+      'the irishman': 'WHXxVmeGQUc',
+      'knives out': 'qGqiHJTsRkQ',
+      'ford v ferrari': 'zyYgDtY2AMY',
+      'jojo rabbit': 'tL4McUzXfFI',
+      'little women': 'AST2-4db4ic',
+      'marriage story': 'BHj2slJx-J0',
+      'the king': 'AJ_0w4fBCoU',
+      'uncut gems': 'vTfJp2Ts9X8',
+      'the lighthouse': 'Hyag7lR8CPA',
+      'midsommar': 'HMMMTdG5Wxs',
+      'us': 'hNCmb-4oXJA',
+      'glass': 'K2iQtGGEpBE',
+      'captain marvel': 'Z1BCujX3pw8',
+      'aquaman': 'WDkg3h8PCVU',
+      'fantastic beasts: the crimes of grindelwald': '8bYBOVWLNIs',
+      'bohemian rhapsody': 'mP0VHJYFOAU',
+      'a star is born': 'nSbzyEJ8X9E',
+      'venom': 'u9Mv98Gr5pY',
+      'halloween': 'hZuGS3SlLUw',
+      'the nun': 'fJkWP4dNcP0',
+      'first man': 'PSoRx87OO6k',
+      'a quiet place': 'WR7cc5t7tv8',
+      'ready player one': 'cSp1dM2Vj48',
+      'black panther: wakanda forever': 'RlOB3UALvrQ'
+    }
+  }
+
+  /**
+   * Génère une recherche YouTube pour un film
+   */
+  private generateYouTubeMovieSearch(movieTitle: string): MovieTrailer {
+    console.log('🎬 Generating YouTube search for movie:', movieTitle)
+    
+    // Nettoyer le titre du film pour la recherche
+    let cleanTitle = movieTitle
+      .replace(/[™®©]/g, '') // Enlever les symboles
+      .replace(/:/g, '') // Enlever les deux-points
+      .replace(/'/g, '') // Enlever les apostrophes
+      .trim()
+    
+    // Pour les films, on ajoute l'année si possible pour plus de précision
+    const searchQuery = `${cleanTitle} official trailer`
+    const encodedQuery = encodeURIComponent(searchQuery)
+    
+    console.log(`🎬 YouTube movie search query: ${searchQuery}`)
+    
+    return {
+      videoId: encodedQuery,
+      provider: 'youtube',
+      url: `https://www.youtube.com/results?search_query=${encodedQuery}`
+    }
+  }
+
+  /**
    * Nettoie le cache (utile pour éviter une consommation mémoire excessive)
    */
   clearCache() {
@@ -350,4 +757,4 @@ class TrailerService {
 }
 
 export const trailerService = new TrailerService()
-export type { GameTrailer }
+export type { GameTrailer, MovieTrailer }

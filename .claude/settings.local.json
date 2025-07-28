@@ -16,7 +16,12 @@
       "Bash(git revert:*)",
       "Bash(mv:*)",
       "Bash(taskkill:*)",
-      "Bash(del test-tmdb.js test-env.js)"
+      "Bash(del test-tmdb.js test-env.js)",
+      "Bash(vercel:*)",
+      "WebFetch(domain:api.rawg.io)",
+      "WebFetch(domain:docs.themoviedb.org)",
+      "WebFetch(domain:developer.themoviedb.org)",
+      "Bash(npm start)"
     ],
     "deny": []
   }

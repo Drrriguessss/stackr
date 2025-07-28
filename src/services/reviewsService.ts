@@ -1,5 +1,7 @@
 // Service pour récupérer des reviews réelles de jeux
-// Combine Steam API, générations intelligentes et données externes
+// Combine Steam API, Metacritic, générations intelligentes et données externes
+
+import { metacriticService } from './metacriticService'
 
 interface GameReview {
   id: string
@@ -12,6 +14,8 @@ interface GameReview {
   verified?: boolean
   playtime?: string
 }
+
+export type { GameReview }
 
 interface ReviewsResponse {
   reviews: GameReview[]
@@ -44,12 +48,27 @@ class ReviewsService {
     // 1. Essayer Steam Reviews
     const steamReviews = await this.getSteamReviews(gameName)
     allReviews.push(...steamReviews)
+    console.log('📝 Found', steamReviews.length, 'Steam reviews')
 
-    // 2. Générer des reviews intelligentes basées sur les données du jeu
-    const generatedReviews = await this.generateIntelligentReviews(gameId, gameName)
-    allReviews.push(...generatedReviews)
+    // 2. Récupérer des reviews Metacritic
+    try {
+      const metacriticReviews = await metacriticService.getGameReviews(gameName)
+      const convertedMetacritic = metacriticService.convertToGameReviews(metacriticReviews, gameId)
+      allReviews.push(...convertedMetacritic)
+      console.log('📝 Found', convertedMetacritic.length, 'Metacritic reviews')
+    } catch (error) {
+      console.log('📝 Could not fetch Metacritic reviews:', error)
+    }
 
-    // 3. Mélanger et limiter à 25 reviews max
+    // 3. Si on a moins de 10 reviews, ajouter des reviews générées
+    if (allReviews.length < 10) {
+      const generatedReviews = await this.generateIntelligentReviews(gameId, gameName)
+      const needed = Math.min(10 - allReviews.length, generatedReviews.length)
+      allReviews.push(...generatedReviews.slice(0, needed))
+      console.log('📝 Added', needed, 'generated reviews')
+    }
+
+    // 4. Mélanger et limiter à 25 reviews max
     allReviews = this.shuffleAndLimit(allReviews, 25)
 
     const response: ReviewsResponse = {
@@ -124,19 +143,24 @@ class ReviewsService {
         return this.steamAppCache.get(cacheKey)!
       }
 
-      // Quelques IDs Steam connus pour des jeux populaires
+      // Quelques IDs Steam connus pour des jeux populaires (étendu)
       const knownSteamIds: { [key: string]: number } = {
         'the witcher 3': 292030,
         'the witcher 3: wild hunt': 292030,
         'cyberpunk 2077': 1091500,
         'elden ring': 1245620,
         'god of war': 1593500,
+        'god of war ragnarök': 2322010,
         'horizon zero dawn': 1151640,
+        'horizon forbidden west': 2420110,
         'red dead redemption 2': 1174180,
         'grand theft auto v': 271590,
         'portal 2': 620,
+        'portal': 400,
         'half-life 2': 220,
+        'half-life: alyx': 546560,
         'counter-strike 2': 730,
+        'counter-strike: global offensive': 730,
         'dota 2': 570,
         'team fortress 2': 440,
         'left 4 dead 2': 550,
@@ -146,17 +170,108 @@ class ReviewsService {
         'hollow knight': 367520,
         'celeste': 504230,
         'hades': 1145360,
+        'hades ii': 1145350,
         'disco elysium': 632470,
         'divinity: original sin 2': 435150,
+        'baldur\'s gate 3': 1086940,
         'dark souls iii': 374320,
+        'dark souls': 211420,
+        'dark souls ii': 236430,
         'sekiro': 814380,
-        'bloodborne': 0, // PS exclusive, pas sur Steam
+        'sekiro: shadows die twice': 814380,
+        'bloodborne': 0, // PS exclusive
         'minecraft': 0, // Pas sur Steam
         'doom eternal': 782330,
-        'the elder scrolls v: skyrim': 489830
+        'doom': 379720,
+        'the elder scrolls v: skyrim': 489830,
+        'skyrim': 489830,
+        'fallout 4': 377160,
+        'fallout: new vegas': 22380,
+        'the stanley parable': 221910,
+        'factorio': 427520,
+        'rimworld': 294100,
+        'dead cells': 588650,
+        'slay the spire': 646570,
+        'risk of rain 2': 632360,
+        'valheim': 892970,
+        'rust': 252490,
+        'ark: survival evolved': 346110,
+        'no man\'s sky': 275850,
+        'subnautica': 264710,
+        'outer wilds': 753640,
+        'control': 870780,
+        'alan wake 2': 2465980,
+        'resident evil 4': 2050650,
+        'resident evil village': 1196590,
+        'monster hunter: world': 582010,
+        'monster hunter rise': 1446780,
+        'sea of thieves': 1172620,
+        'forza horizon 5': 1551360,
+        'it takes two': 1426210,
+        'a way out': 1222700,
+        'ori and the will of the wisps': 1057090,
+        'ori and the blind forest': 387290,
+        'cuphead': 268910,
+        'undertale': 391540,
+        'deltarune': 1671210,
+        'inscryption': 1092790,
+        'phasmophobia': 739630,
+        'among us': 945360,
+        'fall guys': 1097150,
+        'rocket league': 252950,
+        'deep rock galactic': 548430,
+        'satisfactory': 526870,
+        'cities: skylines': 255710,
+        'euro truck simulator 2': 227300,
+        'microsoft flight simulator': 1250410,
+        'persona 5 royal': 1687950,
+        'persona 4 golden': 1113000,
+        'nier: automata': 524220,
+        'nier replicant': 1113560,
+        'final fantasy xiv': 39210,
+        'final fantasy vii remake': 1462040,
+        'yakuza 0': 638970,
+        'yakuza: like a dragon': 1235140,
+        'death stranding': 1190460,
+        'metro exodus': 412020,
+        'titanfall 2': 1237970,
+        'apex legends': 1172470,
+        'destiny 2': 1085660,
+        'warframe': 230410,
+        'path of exile': 238960,
+        'lost ark': 1599340,
+        'new world': 1063730,
+        'vampire survivors': 1794680,
+        'cult of the lamb': 1313140,
+        'stray': 1332010,
+        'ghostwire: tokyo': 1475810,
+        'deathloop': 1252330,
+        'returnal': 1649240,
+        'kena: bridge of spirits': 1954200,
+        'psychonauts 2': 607080,
+        'ratchet & clank: rift apart': 1895880,
+        'spider-man remastered': 1817070,
+        'spider-man: miles morales': 1817190,
+        'hogwarts legacy': 990080,
+        'atomic heart': 668580,
+        'hi-fi rush': 1817230,
+        'pizza tower': 2231450,
+        'blasphemous 2': 2114740,
+        'lies of p': 1627720,
+        'armored core vi': 1888160,
+        'starfield': 1716740,
+        'diablo iv': 2344520,
+        'street fighter 6': 1364780,
+        'mortal kombat 1': 1971870,
+        'tekken 8': 1778820,
+        'palworld': 1623730,
+        'enshrouded': 1203620,
+        'helldivers 2': 553850,
+        'pacific drive': 1637320,
+        'manor lords': 1363080
       }
 
-      const normalizedName = gameName.toLowerCase()
+      const normalizedName = gameName.toLowerCase().trim()
       
       // Recherche exacte d'abord
       if (knownSteamIds[normalizedName]) {
@@ -165,15 +280,44 @@ class ReviewsService {
         return appId > 0 ? appId : null
       }
 
-      // Recherche partielle
+      // Recherche partielle - améliorer la correspondance
       for (const [knownGame, appId] of Object.entries(knownSteamIds)) {
+        // Vérifier si le nom du jeu contient le nom connu ou vice versa
         if (normalizedName.includes(knownGame) || knownGame.includes(normalizedName)) {
+          this.steamAppCache.set(cacheKey, appId)
+          return appId > 0 ? appId : null
+        }
+        
+        // Vérifier aussi sans les caractères spéciaux
+        const cleanedName = normalizedName.replace(/[^a-z0-9\s]/g, '')
+        const cleanedKnown = knownGame.replace(/[^a-z0-9\s]/g, '')
+        if (cleanedName.includes(cleanedKnown) || cleanedKnown.includes(cleanedName)) {
           this.steamAppCache.set(cacheKey, appId)
           return appId > 0 ? appId : null
         }
       }
 
-      console.log('📝 Game not found in known Steam IDs')
+      console.log('📝 Game not found in known Steam IDs:', gameName)
+      
+      // Essayer une recherche via l'API Steam Store (non officielle mais publique)
+      try {
+        const searchUrl = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(gameName)}&l=english&cc=US`
+        const searchResponse = await fetch(searchUrl)
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json()
+          if (searchData.items && searchData.items.length > 0) {
+            const firstResult = searchData.items[0]
+            if (firstResult.type === 'app' && firstResult.id) {
+              console.log('📝 Found Steam ID via search:', firstResult.id, 'for', firstResult.name)
+              this.steamAppCache.set(cacheKey, firstResult.id)
+              return firstResult.id
+            }
+          }
+        }
+      } catch (searchError) {
+        console.log('📝 Steam search API failed:', searchError)
+      }
+      
       return null
 
     } catch (error) {
@@ -188,11 +332,22 @@ class ReviewsService {
   private async generateIntelligentReviews(gameId: string, gameName: string): Promise<GameReview[]> {
     console.log('📝 Generating intelligent reviews for:', gameName)
     
-    const reviewTemplates = [
+    // Templates plus spécifiques selon le type de jeu détecté
+    const genericTemplates = [
       {
-        text: "Absolutely fantastic game! The graphics are stunning and the gameplay is incredibly engaging. Highly recommend to anyone looking for a great gaming experience.",
+        text: `Just finished playing ${gameName} and I'm blown away! The attention to detail is incredible and the gameplay loop is addictive. Definitely worth the purchase.`,
         rating: 5,
-        username: "GamerPro2024"
+        username: "VerifiedPlayer"
+      },
+      {
+        text: `${gameName} delivers on its promises. Solid mechanics, great visuals, and an engaging experience from start to finish. Some minor bugs but nothing game-breaking.`,
+        rating: 4,
+        username: "TechReviewer"
+      },
+      {
+        text: `Been playing ${gameName} for about 20 hours now. The game has its moments but could use some polish. Still enjoyable overall.`,
+        rating: 3,
+        username: "CasualGamer91"
       },
       {
         text: "Really enjoyed this one. Great storyline and character development. The mechanics are solid and I found myself completely immersed in the world.",

@@ -2,6 +2,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Tag, Globe, Check } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
+import { trailerService } from '@/services/trailerService'
+import { imageService } from '@/services/imageService'
+import MediaCarousel from './MediaCarousel'
+import type { MediaGallery } from '@/services/imageService'
 
 interface GameDetailModalProps {
   isOpen: boolean
@@ -58,6 +62,8 @@ export default function GameDetailModal({
   const [similarGames, setSimilarGames] = useState<any[]>([])
   const [developerGames, setDeveloperGames] = useState<any[]>([])
   const [similarGamesLoading, setSimilarGamesLoading] = useState(true)
+  const [mediaGallery, setMediaGallery] = useState<MediaGallery | null>(null)
+  const [galleryLoading, setGalleryLoading] = useState(false)
 
   const scrollableRef = useRef<HTMLDivElement>(null)
 
@@ -218,6 +224,9 @@ export default function GameDetailModal({
       const data = await response.json()
       setGameDetail(data)
       
+      // Charger la galerie média (trailer + images)
+      await loadMediaGallery(gameId, data.name)
+      
       // Fetch similar games and developer games avec les IDs
       if (data.genres && data.genres.length > 0) {
         await fetchSimilarGames(data.genres[0].id, data.id) // Passer l'ID du genre et exclure le jeu actuel
@@ -233,6 +242,27 @@ export default function GameDetailModal({
       setGameDetail(null)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadMediaGallery = async (gameId: string, gameName: string) => {
+    setGalleryLoading(true)
+    try {
+      console.log('🖼️ Loading media gallery for:', gameName)
+      
+      // Récupérer le trailer
+      const trailer = await trailerService.getGameTrailer(gameId, gameName)
+      
+      // Récupérer la galerie complète (trailer + images)
+      const gallery = await imageService.getGameGallery(gameId, gameName, trailer)
+      
+      console.log('🖼️ Gallery loaded:', gallery)
+      setMediaGallery(gallery)
+    } catch (error) {
+      console.error('🖼️ Error loading media gallery:', error)
+      setMediaGallery(null)
+    } finally {
+      setGalleryLoading(false)
     }
   }
 
@@ -547,7 +577,35 @@ export default function GameDetailModal({
                     💡 Click a status to add this game to your library
                   </div>
                 )}
+              </div>
 
+              {/* Media Gallery - Carousel horizontal pour trailer et images */}
+              {!galleryLoading && mediaGallery && (
+                <div className="px-6 pb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Trailer & Screenshots</h3>
+                  <MediaCarousel 
+                    gallery={mediaGallery} 
+                    itemTitle={gameDetail.name}
+                    className="rounded-xl overflow-hidden shadow-lg"
+                  />
+                </div>
+              )}
+              
+              {galleryLoading && (
+                <div className="px-6 pb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Trailer & Screenshots</h3>
+                  <div className="w-full h-64 bg-gray-200 rounded-xl flex items-center justify-center">
+                    <div className="text-center text-gray-500">
+                      <div className="animate-pulse">
+                        <div className="w-12 h-12 bg-gray-300 rounded-full mx-auto mb-2"></div>
+                        <p className="text-sm">Loading media gallery...</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="px-6">
                 {/* User rating */}
                 <div className="mt-6 pt-6 border-t border-gray-100">
                   <h4 className="text-gray-900 font-semibold mb-3">Rate this game</h4>
@@ -973,24 +1031,6 @@ export default function GameDetailModal({
                       </div>
                     )}
 
-                    {/* Screenshots */}
-                    {gameDetail.screenshots && gameDetail.screenshots.length > 0 && (
-                      <div>
-                        <h4 className="text-gray-900 font-semibold mb-4">Screenshots</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          {gameDetail.screenshots.slice(0, 4).map((screenshot, index) => (
-                            <div key={index} className="relative group">
-                              <img
-                                src={screenshot.image}
-                                alt={`Screenshot ${index + 1}`}
-                                className="w-full h-32 object-cover rounded-xl border border-gray-200 group-hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-xl transition-colors" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
