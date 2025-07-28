@@ -21,7 +21,14 @@
       "WebFetch(domain:api.rawg.io)",
       "WebFetch(domain:docs.themoviedb.org)",
       "WebFetch(domain:developer.themoviedb.org)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(npm start:*)",
+      "Bash(npx vercel:*)",
+      "WebFetch(domain:partner.steamgames.com)",
+      "WebFetch(domain:steamcdn-a.akamaihd.net)",
+      "WebFetch(domain:rawg.io)",
+      "WebFetch(domain:api-docs.igdb.com)",
+      "Bash(touch:*)"
     ],
     "deny": []
   }

@@ -7,6 +7,7 @@ import { userReviewsService, type UserReview } from '@/services/userReviewsServi
 import { realGameReviewsService, type RealGameReview } from '@/services/realGameReviewsService'
 import { fetchWithCache, apiCache } from '@/utils/apiCache'
 import { igdbService, type IGDBGameGallery } from '@/services/igdbService'
+import { rawgService, type RAWGGame } from '@/services/rawgService'
 
 interface GameDetailDarkV2Props {
   isOpen: boolean
@@ -203,9 +204,12 @@ export default function GameDetailDarkV2({
       // Fetch real reviews
       fetchReviews(rawgId, data.name)
       
-      // 🚀 LAZY LOADING: Ne plus charger automatiquement les recommandations
+      // Load similar games from RAWG using suggestions endpoint
+      loadSimilarGames(rawgId)
+      
+      // 🚀 LAZY LOADING: Ne plus charger automatiquement les recommandations développeur
       // Les utilisateurs pourront cliquer sur un bouton pour les charger
-      console.log('🎮 [GameDetail] Game details loaded. Recommendations available on demand.')
+      console.log('🎮 [GameDetail] Game details loaded. Developer recommendations available on demand.')
       
     } catch (error) {
       console.error('Error loading game details:', error)
@@ -576,6 +580,41 @@ export default function GameDetailDarkV2({
       setUserReview('')
     } finally {
       setReviewsLoading(false)
+    }
+  }
+
+  /**
+   * Load similar games using RAWG's suggestions endpoint
+   */
+  const loadSimilarGames = async (gameId: string) => {
+    setLoadingSimilar(true)
+    setSimilarGamesLoaded(false)
+    
+    try {
+      console.log(`🎮 [Similar Games] Loading similar games for gameId: ${gameId}`)
+      
+      // Use the new RAWG service method
+      const similarGamesData = await rawgService.getSimilarGames(gameId, 8)
+      
+      if (similarGamesData.length > 0) {
+        // Convert RAWG games to app format for consistency
+        const convertedGames = similarGamesData.map(game => rawgService.convertToAppFormat(game))
+        setSimilarGames(convertedGames)
+        console.log(`🎮 [Similar Games] ✅ Loaded ${convertedGames.length} similar games`)
+      } else {
+        console.log(`🎮 [Similar Games] No similar games found, using fallback`)
+        setSimilarGames([])
+      }
+      
+      setSimilarGamesLoaded(true)
+      
+    } catch (error) {
+      console.error(`🎮 [Similar Games] Error loading similar games:`, error)
+      // Fallback to empty array - no mock data to avoid confusion
+      setSimilarGames([])
+      setSimilarGamesLoaded(true)
+    } finally {
+      setLoadingSimilar(false)
     }
   }
 
@@ -1353,30 +1392,47 @@ export default function GameDetailDarkV2({
                   {/* Similar Games */}
                   <div>
                     <h3 className="text-white font-medium mb-4">Similar Games</h3>
-                    <div className="flex space-x-3 overflow-x-auto pb-2 snap-x">
-                      {similarGames.map((game) => (
-                        <div 
-                          key={game.id} 
-                          className="flex-shrink-0 w-28 snap-start cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => {
-                            // Ouvrir le détail de ce jeu
-                            window.location.href = `#game-${game.id}`
-                            onClose()
-                          }}
-                        >
-                          <img
-                            src={game.background_image || game.image || 'https://via.placeholder.com/112x144/333/fff?text=No+Image'}
-                            alt={game.name}
-                            className="w-full h-36 object-cover rounded-lg mb-2"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.src = 'https://via.placeholder.com/112x144/333/fff?text=No+Image'
+                    {loadingSimilar ? (
+                      <div className="flex space-x-3 pb-2">
+                        {[...Array(6)].map((_, index) => (
+                          <div key={index} className="flex-shrink-0 w-28">
+                            <div className="w-full h-36 bg-gray-700 rounded-lg mb-2 animate-pulse"></div>
+                            <div className="h-4 bg-gray-700 rounded animate-pulse"></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : similarGames.length > 0 ? (
+                      <div className="flex space-x-3 overflow-x-auto pb-2 snap-x">
+                        {similarGames.map((game) => (
+                          <div 
+                            key={game.id} 
+                            className="flex-shrink-0 w-28 snap-start cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                              // Navigate to the similar game
+                              window.location.href = `#game-${game.id.toString().replace('game-', '')}`
+                              onClose()
                             }}
-                          />
-                          <p className="text-white text-sm truncate" title={game.name}>{game.name}</p>
-                        </div>
-                      ))}
-                    </div>
+                          >
+                            <img
+                              src={game.background_image || game.image || 'https://via.placeholder.com/112x144/333/fff?text=No+Image'}
+                              alt={game.name || game.title}
+                              className="w-full h-36 object-cover rounded-lg mb-2"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.src = 'https://via.placeholder.com/112x144/333/fff?text=No+Image'
+                              }}
+                            />
+                            <p className="text-white text-sm truncate" title={game.name || game.title}>
+                              {game.name || game.title}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : similarGamesLoaded ? (
+                      <div className="text-[#B0B0B0] text-sm py-4">
+                        No similar games found for this title.
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* More from this developer */}

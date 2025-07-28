@@ -1,10 +1,13 @@
-// src/services/libraryService.ts - VERSION COMPLÈTE CORRIGÉE
+// src/services/libraryService.ts - VERSION COMPLÈTE CORRIGÉE AVEC AUTHENTIFICATION
 import { supabase } from '@/lib/supabase'
+import { AuthService } from './authService'
 import type { LibraryItem, MediaStatus } from '@/types'
 
 export class LibraryService {
-  // Clé pour localStorage (fallback)
-  private static STORAGE_KEY = 'stackr_library'
+  // Clé pour localStorage (fallback) - sera maintenant user-specific
+  private static getStorageKey(userId?: string): string {
+    return userId ? `stackr_library_${userId}` : 'stackr_library_guest'
+  }
 
   // ✅ DÉCLENCHER ÉVÉNEMENT PERSONNALISÉ POUR SYNCHRONISATION
   private static notifyLibraryChange(action: 'added' | 'updated' | 'deleted', item?: LibraryItem) {
@@ -23,13 +26,25 @@ export class LibraryService {
         return []
       }
 
-      console.log('🔄 [LibraryService] Fetching fresh library from Supabase...')
+      // Obtenir l'utilisateur actuel
+      const currentUser = await AuthService.getCurrentUser()
+      const userId = currentUser?.id
+      const storageKey = this.getStorageKey(userId)
+
+      console.log('🔄 [LibraryService] Fetching fresh library from Supabase for user:', userId || 'guest')
 
       // Forcer le rechargement depuis Supabase (ignorer localStorage)
-      const { data, error } = await supabase
+      let query = supabase
         .from('library_items')
         .select('*')
         .order('added_at', { ascending: false })
+
+      // Filtrer par utilisateur si connecté
+      if (userId) {
+        query = query.eq('user_id', userId)
+      }
+
+      const { data, error } = await query
 
       if (!error && data) {
         console.log('📚 Fresh library loaded from Supabase:', data.length, 'items')
@@ -80,7 +95,7 @@ export class LibraryService {
         }))
         
         // Mettre à jour le cache localStorage avec les données fraîches
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(convertedItems))
+        localStorage.setItem(storageKey, JSON.stringify(convertedItems))
         return convertedItems
       } else {
         console.error('🔄 [LibraryService] Supabase error:', error)
@@ -91,7 +106,7 @@ export class LibraryService {
       console.error('❌ [LibraryService] Error fetching fresh library:', error)
       
       // Fallback vers localStorage seulement en cas d'erreur
-      const stored = localStorage.getItem(this.STORAGE_KEY)
+      const stored = localStorage.getItem(storageKey)
       const items = stored ? JSON.parse(stored) : []
       console.log('📚 Fallback to localStorage:', items.length, 'items')
       return items
@@ -106,12 +121,24 @@ export class LibraryService {
         return []
       }
 
+      // Obtenir l'utilisateur actuel
+      const currentUser = await AuthService.getCurrentUser()
+      const userId = currentUser?.id
+      const storageKey = this.getStorageKey(userId)
+
       // Essayer Supabase d'abord
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('library_items')
           .select('*')
           .order('added_at', { ascending: false })
+
+        // Filtrer par utilisateur si connecté
+        if (userId) {
+          query = query.eq('user_id', userId)
+        }
+
+        const { data, error } = await query
 
         if (!error && data) {
           console.log('📚 Library loaded from Supabase:', data.length, 'items')
@@ -162,7 +189,7 @@ export class LibraryService {
           }))
           
           // Synchroniser avec localStorage comme backup
-          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(convertedItems))
+          localStorage.setItem(storageKey, JSON.stringify(convertedItems))
           return convertedItems
         }
       } catch (supabaseError) {
@@ -170,7 +197,7 @@ export class LibraryService {
       }
 
       // Fallback vers localStorage
-      const stored = localStorage.getItem(this.STORAGE_KEY)
+      const stored = localStorage.getItem(storageKey)
       const items = stored ? JSON.parse(stored) : []
       console.log('📚 Library loaded from localStorage:', items.length, 'items')
       return items
@@ -188,6 +215,11 @@ export class LibraryService {
       if (typeof window === 'undefined') {
         return false
       }
+
+      // Obtenir l'utilisateur actuel
+      const currentUser = await AuthService.getCurrentUser()
+      const userId = currentUser?.id
+      const storageKey = this.getStorageKey(userId)
 
       // ✅ CRÉER L'ITEM AVEC TOUTES LES DONNÉES API
       const newItem: LibraryItem = {
@@ -232,6 +264,7 @@ export class LibraryService {
           .from('library_items')
           .upsert({
             id: newItem.id,
+            user_id: userId, // ✅ Ajouter l'ID utilisateur
             title: newItem.title,
             category: newItem.category,
             status: newItem.status,
@@ -273,7 +306,7 @@ export class LibraryService {
           console.log('➕ Added to Supabase with complete data:', newItem.title)
           
           // Synchroniser localStorage
-          const library = await this.getLibraryFromLocalStorage()
+          const library = await this.getLibraryFromLocalStorage(userId)
           const existingIndex = library.findIndex(libItem => libItem.id === newItem.id)
           
           if (existingIndex !== -1) {
@@ -282,7 +315,7 @@ export class LibraryService {
             library.unshift(newItem)
           }
           
-          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+          localStorage.setItem(storageKey, JSON.stringify(library))
           
           // ✅ DÉCLENCHER ÉVÉNEMENT DE SYNCHRONISATION
           this.notifyLibraryChange('added', newItem)
@@ -295,7 +328,7 @@ export class LibraryService {
       }
 
       // Fallback vers localStorage avec toutes les données
-      const library = await this.getLibraryFromLocalStorage()
+      const library = await this.getLibraryFromLocalStorage(userId)
       const existingIndex = library.findIndex(libItem => libItem.id === newItem.id)
       
       if (existingIndex !== -1) {
@@ -306,7 +339,7 @@ export class LibraryService {
         console.log('➕ Added new item to localStorage with complete data:', newItem.title)
       }
 
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+      localStorage.setItem(storageKey, JSON.stringify(library))
       console.log('💾 Library saved with complete API data! Total items:', library.length)
       return true
 
@@ -323,6 +356,11 @@ export class LibraryService {
       if (typeof window === 'undefined') {
         return false
       }
+
+      // Obtenir l'utilisateur actuel
+      const currentUser = await AuthService.getCurrentUser()
+      const userId = currentUser?.id
+      const storageKey = this.getStorageKey(userId)
 
       // Essayer Supabase d'abord
       try {
@@ -345,10 +383,17 @@ export class LibraryService {
           updateData.date_completed = new Date().toISOString()
         }
 
-        const { error } = await supabase
+        let query = supabase
           .from('library_items')
           .update(updateData)
           .eq('id', itemId)
+
+        // Filtrer par utilisateur si connecté
+        if (userId) {
+          query = query.eq('user_id', userId)
+        }
+
+        const { error } = await query
 
         if (!error) {
           console.log('📝 Updated item in Supabase:', itemId)
@@ -360,7 +405,7 @@ export class LibraryService {
       }
 
       // Mise à jour localStorage (toujours faire)
-      const library = await this.getLibraryFromLocalStorage()
+      const library = await this.getLibraryFromLocalStorage(userId)
       const itemIndex = library.findIndex(item => item.id === itemId)
       
       if (itemIndex === -1) {
@@ -379,7 +424,7 @@ export class LibraryService {
         library[itemIndex].dateCompleted = new Date().toISOString()
       }
 
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(library))
+      localStorage.setItem(storageKey, JSON.stringify(library))
       console.log('📝 Updated library item:', library[itemIndex].title)
       
       // ✅ DÉCLENCHER ÉVÉNEMENT DE SYNCHRONISATION
@@ -400,12 +445,24 @@ export class LibraryService {
         return false
       }
 
+      // Obtenir l'utilisateur actuel
+      const currentUser = await AuthService.getCurrentUser()
+      const userId = currentUser?.id
+      const storageKey = this.getStorageKey(userId)
+
       // Essayer Supabase d'abord
       try {
-        const { error } = await supabase
+        let query = supabase
           .from('library_items')
           .delete()
           .eq('id', itemId)
+
+        // Filtrer par utilisateur si connecté
+        if (userId) {
+          query = query.eq('user_id', userId)
+        }
+
+        const { error } = await query
 
         if (!error) {
           console.log('🗑️ Removed from Supabase:', itemId)
@@ -417,7 +474,7 @@ export class LibraryService {
       }
 
       // Suppression localStorage (toujours faire)
-      const library = await this.getLibraryFromLocalStorage()
+      const library = await this.getLibraryFromLocalStorage(userId)
       const itemToRemove = library.find(item => item.id === itemId)
       
       if (!itemToRemove) {
@@ -426,7 +483,7 @@ export class LibraryService {
       }
 
       const filteredLibrary = library.filter(item => item.id !== itemId)
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredLibrary))
+      localStorage.setItem(storageKey, JSON.stringify(filteredLibrary))
       console.log('🗑️ Removed from library:', itemToRemove.title)
       
       // ✅ DÉCLENCHER ÉVÉNEMENT DE SYNCHRONISATION
@@ -440,10 +497,11 @@ export class LibraryService {
   }
 
   // Méthode helper pour récupérer uniquement localStorage
-  private static async getLibraryFromLocalStorage(): Promise<LibraryItem[]> {
+  private static async getLibraryFromLocalStorage(userId?: string): Promise<LibraryItem[]> {
     try {
       if (typeof window === 'undefined') return []
-      const stored = localStorage.getItem(this.STORAGE_KEY)
+      const storageKey = this.getStorageKey(userId)
+      const stored = localStorage.getItem(storageKey)
       return stored ? JSON.parse(stored) : []
     } catch (error) {
       console.error('Error reading localStorage:', error)
@@ -501,6 +559,15 @@ export class LibraryService {
   // Migrer localStorage vers Supabase
   static async migrateToSupabase(): Promise<boolean> {
     try {
+      // Obtenir l'utilisateur actuel
+      const currentUser = await AuthService.getCurrentUser()
+      const userId = currentUser?.id
+      
+      if (!userId) {
+        console.log('ℹ️ Cannot migrate: User not authenticated')
+        return false
+      }
+
       // Vérifier la connexion Supabase
       const isConnected = await this.testSupabaseConnection()
       if (!isConnected) {
@@ -508,8 +575,15 @@ export class LibraryService {
         return false
       }
 
-      // Récupérer les données localStorage
-      const localData = localStorage.getItem(this.STORAGE_KEY)
+      // Récupérer les données localStorage (essayer d'abord l'ancienne clé, puis la nouvelle)
+      const storageKey = this.getStorageKey(userId)
+      let localData = localStorage.getItem(storageKey)
+      
+      // Fallback vers l'ancienne clé pour la migration initiale
+      if (!localData) {
+        localData = localStorage.getItem('stackr_library')
+      }
+      
       if (!localData) {
         console.log('ℹ️ No local data to migrate')
         return true
@@ -531,6 +605,7 @@ export class LibraryService {
             .from('library_items')
             .upsert({
               id: item.id,
+              user_id: userId, // ✅ Ajouter l'ID utilisateur
               title: item.title,
               category: item.category,
               status: item.status,
