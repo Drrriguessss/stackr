@@ -5,6 +5,7 @@ import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { newTrailerService, type ValidatedTrailer } from '@/services/newTrailerService'
 import { reviewsService, type GameReview, type ReviewsResponse } from '@/services/reviewsService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
+import { googleReviewsService, type GoogleGameReview } from '@/services/googleReviewsService'
 import { fetchWithCache, apiCache } from '@/utils/apiCache'
 import { igdbService, type IGDBGameGallery } from '@/services/igdbService'
 
@@ -76,6 +77,7 @@ export default function GameDetailDarkV2({
   const [trailerLoading, setTrailerLoading] = useState(false)
   const [showLibraryDropdown, setShowLibraryDropdown] = useState(false)
   const [gameReviews, setGameReviews] = useState<GameReview[]>([])
+  const [googleGameReviews, setGoogleGameReviews] = useState<GoogleGameReview[]>([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [userPublicReviews, setUserPublicReviews] = useState<UserReview[]>([])
   const [currentUserReview, setCurrentUserReview] = useState<UserReview | null>(null)
@@ -541,10 +543,10 @@ export default function GameDetailDarkV2({
     try {
       console.log('📝 Fetching reviews for game:', gameName)
       
-      // Fetch API reviews
-      const reviewsResponse = await reviewsService.getGameReviews(gameId, gameName)
-      setGameReviews(reviewsResponse.reviews)
-      console.log('📝 Loaded', reviewsResponse.reviews.length, 'API reviews')
+      // Fetch Google reviews specific to this game
+      const googleGameReviews = await googleReviewsService.getGameGoogleReviews(gameId, gameName)
+      setGoogleGameReviews(googleGameReviews)
+      console.log('📝 Loaded', googleGameReviews.length, 'Google reviews for', gameName)
       
       // Fetch user public reviews
       const publicReviews = await userReviewsService.getPublicReviewsForMedia(gameId)
@@ -566,7 +568,7 @@ export default function GameDetailDarkV2({
       }
     } catch (error) {
       console.error('📝 Error fetching reviews:', error)
-      setGameReviews([])
+      setGoogleGameReviews([])
       setUserPublicReviews([])
       setCurrentUserReview(null)
       // Reset rating and review on error as well
@@ -1420,9 +1422,9 @@ export default function GameDetailDarkV2({
               {activeTab === 'reviews' && (
                 <div className="p-4 space-y-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-white font-medium">Reviews</h3>
+                    <h3 className="text-white font-medium">Reviews for {gameDetail.name}</h3>
                     <span className="text-[#B0B0B0] text-sm">
-                      {gameReviews.length + userPublicReviews.length} reviews
+                      {googleGameReviews.length + userPublicReviews.length} reviews
                     </span>
                   </div>
                   
@@ -1459,153 +1461,159 @@ export default function GameDetailDarkV2({
                   
                   {reviewsLoading ? (
                     <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
+                      {[1, 2, 3, 4, 5].map((i) => (
                         <div key={i} className="animate-pulse">
                           <div className="flex items-center space-x-3 mb-2">
                             <div className="w-8 h-8 bg-gray-700 rounded-full"></div>
                             <div className="flex-1">
-                              <div className="h-4 bg-gray-700 rounded w-24 mb-1"></div>
-                              <div className="h-3 bg-gray-700 rounded w-16"></div>
+                              <div className="h-4 bg-gray-700 rounded w-32 mb-1"></div>
+                              <div className="h-3 bg-gray-700 rounded w-20"></div>
                             </div>
                           </div>
-                          <div className="h-16 bg-gray-700 rounded mb-2"></div>
+                          <div className="h-20 bg-gray-700 rounded mb-2"></div>
                           <div className="flex items-center space-x-4">
-                            <div className="h-3 bg-gray-700 rounded w-20"></div>
+                            <div className="h-3 bg-gray-700 rounded w-24"></div>
                             <div className="h-3 bg-gray-700 rounded w-16"></div>
                           </div>
                         </div>
                       ))}
                     </div>
-                  ) : gameReviews.length > 0 || userPublicReviews.length > 0 ? (
+                  ) : googleGameReviews.length > 0 || userPublicReviews.length > 0 ? (
                     <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {/* User Public Reviews First */}
-                      {userPublicReviews.map((review) => (
-                        <div key={review.id} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                                <span className="text-white text-sm font-medium">
-                                  {(review.username || 'U').charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-white font-medium text-sm">{review.username || 'Anonymous User'}</span>
-                                  <span className="text-purple-400 text-xs">✓ Stackr User</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <div className="flex">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                      <Star
-                                        key={star}
-                                        size={12}
-                                        className={`${
-                                          star <= review.rating
-                                            ? 'text-yellow-400 fill-current'
-                                            : 'text-gray-600'
-                                        }`}
-                                      />
-                                    ))}
-                                  </div>
-                                  <span className="text-[#B0B0B0] text-xs">{review.created_at.split('T')[0]}</span>
-                                </div>
-                              </div>
+                      {/* Google Reviews Section */}
+                      {googleGameReviews.length > 0 && (
+                        <>
+                          <div className="flex items-center space-x-2 mb-3">
+                            <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">G</span>
                             </div>
-                            <span className="px-2 py-1 bg-purple-900/50 text-purple-200 rounded text-xs font-medium">
-                              User Review
-                            </span>
-                          </div>
-                          {review.review_text && (
-                            <p className="text-[#B0B0B0] text-sm leading-relaxed mb-3">
-                              {review.review_text}
-                            </p>
-                          )}
-                          <div className="flex items-center space-x-4 text-xs text-gray-500">
-                            <button 
-                              className="hover:text-white transition-colors"
-                              onClick={() => userReviewsService.markReviewAsHelpful(review.id, true)}
-                            >
-                              👍 {review.helpful_count || 0} helpful
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {/* API Reviews */}
-                      {gameReviews.map((review) => (
-                        <div key={review.id} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                          {/* Review Header */}
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
-                                <span className="text-white text-sm font-medium">
-                                  {review.username.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-white font-medium text-sm">{review.username}</span>
-                                  {review.verified && (
-                                    <span className="text-green-400 text-xs">✓ Verified</span>
-                                  )}
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <div className="flex">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                      <Star
-                                        key={star}
-                                        size={12}
-                                        className={`${
-                                          star <= review.rating
-                                            ? 'text-yellow-400 fill-current'
-                                            : 'text-gray-600'
-                                        }`}
-                                      />
-                                    ))}
-                                  </div>
-                                  <span className="text-[#B0B0B0] text-xs">{review.date}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* Platform Badge */}
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              review.platform === 'steam' ? 'bg-blue-900 text-blue-200' :
-                              review.platform === 'metacritic' ? 'bg-yellow-900 text-yellow-200' :
-                              review.platform === 'reddit' ? 'bg-orange-900 text-orange-200' :
-                              'bg-gray-700 text-gray-300'
-                            }`}>
-                              {review.platform === 'steam' ? 'Steam' :
-                               review.platform === 'metacritic' ? 'Metacritic' :
-                               review.platform === 'reddit' ? 'Reddit' :
-                               review.platform === 'generated' ? 'Community' : 'User'}
-                            </span>
+                            <h4 className="text-white font-medium text-sm">Google Reviews</h4>
+                            <span className="text-[#B0B0B0] text-xs">({googleGameReviews.length} reviews)</span>
                           </div>
                           
-                          {/* Review Text */}
-                          <p className="text-[#B0B0B0] text-sm leading-relaxed mb-3">
-                            {review.text}
-                          </p>
-                          
-                          {/* Review Footer */}
-                          <div className="flex items-center space-x-4 text-xs text-gray-500">
-                            {review.helpful !== undefined && (
-                              <span>👍 {review.helpful} helpful</span>
-                            )}
-                            {review.playtime && (
-                              <span>🎮 {review.playtime} played</span>
-                            )}
+                          {googleGameReviews.map((review) => (
+                            <div key={review.id} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                                    <span className="text-white text-sm font-medium">
+                                      {review.author_name.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-white font-medium text-sm">{review.author_name}</span>
+                                      <span className="text-blue-400 text-xs">✓ Google User</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <div className="flex">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <Star
+                                            key={star}
+                                            size={12}
+                                            className={`${
+                                              star <= review.rating
+                                                ? 'text-yellow-400 fill-current'
+                                                : 'text-gray-600'
+                                            }`}
+                                          />
+                                        ))}
+                                      </div>
+                                      <span className="text-[#B0B0B0] text-xs">{review.relative_time_description}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <span className="px-2 py-1 bg-blue-900/50 text-blue-200 rounded text-xs font-medium">
+                                  Google
+                                </span>
+                              </div>
+                              
+                              <p className="text-[#B0B0B0] text-sm leading-relaxed mb-3">
+                                {review.text}
+                              </p>
+                              
+                              <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                <span>⭐ {review.rating}/5 stars</span>
+                                <span>📅 {review.relative_time_description}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+
+                      {/* Stackr User Reviews Section */}
+                      {userPublicReviews.length > 0 && (
+                        <>
+                          <div className="flex items-center space-x-2 mb-3 mt-6">
+                            <div className="w-5 h-5 bg-purple-600 rounded flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">S</span>
+                            </div>
+                            <h4 className="text-white font-medium text-sm">Stackr Community</h4>
+                            <span className="text-[#B0B0B0] text-xs">({userPublicReviews.length} reviews)</span>
                           </div>
-                        </div>
-                      ))}
+                          
+                          {userPublicReviews.map((review) => (
+                            <div key={review.id} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                                    <span className="text-white text-sm font-medium">
+                                      {(review.username || 'U').charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-white font-medium text-sm">{review.username || 'Anonymous User'}</span>
+                                      <span className="text-purple-400 text-xs">✓ Stackr User</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <div className="flex">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <Star
+                                            key={star}
+                                            size={12}
+                                            className={`${
+                                              star <= review.rating
+                                                ? 'text-yellow-400 fill-current'
+                                                : 'text-gray-600'
+                                            }`}
+                                          />
+                                        ))}
+                                      </div>
+                                      <span className="text-[#B0B0B0] text-xs">{review.created_at.split('T')[0]}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <span className="px-2 py-1 bg-purple-900/50 text-purple-200 rounded text-xs font-medium">
+                                  Community
+                                </span>
+                              </div>
+                              {review.review_text && (
+                                <p className="text-[#B0B0B0] text-sm leading-relaxed mb-3">
+                                  {review.review_text}
+                                </p>
+                              )}
+                              <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                <button 
+                                  className="hover:text-white transition-colors"
+                                  onClick={() => userReviewsService.markReviewAsHelpful(review.id, true)}
+                                >
+                                  👍 {review.helpful_count || 0} helpful
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8">
                       <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-2xl">📝</span>
+                        <span className="text-2xl">🔍</span>
                       </div>
-                      <p className="text-white font-medium mb-2">No reviews yet</p>
-                      <p className="text-[#B0B0B0] text-sm">Be the first to review this game</p>
+                      <p className="text-white font-medium mb-2">No Google reviews found for {gameDetail.name}</p>
+                      <p className="text-[#B0B0B0] text-sm">Check browser console for API search attempts</p>
+                      <p className="text-[#B0B0B0] text-xs mt-2">Configure Google Places API or SerpAPI keys to see real reviews</p>
                     </div>
                   )}
                 </div>
