@@ -240,8 +240,7 @@ class NewTrailerService {
           
           const response = await fetch(searchUrl, { 
             method: 'GET',
-            headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(5000) // Timeout rapide
+            headers: { 'Accept': 'application/json' }
           })
           
           if (response.ok) {
@@ -299,9 +298,7 @@ class NewTrailerService {
       // Méthode 1: Essayer oEmbed pour obtenir les infos de base
       const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
       
-      const oembedResponse = await fetch(oembedUrl, {
-        signal: AbortSignal.timeout(3000)
-      })
+      const oembedResponse = await fetch(oembedUrl)
       
       if (!oembedResponse.ok) {
         const result = {
