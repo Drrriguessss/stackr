@@ -316,6 +316,30 @@ class RealGameReviewsService {
   }
 
   /**
+   * Truncate review text to 3 sentences maximum
+   */
+  truncateToSentences(text: string, maxSentences: number = 3): { truncated: string, hasMore: boolean } {
+    if (!text || text.trim().length === 0) {
+      return { truncated: text, hasMore: false }
+    }
+    
+    // Split by sentence endings (., !, ?)
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0)
+    
+    if (sentences.length <= maxSentences) {
+      return { truncated: text, hasMore: false }
+    }
+    
+    // Take first 3 sentences and add proper punctuation
+    const truncated = sentences.slice(0, maxSentences).join('. ').trim() + '.'
+    
+    return { 
+      truncated, 
+      hasMore: true 
+    }
+  }
+
+  /**
    * Clear cache
    */
   clearCache() {

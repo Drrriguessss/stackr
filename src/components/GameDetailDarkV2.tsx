@@ -79,6 +79,7 @@ export default function GameDetailDarkV2({
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [userPublicReviews, setUserPublicReviews] = useState<UserReview[]>([])
   const [currentUserReview, setCurrentUserReview] = useState<UserReview | null>(null)
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set())
   const [gameImages, setGameImages] = useState<string[]>([])
   const [imagesLoading, setImagesLoading] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -121,6 +122,7 @@ export default function GameDetailDarkV2({
       setUserReview('')
       setShowReviewBox(false)
       setCurrentUserReview(null)
+      setExpandedReviews(new Set())
     }
   }, [isOpen])
 
@@ -792,6 +794,18 @@ export default function GameDetailDarkV2({
       case 'completed': return 'bg-blue-600'
       default: return 'bg-gray-800'
     }
+  }
+
+  const toggleReviewExpansion = (reviewId: string) => {
+    setExpandedReviews(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(reviewId)) {
+        newSet.delete(reviewId)
+      } else {
+        newSet.add(reviewId)
+      }
+      return newSet
+    })
   }
 
   const handleSubmitReview = async () => {
@@ -1489,72 +1503,95 @@ export default function GameDetailDarkV2({
                             <span className="text-[#B0B0B0] text-xs">({realGameReviews.length} reviews from RAWG & Steam)</span>
                           </div>
                           
-                          {realGameReviews.map((review, index) => (
-                            <div key={`${review.source}-${index}`} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center space-x-3">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                    review.source === 'rawg' ? 'bg-gradient-to-br from-orange-500 to-red-500' :
-                                    review.source === 'steam' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
-                                    'bg-gradient-to-br from-yellow-500 to-orange-500'
-                                  }`}>
-                                    <span className="text-white text-sm font-medium">
-                                      {review.author.charAt(0).toUpperCase()}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <div className="flex items-center space-x-2">
-                                      <span className="text-white font-medium text-sm">{review.author}</span>
-                                      {review.verified && (
-                                        <span className={`text-xs ${
-                                          review.source === 'rawg' ? 'text-orange-400' :
-                                          review.source === 'steam' ? 'text-blue-400' :
-                                          'text-yellow-400'
-                                        }`}>✓ Verified</span>
-                                      )}
+                          {realGameReviews.map((review, index) => {
+                            const reviewId = `${review.source}-${index}`
+                            const isExpanded = expandedReviews.has(reviewId)
+                            const { truncated, hasMore } = realGameReviewsService.truncateToSentences(review.text, 3)
+                            
+                            return (
+                              <div key={reviewId} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center space-x-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                      review.source === 'rawg' ? 'bg-gradient-to-br from-orange-500 to-red-500' :
+                                      review.source === 'steam' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
+                                      'bg-gradient-to-br from-yellow-500 to-orange-500'
+                                    }`}>
+                                      <span className="text-white text-sm font-medium">
+                                        {review.author.charAt(0).toUpperCase()}
+                                      </span>
                                     </div>
-                                    <div className="flex items-center space-x-2">
-                                      <div className="flex">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                          <Star
-                                            key={star}
-                                            size={12}
-                                            className={`${
-                                              star <= Math.round(review.rating)
-                                                ? 'text-yellow-400 fill-current'
-                                                : 'text-gray-600'
-                                            }`}
-                                          />
-                                        ))}
+                                    <div>
+                                      <div className="flex items-center space-x-2">
+                                        <span className="text-white font-medium text-sm">{review.author}</span>
+                                        {review.verified && (
+                                          <span className={`text-xs ${
+                                            review.source === 'rawg' ? 'text-orange-400' :
+                                            review.source === 'steam' ? 'text-blue-400' :
+                                            'text-yellow-400'
+                                          }`}>✓ Verified</span>
+                                        )}
                                       </div>
-                                      <span className="text-[#B0B0B0] text-xs">{review.date}</span>
-                                      <span className="text-[#B0B0B0] text-xs">• {review.platform}</span>
+                                      <div className="flex items-center space-x-2">
+                                        <div className="flex">
+                                          {[1, 2, 3, 4, 5].map((star) => (
+                                            <Star
+                                              key={star}
+                                              size={12}
+                                              className={`${
+                                                star <= Math.round(review.rating)
+                                                  ? 'text-yellow-400 fill-current'
+                                                  : 'text-gray-600'
+                                              }`}
+                                            />
+                                          ))}
+                                        </div>
+                                        <span className="text-[#B0B0B0] text-xs">{review.date}</span>
+                                        <span className="text-[#B0B0B0] text-xs">• {review.platform}</span>
+                                      </div>
                                     </div>
                                   </div>
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    review.source === 'rawg' ? 'bg-orange-900/50 text-orange-200' :
+                                    review.source === 'steam' ? 'bg-blue-900/50 text-blue-200' :
+                                    'bg-yellow-900/50 text-yellow-200'
+                                  }`}>
+                                    {review.source === 'rawg' ? 'RAWG' :
+                                     review.source === 'steam' ? 'Steam' :
+                                     'Metacritic'}
+                                  </span>
                                 </div>
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                  review.source === 'rawg' ? 'bg-orange-900/50 text-orange-200' :
-                                  review.source === 'steam' ? 'bg-blue-900/50 text-blue-200' :
-                                  'bg-yellow-900/50 text-yellow-200'
-                                }`}>
-                                  {review.source === 'rawg' ? 'RAWG' :
-                                   review.source === 'steam' ? 'Steam' :
-                                   'Metacritic'}
-                                </span>
+                                
+                                {/* Review Text with Truncation */}
+                                <div className="mb-3">
+                                  <p className="text-[#B0B0B0] text-sm leading-relaxed">
+                                    {isExpanded ? review.text : truncated}
+                                  </p>
+                                  
+                                  {/* Show More/Less Button */}
+                                  {hasMore && (
+                                    <button
+                                      onClick={() => toggleReviewExpansion(reviewId)}
+                                      className="text-blue-400 hover:text-blue-300 text-xs mt-2 flex items-center space-x-1 transition-colors"
+                                    >
+                                      <span>{isExpanded ? 'Show less' : 'Show more'}</span>
+                                      <ChevronRight 
+                                        size={12} 
+                                        className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} 
+                                      />
+                                    </button>
+                                  )}
+                                </div>
+                                
+                                <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                  <span>⭐ {review.rating.toFixed(1)}/5.0</span>
+                                  <span>👍 {review.helpful_votes} helpful</span>
+                                  <span>🎮 {review.platform}</span>
+                                  <span>📅 {review.date}</span>
+                                </div>
                               </div>
-                              
-                              <p className="text-[#B0B0B0] text-sm leading-relaxed mb-3">
-                                {review.text}
-                              </p>
-                              
-                              <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                <span>⭐ {review.rating.toFixed(1)}/5.0</span>
-                                <span>👍 {review.helpful_votes} helpful</span>
-                                <span>🎮 {review.platform}</span>
-                                <span>📅 {review.date}</span>
-                              </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </>
                       )}
 
