@@ -894,190 +894,185 @@ export default function GameDetailDarkV2({
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
               {activeTab === 'overview' && (
                 <div className="p-4 space-y-6">
-                  {/* Simplified Media Gallery - No more black screens */}
+                  {/* Media Section - Trailer and Images Side by Side */}
                   <div className="space-y-4">
                     {imagesLoading ? (
                       <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
                         <div className="absolute inset-0 flex items-center justify-center">
                           <div className="text-center text-white">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                            <p className="text-sm">Loading images...</p>
+                            <p className="text-sm">Loading media...</p>
                           </div>
                         </div>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {/* Trailer Section - New Robust System */}
-                        {gameTrailer && (
-                          <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                            {gameTrailer.isEmbeddable && gameTrailer.embedUrl ? (
-                              // Trailer YouTube embedded validé
-                              <div className="relative w-full h-full">
-                                <iframe
-                                  src={gameTrailer.embedUrl}
-                                  title={gameTrailer.title || `${gameDetail.name} trailer`}
-                                  className="w-full h-full"
-                                  allowFullScreen
-                                  onError={(e) => {
-                                    console.error('🎬 Iframe embedding failed:', e)
-                                    // En cas d'erreur d'iframe, on affiche le fallback
-                                    const iframe = e.target as HTMLIFrameElement
-                                    iframe.style.display = 'none'
-                                    const fallback = iframe.parentElement?.querySelector('.trailer-fallback') as HTMLElement
-                                    if (fallback) fallback.style.display = 'flex'
-                                  }}
-                                />
-                                {/* Fallback caché qui s'affiche en cas d'erreur d'iframe */}
-                                <div className="trailer-fallback absolute inset-0 bg-gray-800 flex-col items-center justify-center text-white hidden">
-                                  <Play size={48} className="mx-auto mb-3 opacity-60" />
-                                  <p className="text-sm font-medium mb-1">Trailer Preview Unavailable</p>
-                                  <p className="text-xs opacity-75 mb-3">Click to watch on YouTube</p>
-                                  <a 
-                                    href={gameTrailer.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-medium transition-colors"
+                        {/* Media Gallery - Trailer + Images Combined */}
+                        <div className="space-y-3">
+                          <h4 className="text-white font-medium text-sm">Media Gallery</h4>
+                          
+                          {/* Combined Media Carousel */}
+                          <div className="relative">
+                            {/* Main Media Display */}
+                            <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                              {currentImageIndex === 0 && gameTrailer ? (
+                                // Show trailer as first item
+                                gameTrailer.isEmbeddable && gameTrailer.embedUrl ? (
+                                  // Embedded trailer
+                                  <div className="relative w-full h-full">
+                                    <iframe
+                                      src={gameTrailer.embedUrl}
+                                      title={gameTrailer.title || `${gameDetail.name} trailer`}
+                                      className="w-full h-full"
+                                      allowFullScreen
+                                      onError={(e) => {
+                                        console.error('🎬 Iframe embedding failed:', e)
+                                        const iframe = e.target as HTMLIFrameElement
+                                        iframe.style.display = 'none'
+                                        const fallback = iframe.parentElement?.querySelector('.trailer-fallback') as HTMLElement
+                                        if (fallback) fallback.style.display = 'flex'
+                                      }}
+                                    />
+                                    {/* Fallback for iframe errors */}
+                                    <div className="trailer-fallback absolute inset-0 bg-gray-800 flex-col items-center justify-center text-white hidden">
+                                      <Play size={48} className="mx-auto mb-3 opacity-60" />
+                                      <p className="text-sm font-medium mb-1">Trailer Preview Unavailable</p>
+                                      <a 
+                                        href={gameTrailer.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-medium transition-colors"
+                                      >
+                                        Watch Trailer
+                                      </a>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  // Non-embeddable trailer with game background
+                                  <div className="relative w-full h-full overflow-hidden">
+                                    <img
+                                      src={gameDetail.background_image || 'https://via.placeholder.com/800x450/1a1a1a/ffffff?text=Game+Image'}
+                                      alt={`${gameDetail.name} background`}
+                                      className="absolute inset-0 w-full h-full object-cover"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement
+                                        target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80'
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-black/60"></div>
+                                    <div className="relative w-full h-full flex flex-col items-center justify-center text-white">
+                                      <Play size={48} className="mx-auto mb-3 opacity-90" />
+                                      <p className="text-lg font-medium mb-1">{gameDetail.name}</p>
+                                      <a 
+                                        href={gameTrailer.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="bg-red-600/90 hover:bg-red-700/90 backdrop-blur-sm px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 shadow-lg"
+                                      >
+                                        <Play size={16} />
+                                        <span>Watch Trailer on YouTube</span>
+                                      </a>
+                                    </div>
+                                  </div>
+                                )
+                              ) : (
+                                // Show game images
+                                gameImages.length > 0 ? (
+                                  <img
+                                    src={gameImages[gameTrailer ? currentImageIndex - 1 : currentImageIndex]}
+                                    alt={`${gameDetail.name} screenshot ${currentImageIndex + 1}`}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement
+                                      target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80'
+                                    }}
+                                  />
+                                ) : (
+                                  // Fallback when no images
+                                  <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                                    <div className="text-center text-white">
+                                      <div className="w-12 h-12 mx-auto mb-2 opacity-50">📷</div>
+                                      <p className="text-sm opacity-75">No media available</p>
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                              
+                              {/* Navigation arrows */}
+                              {(gameTrailer ? gameImages.length + 1 : gameImages.length) > 1 && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      const totalItems = gameTrailer ? gameImages.length + 1 : gameImages.length
+                                      setCurrentImageIndex(prev => prev > 0 ? prev - 1 : totalItems - 1)
+                                    }}
+                                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
                                   >
-                                    Watch Trailer
-                                  </a>
-                                </div>
-                              </div>
-                            ) : (
-                              // Fallback pour trailers non-embeddables avec image du jeu en arrière-plan
-                              <div className="relative w-full h-full overflow-hidden">
-                                {/* Game background image */}
-                                <img
-                                  src={gameDetail.background_image || 'https://via.placeholder.com/800x450/1a1a1a/ffffff?text=Game+Image'}
-                                  alt={`${gameDetail.name} background`}
-                                  className="absolute inset-0 w-full h-full object-cover"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement
-                                    target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80'
-                                  }}
-                                />
-                                {/* Dark overlay for text readability */}
-                                <div className="absolute inset-0 bg-black/60"></div>
-                                {/* Content over the image */}
-                                <div className="relative w-full h-full flex flex-col items-center justify-center text-white">
-                                  <Play size={48} className="mx-auto mb-3 opacity-90" />
-                                  <p className="text-lg font-medium mb-1 text-shadow">{gameDetail.name}</p>
-                                  <p className="text-sm opacity-90 mb-4 text-center px-4">
-                                    {gameTrailer.fallbackReason || 'Trailer available on YouTube'}
-                                  </p>
-                                  <a 
-                                    href={gameTrailer.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="bg-red-600/90 hover:bg-red-700/90 backdrop-blur-sm px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 shadow-lg"
+                                    <ChevronRight size={20} className="rotate-180" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const totalItems = gameTrailer ? gameImages.length + 1 : gameImages.length
+                                      setCurrentImageIndex(prev => prev < totalItems - 1 ? prev + 1 : 0)
+                                    }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
                                   >
-                                    <Play size={16} />
-                                    <span>Watch Trailer on YouTube</span>
-                                  </a>
-                                  {gameTrailer.provider === 'placeholder' && (
-                                    <p className="text-xs opacity-75 mt-3 text-center px-4">
-                                      No embeddable trailer found - search results provided
-                                    </p>
-                                  )}
-                                </div>
+                                    <ChevronRight size={20} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                            
+                            {/* Thumbnail Navigation */}
+                            {(gameTrailer || gameImages.length > 0) && (
+                              <div className="flex space-x-2 overflow-x-auto pb-2 mt-3">
+                                {/* Trailer thumbnail */}
+                                {gameTrailer && (
+                                  <button
+                                    onClick={() => setCurrentImageIndex(0)}
+                                    className={`flex-shrink-0 w-20 h-12 rounded overflow-hidden border-2 transition-colors relative ${
+                                      currentImageIndex === 0 ? 'border-white' : 'border-transparent'
+                                    }`}
+                                  >
+                                    <img
+                                      src={gameDetail.background_image || 'https://via.placeholder.com/80x48/333/fff?text=Trailer'}
+                                      alt="Trailer thumbnail"
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement
+                                        target.src = 'https://via.placeholder.com/80x48/333/fff?text=Trailer'
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                      <Play size={12} className="text-white" />
+                                    </div>
+                                  </button>
+                                )}
+                                
+                                {/* Image thumbnails */}
+                                {gameImages.map((image, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => setCurrentImageIndex(gameTrailer ? index + 1 : index)}
+                                    className={`flex-shrink-0 w-20 h-12 rounded overflow-hidden border-2 transition-colors ${
+                                      (gameTrailer ? index + 1 : index) === currentImageIndex ? 'border-white' : 'border-transparent'
+                                    }`}
+                                  >
+                                    <img
+                                      src={image}
+                                      alt={`Thumbnail ${index + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement
+                                        target.src = 'https://via.placeholder.com/80x48/333/fff?text=No+Image'
+                                      }}
+                                    />
+                                  </button>
+                                ))}
                               </div>
                             )}
                           </div>
-                        )}
-                        
-                        {/* Images Grid - Simple and guaranteed to work */}
-                        {gameImages.length > 0 && (
-                          <div className="space-y-3">
-                            <h4 className="text-white font-medium text-sm">Game Screenshots</h4>
-                            <div className="grid grid-cols-1 gap-3">
-                              {/* Main Image */}
-                              <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                                <img
-                                  src={gameImages[currentImageIndex]}
-                                  alt={`${gameDetail.name} screenshot ${currentImageIndex + 1}`}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    console.log('🖼️ Image failed to load:', gameImages[currentImageIndex])
-                                    const target = e.target as HTMLImageElement
-                                    target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80'
-                                  }}
-                                  onLoad={() => console.log('🖼️ ✅ Image loaded successfully:', gameImages[currentImageIndex])}
-                                />
-                                
-                                {/* Image Navigation */}
-                                {gameImages.length > 1 && (
-                                  <>
-                                    <button
-                                      onClick={() => setCurrentImageIndex(prev => prev > 0 ? prev - 1 : gameImages.length - 1)}
-                                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
-                                    >
-                                      <ChevronRight size={20} className="rotate-180" />
-                                    </button>
-                                    <button
-                                      onClick={() => setCurrentImageIndex(prev => prev < gameImages.length - 1 ? prev + 1 : 0)}
-                                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
-                                    >
-                                      <ChevronRight size={20} />
-                                    </button>
-                                    
-                                    {/* Image Dots */}
-                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
-                                      {gameImages.map((_, index) => (
-                                        <button
-                                          key={index}
-                                          onClick={() => setCurrentImageIndex(index)}
-                                          className={`w-2 h-2 rounded-full transition-colors ${
-                                            index === currentImageIndex ? 'bg-white' : 'bg-white/50'
-                                          }`}
-                                        />
-                                      ))}
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                              
-                              {/* Thumbnail row */}
-                              {gameImages.length > 1 && (
-                                <div className="flex space-x-2 overflow-x-auto pb-2">
-                                  {gameImages.map((image, index) => (
-                                    <button
-                                      key={index}
-                                      onClick={() => setCurrentImageIndex(index)}
-                                      className={`flex-shrink-0 w-20 h-12 rounded overflow-hidden border-2 transition-colors ${
-                                        index === currentImageIndex ? 'border-white' : 'border-transparent'
-                                      }`}
-                                    >
-                                      <img
-                                        src={image}
-                                        alt={`Thumbnail ${index + 1}`}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          const target = e.target as HTMLImageElement
-                                          target.src = 'https://via.placeholder.com/80x48/333/fff?text=No+Image'
-                                        }}
-                                      />
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Fallback if no images */}
-                        {gameImages.length === 0 && (
-                          <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                            <img
-                              src={gameDetail.background_image || 'https://via.placeholder.com/640x360/1a1a1a/ffffff?text=No+Image'}
-                              alt={`${gameDetail.name} artwork`}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
-                              <div className="w-12 h-12 mx-auto mb-2 opacity-50">📷</div>
-                              <p className="text-white text-sm opacity-75">No screenshots available</p>
-                              <p className="text-gray-300 text-xs opacity-50 mt-1">Showing game artwork</p>
-                            </div>
-                          </div>
-                        )}
+                        </div>
                       </div>
                     )}
                   </div>
