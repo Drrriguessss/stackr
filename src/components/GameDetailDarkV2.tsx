@@ -115,6 +115,12 @@ export default function GameDetailDarkV2({
       setShowAllPlatforms(false)
       setShowPublisher(false)
       setShowLibraryDropdown(false)
+      // Reset rating and review states when opening modal
+      // These will be set correctly when fetchReviews is called if user has existing review
+      setUserRating(0)
+      setUserReview('')
+      setShowReviewBox(false)
+      setCurrentUserReview(null)
     }
   }, [isOpen])
 
@@ -552,11 +558,20 @@ export default function GameDetailDarkV2({
         setUserRating(userReview.rating)
         setUserReview(userReview.review_text || '')
         console.log('📝 Found existing user review')
+      } else {
+        // Reset rating and review if no existing review for this game
+        setUserRating(0)
+        setUserReview('')
+        console.log('📝 No existing review - resetting rating and review')
       }
     } catch (error) {
       console.error('📝 Error fetching reviews:', error)
       setGameReviews([])
       setUserPublicReviews([])
+      setCurrentUserReview(null)
+      // Reset rating and review on error as well
+      setUserRating(0)
+      setUserReview('')
     } finally {
       setReviewsLoading(false)
     }
