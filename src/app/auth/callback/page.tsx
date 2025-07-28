@@ -26,11 +26,45 @@ export default function AuthCallback() {
         console.log('🔔 [Callback] Hash params:', [...hashParams.entries()])
         console.log('🔔 [Callback] Search params:', [...searchParams.entries()])
         
-        // Laisser Supabase traiter automatiquement l'OAuth callback
-        // Supabase détecte automatiquement les fragments dans l'URL
-        await new Promise(resolve => setTimeout(resolve, 1000)) // Attendre 1 seconde
+        // Vérifier si on a des tokens OAuth dans le hash
+        if (hashParams.has('access_token')) {
+          console.log('🔔 [Callback] OAuth tokens found in URL hash!')
+          
+          // Extraire les tokens
+          const accessToken = hashParams.get('access_token')
+          const refreshToken = hashParams.get('refresh_token')
+          
+          if (accessToken && refreshToken) {
+            console.log('🔔 [Callback] Setting session with tokens...')
+            
+            // Définir manuellement la session avec les tokens
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            })
+            
+            if (sessionError) {
+              console.error('🔔 [Callback] Error setting session:', sessionError)
+              setStatus('error')
+              setMessage('Erreur lors de l\'établissement de la session.')
+              setTimeout(() => router.push('/'), 3000)
+              return
+            }
+            
+            if (sessionData.user) {
+              console.log('🔔 [Callback] Session established successfully:', sessionData.user.email)
+              setStatus('success')
+              setMessage('Connexion réussie! Redirection en cours...')
+              setTimeout(() => router.push('/'), 1000)
+              return
+            }
+          }
+        }
         
-        // Attendre que Supabase traite l'OAuth callback
+        // Fallback: essayer la méthode automatique
+        console.log('🔔 [Callback] Trying automatic session detection...')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
         const { data, error } = await supabase.auth.getSession()
         
         if (error) {
