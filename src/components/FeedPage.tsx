@@ -14,7 +14,9 @@ import {
   Plus,
   TrendingUp,
   Calendar,
-  User
+  User,
+  Bell,
+  Search
 } from 'lucide-react'
 import type { LibraryItem } from '@/types'
 
@@ -226,9 +228,32 @@ export default function FeedPage({
         <div className="px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">Feed</h1>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Live updates</span>
+            
+            {/* Barre de recherche et notifications */}
+            <div className="flex items-center space-x-3">
+              {/* Barre de recherche */}
+              <div className="hidden sm:flex items-center">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Search feed..."
+                    className="pl-10 pr-4 py-2 w-64 bg-gray-50 hover:bg-gray-100 focus:bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+              </div>
+              
+              {/* Version mobile de la recherche */}
+              <button className="sm:hidden p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <Search size={20} className="text-gray-600" />
+              </button>
+              
+              {/* Icône notifications */}
+              <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <Bell size={20} className="text-gray-600" />
+                {/* Badge de notification */}
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+              </button>
             </div>
           </div>
         </div>

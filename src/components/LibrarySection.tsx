@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus, Download } from 'lucide-react'
+import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus, Download, Grid3X3, List } from 'lucide-react'
 
 // Types
 type MediaCategory = 'games' | 'movies' | 'music' | 'books'
@@ -536,6 +536,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   const [showAddInfoModal, setShowAddInfoModal] = useState<string | null>(null)
   const [showLocalSearchModal, setShowLocalSearchModal] = useState(false)
   const [fetchingMissingInfo, setFetchingMissingInfo] = useState(false)
+  const [viewType, setViewType] = useState<'list' | 'grid'>('list')
 
   // ✅ FETCH DEVELOPER INFO FOR GAMES MISSING IT
   // ❌ TEMPORAIREMENT DÉSACTIVÉ - causait des milliers d'appels API
@@ -746,6 +747,34 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     }
   }
 
+  // Fonction pour rendre la vue mosaïque (grid d'images uniquement)
+  const renderGridView = (items: LibraryItem[]) => (
+    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+      {items.map((item) => (
+        <div 
+          key={item.id}
+          className="group cursor-pointer"
+          onClick={() => handleItemClick(item)}
+          title={item.title}
+        >
+          <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden border border-gray-200 group-hover:border-gray-300 group-hover:shadow-md transition-all">
+            {item.image ? (
+              <img
+                src={item.image}
+                alt={item.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-lg text-gray-400">
+                {getCategoryIcon(item.category)}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
   // Modal Components
   const LocalSearchModal = () => {
     if (!showLocalSearchModal) return null
@@ -901,9 +930,9 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
         <div className="px-4 sm:px-6 py-4">
           {/* Titre avec nombre d'items et icônes */}
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3">
               <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
-              <span className="text-lg text-gray-500">
+              <span className="text-xs sm:text-lg text-gray-500 sm:text-gray-500">
                 ({filteredAndSortedLibrary.length} item{filteredAndSortedLibrary.length !== 1 ? 's' : ''})
               </span>
             </div>
@@ -918,21 +947,17 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 <Search size={20} className="text-gray-600" />
               </button>
 
-              {/* Bouton Fetch missing info */}
+              {/* Bouton basculer vue liste/mosaïque */}
               <button
-                onClick={handleFetchMissingInfo}
-                disabled={fetchingMissingInfo}
-                className={`p-2 rounded-full transition-colors ${
-                  fetchingMissingInfo 
-                    ? 'bg-blue-100 text-blue-600 cursor-not-allowed' 
-                    : 'hover:bg-gray-200 text-gray-600'
-                }`}
-                title={fetchingMissingInfo ? 'Fetching missing info...' : 'Fetch missing developer/director info'}
+                onClick={() => setViewType(viewType === 'list' ? 'grid' : 'list')}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                title={`Switch to ${viewType === 'list' ? 'grid' : 'list'} view`}
               >
-                <Download 
-                  size={20} 
-                  className={fetchingMissingInfo ? 'animate-pulse' : ''} 
-                />
+                {viewType === 'list' ? (
+                  <Grid3X3 size={20} className="text-gray-600" />
+                ) : (
+                  <List size={20} className="text-gray-600" />
+                )}
               </button>
               
               {/* Icône ajout global */}
@@ -1076,9 +1101,12 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                     </span>
                   </div>
                   
-                  {/* Items de cette catégorie - Layout mobile optimisé avec clic */}
-                  <div className="space-y-3">
-                    {items.map((item) => (
+                  {/* Items de cette catégorie */}
+                  {viewType === 'grid' ? (
+                    renderGridView(items)
+                  ) : (
+                    <div className="space-y-3">
+                      {items.map((item) => (
                       <div 
                         key={item.id} 
                         className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
@@ -1176,8 +1204,9 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1193,8 +1222,11 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 </span>
               </div>
               
-              <div className="space-y-3">
-                {filteredAndSortedLibrary.map((item) => (
+              {viewType === 'grid' ? (
+                renderGridView(filteredAndSortedLibrary)
+              ) : (
+                <div className="space-y-3">
+                  {filteredAndSortedLibrary.map((item) => (
                   <div 
                     key={item.id} 
                     className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
@@ -1292,8 +1324,9 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

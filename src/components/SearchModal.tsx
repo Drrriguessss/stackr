@@ -751,7 +751,7 @@ export default function SearchModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-start justify-center pt-16 px-4">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center sm:items-start justify-center sm:pt-16 px-4">
       <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl border border-gray-200">
         {/* Header */}
         <div className="flex items-center p-4 border-b border-gray-100">
