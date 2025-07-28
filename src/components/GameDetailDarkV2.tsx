@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, Send, ChevronDown, ChevronRight, Play, Share } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
-import { trailerService, type GameTrailer } from '@/services/trailerService'
+import { newTrailerService, type ValidatedTrailer } from '@/services/newTrailerService'
 import { reviewsService, type GameReview, type ReviewsResponse } from '@/services/reviewsService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
 import { fetchWithCache, apiCache } from '@/utils/apiCache'
@@ -72,7 +72,7 @@ export default function GameDetailDarkV2({
   const [developerGamesLoaded, setDeveloperGamesLoaded] = useState(false)
   const [showAllPlatforms, setShowAllPlatforms] = useState(false)
   const [showPublisher, setShowPublisher] = useState(false)
-  const [gameTrailer, setGameTrailer] = useState<GameTrailer | null>(null)
+  const [gameTrailer, setGameTrailer] = useState<ValidatedTrailer | null>(null)
   const [trailerLoading, setTrailerLoading] = useState(false)
   const [showLibraryDropdown, setShowLibraryDropdown] = useState(false)
   const [gameReviews, setGameReviews] = useState<GameReview[]>([])
@@ -274,9 +274,15 @@ export default function GameDetailDarkV2({
     
     setImagesLoading(true)
     try {
-      // Récupérer le trailer
-      const trailer = await trailerService.getGameTrailer(gameId, gameName)
+      // Récupérer le trailer avec validation
+      const trailer = await newTrailerService.getGameTrailer(gameId, gameName)
       setGameTrailer(trailer)
+      console.log('🎬 Trailer loaded:', {
+        provider: trailer.provider,
+        isEmbeddable: trailer.isEmbeddable,
+        videoId: trailer.videoId,
+        fallbackReason: trailer.fallbackReason
+      })
       
       // Récupérer les images via IGDB service
       const igdbGallery = await igdbService.getGameImages(gameId, gameName)
@@ -901,30 +907,63 @@ export default function GameDetailDarkV2({
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {/* Trailer Section (if available) */}
-                        {gameTrailer && gameTrailer.provider !== 'none' && (
+                        {/* Trailer Section - New Robust System */}
+                        {gameTrailer && (
                           <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                            {gameTrailer.provider === 'youtube' && gameTrailer.videoId ? (
-                              <iframe
-                                src={`https://www.youtube.com/embed/${gameTrailer.videoId}?autoplay=0&rel=0`}
-                                title={`${gameDetail.name} trailer`}
-                                className="w-full h-full"
-                                allowFullScreen
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                                <div className="text-center text-white">
-                                  <Play size={48} className="mx-auto mb-2 opacity-60" />
-                                  <p className="text-sm opacity-75">Trailer Available</p>
+                            {gameTrailer.isEmbeddable && gameTrailer.embedUrl ? (
+                              // Trailer YouTube embedded validé
+                              <div className="relative w-full h-full">
+                                <iframe
+                                  src={gameTrailer.embedUrl}
+                                  title={gameTrailer.title || `${gameDetail.name} trailer`}
+                                  className="w-full h-full"
+                                  allowFullScreen
+                                  onError={(e) => {
+                                    console.error('🎬 Iframe embedding failed:', e)
+                                    // En cas d'erreur d'iframe, on affiche le fallback
+                                    const iframe = e.target as HTMLIFrameElement
+                                    iframe.style.display = 'none'
+                                    const fallback = iframe.parentElement?.querySelector('.trailer-fallback') as HTMLElement
+                                    if (fallback) fallback.style.display = 'flex'
+                                  }}
+                                />
+                                {/* Fallback caché qui s'affiche en cas d'erreur d'iframe */}
+                                <div className="trailer-fallback absolute inset-0 bg-gray-800 flex-col items-center justify-center text-white hidden">
+                                  <Play size={48} className="mx-auto mb-3 opacity-60" />
+                                  <p className="text-sm font-medium mb-1">Trailer Preview Unavailable</p>
+                                  <p className="text-xs opacity-75 mb-3">Click to watch on YouTube</p>
                                   <a 
                                     href={gameTrailer.url} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-blue-400 text-xs hover:underline"
+                                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-medium transition-colors"
                                   >
-                                    Watch on {gameTrailer.provider}
+                                    Watch Trailer
                                   </a>
                                 </div>
+                              </div>
+                            ) : (
+                              // Fallback pour trailers non-embeddables
+                              <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex flex-col items-center justify-center text-white">
+                                <Play size={48} className="mx-auto mb-3 opacity-60" />
+                                <p className="text-lg font-medium mb-1">{gameDetail.name}</p>
+                                <p className="text-sm opacity-75 mb-4">
+                                  {gameTrailer.fallbackReason || 'Trailer available on YouTube'}
+                                </p>
+                                <a 
+                                  href={gameTrailer.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                                >
+                                  <Play size={16} />
+                                  <span>Watch Trailer on YouTube</span>
+                                </a>
+                                {gameTrailer.provider === 'placeholder' && (
+                                  <p className="text-xs opacity-50 mt-3">
+                                    No embeddable trailer found - search results provided
+                                  </p>
+                                )}
                               </div>
                             )}
                           </div>
