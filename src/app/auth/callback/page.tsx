@@ -15,6 +15,20 @@ export default function AuthCallback() {
     const handleAuthCallback = async () => {
       try {
         console.log('🔔 [Callback] Starting auth callback processing...')
+        console.log('🔔 [Callback] Current URL:', window.location.href)
+        console.log('🔔 [Callback] Hash fragment:', window.location.hash)
+        console.log('🔔 [Callback] Search params:', window.location.search)
+        
+        // Vérifier si on a des paramètres OAuth dans l'URL
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const searchParams = new URLSearchParams(window.location.search)
+        
+        console.log('🔔 [Callback] Hash params:', [...hashParams.entries()])
+        console.log('🔔 [Callback] Search params:', [...searchParams.entries()])
+        
+        // Laisser Supabase traiter automatiquement l'OAuth callback
+        // Supabase détecte automatiquement les fragments dans l'URL
+        await new Promise(resolve => setTimeout(resolve, 1000)) // Attendre 1 seconde
         
         // Attendre que Supabase traite l'OAuth callback
         const { data, error } = await supabase.auth.getSession()
