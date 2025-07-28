@@ -3,9 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Star, Send, ChevronDown, ChevronRight, Play, Share } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { newTrailerService, type ValidatedTrailer } from '@/services/newTrailerService'
-import { reviewsService, type GameReview, type ReviewsResponse } from '@/services/reviewsService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
-import { googleReviewsService, type GoogleGameReview } from '@/services/googleReviewsService'
+import { realGameReviewsService, type RealGameReview } from '@/services/realGameReviewsService'
 import { fetchWithCache, apiCache } from '@/utils/apiCache'
 import { igdbService, type IGDBGameGallery } from '@/services/igdbService'
 
@@ -76,8 +75,7 @@ export default function GameDetailDarkV2({
   const [gameTrailer, setGameTrailer] = useState<ValidatedTrailer | null>(null)
   const [trailerLoading, setTrailerLoading] = useState(false)
   const [showLibraryDropdown, setShowLibraryDropdown] = useState(false)
-  const [gameReviews, setGameReviews] = useState<GameReview[]>([])
-  const [googleGameReviews, setGoogleGameReviews] = useState<GoogleGameReview[]>([])
+  const [realGameReviews, setRealGameReviews] = useState<RealGameReview[]>([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [userPublicReviews, setUserPublicReviews] = useState<UserReview[]>([])
   const [currentUserReview, setCurrentUserReview] = useState<UserReview | null>(null)
@@ -543,10 +541,10 @@ export default function GameDetailDarkV2({
     try {
       console.log('📝 Fetching reviews for game:', gameName)
       
-      // Fetch Google reviews specific to this game
-      const googleGameReviews = await googleReviewsService.getGameGoogleReviews(gameId, gameName)
-      setGoogleGameReviews(googleGameReviews)
-      console.log('📝 Loaded', googleGameReviews.length, 'Google reviews for', gameName)
+      // Fetch real game reviews from RAWG + Steam
+      const realReviews = await realGameReviewsService.getGameReviews(gameId, gameName)
+      setRealGameReviews(realReviews)
+      console.log('📝 Loaded', realReviews.length, 'real reviews for', gameName)
       
       // Fetch user public reviews
       const publicReviews = await userReviewsService.getPublicReviewsForMedia(gameId)
@@ -568,7 +566,7 @@ export default function GameDetailDarkV2({
       }
     } catch (error) {
       console.error('📝 Error fetching reviews:', error)
-      setGoogleGameReviews([])
+      setRealGameReviews([])
       setUserPublicReviews([])
       setCurrentUserReview(null)
       // Reset rating and review on error as well
@@ -1424,7 +1422,7 @@ export default function GameDetailDarkV2({
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-white font-medium">Reviews for {gameDetail.name}</h3>
                     <span className="text-[#B0B0B0] text-sm">
-                      {googleGameReviews.length + userPublicReviews.length} reviews
+                      {realGameReviews.length + userPublicReviews.length} reviews
                     </span>
                   </div>
                   
@@ -1478,32 +1476,42 @@ export default function GameDetailDarkV2({
                         </div>
                       ))}
                     </div>
-                  ) : googleGameReviews.length > 0 || userPublicReviews.length > 0 ? (
+                  ) : realGameReviews.length > 0 || userPublicReviews.length > 0 ? (
                     <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {/* Google Reviews Section */}
-                      {googleGameReviews.length > 0 && (
+                      {/* RAWG + Steam Reviews Section */}
+                      {realGameReviews.length > 0 && (
                         <>
                           <div className="flex items-center space-x-2 mb-3">
-                            <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">G</span>
+                            <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-red-500 rounded flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">R</span>
                             </div>
-                            <h4 className="text-white font-medium text-sm">Google Reviews</h4>
-                            <span className="text-[#B0B0B0] text-xs">({googleGameReviews.length} reviews)</span>
+                            <h4 className="text-white font-medium text-sm">Game Reviews</h4>
+                            <span className="text-[#B0B0B0] text-xs">({realGameReviews.length} reviews from RAWG & Steam)</span>
                           </div>
                           
-                          {googleGameReviews.map((review) => (
-                            <div key={review.id} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
+                          {realGameReviews.map((review, index) => (
+                            <div key={`${review.source}-${index}`} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
                               <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center space-x-3">
-                                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                    review.source === 'rawg' ? 'bg-gradient-to-br from-orange-500 to-red-500' :
+                                    review.source === 'steam' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
+                                    'bg-gradient-to-br from-yellow-500 to-orange-500'
+                                  }`}>
                                     <span className="text-white text-sm font-medium">
-                                      {review.author_name.charAt(0).toUpperCase()}
+                                      {review.author.charAt(0).toUpperCase()}
                                     </span>
                                   </div>
                                   <div>
                                     <div className="flex items-center space-x-2">
-                                      <span className="text-white font-medium text-sm">{review.author_name}</span>
-                                      <span className="text-blue-400 text-xs">✓ Google User</span>
+                                      <span className="text-white font-medium text-sm">{review.author}</span>
+                                      {review.verified && (
+                                        <span className={`text-xs ${
+                                          review.source === 'rawg' ? 'text-orange-400' :
+                                          review.source === 'steam' ? 'text-blue-400' :
+                                          'text-yellow-400'
+                                        }`}>✓ Verified</span>
+                                      )}
                                     </div>
                                     <div className="flex items-center space-x-2">
                                       <div className="flex">
@@ -1512,19 +1520,26 @@ export default function GameDetailDarkV2({
                                             key={star}
                                             size={12}
                                             className={`${
-                                              star <= review.rating
+                                              star <= Math.round(review.rating)
                                                 ? 'text-yellow-400 fill-current'
                                                 : 'text-gray-600'
                                             }`}
                                           />
                                         ))}
                                       </div>
-                                      <span className="text-[#B0B0B0] text-xs">{review.relative_time_description}</span>
+                                      <span className="text-[#B0B0B0] text-xs">{review.date}</span>
+                                      <span className="text-[#B0B0B0] text-xs">• {review.platform}</span>
                                     </div>
                                   </div>
                                 </div>
-                                <span className="px-2 py-1 bg-blue-900/50 text-blue-200 rounded text-xs font-medium">
-                                  Google
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  review.source === 'rawg' ? 'bg-orange-900/50 text-orange-200' :
+                                  review.source === 'steam' ? 'bg-blue-900/50 text-blue-200' :
+                                  'bg-yellow-900/50 text-yellow-200'
+                                }`}>
+                                  {review.source === 'rawg' ? 'RAWG' :
+                                   review.source === 'steam' ? 'Steam' :
+                                   'Metacritic'}
                                 </span>
                               </div>
                               
@@ -1533,8 +1548,10 @@ export default function GameDetailDarkV2({
                               </p>
                               
                               <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                <span>⭐ {review.rating}/5 stars</span>
-                                <span>📅 {review.relative_time_description}</span>
+                                <span>⭐ {review.rating.toFixed(1)}/5.0</span>
+                                <span>👍 {review.helpful_votes} helpful</span>
+                                <span>🎮 {review.platform}</span>
+                                <span>📅 {review.date}</span>
                               </div>
                             </div>
                           ))}
@@ -1609,11 +1626,11 @@ export default function GameDetailDarkV2({
                   ) : (
                     <div className="text-center py-8">
                       <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-2xl">🔍</span>
+                        <span className="text-2xl">📝</span>
                       </div>
-                      <p className="text-white font-medium mb-2">No Google reviews found for {gameDetail.name}</p>
-                      <p className="text-[#B0B0B0] text-sm">Check browser console for API search attempts</p>
-                      <p className="text-[#B0B0B0] text-xs mt-2">Configure Google Places API or SerpAPI keys to see real reviews</p>
+                      <p className="text-white font-medium mb-2">No reviews found for {gameDetail.name}</p>
+                      <p className="text-[#B0B0B0] text-sm">Check browser console for RAWG API attempts</p>
+                      <p className="text-[#B0B0B0] text-xs mt-2">Make sure RAWG API key is configured in environment</p>
                     </div>
                   )}
                 </div>
