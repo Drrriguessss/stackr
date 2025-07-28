@@ -943,27 +943,42 @@ export default function GameDetailDarkV2({
                                 </div>
                               </div>
                             ) : (
-                              // Fallback pour trailers non-embeddables
-                              <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex flex-col items-center justify-center text-white">
-                                <Play size={48} className="mx-auto mb-3 opacity-60" />
-                                <p className="text-lg font-medium mb-1">{gameDetail.name}</p>
-                                <p className="text-sm opacity-75 mb-4">
-                                  {gameTrailer.fallbackReason || 'Trailer available on YouTube'}
-                                </p>
-                                <a 
-                                  href={gameTrailer.url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
-                                >
-                                  <Play size={16} />
-                                  <span>Watch Trailer on YouTube</span>
-                                </a>
-                                {gameTrailer.provider === 'placeholder' && (
-                                  <p className="text-xs opacity-50 mt-3">
-                                    No embeddable trailer found - search results provided
+                              // Fallback pour trailers non-embeddables avec image du jeu en arrière-plan
+                              <div className="relative w-full h-full overflow-hidden">
+                                {/* Game background image */}
+                                <img
+                                  src={gameDetail.background_image || 'https://via.placeholder.com/800x450/1a1a1a/ffffff?text=Game+Image'}
+                                  alt={`${gameDetail.name} background`}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement
+                                    target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80'
+                                  }}
+                                />
+                                {/* Dark overlay for text readability */}
+                                <div className="absolute inset-0 bg-black/60"></div>
+                                {/* Content over the image */}
+                                <div className="relative w-full h-full flex flex-col items-center justify-center text-white">
+                                  <Play size={48} className="mx-auto mb-3 opacity-90" />
+                                  <p className="text-lg font-medium mb-1 text-shadow">{gameDetail.name}</p>
+                                  <p className="text-sm opacity-90 mb-4 text-center px-4">
+                                    {gameTrailer.fallbackReason || 'Trailer available on YouTube'}
                                   </p>
-                                )}
+                                  <a 
+                                    href={gameTrailer.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="bg-red-600/90 hover:bg-red-700/90 backdrop-blur-sm px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 shadow-lg"
+                                  >
+                                    <Play size={16} />
+                                    <span>Watch Trailer on YouTube</span>
+                                  </a>
+                                  {gameTrailer.provider === 'placeholder' && (
+                                    <p className="text-xs opacity-75 mt-3 text-center px-4">
+                                      No embeddable trailer found - search results provided
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
