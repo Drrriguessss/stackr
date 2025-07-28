@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AuthService } from '@/services/authService'
+import { supabase } from '@/lib/supabase'
 
 export default function AuthCallback() {
   const router = useRouter()
@@ -13,28 +14,52 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Vérifier si l'utilisateur est maintenant connecté
-        const user = await AuthService.getCurrentUser()
+        console.log('🔔 [Callback] Starting auth callback processing...')
         
-        if (user) {
-          setStatus('success')
-          setMessage('Connexion réussie! Redirection en cours...')
-          
-          // Rediriger vers la page principale après 2 secondes
-          setTimeout(() => {
-            router.push('/')
-          }, 2000)
-        } else {
+        // Attendre que Supabase traite l'OAuth callback
+        const { data, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('🔔 [Callback] Session error:', error)
           setStatus('error')
-          setMessage('Erreur lors de la connexion. Veuillez réessayer.')
+          setMessage('Erreur lors de la récupération de la session.')
           
-          // Rediriger vers l'accueil après 3 secondes
           setTimeout(() => {
             router.push('/')
           }, 3000)
+          return
+        }
+
+        if (data.session?.user) {
+          console.log('🔔 [Callback] User authenticated:', data.session.user.email)
+          setStatus('success')
+          setMessage('Connexion réussie! Redirection en cours...')
+          
+          // Rediriger vers la page principale après 1 seconde
+          setTimeout(() => {
+            router.push('/')
+          }, 1000)
+        } else {
+          console.log('🔔 [Callback] No session found, retrying...')
+          
+          // Retry après un délai pour laisser le temps à Supabase
+          setTimeout(async () => {
+            const user = await AuthService.getCurrentUser()
+            if (user) {
+              console.log('🔔 [Callback] User found on retry:', user.email)
+              setStatus('success')
+              setMessage('Connexion réussie! Redirection en cours...')
+              setTimeout(() => router.push('/'), 1000)
+            } else {
+              console.log('🔔 [Callback] Still no user found')
+              setStatus('error')
+              setMessage('Erreur lors de la connexion. Veuillez réessayer.')
+              setTimeout(() => router.push('/'), 3000)
+            }
+          }, 1000)
         }
       } catch (error) {
-        console.error('Auth callback error:', error)
+        console.error('❌ [Callback] Auth callback error:', error)
         setStatus('error')
         setMessage('Une erreur inattendue s\'est produite.')
         
