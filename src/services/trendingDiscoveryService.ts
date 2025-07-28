@@ -1,5 +1,5 @@
 // src/services/trendingDiscoveryService.ts - VERSION FINALE OPTIMISÉE
-import { steamSpyService } from './steamSpyService'
+import { igdbService } from './igdbService'
 import { omdbService } from './omdbService'
 import { tmdbService } from './tmdbService'
 import { googleBooksService } from './googleBooksService'
@@ -43,29 +43,30 @@ export class TrendingDiscoveryService {
     const trendingItems: ContentItem[] = []
     let successfulFetches = 0
 
-    // 🎮 Jeux - Priorité 1 (SteamSpy)
+    // 🎮 Jeux - Priorité 1 (IGDB avec covers portrait 3:4)
     try {
-      console.log('🎮 Fetching trending games from SteamSpy...')
-      const games = await steamSpyService.getTop100In2Weeks()
+      console.log('🎮 Fetching trending games from IGDB...')
+      const games = await igdbService.getPopularGames(10)
       if (games && games.length > 0) {
-        // Prendre le jeu avec le meilleur rating et le plus de propriétaires
+        // Prendre le jeu avec le meilleur rating et nombre de votes
         const topGame = games.sort((a, b) => {
-          const scoreA = (a.rating || 0) * Math.log10(a.ownersCount || 1)
-          const scoreB = (b.rating || 0) * Math.log10(b.ownersCount || 1)
+          const scoreA = (a.rating || 0) * Math.log10((a.rating_count || 0) + 1)
+          const scoreB = (b.rating || 0) * Math.log10((b.rating_count || 0) + 1)
           return scoreB - scoreA
         })[0]
         
+        const convertedGame = igdbService.convertToAppFormat(topGame)
         const enhanced = this.enhanceWithAdvancedTrendingData(
-          topGame, // SteamSpy retourne déjà le bon format
+          convertedGame,
           'games', 
-          this.calculateDynamicScore(topGame.rating || 0, topGame.year?.toString(), 'high')
+          this.calculateDynamicScore(convertedGame.rating || 0, convertedGame.year?.toString(), 'high')
         )
         trendingItems.push(enhanced)
         successfulFetches++
-        console.log('✅ SteamSpy Games added:', enhanced.title, 'by', enhanced.developer)
+        console.log('✅ IGDB Games added:', enhanced.title, 'with portrait cover art')
       }
     } catch (error) {
-      console.warn('🎮 SteamSpy Games fetch failed:', error)
+      console.warn('🎮 IGDB Games fetch failed:', error)
     }
 
     // 🎬 Films - Priorité 2 (TMDB)

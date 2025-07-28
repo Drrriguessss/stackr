@@ -1,209 +1,308 @@
-// Service pour récupérer les vraies images HD des jeux depuis l'API RAWG
-// Remplace les images de test par les vraies images spécifiques à chaque jeu
+// src/services/igdbService.ts - IGDB API Service for Game Cover Art
 
-export interface IGDBGameImage {
-  url: string
-  type: 'screenshot' | 'artwork' | 'cover'
-  width: number
+import { fetchWithCache } from '@/utils/apiCache'
+
+// IGDB requires Twitch credentials
+const IGDB_BASE_URL = 'https://api.igdb.com/v4'
+const IGDB_IMAGE_BASE = 'https://images.igdb.com/igdb/image/upload'
+
+// Types IGDB
+export interface IGDBCover {
+  id: number
+  image_id: string
+  game: number
   height: number
+  width: number
+  url: string
+  checksum: string
 }
 
-export interface IGDBGameGallery {
-  gameId: string
-  gameName: string
-  images: IGDBGameImage[]
-  success: boolean
+export interface IGDBGame {
+  id: number
+  name: string
+  cover?: IGDBCover
+  first_release_date?: number
+  genres?: number[]
+  rating?: number
+  rating_count?: number
+  summary?: string
+  screenshots?: any[]
 }
 
 class IGDBService {
-  private readonly RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || ''
-  
-  /**
-   * Récupère les vraies images HD depuis RAWG API pour chaque jeu spécifique
-   */
-  async getGameImages(gameId: string, gameName: string): Promise<IGDBGameGallery> {
-    console.log('🎮 RAWG Service: Getting real images for', gameName, 'ID:', gameId)
-    
-    const gallery: IGDBGameGallery = {
-      gameId,
-      gameName,
-      images: [],
-      success: false
-    }
+  private readonly clientId = process.env.NEXT_PUBLIC_IGDB_CLIENT_ID || ''
+  private readonly accessToken = process.env.NEXT_PUBLIC_IGDB_ACCESS_TOKEN || ''
 
+  constructor() {
+    if (!this.clientId || !this.accessToken) {
+      console.warn('🎮 [IGDB] API credentials not configured')
+    }
+  }
+
+  /**
+   * 🔑 Headers pour les requêtes IGDB
+   */
+  private getHeaders(): HeadersInit {
+    return {
+      'Client-ID': this.clientId,
+      'Authorization': `Bearer ${this.accessToken}`,
+      'Content-Type': 'application/json'
+    }
+  }
+
+  /**
+   * 🎯 FONCTION PRINCIPALE: Obtenir l'image cover au format portrait (3:4)
+   */
+  static getCoverImageUrl(imageId: string, size: 'thumb' | 'cover_small' | 'cover_big' | 'cover_big_2x' = 'cover_big'): string {
+    // IGDB Image URL format: https://images.igdb.com/igdb/image/upload/t_{size}/{image_id}.jpg
+    return `${IGDB_IMAGE_BASE}/t_${size}/${imageId}.jpg`
+  }
+
+  /**
+   * 🔍 Rechercher des jeux par nom
+   */
+  async searchGames(query: string, limit: number = 10): Promise<IGDBGame[]> {
     try {
-      // Nettoyer l'ID RAWG
-      let rawgId = gameId
-      if (gameId.startsWith('game-')) {
-        rawgId = gameId.replace('game-', '')
+      if (!this.clientId || !this.accessToken) {
+        console.warn('🎮 [IGDB] Cannot search - missing credentials')
+        return []
       }
-      
-      console.log('🎮 Cleaned RAWG ID:', rawgId)
-      console.log('🎮 RAWG API Key available:', !!this.RAWG_API_KEY)
-      
-      // 1. Récupérer les screenshots depuis RAWG
-      const screenshots = await this.fetchRAWGScreenshots(rawgId)
-      console.log('🎮 Found', screenshots.length, 'screenshots from RAWG')
-      
-      // 2. Récupérer l'image de fond depuis les détails du jeu
-      const gameDetails = await this.fetchRAWGGameDetails(rawgId)
-      if (gameDetails?.background_image) {
-        console.log('🎮 Found background image from RAWG')
-        gallery.images.unshift({
-          url: gameDetails.background_image,
-          type: 'cover',
-          width: 1920,
-          height: 1080
-        })
-      }
-      
-      // 3. Ajouter les screenshots
-      screenshots.forEach(screenshot => {
-        gallery.images.push({
-          url: screenshot.image,
-          type: 'screenshot',
-          width: screenshot.width || 1920,
-          height: screenshot.height || 1080
-        })
+
+      // IGDB utilise une syntaxe SQL-like dans le body
+      const requestBody = `
+        search "${query}";
+        fields name, cover.image_id, first_release_date, genres, rating, rating_count, summary;
+        limit ${limit};
+        where cover != null;
+      `.trim()
+
+      console.log('🎮 [IGDB] Searching games:', query)
+      console.log('🎮 [IGDB] Request body:', requestBody)
+
+      const response = await fetch(`${IGDB_BASE_URL}/games`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: requestBody
       })
-      
-      // 4. Si on a des images, marquer comme succès
-      if (gallery.images.length > 0) {
-        gallery.success = true
-        console.log('🎮 ✅ Successfully loaded', gallery.images.length, 'real images for', gameName)
-      } else {
-        console.log('🎮 ⚠️ No RAWG images found, using fallback')
-        // Fallback avec images gaming génériques mais différentes selon le jeu
-        gallery.images = this.generateGameSpecificFallbacks(gameName)
-        gallery.success = true
-      }
-      
-    } catch (error) {
-      console.error('🎮 RAWG Service error:', error)
-      // En cas d'erreur, utiliser des fallbacks spécifiques au jeu
-      gallery.images = this.generateGameSpecificFallbacks(gameName)
-      gallery.success = true // Toujours retourner un succès avec fallback
-    }
 
-    console.log('🎮 Final gallery for', gameName, ':', gallery.images.length, 'images')
-    return gallery
-  }
-  
-  /**
-   * Récupère les screenshots depuis l'API RAWG
-   */
-  private async fetchRAWGScreenshots(rawgId: string): Promise<Array<{image: string, width?: number, height?: number}>> {
-    try {
-      if (!this.RAWG_API_KEY) {
-        console.warn('🎮 No RAWG API key available')
-        return []
-      }
-      
-      const url = `https://api.rawg.io/api/games/${rawgId}/screenshots?key=${this.RAWG_API_KEY}`
-      console.log('🎮 Fetching screenshots from:', url)
-      
-      const response = await fetch(url)
-      
       if (!response.ok) {
-        console.log('🎮 Screenshots API failed:', response.status, response.statusText)
+        console.error('🎮 [IGDB] Search failed:', response.status, response.statusText)
         return []
       }
-      
-      const data = await response.json()
-      console.log('🎮 Screenshots API response:', data)
-      
-      if (data.results && Array.isArray(data.results)) {
-        return data.results.slice(0, 6) // Limiter à 6 screenshots
-      }
-      
-      return []
+
+      const games: IGDBGame[] = await response.json()
+      console.log(`🎮 [IGDB] Found ${games.length} games with covers`)
+
+      return games
+
     } catch (error) {
-      console.error('🎮 Error fetching RAWG screenshots:', error)
+      console.error('🎮 [IGDB] Search error:', error)
       return []
     }
   }
-  
+
   /**
-   * Récupère les détails du jeu depuis l'API RAWG
+   * 🌟 Obtenir les jeux populaires avec covers
    */
-  private async fetchRAWGGameDetails(rawgId: string): Promise<{background_image?: string} | null> {
+  async getPopularGames(limit: number = 20): Promise<IGDBGame[]> {
     try {
-      if (!this.RAWG_API_KEY) {
-        return null
+      if (!this.clientId || !this.accessToken) {
+        console.warn('🎮 [IGDB] Cannot get popular games - missing credentials')
+        return this.getMockGames()
       }
-      
-      const url = `https://api.rawg.io/api/games/${rawgId}?key=${this.RAWG_API_KEY}`
-      console.log('🎮 Fetching game details from:', url)
-      
-      const response = await fetch(url)
-      
+
+      const requestBody = `
+        fields name, cover.image_id, first_release_date, genres, rating, rating_count, summary;
+        where cover != null & rating_count > 100 & rating > 75;
+        sort rating_count desc;
+        limit ${limit};
+      `.trim()
+
+      console.log('🎮 [IGDB] Fetching popular games...')
+
+      const response = await fetch(`${IGDB_BASE_URL}/games`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: requestBody
+      })
+
       if (!response.ok) {
-        console.log('🎮 Game details API failed:', response.status, response.statusText)
-        return null
+        console.error('🎮 [IGDB] Popular games failed:', response.status, response.statusText)
+        return this.getMockGames()
       }
-      
-      const data = await response.json()
-      console.log('🎮 Game details API response (background):', data.background_image ? 'Found' : 'Not found')
-      
-      return data
+
+      const games: IGDBGame[] = await response.json()
+      console.log(`🎮 [IGDB] Retrieved ${games.length} popular games`)
+
+      return games
+
     } catch (error) {
-      console.error('🎮 Error fetching RAWG game details:', error)
-      return null
+      console.error('🎮 [IGDB] Popular games error:', error)
+      return this.getMockGames()
     }
   }
-  
+
   /**
-   * Génère des images de fallback spécifiques selon le nom du jeu
+   * 🆕 Obtenir les nouveaux jeux avec covers
    */
-  private generateGameSpecificFallbacks(gameName: string): IGDBGameImage[] {
-    console.log('🎮 Generating game-specific fallbacks for:', gameName)
-    
-    // Créer un hash simple du nom pour avoir des images cohérentes par jeu
-    const gameHash = gameName.toLowerCase().split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0)
-      return a & a
-    }, 0)
-    
-    const imageIndex = Math.abs(gameHash) % 4
-    
-    // Différentes collections d'images gaming selon le hash
-    const imageSets = [
-      // Set 1: Gaming setup
-      [
-        'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&h=450&fit=crop&q=80'
-      ],
-      // Set 2: Gaming art
-      [
-        'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1556065808-f644d4d28847?w=800&h=450&fit=crop&q=80'
-      ],
-      // Set 3: Esports
-      [
-        'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1560253023-3ec5d502959f?w=800&h=450&fit=crop&q=80'
-      ],
-      // Set 4: Controllers and devices
-      [
-        'https://images.unsplash.com/photo-1586182987320-4f376d39d787?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1607853202273-797f1c22a38e?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1612198188060-c7c2a3b66eae?w=800&h=450&fit=crop&q=80'
-      ]
+  async getNewReleases(limit: number = 20): Promise<IGDBGame[]> {
+    try {
+      if (!this.clientId || !this.accessToken) {
+        return this.getMockGames()
+      }
+
+      // Jeux sortis dans les 6 derniers mois
+      const sixMonthsAgo = Math.floor((Date.now() - (6 * 30 * 24 * 60 * 60 * 1000)) / 1000)
+
+      const requestBody = `
+        fields name, cover.image_id, first_release_date, genres, rating, rating_count, summary;
+        where cover != null & first_release_date > ${sixMonthsAgo};
+        sort first_release_date desc;
+        limit ${limit};
+      `.trim()
+
+      console.log('🎮 [IGDB] Fetching new releases...')
+
+      const response = await fetch(`${IGDB_BASE_URL}/games`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: requestBody
+      })
+
+      if (!response.ok) {
+        console.error('🎮 [IGDB] New releases failed:', response.status, response.statusText)
+        return this.getMockGames()
+      }
+
+      const games: IGDBGame[] = await response.json()
+      console.log(`🎮 [IGDB] Retrieved ${games.length} new releases`)
+
+      return games
+
+    } catch (error) {
+      console.error('🎮 [IGDB] New releases error:', error)
+      return this.getMockGames()
+    }
+  }
+
+  /**
+   * 🔄 Convertir un jeu IGDB vers notre format d'application
+   */
+  convertToAppFormat(game: IGDBGame): any {
+    const releaseYear = game.first_release_date 
+      ? new Date(game.first_release_date * 1000).getFullYear()
+      : new Date().getFullYear()
+
+    // 🎯 UTILISER L'IMAGE COVER PORTRAIT IGDB (3:4 ratio)
+    const coverImageUrl = game.cover?.image_id 
+      ? IGDBService.getCoverImageUrl(game.cover.image_id, 'cover_big')
+      : null
+
+    console.log(`🎮 [IGDB] Converting game: ${game.name}`)
+    console.log(`🎮 [IGDB] Cover image URL: ${coverImageUrl}`)
+
+    return {
+      id: `igdb-game-${game.id}`,
+      title: game.name,
+      name: game.name,
+      year: releaseYear,
+      image: coverImageUrl, // 🎯 IMAGE PORTRAIT 3:4
+      category: 'games' as const,
+      rating: game.rating ? Math.round(game.rating / 20) : 0, // Convertir 0-100 vers 0-5
+      genre: 'Game', // IGDB genres nécessitent un autre appel API
+      developer: 'Game Studio', // IGDB developers nécessitent un autre appel API
+      
+      // Données IGDB spécifiques
+      igdbId: game.id,
+      summary: game.summary,
+      firstReleaseDate: game.first_release_date,
+      ratingCount: game.rating_count,
+      coverImageId: game.cover?.image_id
+    }
+  }
+
+  /**
+   * 📊 Données mockées de fallback
+   */
+  private getMockGames(): IGDBGame[] {
+    return [
+      {
+        id: 1942,
+        name: 'The Witcher 3: Wild Hunt',
+        cover: {
+          id: 89386,
+          image_id: 'co1wyy',
+          game: 1942,
+          height: 800,
+          width: 600,
+          url: '//images.igdb.com/igdb/image/upload/t_thumb/co1wyy.jpg',
+          checksum: 'cb1f9d8c-7b6d-4b9e-9c7a-8a5b6c9d0e1f'
+        },
+        first_release_date: 1431993600,
+        rating: 92.5,
+        rating_count: 3500,
+        summary: 'An open-world RPG adventure in a fantasy universe.'
+      },
+      {
+        id: 11208,
+        name: 'Cyberpunk 2077',
+        cover: {
+          id: 138825,
+          image_id: 'co2lbd',
+          game: 11208,
+          height: 800,
+          width: 600,
+          url: '//images.igdb.com/igdb/image/upload/t_thumb/co2lbd.jpg',
+          checksum: 'ab2c3d4e-5f6g-7h8i-9j0k-1l2m3n4o5p6q'
+        },
+        first_release_date: 1607558400,
+        rating: 78.2,
+        rating_count: 2800,
+        summary: 'An open-world action-adventure story set in Night City.'
+      }
     ]
-    
-    const selectedSet = imageSets[imageIndex]
-    
-    return selectedSet.map((url, index) => ({
-      url,
-      type: index === 0 ? 'cover' as const : 'screenshot' as const,
-      width: 800,
-      height: 450
-    }))
   }
 
+  /**
+   * 🧪 Tester la connexion à l'API
+   */
+  async testConnection(): Promise<{ success: boolean, message: string }> {
+    try {
+      if (!this.clientId || !this.accessToken) {
+        return {
+          success: false,
+          message: 'IGDB credentials not configured'
+        }
+      }
+
+      const response = await fetch(`${IGDB_BASE_URL}/games`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: 'fields name; limit 1;'
+      })
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: `IGDB API Error: ${response.status} ${response.statusText}`
+        }
+      }
+
+      const data = await response.json()
+
+      return {
+        success: true,
+        message: `IGDB connection successful! Retrieved ${data.length} test game(s)`
+      }
+
+    } catch (error) {
+      return {
+        success: false,
+        message: `IGDB connection failed: ${error}`
+      }
+    }
+  }
 }
 
 export const igdbService = new IGDBService()
+export default IGDBService
