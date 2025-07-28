@@ -1,4 +1,5 @@
 import { fetchWithCache } from '@/utils/apiCache'
+import SteamImageService from './steamImageService'
 
 const STEAMSPY_BASE_URL = 'https://steamspy.com/api.php'
 
@@ -52,8 +53,9 @@ class SteamSpyService {
     const ownersNumbers = ownersRange.split(' .. ')
     const minOwners = parseInt(ownersNumbers[0]?.replace(/,/g, '') || '0')
     
-    // Générer une image Steam (utilise l'appid)
-    const steamImageUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`
+    // 🎯 UTILISER LE FORMAT PORTRAIT POUR COHÉRENCE AVEC LES FILMS
+    const steamImageUrl = SteamImageService.getBestPortraitImage(appid)
+    console.log(`🎮 [Steam Images] Using portrait format for ${game.name}: ${steamImageUrl}`)
 
     return {
       id: `game-${appid}`,

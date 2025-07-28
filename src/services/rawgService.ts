@@ -1,4 +1,7 @@
 // src/services/rawgService.ts - VERSION COMPLÈTE CORRIGÉE POUR DÉVELOPPEURS
+import { getSimilarGameIds } from '@/data/similarGamesMapping'
+import SteamImageService from './steamImageService'
+
 export interface RAWGGame {
   id: number
   name: string
@@ -347,10 +350,51 @@ class RAWGService {
   }
 
   /**
-   * ✅ CONVERSION COMPLÈTEMENT RÉÉCRITE AVEC DÉVELOPPEUR CORRECT
+   * 🔍 Extraire Steam App ID depuis les stores RAWG
+   */
+  private extractSteamAppId(game: RAWGGame): string | null {
+    if (!game.stores) return null
+    
+    const steamStore = game.stores.find(store => 
+      store.store.name.toLowerCase().includes('steam') ||
+      store.url.includes('store.steampowered.com')
+    )
+    
+    if (steamStore?.url) {
+      // Extraire l'App ID depuis l'URL Steam
+      const steamUrlMatch = steamStore.url.match(/\/app\/(\d+)/)
+      if (steamUrlMatch) {
+        console.log(`🎮 [RAWG] Found Steam App ID for ${game.name}: ${steamUrlMatch[1]}`)
+        return steamUrlMatch[1]
+      }
+    }
+    
+    return null
+  }
+
+  /**
+   * 🎯 Obtenir la meilleure image possible (Steam portrait si dispo, sinon RAWG)
+   */
+  private getBestGameImage(game: RAWGGame): string {
+    // 1. Essayer d'obtenir une image Steam portrait
+    const steamAppId = this.extractSteamAppId(game)
+    if (steamAppId) {
+      const steamPortraitImage = SteamImageService.getBestPortraitImage(steamAppId)
+      console.log(`🎮 [RAWG] Using Steam portrait image for ${game.name}: ${steamPortraitImage}`)
+      return steamPortraitImage
+    }
+    
+    // 2. Fallback vers l'image RAWG background
+    console.log(`🎮 [RAWG] Using RAWG background image for ${game.name}`)
+    return game.background_image || ''
+  }
+
+  /**
+   * ✅ CONVERSION COMPLÈTEMENT RÉÉCRITE AVEC DÉVELOPPEUR CORRECT ET IMAGES AMÉLIORÉES
    */
   convertToAppFormat(game: RAWGGame): any {
     const developer = this.getCorrectDeveloper(game)
+    const bestImage = this.getBestGameImage(game)
     
     console.log('🎮 Converting game:', game.name, 'Developer:', developer)
     console.log('🎮 Raw developers array:', game.developers)
@@ -365,8 +409,8 @@ class RAWGService {
       rating: game.rating || 0,
       genre: game.genres?.[0]?.name || 'Unknown',
       category: 'games' as const,
-      image: game.background_image,
-      background_image: game.background_image,
+      image: bestImage,       // 🎯 IMAGE AMÉLIORÉE
+      background_image: game.background_image, // Préserver l'original
       released: game.released,
       
       // ✅ PRÉSERVER TOUTES LES DONNÉES API
@@ -388,8 +432,261 @@ class RAWGService {
     }
   }
 
-  async getSimilarGames(game: RAWGGame, limit: number = 6): Promise<RAWGGame[]> {
-    return []
+  /**
+   * Get games similar to the current game using multiple strategies
+   */
+  async getSimilarGames(gameId: string | number, limit: number = 6): Promise<RAWGGame[]> {
+    console.log(`🎮 [Similar Games] Fetching similar games for gameId: ${gameId}`)
+    
+    try {
+      // Clean gameId if it comes with 'game-' prefix
+      let cleanGameId = gameId.toString()
+      if (cleanGameId.startsWith('game-')) {
+        cleanGameId = cleanGameId.replace('game-', '')
+      }
+      
+      // Strategy 1: Check manual mapping first
+      const mappedSimilarIds = getSimilarGameIds(cleanGameId)
+      if (mappedSimilarIds.length > 0) {
+        console.log(`🎮 [Similar Games] Found ${mappedSimilarIds.length} games in manual mapping`)
+        
+        // Fetch details for each mapped game
+        const similarGames: RAWGGame[] = []
+        for (const similarId of mappedSimilarIds.slice(0, limit)) {
+          try {
+            const game = await this.getGameDetails(similarId)
+            if (game) {
+              similarGames.push(game)
+              console.log(`🎮 [Similar Games] ✅ Loaded: ${game.name}`)
+            }
+          } catch (err) {
+            console.log(`🎮 [Similar Games] Failed to load game ${similarId}`)
+          }
+        }
+        
+        if (similarGames.length > 0) {
+          console.log(`🎮 [Similar Games] Successfully loaded ${similarGames.length} games from mapping`)
+          return similarGames
+        }
+      }
+      
+      // RAWG API endpoint for game suggestions/similar games
+      // Note: RAWG's /suggested endpoint provides games that are similar based on their algorithm
+      const url = `${this.baseURL}/games/${cleanGameId}/suggested?key=${this.apiKey}&page_size=${limit}`
+      console.log(`🎮 [Similar Games] API URL: ${url}`)
+      
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        console.log(`🎮 [Similar Games] API error: ${response.status}`)
+        
+        // If the suggestions endpoint fails, try searching by genre/tags
+        return await this.fallbackSimilarGames(cleanGameId, limit)
+      }
+      
+      const data = await response.json()
+      console.log(`🎮 [Similar Games] Found ${data.results?.length || 0} similar games`)
+      
+      if (!data.results || data.results.length === 0) {
+        console.log(`🎮 [Similar Games] No results from suggestions, trying fallback...`)
+        return await this.fallbackSimilarGames(cleanGameId, limit)
+      }
+      
+      // Log similar games for debugging
+      console.log(`🎮 [Similar Games] Full response:`, {
+        count: data.count,
+        next: data.next,
+        previous: data.previous,
+        numberOfResults: data.results?.length || 0
+      })
+      
+      data.results.forEach((game: RAWGGame, index: number) => {
+        console.log(`🎮 [Similar Games] ${index + 1}. ${game.name} (${game.released ? new Date(game.released).getFullYear() : 'TBA'})`)
+      })
+      
+      // Special logging for Minami Lane to debug
+      if (cleanGameId === '871520' || data.results?.some((g: any) => g.name.toLowerCase().includes('minami lane'))) {
+        console.log('🎮 [Similar Games] Special debug for Minami Lane - full first result:', data.results?.[0])
+      }
+      
+      return data.results || []
+      
+    } catch (error) {
+      console.error(`🎮 [Similar Games] Error fetching similar games:`, error)
+      return await this.fallbackSimilarGames(gameId.toString().replace('game-', ''), limit)
+    }
+  }
+  
+  /**
+   * Intelligent fallback method to find truly similar games
+   */
+  private async fallbackSimilarGames(gameId: string, limit: number = 6): Promise<RAWGGame[]> {
+    console.log(`🎮 [Similar Games] Using intelligent fallback for gameId: ${gameId}`)
+    
+    try {
+      // Get the current game details
+      const gameDetails = await this.getGameDetails(gameId)
+      
+      if (!gameDetails) {
+        console.log(`🎮 [Similar Games] Could not get game details for fallback`)
+        return []
+      }
+      
+      console.log(`🎮 [Similar Games] Analyzing game:`, {
+        name: gameDetails.name,
+        genres: gameDetails.genres?.map(g => g.name),
+        tags: gameDetails.tags?.slice(0, 10).map(t => t.name)
+      })
+      
+      // Special handling for specific types of games based on their characteristics
+      const gameName = gameDetails.name.toLowerCase()
+      const genres = gameDetails.genres?.map(g => g.name.toLowerCase()) || []
+      const tags = gameDetails.tags?.map(t => t.name.toLowerCase()) || []
+      
+      // Identify game type based on tags and genres
+      const isManagementGame = tags.some(t => t.includes('management') || t.includes('building') || t.includes('tycoon'))
+      const isIndieGame = genres.includes('indie') || tags.includes('indie')
+      const isCasualGame = genres.includes('casual') || tags.includes('casual')
+      const isSimulation = genres.includes('simulation')
+      const is2D = tags.includes('2d')
+      const isRelaxing = tags.includes('relaxing') || tags.includes('cute') || tags.includes('colorful')
+      
+      let searchParams: string[] = [`key=${this.apiKey}`]
+      
+      // Build intelligent search based on game type
+      if (isManagementGame && isIndieGame) {
+        // For indie management games like Minami Lane
+        console.log(`🎮 [Similar Games] Searching for indie management/building games`)
+        
+        // Use specific tags that match this game type
+        const relevantTags = ['management', 'building', 'city-builder', 'tycoon', 'economy', 'sandbox']
+        const matchingTags = tags.filter(t => relevantTags.some(rt => t.includes(rt)))
+        
+        if (matchingTags.length > 0) {
+          searchParams.push(`tags=${matchingTags.slice(0, 2).join(',')}`)
+        } else {
+          searchParams.push('tags=management,building')
+        }
+        
+        // Add indie genre filter
+        searchParams.push('genres=indie')
+        
+        // Prioritize newer indie games
+        searchParams.push('ordering=-added')
+        searchParams.push('page_size=30') // Get more to filter
+        
+      } else if (isSimulation && isCasualGame) {
+        // For casual simulation games
+        console.log(`🎮 [Similar Games] Searching for casual simulation games`)
+        searchParams.push('genres=simulation,casual')
+        searchParams.push('ordering=-rating')
+        searchParams.push('page_size=20')
+        
+      } else {
+        // Generic fallback using main genre and specific tags
+        console.log(`🎮 [Similar Games] Using generic search`)
+        
+        // Use the most specific genre
+        if (gameDetails.genres && gameDetails.genres.length > 0) {
+          const genreQuery = gameDetails.genres.slice(0, 2).map(g => g.slug).join(',')
+          searchParams.push(`genres=${genreQuery}`)
+        }
+        
+        // Use meaningful tags (avoid generic ones like "Singleplayer", "Steam Achievements")
+        const meaningfulTags = tags.filter(t => 
+          !t.includes('steam') && 
+          !t.includes('singleplayer') && 
+          !t.includes('achievements') &&
+          !t.includes('cloud') &&
+          !t.includes('controller')
+        ).slice(0, 3)
+        
+        if (meaningfulTags.length > 0) {
+          searchParams.push(`tags=${meaningfulTags.join(',')}`)
+        }
+        
+        searchParams.push('ordering=-added')
+        searchParams.push('page_size=20')
+      }
+      
+      // Add metacritic filter for quality (but not too high for indie games)
+      if (isIndieGame) {
+        searchParams.push('metacritic=60,100')
+      } else {
+        searchParams.push('metacritic=70,100')
+      }
+      
+      const searchUrl = `${this.baseURL}/games?${searchParams.join('&')}`
+      console.log(`🎮 [Similar Games] Intelligent search URL: ${searchUrl}`)
+      
+      const response = await fetch(searchUrl)
+      
+      if (!response.ok) {
+        console.log(`🎮 [Similar Games] Search failed: ${response.status}`)
+        return []
+      }
+      
+      const data = await response.json()
+      
+      if (!data.results || data.results.length === 0) {
+        console.log(`🎮 [Similar Games] No results found`)
+        return []
+      }
+      
+      // Filter and score games based on similarity
+      const scoredGames = data.results
+        .filter((game: RAWGGame) => game.id.toString() !== gameId)
+        .map((game: RAWGGame) => {
+          let score = 0
+          
+          // Score based on matching genres
+          const gameGenres = game.genres?.map(g => g.name.toLowerCase()) || []
+          genres.forEach(genre => {
+            if (gameGenres.includes(genre)) score += 10
+          })
+          
+          // Score based on matching tags (more specific tags get higher scores)
+          const gameTags = game.tags?.map(t => t.name.toLowerCase()) || []
+          tags.forEach(tag => {
+            if (gameTags.includes(tag)) {
+              // Higher score for more specific tags
+              if (['management', 'building', 'tycoon', 'city-builder'].includes(tag)) {
+                score += 15
+              } else if (['2d', 'isometric', 'cute', 'colorful', 'relaxing'].includes(tag)) {
+                score += 8
+              } else {
+                score += 3
+              }
+            }
+          })
+          
+          // Bonus for indie games if original is indie
+          if (isIndieGame && gameGenres.includes('indie')) {
+            score += 5
+          }
+          
+          // Penalty for AAA games if original is indie
+          if (isIndieGame && game.rating_count > 10000) {
+            score -= 10
+          }
+          
+          return { ...game, similarityScore: score }
+        })
+        .sort((a, b) => b.similarityScore - a.similarityScore)
+        .slice(0, limit)
+      
+      console.log(`🎮 [Similar Games] Found ${scoredGames.length} similar games after intelligent filtering`)
+      
+      scoredGames.forEach((game: any, index: number) => {
+        console.log(`🎮 [Similar Games] ${index + 1}. ${game.name} (Score: ${game.similarityScore})`)
+      })
+      
+      return scoredGames
+      
+    } catch (error) {
+      console.error(`🎮 [Similar Games] Intelligent fallback error:`, error)
+      return []
+    }
   }
 }
 
