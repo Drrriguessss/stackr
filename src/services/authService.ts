@@ -71,7 +71,7 @@ export class AuthService {
   /**
    * 📝 Inscription avec email/mot de passe
    */
-  static async signUpWithEmail(email: string, password: string, fullName?: string): Promise<{ user: AuthUser | null, error: string | null }> {
+  static async signUpWithEmail(email: string, password: string, fullName?: string): Promise<{ user: AuthUser | null, error: string | null, needsEmailConfirmation?: boolean }> {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -79,12 +79,23 @@ export class AuthService {
         options: {
           data: {
             full_name: fullName || email.split('@')[0]
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       })
 
       if (error) {
         return { user: null, error: error.message }
+      }
+
+      // Vérifier si l'utilisateur doit confirmer son email
+      if (data.user && !data.session) {
+        console.log('📧 Email confirmation required')
+        return { 
+          user: null, 
+          error: null,
+          needsEmailConfirmation: true
+        }
       }
 
       if (data.user) {

@@ -45,9 +45,15 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           }, 1000)
         }
       } else if (mode === 'signup') {
-        const { user, error } = await AuthService.signUpWithEmail(email, password, fullName)
+        const { user, error, needsEmailConfirmation } = await AuthService.signUpWithEmail(email, password, fullName)
         if (error) {
           setError(error)
+        } else if (needsEmailConfirmation) {
+          setSuccessMessage('Compte créé! Vérifiez votre email pour confirmer votre inscription.')
+          setTimeout(() => {
+            onClose()
+            resetForm()
+          }, 5000)
         } else if (user) {
           setSuccessMessage('Compte créé avec succès!')
           setTimeout(() => {
@@ -176,6 +182,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 Continuer avec Google
               </button>
 
+              {/* Apple Login - Nécessite un compte développeur Apple payant ($99/an)
               <button
                 onClick={() => handleOAuthProvider('apple')}
                 disabled={isLoading}
@@ -186,7 +193,9 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 </svg>
                 Continuer avec Apple
               </button>
+              */}
 
+              {/* Facebook Login - Désactivé (nécessite Business Verification)
               <button
                 onClick={() => handleOAuthProvider('facebook')}
                 disabled={isLoading}
@@ -197,6 +206,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 </svg>
                 Continuer avec Facebook
               </button>
+              */}
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
