@@ -28,7 +28,10 @@
       "WebFetch(domain:steamcdn-a.akamaihd.net)",
       "WebFetch(domain:rawg.io)",
       "WebFetch(domain:api-docs.igdb.com)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(mkdir:*)",
+      "Bash(pkill:*)",
+      "Bash(true)"
     ],
     "deny": []
   }

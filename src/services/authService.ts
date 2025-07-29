@@ -153,17 +153,33 @@ export class AuthService {
    */
   static async signInWithFacebook(): Promise<{ error: string | null }> {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log('🔍 Facebook OAuth - Redirect URL:', `${window.location.origin}/auth/callback`)
+      console.log('📍 Current origin:', window.location.origin)
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          skipBrowserRedirect: true // Temporairement pour voir l'URL
         }
       })
 
       if (error) {
+        console.error('❌ Facebook OAuth Error:', error)
         return { error: error.message }
       }
 
+      if (data?.url) {
+        console.log('🔗 Facebook OAuth URL:', data.url)
+        // Analyser l'URL pour débugger
+        const url = new URL(data.url)
+        console.log('📊 OAuth params:', Object.fromEntries(url.searchParams))
+        
+        // Rediriger manuellement
+        window.location.href = data.url
+      }
+
+      console.log('✅ Facebook OAuth initiated successfully')
       return { error: null }
     } catch (error) {
       return { error: (error as Error).message }

@@ -1,177 +1,55 @@
-// src/app/auth/callback/page.tsx - Page de callback OAuth
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AuthService } from '@/services/authService'
 import { supabase } from '@/lib/supabase'
 
 export default function AuthCallback() {
   const router = useRouter()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [message, setMessage] = useState('')
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
+    const handleCallback = async () => {
       try {
-        console.log('🔔 [Callback] Starting auth callback processing...')
-        console.log('🔔 [Callback] Current URL:', window.location.href)
-        console.log('🔔 [Callback] Hash fragment:', window.location.hash)
-        console.log('🔔 [Callback] Search params:', window.location.search)
-        
-        // Vérifier si on a des paramètres OAuth dans l'URL
-        const hashParams = new URLSearchParams(window.location.hash.substring(1))
-        const searchParams = new URLSearchParams(window.location.search)
-        
-        console.log('🔔 [Callback] Hash params:', [...hashParams.entries()])
-        console.log('🔔 [Callback] Search params:', [...searchParams.entries()])
-        
-        // Vérifier si on a des tokens OAuth dans le hash
-        if (hashParams.has('access_token')) {
-          console.log('🔔 [Callback] OAuth tokens found in URL hash!')
-          
-          // Extraire les tokens
-          const accessToken = hashParams.get('access_token')
-          const refreshToken = hashParams.get('refresh_token')
-          
-          if (accessToken && refreshToken) {
-            console.log('🔔 [Callback] Setting session with tokens...')
-            
-            // Définir manuellement la session avec les tokens
-            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken
-            })
-            
-            if (sessionError) {
-              console.error('🔔 [Callback] Error setting session:', sessionError)
-              setStatus('error')
-              setMessage('Erreur lors de l\'établissement de la session.')
-              setTimeout(() => router.push('/'), 3000)
-              return
-            }
-            
-            if (sessionData.user) {
-              console.log('🔔 [Callback] Session established successfully:', sessionData.user.email)
-              setStatus('success')
-              setMessage('Connexion réussie! Redirection en cours...')
-              setTimeout(() => router.push('/'), 1000)
-              return
-            }
-          }
-        }
-        
-        // Fallback: essayer la méthode automatique
-        console.log('🔔 [Callback] Trying automatic session detection...')
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        const { data, error } = await supabase.auth.getSession()
+        // Récupérer la session depuis l'URL
+        const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
-          console.error('🔔 [Callback] Session error:', error)
-          setStatus('error')
-          setMessage('Erreur lors de la récupération de la session.')
-          
-          setTimeout(() => {
-            router.push('/')
-          }, 3000)
+          console.error('Auth callback error:', error)
+          router.push('/?error=auth_failed')
           return
         }
 
-        if (data.session?.user) {
-          console.log('🔔 [Callback] User authenticated:', data.session.user.email)
-          setStatus('success')
-          setMessage('Connexion réussie! Redirection en cours...')
-          
-          // Rediriger vers la page principale après 1 seconde
-          setTimeout(() => {
-            router.push('/')
-          }, 1000)
+        if (session) {
+          console.log('✅ Authentication successful!')
+          // Rediriger vers la page principale après connexion réussie
+          router.push('/')
         } else {
-          console.log('🔔 [Callback] No session found, retrying...')
+          // Si pas de session, essayer de récupérer depuis l'URL
+          const hashParams = new URLSearchParams(window.location.hash.substring(1))
+          const accessToken = hashParams.get('access_token')
           
-          // Retry après un délai pour laisser le temps à Supabase
-          setTimeout(async () => {
-            const user = await AuthService.getCurrentUser()
-            if (user) {
-              console.log('🔔 [Callback] User found on retry:', user.email)
-              setStatus('success')
-              setMessage('Connexion réussie! Redirection en cours...')
-              setTimeout(() => router.push('/'), 1000)
-            } else {
-              console.log('🔔 [Callback] Still no user found')
-              setStatus('error')
-              setMessage('Erreur lors de la connexion. Veuillez réessayer.')
-              setTimeout(() => router.push('/'), 3000)
-            }
-          }, 1000)
+          if (accessToken) {
+            console.log('✅ Token found, authentication successful!')
+            router.push('/')
+          } else {
+            console.error('No session or token found')
+            router.push('/?error=no_session')
+          }
         }
       } catch (error) {
-        console.error('❌ [Callback] Auth callback error:', error)
-        setStatus('error')
-        setMessage('Une erreur inattendue s\'est produite.')
-        
-        setTimeout(() => {
-          router.push('/')
-        }, 3000)
+        console.error('Callback error:', error)
+        router.push('/?error=callback_error')
       }
     }
 
-    handleAuthCallback()
+    handleCallback()
   }, [router])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
-        {status === 'loading' && (
-          <>
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <h1 className="text-xl font-semibold text-gray-900 mb-2">
-              Finalisation de la connexion
-            </h1>
-            <p className="text-gray-600">
-              Veuillez patienter pendant que nous finalisons votre connexion...
-            </p>
-          </>
-        )}
-
-        {status === 'success' && (
-          <>
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h1 className="text-xl font-semibold text-green-900 mb-2">
-              Connexion réussie!
-            </h1>
-            <p className="text-green-700">
-              {message}
-            </p>
-          </>
-        )}
-
-        {status === 'error' && (
-          <>
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <h1 className="text-xl font-semibold text-red-900 mb-2">
-              Erreur de connexion
-            </h1>
-            <p className="text-red-700 mb-4">
-              {message}
-            </p>
-            <button
-              onClick={() => router.push('/')}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Retour à l'accueil
-            </button>
-          </>
-        )}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Connexion en cours...</p>
       </div>
     </div>
   )

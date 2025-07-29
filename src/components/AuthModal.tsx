@@ -78,6 +78,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
   const handleOAuthProvider = async (provider: 'google' | 'apple' | 'facebook') => {
     setIsLoading(true)
     setError(null)
+    console.log(`🔐 Starting ${provider} OAuth...`)
 
     try {
       let result
@@ -94,13 +95,16 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
       }
 
       if (result.error) {
+        console.error(`❌ ${provider} OAuth error:`, result.error)
         setError(result.error)
       } else {
+        console.log(`✅ ${provider} OAuth redirect initiated`)
         // OAuth redirect en cours, fermer la modal
         onClose()
         resetForm()
       }
     } catch (err) {
+      console.error(`❌ ${provider} OAuth exception:`, err)
       setError('Erreur de connexion avec ' + provider)
     } finally {
       setIsLoading(false)
