@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Tag, Globe, Check, Share2, ChevronDown, ChevronUp, Play, User } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
+import { igdbService } from '@/services/igdbService'
 
 interface GameDetailPageV2Props {
   isOpen: boolean
@@ -61,6 +62,8 @@ export default function GameDetailPageV2({
   const [developerGames, setDeveloperGames] = useState<any[]>([])
   const [similarGamesLoading, setSimilarGamesLoading] = useState(true)
   const [showShareOptions, setShowShareOptions] = useState(false)
+  const [gameImages, setGameImages] = useState<any[]>([])
+  const [imagesLoading, setImagesLoading] = useState(false)
   
   // Expanded sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -87,6 +90,8 @@ export default function GameDetailPageV2({
       setSimilarGames([])
       setDeveloperGames([])
       setSimilarGamesLoading(true)
+      setGameImages([])
+      setImagesLoading(false)
       setExpandedSections({
         whereToPlay: false,
         developer: false,
@@ -157,6 +162,9 @@ export default function GameDetailPageV2({
       const data = await response.json()
       setGameDetail(data)
       
+      // Fetch real images using igdbService
+      await fetchGameImages(rawgId, data.name)
+      
       // Fetch similar games and developer games
       if (data.genres && data.genres.length > 0) {
         await fetchSimilarGames(data.genres[0].id, data.id)
@@ -172,6 +180,28 @@ export default function GameDetailPageV2({
       setGameDetail(null)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchGameImages = async (rawgId: string, gameName: string) => {
+    try {
+      setImagesLoading(true)
+      console.log('🖼️ Fetching images for:', gameName, 'ID:', rawgId)
+      
+      const gallery = await igdbService.getGameImages(rawgId, gameName)
+      
+      if (gallery.success && gallery.images.length > 0) {
+        setGameImages(gallery.images)
+        console.log('🖼️ Successfully loaded', gallery.images.length, 'images')
+      } else {
+        console.log('🖼️ No images found, keeping empty array')
+        setGameImages([])
+      }
+    } catch (error) {
+      console.error('🖼️ Error fetching game images:', error)
+      setGameImages([])
+    } finally {
+      setImagesLoading(false)
     }
   }
 
@@ -395,19 +425,19 @@ export default function GameDetailPageV2({
             <div ref={scrollableRef} className="flex-1 overflow-y-auto">
               {activeTab === 'overview' && (
                 <div className="p-6 space-y-6">
-                  {/* Media Section - Trailer/Screenshots */}
-                  {gameDetail.screenshots && gameDetail.screenshots.length > 0 && (
+                  {/* Media Section - Real Images from RAWG */}
+                  {gameImages.length > 0 && (
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Media</h3>
                       <div className="flex space-x-4 overflow-x-auto pb-2">
-                        {gameDetail.screenshots.slice(0, 6).map((screenshot, index) => (
+                        {gameImages.slice(0, 6).map((image, index) => (
                           <div key={index} className="relative flex-shrink-0 group">
                             <img
-                              src={screenshot.image}
-                              alt={`Screenshot ${index + 1}`}
+                              src={image.url}
+                              alt={`${image.type === 'cover' ? 'Cover' : 'Screenshot'} ${index + 1}`}
                               className="w-60 h-32 object-cover rounded-lg border border-gray-200 group-hover:opacity-90 transition-opacity cursor-pointer"
                             />
-                            {index === 0 && (
+                            {index === 0 && image.type === 'cover' && (
                               <div className="absolute inset-0 bg-black/30 rounded-lg flex items-center justify-center">
                                 <Play size={24} className="text-white" />
                               </div>
