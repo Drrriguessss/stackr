@@ -237,6 +237,9 @@ export class AuthService {
   static async isAuthenticated(): Promise<boolean> {
     try {
       const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        console.log('🔍 User authenticated:', session.user.email || session.user.id)
+      }
       return !!session?.user
     } catch {
       return false
