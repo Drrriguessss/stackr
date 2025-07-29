@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Star, ExternalLink, Tag, Globe, Check, Share2, ChevronDown, ChevronUp, Play, User } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
-import { igdbService } from '@/services/igdbService'
+// igdbService ne contient plus getGameImages, nous utilisons directement l'API RAWG
 
 interface GameDetailPageV2Props {
   isOpen: boolean
@@ -186,23 +186,99 @@ export default function GameDetailPageV2({
   const fetchGameImages = async (rawgId: string, gameName: string) => {
     try {
       setImagesLoading(true)
-      console.log('🖼️ Fetching images for:', gameName, 'ID:', rawgId)
+      console.log('🖼️ Fetching RAWG screenshots for:', gameName, 'ID:', rawgId)
       
-      const gallery = await igdbService.getGameImages(rawgId, gameName)
+      const images: any[] = []
       
-      if (gallery.success && gallery.images.length > 0) {
-        setGameImages(gallery.images)
-        console.log('🖼️ Successfully loaded', gallery.images.length, 'images')
-      } else {
-        console.log('🖼️ No images found, keeping empty array')
-        setGameImages([])
+      // 1. Récupérer les screenshots depuis RAWG
+      const screenshotsResponse = await fetch(
+        `https://api.rawg.io/api/games/${rawgId}/screenshots?key=${RAWG_API_KEY}`
+      )
+      
+      if (screenshotsResponse.ok) {
+        const screenshotsData = await screenshotsResponse.json()
+        console.log('🖼️ RAWG screenshots response:', screenshotsData?.results?.length || 0, 'screenshots')
+        
+        if (screenshotsData?.results && screenshotsData.results.length > 0) {
+          screenshotsData.results.slice(0, 6).forEach((screenshot: any) => {
+            images.push({
+              url: screenshot.image,
+              type: 'screenshot',
+              width: screenshot.width || 1920,
+              height: screenshot.height || 1080
+            })
+          })
+        }
       }
+      
+      // 2. Si on a des images, les utiliser
+      if (images.length > 0) {
+        setGameImages(images)
+        console.log('🖼️ ✅ Successfully loaded', images.length, 'real screenshots')
+      } else {
+        console.log('🖼️ ⚠️ No screenshots found, using fallback images')
+        // Fallback avec images génériques mais différentes selon le jeu
+        const fallbackImages = generateGameSpecificFallbacks(gameName)
+        setGameImages(fallbackImages)
+      }
+      
     } catch (error) {
       console.error('🖼️ Error fetching game images:', error)
-      setGameImages([])
+      // En cas d'erreur, utiliser des fallbacks
+      const fallbackImages = generateGameSpecificFallbacks(gameName)
+      setGameImages(fallbackImages)
     } finally {
       setImagesLoading(false)
     }
+  }
+
+  const generateGameSpecificFallbacks = (gameName: string) => {
+    console.log('🖼️ Generating fallbacks for:', gameName)
+    
+    // Créer un hash simple du nom pour avoir des images cohérentes par jeu
+    const gameHash = gameName.toLowerCase().split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0)
+      return a & a
+    }, 0)
+    
+    const imageIndex = Math.abs(gameHash) % 4
+    
+    // Différentes collections d'images gaming selon le hash
+    const imageSets = [
+      // Set 1: Gaming setup
+      [
+        'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&h=450&fit=crop&q=80'
+      ],
+      // Set 2: Gaming art
+      [
+        'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=450&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=800&h=450&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1556065808-f644d4d28847?w=800&h=450&fit=crop&q=80'
+      ],
+      // Set 3: Esports
+      [
+        'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=450&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=450&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1560253023-3ec5d502959f?w=800&h=450&fit=crop&q=80'
+      ],
+      // Set 4: Controllers and devices
+      [
+        'https://images.unsplash.com/photo-1586182987320-4f376d39d787?w=800&h=450&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1607853202273-797f1c22a38e?w=800&h=450&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1612198188060-c7c2a3b66eae?w=800&h=450&fit=crop&q=80'
+      ]
+    ]
+    
+    const selectedSet = imageSets[imageIndex]
+    
+    return selectedSet.map((url, index) => ({
+      url,
+      type: index === 0 ? 'cover' : 'screenshot',
+      width: 800,
+      height: 450
+    }))
   }
 
   const fetchSimilarGames = async (genreId: number, excludeGameId: number) => {
