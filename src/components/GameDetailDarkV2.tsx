@@ -6,7 +6,7 @@ import { newTrailerService, type ValidatedTrailer } from '@/services/newTrailerS
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
 import { realGameReviewsService, type RealGameReview } from '@/services/realGameReviewsService'
 import { fetchWithCache, apiCache } from '@/utils/apiCache'
-import { igdbService, type IGDBGameGallery } from '@/services/igdbService'
+// igdbService ne contient plus getGameImages, nous utilisons directement l'API RAWG
 import { rawgService, type RAWGGame } from '@/services/rawgService'
 
 interface GameDetailDarkV2Props {
@@ -281,8 +281,7 @@ export default function GameDetailDarkV2({
   }
 
   const loadGameImages = async (gameId: string, gameName: string) => {
-    console.log('🖼️ === OPTION 2: TESTING IGDB API (SIMPLIFIED) ===')
-    console.log('🖼️ Loading images for:', gameName)
+    console.log('🖼️ Loading RAWG screenshots for:', gameName, 'ID:', gameId)
     
     setImagesLoading(true)
     try {
@@ -296,23 +295,39 @@ export default function GameDetailDarkV2({
         fallbackReason: trailer.fallbackReason
       })
       
-      // Récupérer les images via IGDB service
-      const igdbGallery = await igdbService.getGameImages(gameId, gameName)
-      console.log('🖼️ IGDB Gallery result:', igdbGallery)
+      // Récupérer les screenshots depuis RAWG directement
+      const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || '77fc098c19f74e3d9bd07989d15fa9b3'
+      const screenshotsResponse = await fetch(
+        `https://api.rawg.io/api/games/${gameId}/screenshots?key=${RAWG_API_KEY}`
+      )
       
-      if (igdbGallery.success && igdbGallery.images.length > 0) {
-        const imageUrls = igdbGallery.images.map(img => img.url)
-        console.log('🖼️ Setting images:', imageUrls)
-        setGameImages(imageUrls)
-        setCurrentImageIndex(0)
+      if (screenshotsResponse.ok) {
+        const screenshotsData = await screenshotsResponse.json()
+        console.log('🖼️ RAWG screenshots response:', screenshotsData?.results?.length || 0, 'screenshots')
+        
+        if (screenshotsData?.results && screenshotsData.results.length > 0) {
+          const imageUrls = screenshotsData.results.slice(0, 6).map((screenshot: any) => screenshot.image)
+          console.log('🖼️ ✅ Successfully loaded', imageUrls.length, 'real screenshots')
+          setGameImages(imageUrls)
+          setCurrentImageIndex(0)
+        } else {
+          console.log('🖼️ ⚠️ No screenshots found, using fallback')
+          // Fallback avec images directes
+          const fallbackImages = [
+            'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&h=450&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=450&fit=crop&q=80'
+          ]
+          setGameImages(fallbackImages)
+          setCurrentImageIndex(0)
+        }
       } else {
-        console.log('🖼️ No images, using fallback')
-        // Fallback avec images directes
+        console.log('🖼️ ❌ Screenshots API failed:', screenshotsResponse.status)
+        // Fallback en cas d'échec API
         const fallbackImages = [
           'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&h=450&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=450&fit=crop&q=80'
+          'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop&q=80'
         ]
         setGameImages(fallbackImages)
         setCurrentImageIndex(0)
