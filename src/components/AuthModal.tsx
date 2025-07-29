@@ -187,6 +187,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 Continuer avec Apple
               </button>
 
+              {/* Facebook login temporairement désactivé - Problème de scope email avec Supabase
               <button
                 onClick={() => handleOAuthProvider('facebook')}
                 disabled={isLoading}
@@ -197,6 +198,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 </svg>
                 Continuer avec Facebook
               </button>
+              */}
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">

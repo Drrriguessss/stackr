@@ -160,7 +160,7 @@ export class AuthService {
         provider: 'facebook',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          skipBrowserRedirect: true // Temporairement pour voir l'URL
+          skipBrowserRedirect: false
         }
       })
 
