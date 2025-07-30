@@ -6,6 +6,7 @@ import { omdbService } from '@/services/omdbService'
 import { imageService } from '@/services/imageService'
 import { trailerService } from '@/services/trailerService'
 import { userReviewsService } from '@/services/userReviewsService'
+import { getRealMovieReviews, type RealMovieReview } from '@/services/realMovieReviewsService'
 
 interface MovieDetailModalV3Props {
   isOpen: boolean
@@ -57,7 +58,7 @@ export default function MovieDetailModalV3({
   const [reviewPrivacy, setReviewPrivacy] = useState<'private' | 'public'>('private')
   const [showFullPlot, setShowFullPlot] = useState(false)
   const [directorMovies, setDirectorMovies] = useState<any[]>([])
-  const [movieReviews, setMovieReviews] = useState<any[]>([])
+  const [movieReviews, setMovieReviews] = useState<RealMovieReview[]>([])
   const [showAllReviews, setShowAllReviews] = useState(false)
   const [userPublicReviews, setUserPublicReviews] = useState<any[]>([])
   const [currentUserReview, setCurrentUserReview] = useState<any>(null)
@@ -188,53 +189,13 @@ export default function MovieDetailModalV3({
 
   const loadMovieReviews = async (movieTitle: string) => {
     try {
-      // Mock reviews since we don't have a real API
-      const mockReviews = [
-        {
-          id: 1,
-          author: 'MovieCritic2024',
-          rating: 4,
-          text: 'A masterpiece of cinema that captivates from start to finish. The cinematography is breathtaking and the performances are outstanding.',
-          platform: 'IMDb',
-          date: '2024-01-15'
-        },
-        {
-          id: 2,
-          author: 'FilmLover',
-          rating: 5,
-          text: 'Absolutely incredible! This movie sets a new standard for the genre. Every scene is perfectly crafted.',
-          platform: 'Letterboxd',
-          date: '2024-01-12'
-        },
-        {
-          id: 3,
-          author: 'CinemaFan',
-          rating: 4,
-          text: 'Great storytelling with exceptional character development. A must-watch for any film enthusiast.',
-          platform: 'Metacritic',
-          date: '2024-01-10'
-        },
-        {
-          id: 4,
-          author: 'ReviewGuru',
-          rating: 4,
-          text: 'Visually stunning and emotionally powerful. The director has outdone themselves with this masterpiece.',
-          platform: 'Rotten Tomatoes',
-          date: '2024-01-08'
-        },
-        {
-          id: 5,
-          author: 'MovieBuff',
-          rating: 5,
-          text: 'Perfect blend of entertainment and artistry. This film will be remembered for years to come.',
-          platform: 'TMDb',
-          date: '2024-01-05'
-        }
-      ]
-      
-      setMovieReviews(mockReviews)
+      console.log('📝 Loading real reviews for:', movieTitle)
+      const realReviews = await getRealMovieReviews(movieTitle)
+      setMovieReviews(realReviews)
+      console.log('📝 Loaded', realReviews.length, 'real reviews')
     } catch (error) {
       console.error('Error loading reviews:', error)
+      setMovieReviews([])
     }
   }
 
@@ -1195,9 +1156,9 @@ export default function MovieDetailModalV3({
                       </div>
                     ))}
 
-                    {/* Reviews mock ensuite */}
+                    {/* Real Reviews */}
                     {(showAllReviews ? movieReviews : movieReviews.slice(0, 3)).map((review) => (
-                      <div key={`mock-${review.id}`} className="bg-gray-800 rounded-lg p-4">
+                      <div key={`real-${review.id}`} className="bg-gray-800 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
                             <div className="w-6 h-6 bg-gradient-to-r from-[#FF6A00] to-[#FFB347] rounded-full flex items-center justify-center">
@@ -1206,7 +1167,10 @@ export default function MovieDetailModalV3({
                               </span>
                             </div>
                             <span className="text-white font-medium">{review.author}</span>
-                            <span className="text-white text-sm">• {review.platform}</span>
+                            {review.verified && (
+                              <span className="text-green-400 text-xs">✓ Verified</span>
+                            )}
+                            <span className="text-gray-400 text-sm">• {review.platform}</span>
                           </div>
                           <div className="flex">
                             {[1, 2, 3, 4, 5].map((star) => (
@@ -1222,8 +1186,13 @@ export default function MovieDetailModalV3({
                             ))}
                           </div>
                         </div>
-                        <p className="text-white text-sm">{review.text}</p>
-                        <span className="text-white text-xs mt-2 block">{review.date}</span>
+                        <p className="text-white text-sm leading-relaxed mb-2">{review.text}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 text-xs">{review.date}</span>
+                          {review.helpful && (
+                            <span className="text-gray-400 text-xs">👍 {review.helpful} helpful</span>
+                          )}
+                        </div>
                       </div>
                     ))}
                     
