@@ -6,7 +6,7 @@ import { omdbService } from '@/services/omdbService'
 import { imageService } from '@/services/imageService'
 import { trailerService } from '@/services/trailerService'
 import { userReviewsService } from '@/services/userReviewsService'
-import { getRealMovieReviews, type RealMovieReview } from '@/services/realMovieReviewsService'
+import { tmdbReviewsService, type ProcessedReview } from '@/services/tmdbReviewsService'
 
 interface MovieDetailModalV3Props {
   isOpen: boolean
@@ -58,8 +58,9 @@ export default function MovieDetailModalV3({
   const [reviewPrivacy, setReviewPrivacy] = useState<'private' | 'public'>('private')
   const [showFullPlot, setShowFullPlot] = useState(false)
   const [directorMovies, setDirectorMovies] = useState<any[]>([])
-  const [movieReviews, setMovieReviews] = useState<RealMovieReview[]>([])
+  const [movieReviews, setMovieReviews] = useState<ProcessedReview[]>([])
   const [showAllReviews, setShowAllReviews] = useState(false)
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set())
   const [userPublicReviews, setUserPublicReviews] = useState<any[]>([])
   const [currentUserReview, setCurrentUserReview] = useState<any>(null)
   const [showFriendsModal, setShowFriendsModal] = useState(false)
@@ -140,7 +141,7 @@ export default function MovieDetailModalV3({
       if (data) {
         await loadMedia(imdbId, data.Title)
         await loadDirectorMovies(data.Director)
-        await loadMovieReviews(data.Title)
+        await loadMovieReviews(data.Title, data.Year)
         await loadUserReviews(imdbId)
       }
     } catch (error) {
@@ -187,12 +188,12 @@ export default function MovieDetailModalV3({
     }
   }
 
-  const loadMovieReviews = async (movieTitle: string) => {
+  const loadMovieReviews = async (movieTitle: string, year?: string) => {
     try {
-      console.log('📝 Loading real reviews for:', movieTitle)
-      const realReviews = await getRealMovieReviews(movieTitle)
-      setMovieReviews(realReviews)
-      console.log('📝 Loaded', realReviews.length, 'real reviews')
+      console.log('📝 Loading TMDB reviews for:', movieTitle)
+      const tmdbReviews = await tmdbReviewsService.getMovieReviews(movieTitle, year)
+      setMovieReviews(tmdbReviews)
+      console.log('📝 Loaded', tmdbReviews.length, 'TMDB reviews')
     } catch (error) {
       console.error('Error loading reviews:', error)
       setMovieReviews([])
@@ -541,6 +542,18 @@ export default function MovieDetailModalV3({
 
   const removeMovieFromNight = (movieId: string) => {
     setMovieNightMovies(prev => prev.filter(m => m.id !== movieId))
+  }
+
+  const toggleReviewExpansion = (reviewId: string) => {
+    setExpandedReviews(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(reviewId)) {
+        newSet.delete(reviewId)
+      } else {
+        newSet.add(reviewId)
+      }
+      return newSet
+    })
   }
 
   const handleCreateMovieNight = () => {
@@ -1186,7 +1199,19 @@ export default function MovieDetailModalV3({
                             ))}
                           </div>
                         </div>
-                        <p className="text-white text-sm leading-relaxed mb-2">{review.text}</p>
+                        <div className="mb-2">
+                          <p className="text-white text-sm leading-relaxed">
+                            {expandedReviews.has(review.id) ? review.fullText : review.text}
+                          </p>
+                          {review.text !== review.fullText && (
+                            <button
+                              onClick={() => toggleReviewExpansion(review.id)}
+                              className="text-[#FF6A00] text-xs hover:underline mt-1"
+                            >
+                              {expandedReviews.has(review.id) ? 'See less' : 'See more'}
+                            </button>
+                          )}
+                        </div>
                         <div className="flex items-center justify-between">
                           <span className="text-gray-400 text-xs">{review.date}</span>
                           {review.helpful && (
