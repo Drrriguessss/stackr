@@ -928,15 +928,8 @@ export default function MovieDetailModalV3({
                 {(selectedStatus === 'currently-playing' || selectedStatus === 'completed') && (
                   <button
                     onClick={() => setShowProductSheet(true)}
-                    className={`py-2 px-4 rounded-lg font-medium text-white hover:opacity-90 transition flex items-center space-x-2 ${
-                      isProductSheetCompleted() 
-                        ? 'bg-gradient-to-r from-[#FF6A00] to-[#FFB347] border-2 border-transparent bg-clip-padding shadow-lg' 
-                        : 'bg-gray-800'
-                    }`}
+                    className="py-2 px-4 rounded-lg font-medium text-white hover:opacity-90 transition flex items-center space-x-2 bg-gray-800"
                     style={isProductSheetCompleted() ? {
-                      background: 'linear-gradient(to right, #FF6A00, #FFB347)',
-                      border: '2px solid transparent',
-                      backgroundClip: 'padding-box',
                       boxShadow: '0 0 0 2px #FF6A00, 0 4px 8px rgba(255, 106, 0, 0.3)'
                     } : {}}
                     title="Product Sheet"
@@ -1137,43 +1130,6 @@ export default function MovieDetailModalV3({
                 </div>
               )}
 
-              {/* Friends Placeholder Carousel */}
-              <div className="mb-6">
-                <h3 className="text-white font-medium mb-3">Friends Activity</h3>
-                <div className="flex space-x-4 overflow-x-auto pb-2">
-                  {[
-                    { name: 'Darren', avatar: 'D', rating: 4, status: 'completed' },
-                    { name: 'Maite', avatar: 'M', rating: 5, status: 'currently-playing' },
-                    { name: 'Joshua', avatar: 'J', rating: 3, status: 'want-to-play' }
-                  ].map((friend, index) => (
-                    <div key={index} className="flex-shrink-0 bg-gray-800 rounded-lg p-3 w-32">
-                      <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 bg-gradient-to-r from-[#FF6A00] to-[#FFB347] rounded-full flex items-center justify-center text-white font-medium mb-2">
-                          {friend.avatar}
-                        </div>
-                        <p className="text-white text-xs font-medium mb-1">{friend.name}</p>
-                        <div className="flex space-x-1 mb-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <div
-                              key={star}
-                              className={`w-2 h-2 rounded-full ${
-                                star <= friend.rating ? 'bg-[#FF6A00]' : 'bg-gray-600'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <p className="text-gray-400 text-xs capitalize">{friend.status.replace('-', ' ')}</p>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="flex-shrink-0 bg-gray-800/50 border-2 border-dashed border-gray-600 rounded-lg p-3 w-32">
-                    <div className="flex flex-col items-center justify-center h-full">
-                      <div className="text-gray-500 text-xl mb-1">+</div>
-                      <p className="text-gray-500 text-xs text-center">Add friends</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* Ratings */}
               {movieDetail.imdbRating && movieDetail.imdbRating !== 'N/A' && (
