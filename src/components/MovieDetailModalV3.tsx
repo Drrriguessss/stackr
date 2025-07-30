@@ -73,6 +73,7 @@ export default function MovieDetailModalV3({
   const [recommendMessage, setRecommendMessage] = useState('')
   const [selectedRecommendFriends, setSelectedRecommendFriends] = useState<any[]>([])
   const [recommendSearch, setRecommendSearch] = useState('')
+  const [showMoreShareOptions, setShowMoreShareOptions] = useState(false)
   const [showMovieNightModal, setShowMovieNightModal] = useState(false)
   const [movieNightName, setMovieNightName] = useState('')
   const [movieNightDate, setMovieNightDate] = useState('')
@@ -88,6 +89,7 @@ export default function MovieDetailModalV3({
   const [productSheetData, setProductSheetData] = useState({
     watchDate: '',
     platform: '',
+    cinemaType: '',
     friendsWatched: [] as any[],
     personalRating: 0,
     personalReview: '',
@@ -266,6 +268,9 @@ export default function MovieDetailModalV3({
       }
     }
     
+    // Synchroniser avec la fiche produit
+    setProductSheetData(prev => ({ ...prev, personalRating: rating }))
+    
     // Montrer la review box seulement pour un nouveau rating (pas pour une modification)
     if (!currentUserReview) {
       setShowReviewBox(true)
@@ -383,11 +388,17 @@ export default function MovieDetailModalV3({
   const toggleFriend = (friend: any) => {
     setSelectedFriends(prev => {
       const isSelected = prev.find(f => f.id === friend.id)
-      if (isSelected) {
-        return prev.filter(f => f.id !== friend.id)
-      } else {
-        return [...prev, friend]
-      }
+      const newFriends = isSelected 
+        ? prev.filter(f => f.id !== friend.id)
+        : [...prev, friend]
+      
+      // Synchroniser avec la fiche produit
+      setProductSheetData(prevData => ({ 
+        ...prevData, 
+        friendsWatched: newFriends 
+      }))
+      
+      return newFriends
     })
   }
 
@@ -552,6 +563,62 @@ export default function MovieDetailModalV3({
   const removeMovieFromNight = (movieId: string) => {
     setMovieNightMovies(prev => prev.filter(m => m.id !== movieId))
   }
+
+  // Fonctions pour la fiche produit
+  const saveProductSheet = () => {
+    if (movieDetail) {
+      const data = { ...productSheetData, movieId: movieDetail.imdbID }
+      localStorage.setItem(`productSheet_${movieDetail.imdbID}`, JSON.stringify(data))
+      
+      // Synchroniser le rating général avec le rating de la fiche produit
+      if (productSheetData.personalRating > 0) {
+        setUserRating(productSheetData.personalRating)
+        // Sauvegarder le rating dans la bibliothèque aussi
+        handleRatingClick(productSheetData.personalRating)
+      }
+      
+      // Synchroniser les amis - mettre à jour les selectedFriends si on a des amis dans la fiche
+      if (productSheetData.friendsWatched.length > 0) {
+        setSelectedFriends(productSheetData.friendsWatched)
+      }
+      
+      console.log('Product sheet saved:', data)
+      setShowProductSheet(false)
+    }
+  }
+
+  const loadProductSheet = () => {
+    if (movieDetail) {
+      const saved = localStorage.getItem(`productSheet_${movieDetail.imdbID}`)
+      if (saved) {
+        const data = JSON.parse(saved)
+        setProductSheetData(data)
+        
+        // Synchroniser les données avec la section générale
+        if (data.personalRating > 0) {
+          setUserRating(data.personalRating)
+        }
+        if (data.friendsWatched && data.friendsWatched.length > 0) {
+          setSelectedFriends(data.friendsWatched)
+        }
+      }
+    }
+  }
+
+  const isProductSheetCompleted = () => {
+    if (!movieDetail) return false
+    const saved = localStorage.getItem(`productSheet_${movieDetail.imdbID}`)
+    if (!saved) return false
+    const data = JSON.parse(saved)
+    return !!(data.watchDate && data.platform && data.personalRating > 0)
+  }
+
+  // Charger la fiche produit quand le film change
+  useEffect(() => {
+    if (movieDetail) {
+      loadProductSheet()
+    }
+  }, [movieDetail])
 
   const toggleReviewExpansion = (reviewId: string) => {
     setExpandedReviews(prev => {
@@ -834,14 +901,20 @@ export default function MovieDetailModalV3({
                   )}
                 </div>
 
-                {/* Product Sheet Button */}
-                <button
-                  onClick={() => setShowProductSheet(true)}
-                  className="py-2 px-4 rounded-lg font-medium text-white bg-gray-800 hover:opacity-90 transition flex items-center space-x-2"
-                  title="Fiche produit"
-                >
-                  <FileText size={16} />
-                </button>
+                {/* Product Sheet Button - Only show for currently-playing or completed */}
+                {(selectedStatus === 'currently-playing' || selectedStatus === 'completed') && (
+                  <button
+                    onClick={() => setShowProductSheet(true)}
+                    className={`py-2 px-4 rounded-lg font-medium text-white hover:opacity-90 transition flex items-center space-x-2 ${
+                      isProductSheetCompleted() 
+                        ? 'bg-gradient-to-r from-[#FF6A00] to-[#FFB347]' 
+                        : 'bg-gray-800'
+                    }`}
+                    title="Product Sheet"
+                  >
+                    <FileText size={16} />
+                  </button>
+                )}
 
                 {/* Share Button */}
                 <button
@@ -1028,21 +1101,43 @@ export default function MovieDetailModalV3({
                 </div>
               )}
 
-              {/* Your Friends' Reviews - Placeholder for future social feature */}
-              {(selectedStatus === 'currently-playing' || selectedStatus === 'completed') && (
-                <div className="mb-6">
-                  <h3 className="text-white font-medium mb-3">Your Friends' Reviews</h3>
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <div className="flex items-center justify-center py-8">
-                      <div className="text-center">
-                        <div className="text-gray-400 mb-2">👥</div>
-                        <p className="text-gray-400 text-sm mb-1">Connect with friends to see their reviews</p>
-                        <p className="text-gray-500 text-xs">Coming soon in social features</p>
+              {/* Friends Placeholder Carousel */}
+              <div className="mb-6">
+                <h3 className="text-white font-medium mb-3">Friends Activity</h3>
+                <div className="flex space-x-4 overflow-x-auto pb-2">
+                  {[
+                    { name: 'Darren', avatar: 'D', rating: 4, status: 'completed' },
+                    { name: 'Maite', avatar: 'M', rating: 5, status: 'currently-playing' },
+                    { name: 'Joshua', avatar: 'J', rating: 3, status: 'want-to-play' }
+                  ].map((friend, index) => (
+                    <div key={index} className="flex-shrink-0 bg-gray-800 rounded-lg p-3 w-32">
+                      <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 bg-gradient-to-r from-[#FF6A00] to-[#FFB347] rounded-full flex items-center justify-center text-white font-medium mb-2">
+                          {friend.avatar}
+                        </div>
+                        <p className="text-white text-xs font-medium mb-1">{friend.name}</p>
+                        <div className="flex space-x-1 mb-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <div
+                              key={star}
+                              className={`w-2 h-2 rounded-full ${
+                                star <= friend.rating ? 'bg-[#FF6A00]' : 'bg-gray-600'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-gray-400 text-xs capitalize">{friend.status.replace('-', ' ')}</p>
                       </div>
+                    </div>
+                  ))}
+                  <div className="flex-shrink-0 bg-gray-800/50 border-2 border-dashed border-gray-600 rounded-lg p-3 w-32">
+                    <div className="flex flex-col items-center justify-center h-full">
+                      <div className="text-gray-500 text-xl mb-1">+</div>
+                      <p className="text-gray-500 text-xs text-center">Add friends</p>
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Ratings */}
               {movieDetail.imdbRating && movieDetail.imdbRating !== 'N/A' && (
@@ -1267,7 +1362,7 @@ export default function MovieDetailModalV3({
         <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-[#1A1A1A] rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-white font-semibold text-lg">Fiche Film</h3>
+              <h3 className="text-white font-semibold text-lg">Movie Sheet</h3>
               <button
                 onClick={() => setShowProductSheet(false)}
                 className="text-gray-400 hover:text-white"
@@ -1295,7 +1390,7 @@ export default function MovieDetailModalV3({
             <div className="space-y-4">
               {/* Watch Date */}
               <div>
-                <label className="block text-white font-medium mb-2 text-sm">Date de visionnage</label>
+                <label className="block text-white font-medium mb-2 text-sm">Watch Date</label>
                 <input
                   type="month"
                   value={productSheetData.watchDate}
@@ -1306,14 +1401,14 @@ export default function MovieDetailModalV3({
 
               {/* Platform */}
               <div>
-                <label className="block text-white font-medium mb-2 text-sm">Plateforme/Lieu</label>
+                <label className="block text-white font-medium mb-2 text-sm">Platform/Location</label>
                 <select 
                   value={productSheetData.platform}
                   onChange={(e) => setProductSheetData(prev => ({ ...prev, platform: e.target.value }))}
                   className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
                 >
-                  <option value="">Sélectionnez...</option>
-                  <option value="cinema">Cinéma</option>
+                  <option value="">Select...</option>
+                  <option value="cinema">Cinema</option>
                   <option value="netflix">Netflix</option>
                   <option value="amazon">Amazon Prime Video</option>
                   <option value="disney">Disney+</option>
@@ -1322,28 +1417,47 @@ export default function MovieDetailModalV3({
                   <option value="apple">Apple TV+</option>
                   <option value="paramount">Paramount+</option>
                   <option value="dvd">DVD/Blu-ray</option>
-                  <option value="digital">Achat numérique</option>
-                  <option value="rental">Location</option>
-                  <option value="tv">Télévision</option>
-                  <option value="other">Autre</option>
+                  <option value="digital">Digital Purchase</option>
+                  <option value="rental">Rental</option>
+                  <option value="tv">Television</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
 
-              {/* Location (for cinema) */}
+              {/* Cinema Type (when cinema is selected) */}
+              {productSheetData.platform === 'cinema' && (
+                <div>
+                  <label className="block text-white font-medium mb-2 text-sm">Cinema Type</label>
+                  <select 
+                    value={productSheetData.cinemaType}
+                    onChange={(e) => setProductSheetData(prev => ({ ...prev, cinemaType: e.target.value }))}
+                    className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
+                  >
+                    <option value="">Select...</option>
+                    <option value="IMAX">IMAX</option>
+                    <option value="3D">3D</option>
+                    <option value="4DX">4DX</option>
+                    <option value="Dolby Atmos">Dolby Atmos</option>
+                    <option value="Normal">Normal</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Location */}
               <div>
-                <label className="block text-white font-medium mb-2 text-sm">Lieu (optionnel)</label>
+                <label className="block text-white font-medium mb-2 text-sm">Location (optional)</label>
                 <input
                   type="text"
                   value={productSheetData.location}
                   onChange={(e) => setProductSheetData(prev => ({ ...prev, location: e.target.value }))}
-                  placeholder="ex: Cinéma Gaumont, Chez moi..."
+                  placeholder="e.g: AMC Theater, At home..."
                   className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
                 />
               </div>
 
               {/* Friends Watched With */}
               <div>
-                <label className="block text-white font-medium mb-2 text-sm">Amis présents</label>
+                <label className="block text-white font-medium mb-2 text-sm">Friends Present</label>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {mockFriends.map((friend) => {
                     const isSelected = productSheetData.friendsWatched.find(f => f.id === friend.id)
@@ -1381,7 +1495,7 @@ export default function MovieDetailModalV3({
 
               {/* Personal Rating */}
               <div>
-                <label className="block text-white font-medium mb-2 text-sm">Mon avis</label>
+                <label className="block text-white font-medium mb-2 text-sm">My Rating</label>
                 <div className="flex items-center space-x-2 mb-3">
                   {[1, 2, 3, 4, 5].map((rating) => (
                     <button
@@ -1407,11 +1521,11 @@ export default function MovieDetailModalV3({
 
               {/* Personal Review */}
               <div>
-                <label className="block text-white font-medium mb-2 text-sm">Mon commentaire</label>
+                <label className="block text-white font-medium mb-2 text-sm">My Review</label>
                 <textarea
                   value={productSheetData.personalReview}
                   onChange={(e) => setProductSheetData(prev => ({ ...prev, personalReview: e.target.value }))}
-                  placeholder="Mes impressions sur ce film..."
+                  placeholder="My thoughts on this movie..."
                   className="w-full h-24 px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg resize-none border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
                 />
               </div>
@@ -1423,17 +1537,13 @@ export default function MovieDetailModalV3({
                 onClick={() => setShowProductSheet(false)}
                 className="flex-1 py-2 px-4 text-gray-400 text-sm font-medium hover:text-white transition-colors"
               >
-                Annuler
+                Cancel
               </button>
               <button
-                onClick={() => {
-                  // TODO: Save product sheet data
-                  console.log('Saving product sheet:', productSheetData)
-                  setShowProductSheet(false)
-                }}
+                onClick={saveProductSheet}
                 className="flex-1 py-2 px-4 bg-gradient-to-r from-[#FF6A00] to-[#FFB347] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
               >
-                Sauvegarder
+                Save
               </button>
             </div>
           </div>
@@ -1708,43 +1818,6 @@ export default function MovieDetailModalV3({
               </button>
             </div>
 
-            {/* Plan Movie Night Button */}
-            <div className="mb-6">
-              <button
-                onClick={handlePlanMovieNight}
-                className="w-full py-3 px-4 bg-gradient-to-r from-[#FF6A00] to-[#FFB347] text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center space-x-2"
-              >
-                <span>🎬</span>
-                <span>Plan a Movie Night</span>
-              </button>
-            </div>
-
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-700"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-[#1A1A1A] text-gray-400">or</span>
-              </div>
-            </div>
-
-            {/* Message Input */}
-            <div className="mb-6">
-              <label className="text-white text-sm font-medium mb-2 block">
-                Add a message (optional)
-              </label>
-              <textarea
-                value={recommendMessage}
-                onChange={(e) => setRecommendMessage(e.target.value)}
-                placeholder="Why do you recommend this movie?"
-                className="w-full h-20 px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg resize-none border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
-                maxLength={200}
-              />
-              <div className="text-right text-gray-500 text-xs mt-1">
-                {recommendMessage.length}/200
-              </div>
-            </div>
-
             {/* Send to Friends Section */}
             <div className="mb-6">
               <h4 className="text-white font-medium mb-3">Send to friends in Stackr</h4>
@@ -1799,6 +1872,23 @@ export default function MovieDetailModalV3({
                 </div>
               )}
 
+              {/* Message Input */}
+              <div className="mb-4">
+                <label className="text-white text-sm font-medium mb-2 block">
+                  Add a message (optional)
+                </label>
+                <textarea
+                  value={recommendMessage}
+                  onChange={(e) => setRecommendMessage(e.target.value)}
+                  placeholder="Why do you recommend this movie?"
+                  className="w-full h-20 px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg resize-none border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
+                  maxLength={200}
+                />
+                <div className="text-right text-gray-500 text-xs mt-1">
+                  {recommendMessage.length}/200
+                </div>
+              </div>
+
               {/* Send to Friends Button */}
               <button
                 onClick={handleSendToFriends}
@@ -1813,9 +1903,20 @@ export default function MovieDetailModalV3({
               </button>
             </div>
 
-            {/* External Share Section */}
-            <div className="border-t border-gray-700 pt-4">
-              <h4 className="text-white font-medium mb-3">Share externally</h4>
+            {/* More Options Toggle */}
+            <div className="text-center mb-4">
+              <button
+                onClick={() => setShowMoreShareOptions(!showMoreShareOptions)}
+                className="text-gray-400 hover:text-white text-sm underline"
+              >
+                More sharing options
+              </button>
+            </div>
+
+            {/* External Share Section - Hidden by default */}
+            {showMoreShareOptions && (
+              <div className="border-t border-gray-700 pt-4 mb-6">
+                <h4 className="text-white font-medium mb-3">Share externally</h4>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handleExternalShare('whatsapp')}
@@ -1867,15 +1968,17 @@ export default function MovieDetailModalV3({
                   </button>
                 )}
               </div>
-            </div>
+              </div>
+            )}
 
-            {/* Close Button */}
-            <div className="mt-4 flex justify-end">
+            {/* Plan Movie Night Button */}
+            <div className="border-t border-gray-700 pt-4">
               <button
-                onClick={() => setShowRecommendModal(false)}
-                className="py-2 px-4 text-gray-400 text-sm font-medium hover:text-white transition-colors"
+                onClick={handlePlanMovieNight}
+                className="w-full py-3 px-4 bg-gradient-to-r from-[#FF6A00] to-[#FFB347] text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center space-x-2"
               >
-                Close
+                <span>🎬</span>
+                <span>Plan a Movie Night</span>
               </button>
             </div>
           </div>
