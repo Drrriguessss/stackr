@@ -74,6 +74,7 @@ export default function MovieDetailModalV3({
   const [selectedRecommendFriends, setSelectedRecommendFriends] = useState<any[]>([])
   const [recommendSearch, setRecommendSearch] = useState('')
   const [showMoreShareOptions, setShowMoreShareOptions] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const [showMovieNightModal, setShowMovieNightModal] = useState(false)
   const [movieNightName, setMovieNightName] = useState('')
   const [movieNightDate, setMovieNightDate] = useState('')
@@ -295,6 +296,12 @@ export default function MovieDetailModalV3({
           
           // Mettre à jour l'état local
           setCurrentUserReview(savedReview)
+          
+          // Synchroniser avec la fiche produit
+          setProductSheetData(prev => ({ 
+            ...prev, 
+            personalReview: userReview.trim() 
+          }))
           
           // Si c'est publique, recharger les reviews publiques
           if (reviewPrivacy === 'public') {
@@ -582,6 +589,11 @@ export default function MovieDetailModalV3({
         setSelectedFriends(productSheetData.friendsWatched)
       }
       
+      // Synchroniser la review/note privée
+      if (productSheetData.personalReview.trim()) {
+        setUserReview(productSheetData.personalReview.trim())
+      }
+      
       console.log('Product sheet saved:', data)
       setShowProductSheet(false)
     }
@@ -601,6 +613,9 @@ export default function MovieDetailModalV3({
         if (data.friendsWatched && data.friendsWatched.length > 0) {
           setSelectedFriends(data.friendsWatched)
         }
+        if (data.personalReview && data.personalReview.trim()) {
+          setUserReview(data.personalReview.trim())
+        }
       }
     }
   }
@@ -612,6 +627,14 @@ export default function MovieDetailModalV3({
     const data = JSON.parse(saved)
     return !!(data.watchDate && data.platform && data.personalRating > 0)
   }
+
+  // Détecter si c'est mobile
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(/Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
+    }
+    checkIsMobile()
+  }, [])
 
   // Charger la fiche produit quand le film change
   useEffect(() => {
@@ -907,9 +930,15 @@ export default function MovieDetailModalV3({
                     onClick={() => setShowProductSheet(true)}
                     className={`py-2 px-4 rounded-lg font-medium text-white hover:opacity-90 transition flex items-center space-x-2 ${
                       isProductSheetCompleted() 
-                        ? 'bg-gradient-to-r from-[#FF6A00] to-[#FFB347]' 
+                        ? 'bg-gradient-to-r from-[#FF6A00] to-[#FFB347] border-2 border-transparent bg-clip-padding shadow-lg' 
                         : 'bg-gray-800'
                     }`}
+                    style={isProductSheetCompleted() ? {
+                      background: 'linear-gradient(to right, #FF6A00, #FFB347)',
+                      border: '2px solid transparent',
+                      backgroundClip: 'padding-box',
+                      boxShadow: '0 0 0 2px #FF6A00, 0 4px 8px rgba(255, 106, 0, 0.3)'
+                    } : {}}
                     title="Product Sheet"
                   >
                     <FileText size={16} />
@@ -1064,7 +1093,14 @@ export default function MovieDetailModalV3({
                       </div>
                       <textarea
                         value={userReview}
-                        onChange={(e) => setUserReview(e.target.value)}
+                        onChange={(e) => {
+                          setUserReview(e.target.value)
+                          // Synchroniser avec la fiche produit en temps réel
+                          setProductSheetData(prev => ({ 
+                            ...prev, 
+                            personalReview: e.target.value 
+                          }))
+                        }}
                         placeholder="Optional: Add your thoughts..."
                         className="w-full h-20 px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg resize-none border border-gray-700 focus:outline-none focus:border-gray-600"
                       />
@@ -1392,10 +1428,11 @@ export default function MovieDetailModalV3({
               <div>
                 <label className="block text-white font-medium mb-2 text-sm">Watch Date</label>
                 <input
-                  type="month"
+                  type={isMobile ? "month" : "date"}
                   value={productSheetData.watchDate}
                   onChange={(e) => setProductSheetData(prev => ({ ...prev, watchDate: e.target.value }))}
                   className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
+                  placeholder={isMobile ? "Select month" : "Select date"}
                 />
               </div>
 
@@ -1524,7 +1561,11 @@ export default function MovieDetailModalV3({
                 <label className="block text-white font-medium mb-2 text-sm">My Review</label>
                 <textarea
                   value={productSheetData.personalReview}
-                  onChange={(e) => setProductSheetData(prev => ({ ...prev, personalReview: e.target.value }))}
+                  onChange={(e) => {
+                    setProductSheetData(prev => ({ ...prev, personalReview: e.target.value }))
+                    // Synchroniser avec la review générale en temps réel
+                    setUserReview(e.target.value)
+                  }}
                   placeholder="My thoughts on this movie..."
                   className="w-full h-24 px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg resize-none border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
                 />
