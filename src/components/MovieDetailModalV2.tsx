@@ -281,14 +281,18 @@ export default function MovieDetailModalV2({
   }
 
   const loadMediaGallery = async (movieId: string, movieTitle: string) => {
+    console.log('🖼️ [DEBUG] loadMediaGallery called with:', { movieId, movieTitle })
     setGalleryLoading(true)
     try {
       console.log('🖼️ Loading movie gallery for:', movieTitle)
       
       // Récupérer le trailer
+      console.log('🖼️ [DEBUG] Fetching trailer...')
       const trailer = await trailerService.getMovieTrailer(movieId, movieTitle)
+      console.log('🖼️ [DEBUG] Trailer fetched:', trailer)
       
       // Récupérer la galerie complète (trailer + images)
+      console.log('🖼️ [DEBUG] Calling imageService.getMovieGallery...')
       const gallery = await imageService.getMovieGallery(movieId, movieTitle, trailer)
       
       console.log('🖼️ Movie gallery loaded:', gallery)
@@ -562,11 +566,17 @@ export default function MovieDetailModalV2({
                     ) : (
                       // Fallback - afficher le poster du film
                       <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                        <img
-                          src={movieDetail.Poster !== 'N/A' ? movieDetail.Poster : 'https://via.placeholder.com/640x360/1a1a1a/ffffff?text=No+Image'}
-                          alt={`${movieDetail.Title} poster`}
-                          className="w-full h-full object-cover"
-                        />
+                        {movieDetail.Poster && movieDetail.Poster !== 'N/A' ? (
+                          <img
+                            src={movieDetail.Poster}
+                            alt={`${movieDetail.Title} poster`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                            }}
+                          />
+                        ) : null}
                         <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
                           <div className="w-12 h-12 mx-auto mb-2 opacity-50">📷</div>
                           <p className="text-white text-sm opacity-75">No media available</p>
@@ -815,15 +825,27 @@ export default function MovieDetailModalV2({
                             onClose()
                           }}
                         >
-                          <img
-                            src={movie.image || 'https://via.placeholder.com/112x168/333/fff?text=No+Image'}
-                            alt={movie.title}
-                            className="w-full h-40 object-cover rounded-lg mb-2"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.src = 'https://via.placeholder.com/112x168/333/fff?text=No+Image'
-                            }}
-                          />
+                          {movie.image ? (
+                            <img
+                              src={movie.image}
+                              alt={movie.title}
+                              className="w-full h-40 object-cover rounded-lg mb-2"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.onerror = null
+                                target.style.display = 'none'
+                                // Create a fallback div
+                                const fallback = document.createElement('div')
+                                fallback.className = 'w-full h-40 bg-gray-700 rounded-lg mb-2 flex items-center justify-center'
+                                fallback.innerHTML = '<span class="text-gray-400 text-xs">No Image</span>'
+                                target.parentNode?.replaceChild(fallback, target)
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-40 bg-gray-700 rounded-lg mb-2 flex items-center justify-center">
+                              <span className="text-gray-400 text-xs">No Image</span>
+                            </div>
+                          )}
                           <p className="text-white text-sm truncate" title={movie.title}>{movie.title}</p>
                         </div>
                       ))}
@@ -848,15 +870,27 @@ export default function MovieDetailModalV2({
                                 onClose()
                               }}
                             >
-                              <img
-                                src={movie.image || 'https://via.placeholder.com/112x168/333/fff?text=No+Image'}
-                                alt={movie.title}
-                                className="w-full h-40 object-cover rounded-lg mb-2"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement
-                                  target.src = 'https://via.placeholder.com/112x168/333/fff?text=No+Image'
-                                }}
-                              />
+                              {movie.image ? (
+                                <img
+                                  src={movie.image}
+                                  alt={movie.title}
+                                  className="w-full h-40 object-cover rounded-lg mb-2"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement
+                                    target.onerror = null
+                                    target.style.display = 'none'
+                                    // Create a fallback div
+                                    const fallback = document.createElement('div')
+                                    fallback.className = 'w-full h-40 bg-gray-700 rounded-lg mb-2 flex items-center justify-center'
+                                    fallback.innerHTML = '<span class="text-gray-400 text-xs">No Image</span>'
+                                    target.parentNode?.replaceChild(fallback, target)
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-40 bg-gray-700 rounded-lg mb-2 flex items-center justify-center">
+                                  <span className="text-gray-400 text-xs">No Image</span>
+                                </div>
+                              )}
                               <p className="text-white text-sm truncate" title={movie.title}>{movie.title}</p>
                             </div>
                           ))}

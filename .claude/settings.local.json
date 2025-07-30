@@ -31,7 +31,9 @@
       "Bash(touch:*)",
       "Bash(mkdir:*)",
       "Bash(pkill:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(find:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }

@@ -5,7 +5,7 @@ import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
 import GameDetailDarkV2 from '@/components/GameDetailDarkV2'
-import MovieDetailModalV2 from '@/components/MovieDetailModalV2'
+import MovieDetailModalV3 from '@/components/MovieDetailModalV3'
 import BookDetailModalV2 from '@/components/BookDetailModalV2'
 import MusicDetailModalV2 from '@/components/MusicDetailModalV2'
 import SearchModal from '@/components/SearchModal'
@@ -848,16 +848,14 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
-      <MovieDetailModalV2
+      <MovieDetailModalV3
         isOpen={!!selectedMovieId}
         onClose={() => setSelectedMovieId(null)}
         movieId={selectedMovieId || ''}
         onAddToLibrary={handleAddToLibrary}
         onDeleteItem={handleDeleteItem}
         library={library}
-        userReviews={selectedMovieId ? userReviews[selectedMovieId] || [] : []}
-        imdbReviews={selectedMovieId ? generateIMDBReviews(selectedMovieId) : []}
-        onReviewSubmit={handleReviewSubmit}
+        onMovieSelect={(movieId) => setSelectedMovieId(movieId)}
       />
 
       <BookDetailModalV2
