@@ -295,8 +295,10 @@ export default function MovieDetailModalV3({
       }
     }
     
-    // Montrer la review box seulement si l'utilisateur veut ajouter un commentaire
-    setShowReviewBox(true)
+    // Montrer la review box seulement pour un nouveau rating (pas pour une modification)
+    if (!currentUserReview) {
+      setShowReviewBox(true)
+    }
   }
 
   const handleReviewSubmit = async () => {
@@ -925,15 +927,15 @@ export default function MovieDetailModalV3({
                               <Star
                                 size={16}
                                 className={`transition-colors cursor-pointer ${
-                                  star <= (hoverRating || currentUserReview.rating)
-                                    ? 'text-transparent bg-gradient-to-r from-[#FF6A00] to-[#FFB347] bg-clip-text fill-current'
+                                  star <= (hoverRating || userRating || currentUserReview.rating)
+                                    ? 'text-[#FF6A00] fill-[#FF6A00]'
                                     : 'text-gray-600'
                                 }`}
                               />
                             </button>
                           ))}
                         </div>
-                        <span className="text-white text-sm">{currentUserReview.rating}/5</span>
+                        <span className="text-white text-sm">{userRating || currentUserReview.rating}/5</span>
                       </div>
                       {currentUserReview.review_text && (
                         <p className="text-[#B0B0B0] text-sm">{currentUserReview.review_text}</p>
@@ -957,7 +959,7 @@ export default function MovieDetailModalV3({
                               size={24}
                               className={`transition-colors ${
                                 (hoverRating || userRating) >= rating
-                                  ? 'text-transparent bg-gradient-to-r from-[#FF6A00] to-[#FFB347] bg-clip-text fill-current'
+                                  ? 'text-[#FF6A00] fill-[#FF6A00]'
                                   : 'text-gray-600'
                               }`}
                             />
@@ -1179,7 +1181,7 @@ export default function MovieDetailModalV3({
                                 size={12}
                                 className={`${
                                   star <= review.rating
-                                    ? 'text-transparent bg-gradient-to-r from-[#FF6A00] to-[#FFB347] bg-clip-text fill-current'
+                                    ? 'text-[#FF6A00] fill-[#FF6A00]'
                                     : 'text-gray-600'
                                 }`}
                               />
@@ -1213,7 +1215,7 @@ export default function MovieDetailModalV3({
                                 size={12}
                                 className={`${
                                   star <= review.rating
-                                    ? 'text-transparent bg-gradient-to-r from-[#FF6A00] to-[#FFB347] bg-clip-text fill-current'
+                                    ? 'text-[#FF6A00] fill-[#FF6A00]'
                                     : 'text-gray-600'
                                 }`}
                               />
@@ -1371,7 +1373,7 @@ export default function MovieDetailModalV3({
                             size={12}
                             className={`${
                               star <= friend.rating
-                                ? 'text-transparent bg-gradient-to-r from-[#FF6A00] to-[#FFB347] bg-clip-text fill-current'
+                                ? 'text-[#FF6A00] fill-[#FF6A00]'
                                 : 'text-gray-600'
                             }`}
                           />
@@ -1460,7 +1462,7 @@ export default function MovieDetailModalV3({
                           key={star}
                           size={10}
                           className={`${
-                            star <= 4 ? 'text-transparent bg-gradient-to-r from-[#FF6A00] to-[#FFB347] bg-clip-text fill-current' : 'text-gray-600'
+                            star <= 4 ? 'text-[#FF6A00] fill-[#FF6A00]' : 'text-gray-600'
                           }`}
                         />
                       ))}
@@ -1477,7 +1479,7 @@ export default function MovieDetailModalV3({
                           key={star}
                           size={10}
                           className={`${
-                            star <= 5 ? 'text-transparent bg-gradient-to-r from-[#FF6A00] to-[#FFB347] bg-clip-text fill-current' : 'text-gray-600'
+                            star <= 5 ? 'text-[#FF6A00] fill-[#FF6A00]' : 'text-gray-600'
                           }`}
                         />
                       ))}
