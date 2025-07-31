@@ -7,7 +7,7 @@ import LibrarySection from '@/components/LibrarySection'
 import GameDetailDarkV2 from '@/components/GameDetailDarkV2'
 import MovieDetailModalV3 from '@/components/MovieDetailModalV3'
 import BookDetailModalV2 from '@/components/BookDetailModalV2'
-import MusicDetailModalV2 from '@/components/MusicDetailModalV2'
+import MusicDetailModalV3 from '@/components/MusicDetailModalV3'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
@@ -870,16 +870,14 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
-      <MusicDetailModalV2
+      <MusicDetailModalV3
         isOpen={!!selectedMusicId}
         onClose={() => setSelectedMusicId(null)}
         albumId={selectedMusicId || ''}
         onAddToLibrary={handleAddToLibrary}
         onDeleteItem={handleDeleteItem}
         library={library}
-        userReviews={selectedMusicId ? userReviews[selectedMusicId] || [] : []}
-        spotifyReviews={selectedMusicId ? generateSpotifyReviews(selectedMusicId) : []}
-        onReviewSubmit={handleReviewSubmit}
+        onAlbumSelect={setSelectedMusicId}
       />
 
       <SearchModal
