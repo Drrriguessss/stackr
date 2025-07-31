@@ -275,31 +275,23 @@ export class MusicServiceV2 {
    */
   
   /**
-   * 🎬 RECHERCHE DYNAMIQUE DE VIDÉO YOUTUBE
-   * Utilise l'API YouTube pour trouver automatiquement les bonnes vidéos
+   * 🎬 RECHERCHE DE VIDÉO YOUTUBE ROBUSTE
+   * Utilise le nouveau système de validation basé sur les trailers
    */
   private async findTrackVideo(artist: string, track: string): Promise<string | undefined> {
-    console.log(`🎬 [V2] Recherche dynamique vidéo pour: "${track}" by ${artist}`)
+    console.log(`🎬 [V2] Recherche vidéo robuste pour: "${track}" by ${artist}`)
     
     try {
-      // Appeler notre API YouTube pour rechercher la vidéo
-      const response = await fetch(`/api/youtube?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}`, {
-        signal: AbortSignal.timeout(5000)
-      })
+      // Utiliser le nouveau service de vidéos musicales
+      const { musicVideoService } = await import('./musicVideoService')
+      const video = await musicVideoService.getMusicVideo(artist, track)
       
-      if (!response.ok) {
-        console.warn(`🎬 [V2] YouTube API error: ${response.status}`)
-        return undefined
+      if (video && video.isEmbeddable) {
+        console.log(`🎬 [V2] ✅ Vidéo validée trouvée: ${video.videoId}`)
+        return video.videoId
       }
       
-      const data = await response.json()
-      
-      if (data.videoId) {
-        console.log(`🎬 [V2] ✅ Vidéo dynamique trouvée: ${data.videoId}`)
-        return data.videoId
-      }
-      
-      console.log(`🎬 [V2] ❌ Aucune vidéo trouvée pour: "${track}" by ${artist}`)
+      console.log(`🎬 [V2] ❌ Aucune vidéo embeddable pour: "${track}" by ${artist}`)
       return undefined
       
     } catch (error) {

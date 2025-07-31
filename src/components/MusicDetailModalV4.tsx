@@ -92,7 +92,7 @@ export default function MusicDetailModalV4({
       return
     }
     
-    // Singles: recherche agressive de vidéo avec validation
+    // Singles: recherche robuste de vidéo avec validation
     if (!musicDetail?.artist || !musicDetail?.title) {
       console.log(`🎬 [V4] Missing artist/title info for video search`)
       setMusicVideo(null)
@@ -100,49 +100,48 @@ export default function MusicDetailModalV4({
     }
     
     try {
-      console.log(`🎬 [V4] Starting enhanced video search for: "${musicDetail.title}" by ${musicDetail.artist}`)
+      console.log(`🎬 [V4] Starting robust video search for: "${musicDetail.title}" by ${musicDetail.artist}`)
       
-      // Appeler notre API YouTube améliorée avec validation
-      const response = await fetch(
-        `/api/youtube?artist=${encodeURIComponent(musicDetail.artist)}&track=${encodeURIComponent(musicDetail.title)}&validate=true`,
-        { signal: AbortSignal.timeout(8000) }
-      )
+      // Utiliser le nouveau service de vidéos musicales robuste
+      const { musicVideoService } = await import('../services/musicVideoService')
+      const video = await musicVideoService.getMusicVideo(musicDetail.artist, musicDetail.title)
       
-      if (!response.ok) {
-        throw new Error(`YouTube API failed: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      console.log(`🎬 [V4] YouTube API response:`, data)
-      
-      if (data.videoId) {
-        console.log(`🎬 [V4] ✅ Loading validated YouTube video: ${data.videoId}`)
-        setMusicVideo({
-          url: `https://www.youtube.com/embed/${data.videoId}`,
-          provider: 'youtube'
-        })
-        setYoutubeWatchUrl(data.watchUrl)
-        setVideoEmbedFailed(false)
-      } else if (data.searchUrl || data.watchUrl) {
-        console.log(`🎬 [V4] 📸 No embed video, but providing YouTube search link`)
-        setMusicVideo(null)
-        setYoutubeWatchUrl(data.searchUrl || data.watchUrl)
-        setVideoEmbedFailed(false)
-      } else {
-        console.log(`🎬 [V4] 📸 No video found - photos only`)
+      if (!video) {
+        console.log(`🎬 [V4] ❌ No video service available`)
         setMusicVideo(null)
         setYoutubeWatchUrl(null)
+        return
+      }
+      
+      console.log(`🎬 [V4] Video service response:`, {
+        provider: video.provider,
+        isEmbeddable: video.isEmbeddable,
+        videoId: video.videoId
+      })
+      
+      if (video.isEmbeddable && video.embedUrl) {
+        console.log(`🎬 [V4] ✅ Loading validated embeddable video: ${video.videoId}`)
+        setMusicVideo({
+          url: video.embedUrl,
+          provider: 'youtube'
+        })
+        setYoutubeWatchUrl(video.url)
+        setVideoEmbedFailed(false)
+      } else {
+        console.log(`🎬 [V4] 🔗 Video not embeddable, providing external link`)
+        setMusicVideo(null)
+        setYoutubeWatchUrl(video.url)
         setVideoEmbedFailed(false)
       }
       
     } catch (error) {
-      console.error(`🎬 [V4] Enhanced video search failed:`, error)
+      console.error(`🎬 [V4] Robust video search failed:`, error)
       
-      // Fallback: créer au moins un lien de recherche YouTube
-      const searchQuery = encodeURIComponent(`${musicDetail.artist} ${musicDetail.title}`)
+      // Fallback ultime: créer au moins un lien de recherche YouTube
+      const searchQuery = encodeURIComponent(`${musicDetail.artist} ${musicDetail.title} official music video`)
       const fallbackUrl = `https://www.youtube.com/results?search_query=${searchQuery}`
       
-      console.log(`🎬 [V4] 🔗 Using fallback YouTube search link`)
+      console.log(`🎬 [V4] 🔗 Using ultimate fallback YouTube search link`)
       setMusicVideo(null)
       setYoutubeWatchUrl(fallbackUrl)
       setVideoEmbedFailed(false)
