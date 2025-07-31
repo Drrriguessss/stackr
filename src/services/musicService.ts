@@ -363,6 +363,71 @@ class MusicService {
   }
 
   // 🔧 RECHERCHE API PURE AVEC GESTION CORS
+  // Nouvelle méthode pour chercher spécifiquement des chansons
+  async searchSongs(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
+    const cleanQuery = query.trim()
+    
+    if (!cleanQuery || cleanQuery.length < 2) {
+      console.warn('🎵 Query too short:', cleanQuery)
+      return []
+    }
+
+    console.log('🎵 iTunes API search for SONGS:', cleanQuery)
+
+    try {
+      const url = `${this.baseURL}/search?` + new URLSearchParams({
+        term: cleanQuery,
+        media: 'music',
+        entity: 'song', // Cherche uniquement des chansons
+        limit: limit.toString(),
+        country: 'US'
+      }).toString()
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        mode: 'cors',
+        signal: AbortSignal.timeout(10000)
+      })
+      
+      if (!response.ok) {
+        console.error('🎵 iTunes song search failed:', response.status)
+        return []
+      }
+      
+      const data: iTunesSearchResponse = await response.json()
+      
+      if (!data.results || data.results.length === 0) {
+        console.log('🎵 No songs found')
+        return []
+      }
+
+      // Convertir les chansons en format album pour compatibilité
+      const songs = data.results.map((track: any) => ({
+        wrapperType: 'collection',
+        collectionType: 'Single',
+        collectionId: track.trackId,
+        artistId: track.artistId,
+        collectionName: track.trackName,
+        artistName: track.artistName,
+        artworkUrl100: track.artworkUrl100 || track.artworkUrl60,
+        trackCount: 1,
+        releaseDate: track.releaseDate,
+        primaryGenreName: track.primaryGenreName,
+        collectionPrice: track.trackPrice,
+        currency: track.currency,
+        country: track.country
+      }))
+      
+      console.log(`🎵 Found ${songs.length} songs`)
+      return songs
+      
+    } catch (err) {
+      console.error('🎵 Song search error:', err)
+      return []
+    }
+  }
+
   async searchAlbums(query: string, limit: number = 20): Promise<iTunesAlbum[]> {
     const cleanQuery = query.trim()
     
@@ -375,14 +440,17 @@ class MusicService {
 
     try {
       // 🔧 URL avec paramètres optimisés pour mobile
-      const url = `${this.baseURL}/search?` + new URLSearchParams({
+      // Recherche mixte: albums ET chansons pour plus de résultats
+      const searchParams = new URLSearchParams({
         term: cleanQuery,
         media: 'music',
-        entity: 'album',
-        limit: Math.min(limit, 200).toString(),
+        entity: 'song,album', // Recherche les deux!
+        limit: Math.min(limit * 2, 200).toString(), // Double limite car on filtre après
         country: 'US',
         explicit: 'Yes'
-      }).toString()
+      })
+      
+      const url = `${this.baseURL}/search?${searchParams.toString()}`
 
       console.log('🎵 iTunes URL:', url)
 
@@ -416,21 +484,37 @@ class MusicService {
         return []
       }
 
-      // 🔧 Filtrage strict des albums seulement
-      const albums = data.results.filter(item => {
-        const isValidAlbum = (
-          item.wrapperType === 'collection' &&
-          item.collectionType === 'Album' &&
-          item.collectionName &&
-          item.artistName &&
-          item.collectionId
-        )
-        
-        if (!isValidAlbum) {
-          console.log('🎵 Filtered out invalid item:', item)
+      // 🔧 Filtrage pour accepter albums ET chansons
+      const validItems = data.results.filter(item => {
+        // Albums
+        if (item.wrapperType === 'collection' && item.collectionType === 'Album') {
+          return item.collectionName && item.artistName && item.collectionId
         }
         
-        return isValidAlbum
+        // Chansons individuelles (singles)
+        if (item.wrapperType === 'track' && item.kind === 'song') {
+          return item.trackName && item.artistName && item.trackId
+        }
+        
+        return false
+      })
+      
+      // Convertir les chansons en format album pour compatibilité
+      const albums = validItems.map(item => {
+        if (item.wrapperType === 'track') {
+          // Convertir une chanson en format "album" single
+          return {
+            ...item,
+            collectionId: item.trackId,
+            collectionName: item.trackName,
+            collectionType: 'Single',
+            wrapperType: 'collection',
+            artworkUrl100: item.artworkUrl100 || item.artworkUrl60 || item.artworkUrl30,
+            trackCount: 1,
+            releaseDate: item.releaseDate
+          }
+        }
+        return item
       })
       
       console.log('🎵 Filtered albums count:', albums.length)
