@@ -68,16 +68,16 @@ class SimpleMusicVideoService {
       'sia|alive': 'tJJ7AoOEDek', // CORRECT: Alive official video - ID CORRIGÉ
       'sia|the greatest': 'GKSRyLdjsPA', // CORRECT: The Greatest official video
       
-      // Florence + The Machine - IDs RE-VÉRIFIÉS manuellement (31/07/25)
+      // Florence + The Machine - IDs RE-VÉRIFIÉS manuellement (31/07/25 - 2ème correction)
       'florence the machine|dog days are over': 'iWOyfLBYtuU',
       'florence and the machine|dog days are over': 'iWOyfLBYtuU',
       'florence + the machine|dog days are over': 'iWOyfLBYtuU',
-      'florence the machine|free': 'sB6HkKXGAMk', // CORRIGÉ: Free official video (était MGMT Kids!)
-      'florence and the machine|free': 'sB6HkKXGAMk',
-      'florence + the machine|free': 'sB6HkKXGAMk',
-      'florence the machine|king': 'VyoHmLlnJyI', // CORRIGÉ: King official video 
-      'florence and the machine|king': 'VyoHmLlnJyI',
-      'florence + the machine|king': 'VyoHmLlnJyI',
+      'florence the machine|free': 'bIEOZCcaXzE', // RE-CORRIGÉ: Free official video
+      'florence and the machine|free': 'bIEOZCcaXzE',
+      'florence + the machine|free': 'bIEOZCcaXzE',
+      'florence the machine|king': 'LBYVOvuUqcg', // RE-CORRIGÉ: King official video
+      'florence and the machine|king': 'LBYVOvuUqcg',
+      'florence + the machine|king': 'LBYVOvuUqcg',
       'florence the machine|shake it out': 'WbN0nX61rIs',
       'florence and the machine|shake it out': 'WbN0nX61rIs',
       'florence + the machine|shake it out': 'WbN0nX61rIs',
@@ -137,8 +137,14 @@ class SimpleMusicVideoService {
       console.log(`🎵 [Simple] Found exact match ID: ${videoId} for "${track}" by ${artist}`)
       
       // Validation automatique du titre YouTube (async, sans bloquer)
+      // Si la validation échoue, on logge l'erreur pour correction future
       this.validateYouTubeTitle(videoId, artist, track).catch(error => {
         console.warn(`🎵 [Simple] ⚠️ Title validation failed for ${videoId}:`, error.message)
+        
+        // Si c'est une vidéo supprimée/indisponible, suggérer de passer à la recherche
+        if (error.message.includes('404')) {
+          console.warn(`🎵 [Simple] 💡 Suggestion: Remove ${videoId} from database and rely on search`)
+        }
       })
     }
     
@@ -316,7 +322,7 @@ class SimpleMusicVideoService {
   }
 
   /**
-   * 🔍 VALIDATION: Vérifie que l'ID YouTube correspond au bon titre
+   * 🔍 VALIDATION: Vérifie que l'ID YouTube correspond au bon titre ET que la vidéo existe
    * (Async, ne bloque pas le système principal)
    */
   private async validateYouTubeTitle(videoId: string, expectedArtist: string, expectedTrack: string): Promise<void> {
@@ -327,6 +333,15 @@ class SimpleMusicVideoService {
       const response = await fetch(oembedUrl, { signal: AbortSignal.timeout(3000) })
       
       if (!response.ok) {
+        // Status 404 = Vidéo supprimée/privée/indisponible
+        if (response.status === 404) {
+          console.error(`🎵 [Simple] ❌ VIDEO DELETED/UNAVAILABLE: ${videoId}`)
+          console.error(`  Expected: "${expectedTrack}" by ${expectedArtist}`)
+          console.error(`  YouTube URL: https://www.youtube.com/watch?v=${videoId}`)
+          console.error(`  🚨 URGENT: Update database with correct video ID`)
+        } else {
+          console.error(`🎵 [Simple] ❌ VALIDATION ERROR: oEmbed failed with status ${response.status}`)
+        }
         throw new Error(`oEmbed failed: ${response.status}`)
       }
       
@@ -344,13 +359,13 @@ class SimpleMusicVideoService {
       if (hasArtist && hasTrack) {
         console.log(`🎵 [Simple] ✅ VALIDATION OK: "${data.title}" matches "${expectedTrack}" by ${expectedArtist}`)
       } else {
-        console.error(`🎵 [Simple] ❌ VALIDATION FAILED:`)
+        console.error(`🎵 [Simple] ❌ VALIDATION FAILED - WRONG VIDEO:`)
         console.error(`  Expected: "${expectedTrack}" by ${expectedArtist}`)
         console.error(`  Actual: "${data.title}"`)
         console.error(`  VideoID: ${videoId}`)
+        console.error(`  YouTube URL: https://www.youtube.com/watch?v=${videoId}`)
         console.error(`  Has Artist: ${hasArtist}, Has Track: ${hasTrack}`)
-        
-        // En production, on pourrait logger cette erreur pour corriger la base de données
+        console.error(`  🚨 URGENT: Update database with correct video ID`)
       }
       
     } catch (error) {
