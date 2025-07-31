@@ -7,7 +7,7 @@ import LibrarySection from '@/components/LibrarySection'
 import GameDetailDarkV2 from '@/components/GameDetailDarkV2'
 import MovieDetailModalV3 from '@/components/MovieDetailModalV3'
 import BookDetailModalV2 from '@/components/BookDetailModalV2'
-import MusicDetailModalV3 from '@/components/MusicDetailModalV3'
+import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
@@ -16,7 +16,7 @@ import FeedPage from '@/components/FeedPage'
 import { sampleContent } from '@/data/sampleContent'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
-import { musicService } from '@/services/musicService'
+import { musicServiceV2 } from '@/services/musicServiceV2'
 import { rawgService } from '@/services/rawgService'
 import LibraryService from '@/services/libraryService'
 import { supabase } from '@/lib/supabase'
@@ -333,22 +333,17 @@ export default function Home() {
     try {
       setMusicLoading(true)
 
-      const [popularAlbums, topRatedAlbums, newReleaseAlbums] = await Promise.all([
-        musicService.getPopularAlbums().then(albums => 
-          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
-        ),
-        musicService.getTopRatedAlbums().then(albums => 
-          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
-        ),
-        musicService.getNewReleases().then(albums => 
-          albums.slice(0, 8).map(album => musicService.convertToAppFormat(album))
-        )
+      // Utiliser le nouveau service V2 avec recherches mixtes
+      const [popularMusic, topRatedMusic, newReleaseMusic] = await Promise.all([
+        musicServiceV2.searchMusic('popular hits 2024', 8),
+        musicServiceV2.searchMusic('top rated albums', 8),
+        musicServiceV2.searchMusic('new releases 2024', 8)
       ])
 
       setMusicContent({
-        popular: popularAlbums,
-        topRated: topRatedAlbums,
-        newReleases: newReleaseAlbums
+        popular: popularMusic,
+        topRated: topRatedMusic,
+        newReleases: newReleaseMusic
       })
     } catch (error) {
       console.error('Error loading music content:', error)
@@ -870,14 +865,14 @@ export default function Home() {
         onReviewSubmit={handleReviewSubmit}
       />
 
-      <MusicDetailModalV3
+      <MusicDetailModalV4
         isOpen={!!selectedMusicId}
         onClose={() => setSelectedMusicId(null)}
-        albumId={selectedMusicId || ''}
+        musicId={selectedMusicId || ''}
         onAddToLibrary={handleAddToLibrary}
         onDeleteItem={handleDeleteItem}
         library={library}
-        onAlbumSelect={setSelectedMusicId}
+        onMusicSelect={setSelectedMusicId}
       />
 
       <SearchModal

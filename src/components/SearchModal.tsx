@@ -5,7 +5,7 @@ import { X, Search, Star, Loader2, WifiOff, Check } from 'lucide-react'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
-import { musicService } from '@/services/musicService'
+import { musicServiceV2 } from '@/services/musicServiceV2'
 import { rawgService } from '@/services/rawgService'
 import type { SearchResult, LibraryItem, MediaCategory, StatusOption, MediaStatus } from '@/types'
 import { fetchWithCache, apiCache } from '@/utils/apiCache'
@@ -328,21 +328,15 @@ export default function SearchModal({
     console.log('🎵 [SearchModal] Starting music search for:', query)
     
     try {
-      const albums = await musicService.searchAlbums(query, 20)
-      console.log('🎵 [SearchModal] Music service returned:', albums.length, 'albums')
+      const musicItems = await musicServiceV2.searchMusic(query, 20)
+      console.log('🎵 [SearchModal] Music service returned:', musicItems.length, 'items')
       
-      if (!albums || albums.length === 0) {
+      if (!musicItems || musicItems.length === 0) {
         return []
       }
 
-      const convertedAlbums = albums.map(album => {
-        const converted = musicService.convertToAppFormat(album)
-        console.log('🎵 [SearchModal] Converted album:', converted.title, 'by', converted.artist)
-        return converted
-      })
-
-      console.log('✅ [SearchModal] Music conversion complete:', convertedAlbums.length, 'results')
-      return convertedAlbums
+      console.log('✅ [SearchModal] Music conversion complete:', musicItems.length, 'results')
+      return musicItems
 
     } catch (error) {
       console.error('❌ [SearchModal] Music search failed:', error)
