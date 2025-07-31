@@ -31,8 +31,6 @@ export default function MusicDetailModalV4({
   const [images, setImages] = useState<string[]>([])
   const [musicVideo, setMusicVideo] = useState<{ url: string; provider: string } | null>(null)
   const [youtubeWatchUrl, setYoutubeWatchUrl] = useState<string | null>(null)
-  const [videoEmbedFailed, setVideoEmbedFailed] = useState(false)
-  const [embedTestPassed, setEmbedTestPassed] = useState(false)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
 
   // Déterminer le type de contenu
@@ -54,8 +52,6 @@ export default function MusicDetailModalV4({
     // 🔄 RESET des états vidéo pour éviter les fuites de la chanson précédente
     setMusicVideo(null)
     setYoutubeWatchUrl(null)
-    setVideoEmbedFailed(false)
-    setEmbedTestPassed(false)
     setActiveImageIndex(0)
     
     try {
@@ -127,35 +123,21 @@ export default function MusicDetailModalV4({
       if (video.videoId) {
         console.log(`🎬 [V4] ✅ Found exact video match: ${video.videoId}`)
         
-        // Test d'embedding proactif AVANT d'afficher l'iframe
-        const canEmbed = await testYouTubeEmbedding(video.videoId)
+        // 🎯 APPROCHE MOVIE: Pas de test, on fait confiance aux IDs trouvés
+        // URL simple comme dans MovieDetailModalV3 qui fonctionne parfaitement
+        const embedUrl = `https://www.youtube.com/embed/${video.videoId}?rel=0&modestbranding=1&autoplay=0`
         
-        if (canEmbed) {
-          console.log(`🎬 [V4] ✅ Embedding test passed for: ${video.videoId}`)
-          
-          // Utiliser les paramètres d'embed les plus compatibles
-          const embedUrl = buildOptimalEmbedUrl(video.videoId)
-          console.log(`🎬 [V4] Using optimal embed URL: ${embedUrl}`)
-          
-          setMusicVideo({
-            url: embedUrl,
-            provider: 'youtube'
-          })
-          setYoutubeWatchUrl(video.url)
-          setVideoEmbedFailed(false)
-          setEmbedTestPassed(true)
-        } else {
-          console.log(`🎬 [V4] ❌ Embedding blocked, using external link for: ${video.videoId}`)
-          setMusicVideo(null)
-          setYoutubeWatchUrl(video.url)
-          setVideoEmbedFailed(false)
-          setEmbedTestPassed(false)
-        }
+        console.log(`🎬 [V4] 🎥 Using MOVIE-style simple embed: ${embedUrl}`)
+        
+        setMusicVideo({
+          url: embedUrl,
+          provider: 'youtube'
+        })
+        setYoutubeWatchUrl(video.url)
       } else {
         console.log(`🎬 [V4] 🔗 No exact match, using search link`)
         setMusicVideo(null)
         setYoutubeWatchUrl(video.url)
-        setVideoEmbedFailed(false)
       }
       
     } catch (error) {
@@ -168,222 +150,10 @@ export default function MusicDetailModalV4({
       console.log(`🎬 [V4] 🔗 Using fallback YouTube search`)
       setMusicVideo(null)
       setYoutubeWatchUrl(fallbackUrl)
-      setVideoEmbedFailed(false)
     }
   }
   
-  // 🚨 GESTION INTELLIGENTE DES ERREURS D'EMBED
-  const handleVideoError = () => {
-    console.log(`🎬 [V4] ❌ Video embed failed, attempting recovery...`)
-    
-    // Marquer l'échec initial
-    setVideoEmbedFailed(true)
-    
-    // Tentative de récupération avec une URL alternative
-    if (musicVideo?.url && musicDetail) {
-      console.log(`🎬 [V4] 🔄 Attempting embed recovery...`)
-      tryEmbedRecovery()
-    } else {
-      console.log(`🎬 [V4] 🔗 No recovery possible, using external link`)
-    }
-  }
-
-  // 🔄 TENTATIVE DE RÉCUPÉRATION D'EMBED
-  const tryEmbedRecovery = async () => {
-    if (!musicDetail) return
-    
-    try {
-      console.log(`🔄 [V4] Trying embed recovery for: ${musicDetail.title}`)
-      
-      // Attendre un peu pour éviter les conflits
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Reconstruire une URL d'embed différente avec moins de paramètres
-      const simpleMusicVideo = musicVideo
-      if (simpleMusicVideo?.url) {
-        const videoIdMatch = simpleMusicVideo.url.match(/embed\/([^?]+)/)
-        if (videoIdMatch) {
-          const videoId = videoIdMatch[1]
-          
-          // URL d'embed simplifiée (parfois plus compatible)
-          const simpleEmbedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=0`
-          
-          console.log(`🔄 [V4] Trying simplified embed URL: ${simpleEmbedUrl}`)
-          
-          setMusicVideo({
-            url: simpleEmbedUrl,
-            provider: 'youtube'
-          })
-          
-          // Reset l'état d'erreur pour essayer à nouveau
-          setVideoEmbedFailed(false)
-          
-          // Si ça échoue encore, on basculera définitivement vers le lien externe
-        }
-      }
-      
-    } catch (error) {
-      console.log(`🔄 [V4] Recovery failed: ${error.message}`)
-      setVideoEmbedFailed(true)
-    }
-  }
-
-  // 🔍 TEST D'EMBEDDING ROBUSTE: Plusieurs méthodes pour maximiser les vidéos embeddables
-  const testYouTubeEmbedding = async (videoId: string): Promise<boolean> => {
-    console.log(`🔍 [V4] 🎯 MULTI-METHOD embedding test for: ${videoId}`)
-    
-    // Méthode 1: Test oEmbed (fiable pour la plupart des cas)
-    const oembedResult = await testOEmbedEmbedding(videoId)
-    if (oembedResult === true) {
-      console.log(`🔍 [V4] ✅ oEmbed PASS - embeddable`)
-      return true
-    }
-    
-    // Méthode 2: Test direct d'iframe (pour les cas où oEmbed échoue)
-    const iframeResult = await testDirectIframeEmbedding(videoId)
-    if (iframeResult === true) {
-      console.log(`🔍 [V4] ✅ Direct iframe PASS - embeddable`)
-      return true
-    }
-    
-    // Méthode 3: Test via notre API proxy (dernier recours)
-    const proxyResult = await testProxyEmbedding(videoId)
-    if (proxyResult === true) {
-      console.log(`🔍 [V4] ✅ Proxy test PASS - embeddable`)
-      return true
-    }
-    
-    console.log(`🔍 [V4] ❌ ALL tests failed - not embeddable, using external link`)
-    return false
-  }
-
-  // 🔍 TEST 1: oEmbed (standard YouTube)
-  const testOEmbedEmbedding = async (videoId: string): Promise<boolean> => {
-    try {
-      console.log(`🔍 [V4] Method 1: Testing oEmbed for ${videoId}`)
-      
-      const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
-      const response = await fetch(oembedUrl, { 
-        signal: AbortSignal.timeout(3000),
-        mode: 'cors'
-      })
-      
-      if (!response.ok) {
-        console.log(`🔍 [V4] oEmbed failed: ${response.status}`)
-        return false
-      }
-      
-      const data = await response.json()
-      
-      // Vérifications multiples pour l'embeddabilité
-      const hasIframe = data.html && data.html.includes('iframe')
-      const hasEmbedUrl = data.html && data.html.includes('/embed/')
-      const validTitle = data.title && !data.title.includes('Private video')
-      
-      if (hasIframe && hasEmbedUrl && validTitle) {
-        console.log(`🔍 [V4] oEmbed: iframe✅ embedUrl✅ validTitle✅`)
-        return true
-      }
-      
-      console.log(`🔍 [V4] oEmbed: iframe:${hasIframe} embedUrl:${hasEmbedUrl} validTitle:${validTitle}`)
-      return false
-      
-    } catch (error) {
-      console.log(`🔍 [V4] oEmbed error: ${error.message}`)
-      return false
-    }
-  }
-
-  // 🔍 TEST 2: Test direct d'iframe (méthode alternative)
-  const testDirectIframeEmbedding = async (videoId: string): Promise<boolean> => {
-    try {
-      console.log(`🔍 [V4] Method 2: Testing direct iframe for ${videoId}`)
-      
-      // Essayer de charger la page embed directement
-      const embedUrl = `https://www.youtube.com/embed/${videoId}`
-      const response = await fetch(embedUrl, { 
-        method: 'HEAD',
-        signal: AbortSignal.timeout(2000),
-        mode: 'no-cors' // no-cors pour éviter les erreurs CORS
-      })
-      
-      // En mode no-cors, on peut seulement vérifier que la requête n'a pas échoué
-      console.log(`🔍 [V4] Direct iframe test - response type: ${response.type}`)
-      
-      // Si on arrive ici sans erreur, c'est plutôt bon signe
-      return true
-      
-    } catch (error) {
-      console.log(`🔍 [V4] Direct iframe error: ${error.message}`)
-      return false
-    }
-  }
-
-  // 🔍 TEST 3: Test via proxy API (pour contourner les restrictions)
-  const testProxyEmbedding = async (videoId: string): Promise<boolean> => {
-    try {
-      console.log(`🔍 [V4] Method 3: Testing via proxy for ${videoId}`)
-      
-      // Utiliser notre API pour tester l'embeddabilité
-      const response = await fetch(`/api/youtube-embed-test?videoId=${videoId}`, {
-        signal: AbortSignal.timeout(3000)
-      })
-      
-      if (!response.ok) {
-        console.log(`🔍 [V4] Proxy test failed: ${response.status}`)
-        return false
-      }
-      
-      const data = await response.json()
-      
-      if (data.embeddable === true) {
-        console.log(`🔍 [V4] Proxy confirms embeddable`)
-        return true
-      }
-      
-      console.log(`🔍 [V4] Proxy confirms not embeddable: ${data.reason}`)
-      return false
-      
-    } catch (error) {
-      console.log(`🔍 [V4] Proxy test error: ${error.message}`)
-      return false
-    }
-  }
-
-  // 🔧 CONSTRUCTION D'URL D'EMBED OPTIMALE
-  const buildOptimalEmbedUrl = (videoId: string): string => {
-    console.log(`🔧 [V4] Building optimal embed URL for: ${videoId}`)
-    
-    // Paramètres optimisés pour maximiser la compatibilité et réduire les restrictions
-    const params = new URLSearchParams({
-      // Paramètres de base
-      'rel': '0',                    // Ne pas afficher les vidéos suggérées à la fin
-      'modestbranding': '1',         // Interface YouTube minimale
-      'autoplay': '0',              // Pas d'autoplay (requis pour certains navigateurs)
-      
-      // Paramètres pour contourner certaines restrictions
-      'origin': window.location.origin,  // Spécifier l'origine pour la sécurité
-      'enablejsapi': '1',           // Activer l'API JavaScript (peut aider)
-      'playsinline': '1',           // Pour les appareils mobiles
-      
-      // Paramètres de compatibilité
-      'fs': '1',                    // Autoriser le plein écran
-      'hl': 'en',                   // Langue par défaut
-      'cc_load_policy': '0',        // Pas de sous-titres automatiques
-      
-      // Paramètres pour réduire les erreurs
-      'disablekb': '0',             // Garder les contrôles clavier
-      'iv_load_policy': '3',        // Pas d'annotations
-      'color': 'red',               // Couleur de la barre de progression
-      'controls': '1',              // Afficher les contrôles
-      'showinfo': '0'               // Pas d'infos supplémentaires (deprecated mais peut aider)
-    })
-    
-    const embedUrl = `https://www.youtube.com/embed/${videoId}?${params.toString()}`
-    
-    console.log(`🔧 [V4] Optimal embed URL: ${embedUrl}`)
-    return embedUrl
-  }
+  // 🎬 MÉTHODE SIMPLE COMME DANS MOVIE: Pas de tests complexes
 
   const loadImages = async (mainImage: string) => {
     console.log(`🖼️ [V4] Loading images for ${contentType}`)
@@ -447,13 +217,13 @@ export default function MusicDetailModalV4({
   }
 
   const nextImage = () => {
-    const hasVideoSlot = (musicVideo && !videoEmbedFailed) || youtubeWatchUrl
+    const hasVideoSlot = musicVideo || youtubeWatchUrl
     const totalItems = (hasVideoSlot ? 1 : 0) + images.length
     setActiveImageIndex((prev) => (prev + 1) % totalItems)
   }
 
   const prevImage = () => {
-    const hasVideoSlot = (musicVideo && !videoEmbedFailed) || youtubeWatchUrl
+    const hasVideoSlot = musicVideo || youtubeWatchUrl
     const totalItems = (hasVideoSlot ? 1 : 0) + images.length
     setActiveImageIndex((prev) => (prev - 1 + totalItems) % totalItems)
   }
@@ -527,28 +297,37 @@ export default function MusicDetailModalV4({
             {/* Media Section - Video + Images Carousel */}
             <div className="space-y-4 mb-6">
               <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                {musicVideo && activeImageIndex === 0 && !videoEmbedFailed ? (
+                {musicVideo && activeImageIndex === 0 ? (
                   <div className="w-full h-full">
-                    <iframe
-                      src={musicVideo.url}
-                      className="w-full h-full"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      onError={handleVideoError}
-                    />
+                    {musicVideo.provider === 'youtube' && musicVideo.url.includes('embed') ? (
+                      <iframe
+                        src={musicVideo.url}
+                        className="w-full h-full"
+                        allowFullScreen
+                        title="Music Video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                        <a
+                          href={youtubeWatchUrl || musicVideo.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg text-white"
+                        >
+                          <Play size={20} />
+                          Watch Video
+                        </a>
+                      </div>
+                    )}
                   </div>
-                ) : youtubeWatchUrl && (activeImageIndex === 0 || (!musicVideo && activeImageIndex === 0)) ? (
+                ) : youtubeWatchUrl && activeImageIndex === 0 ? (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-600 to-red-800">
                     <div className="text-center text-white p-8">
                       <div className="text-6xl mb-4">▶️</div>
                       <h3 className="text-xl font-bold mb-2">Watch on YouTube</h3>
                       <p className="text-red-100 mb-4 text-sm">
-                        {videoEmbedFailed 
-                          ? 'Video embed blocked - click to watch' 
-                          : embedTestPassed === false && youtubeWatchUrl?.includes('watch?v=')
-                          ? 'Video found but embedding restricted - click to watch'
-                          : 'Click to search and watch this song'
-                        }
+                        Click to search and watch this song
                       </p>
                       <a
                         href={youtubeWatchUrl}
@@ -589,7 +368,7 @@ export default function MusicDetailModalV4({
                 )}
                 
                 {/* Navigation arrows */}
-                {(((musicVideo && !videoEmbedFailed) || youtubeWatchUrl ? 1 : 0) + images.length > 1) && (
+                {((musicVideo || youtubeWatchUrl ? 1 : 0) + images.length > 1) && (
                   <>
                     <button
                       onClick={prevImage}
@@ -608,9 +387,9 @@ export default function MusicDetailModalV4({
               </div>
 
               {/* Media thumbnails */}
-              {(((musicVideo && !videoEmbedFailed) || youtubeWatchUrl ? 1 : 0) + images.length > 1) && (
+              {((musicVideo || youtubeWatchUrl ? 1 : 0) + images.length > 1) && (
                 <div className="flex space-x-2 overflow-x-auto pb-2">
-                  {((musicVideo && !videoEmbedFailed) || youtubeWatchUrl) && (
+                  {(musicVideo || youtubeWatchUrl) && (
                     <button
                       onClick={() => setActiveImageIndex(0)}
                       className={`flex-shrink-0 w-16 h-10 rounded overflow-hidden border-2 ${
@@ -618,7 +397,7 @@ export default function MusicDetailModalV4({
                       }`}
                     >
                       <div className="w-full h-full bg-red-600 flex items-center justify-center">
-                        {musicVideo && !videoEmbedFailed ? (
+                        {musicVideo ? (
                           <Play size={12} className="text-white" />
                         ) : (
                           <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
