@@ -23,6 +23,8 @@ export interface iTunesAlbum {
   collectionType?: string
   wrapperType: string
   kind?: string
+  trackId?: number // Pour les singles
+  trackName?: string // Pour les singles
 }
 
 export interface iTunesSearchResponse {
@@ -836,8 +838,14 @@ class MusicService {
     
     console.log('🎵 Converting album:', album.collectionName, 'Artist:', artist, 'Image:', imageUrl ? 'YES' : 'NO')
     
+    // Déterminer si c'est un single (trackId présent et collectionType = 'Single')
+    const isSingle = album.collectionType === 'Single' && album.trackId
+    const itemId = isSingle ? album.trackId : album.collectionId
+    
+    console.log('🎵 Is Single?', isSingle, 'Using ID:', itemId)
+    
     return {
-      id: `music-${album.collectionId}`,
+      id: `music-${itemId}`,
       title: this.cleanAlbumName(album.collectionName || 'Unknown Album'),
       artist: artist,  // ✅ UTILISÉ directement
       author: artist,  // ✅ UTILISÉ pour compatibilité
@@ -855,7 +863,8 @@ class MusicService {
       releaseDate: album.releaseDate,
       collectionViewUrl: album.collectionViewUrl,
       artistViewUrl: album.artistViewUrl,
-      collectionType: album.collectionType || 'Album'
+      collectionType: album.collectionType || 'Album',
+      isSingle: isSingle
     }
   }
 

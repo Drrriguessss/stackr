@@ -54,8 +54,15 @@ class MusicApiService {
       
       let cleanId = albumId.replace('music-', '')
       
+      // Déterminer si c'est un single (trackId) ou un album (collectionId)
+      // Les trackIds sont généralement plus longs que les collectionIds
+      const isSingle = albumId.includes('track-') || cleanId.length > 10
+      const entity = isSingle ? 'song' : 'album'
+      
+      console.log('🎵 Detected type:', isSingle ? 'Single/Track' : 'Album', 'Entity:', entity)
+      
       const response = await fetch(
-        `${this.ITUNES_BASE}/lookup?id=${cleanId}&entity=album`,
+        `${this.ITUNES_BASE}/lookup?id=${cleanId}&entity=${entity}`,
         { 
           signal: AbortSignal.timeout(5000),
           headers: {
@@ -76,22 +83,44 @@ class MusicApiService {
         return null
       }
       
-      const album = data.results[0]
-      console.log('🎵 iTunes API raw result:', album)
+      const item = data.results[0]
+      console.log('🎵 iTunes API raw result:', item)
       
-      return {
-        id: albumId,
-        title: album.collectionName || 'Unknown Album', 
-        artist: album.artistName || 'Unknown Artist',
-        image: this.getItunesImageUrl(album),
-        year: album.releaseDate ? new Date(album.releaseDate).getFullYear() : 2024,
-        genre: album.primaryGenreName || 'Music',
-        trackCount: album.trackCount || 10,
-        duration: this.calculateDuration(album.trackCount || 10),
-        description: `${album.collectionName} by ${album.artistName} - ${album.primaryGenreName} ${album.collectionType?.toLowerCase() || 'album'}.`,
-        rating: 4.0 + Math.random() * 1.0, // Random rating between 4-5
-        collectionType: album.collectionType || 'Album',
-        isAlbum: album.collectionType !== 'Single' // true for albums, false for singles
+      // Gérer différemment selon que c'est un single ou un album
+      if (isSingle && item.wrapperType === 'track') {
+        // C'est un single/track
+        console.log('🎵 Processing as SINGLE:', item.trackName)
+        return {
+          id: albumId,
+          title: item.trackName || 'Unknown Song',
+          artist: item.artistName || 'Unknown Artist',
+          image: this.getItunesImageUrl(item),
+          year: item.releaseDate ? new Date(item.releaseDate).getFullYear() : 2024,
+          genre: item.primaryGenreName || 'Music',
+          trackCount: 1,
+          duration: this.formatTrackTime(item.trackTimeMillis),
+          description: `"${item.trackName}" by ${item.artistName} - Single from the album "${item.collectionName || 'Unknown Album'}"`,
+          rating: 4.0 + Math.random() * 1.0,
+          collectionType: 'Single',
+          isAlbum: false
+        }
+      } else {
+        // C'est un album
+        console.log('🎵 Processing as ALBUM:', item.collectionName)
+        return {
+          id: albumId,
+          title: item.collectionName || 'Unknown Album', 
+          artist: item.artistName || 'Unknown Artist',
+          image: this.getItunesImageUrl(item),
+          year: item.releaseDate ? new Date(item.releaseDate).getFullYear() : 2024,
+          genre: item.primaryGenreName || 'Music',
+          trackCount: item.trackCount || 10,
+          duration: this.calculateDuration(item.trackCount || 10),
+          description: `${item.collectionName} by ${item.artistName} - ${item.primaryGenreName} ${item.collectionType?.toLowerCase() || 'album'}.`,
+          rating: 4.0 + Math.random() * 1.0,
+          collectionType: item.collectionType || 'Album',
+          isAlbum: item.collectionType !== 'Single'
+        }
       }
       
     } catch (error) {
@@ -131,6 +160,19 @@ class MusicApiService {
       return `${hours}:${minutes.toString().padStart(2, '0')}:00`
     }
     return `${totalMinutes}:00`
+  }
+  
+  /**
+   * Format track time from milliseconds
+   */
+  private formatTrackTime(milliseconds?: number): string {
+    if (!milliseconds) return '3:30'
+    
+    const totalSeconds = Math.floor(milliseconds / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
   
   /**
