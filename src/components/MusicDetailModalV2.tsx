@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { X, Star, Send, ChevronDown, ChevronRight, Play, Share } from 'lucide-react'
+import { X, Star, Send, ChevronDown, ChevronRight, Play, Share, FileText } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { musicService } from '@/services/musicService'
 import { musicReviewsService, type MusicReview } from '@/services/musicReviewsService'
@@ -72,9 +72,35 @@ export default function MusicDetailModalV2({
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [userPublicReviews, setUserPublicReviews] = useState<UserReview[]>([])
   const [currentUserReview, setCurrentUserReview] = useState<UserReview | null>(null)
+  const [showProductSheet, setShowProductSheet] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [productSheetData, setProductSheetData] = useState({
+    listenDate: '',
+    platform: '',
+    audiophileSetup: '',
+    context: '',
+    friendsListenedWith: [] as any[],
+    personalRating: 0,
+    personalReview: '',
+    favoriteTrack: '',
+    mood: '',
+    replayValue: '',
+    location: ''
+  })
 
   const scrollableRef = useRef<HTMLDivElement>(null)
   const libraryDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Mock friends data (same as in MovieDetailModalV3)
+  const mockFriends = [
+    { id: 1, name: 'Axel', avatar: '/api/placeholder/32/32' },
+    { id: 2, name: 'Maite', avatar: '/api/placeholder/32/32' },
+    { id: 3, name: 'Darren', avatar: '/api/placeholder/32/32' },
+    { id: 4, name: 'Joshua', avatar: '/api/placeholder/32/32' },
+    { id: 5, name: 'Jeremy', avatar: '/api/placeholder/32/32' },
+    { id: 6, name: 'Ana', avatar: '/api/placeholder/32/32' },
+    { id: 7, name: 'Susete', avatar: '/api/placeholder/32/32' }
+  ]
 
   // Mock data for similar albums and artist albums
   const mockSimilarAlbums = [
@@ -92,6 +118,14 @@ export default function MusicDetailModalV2({
     { id: 3, title: "The Wall", artist: "Pink Floyd", image: "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album", rating: 4.7 },
     { id: 4, title: "Animals", artist: "Pink Floyd", image: "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album", rating: 4.6 }
   ]
+
+  // Détecter si c'est mobile
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(/Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
+    }
+    checkIsMobile()
+  }, [])
 
   useEffect(() => {
     if (isOpen) {
@@ -376,9 +410,69 @@ export default function MusicDetailModalV2({
       })
       
       setShowReviewBox(false)
+      // Synchroniser avec la fiche produit
+      setProductSheetData(prev => ({ 
+        ...prev, 
+        personalReview: userReview.trim(),
+        personalRating: userRating
+      }))
       // Ne pas réinitialiser rating et review car l'utilisateur a maintenant une review existante
     }
   }
+
+  // Fonctions pour la fiche produit musique
+  const saveProductSheet = () => {
+    if (albumDetail) {
+      const data = { ...productSheetData, albumId: albumDetail.id }
+      localStorage.setItem(`musicProductSheet_${albumDetail.id}`, JSON.stringify(data))
+      
+      // Synchroniser le rating général avec le rating de la fiche produit
+      if (productSheetData.personalRating > 0) {
+        setUserRating(productSheetData.personalRating)
+      }
+      
+      // Synchroniser la review/note privée
+      if (productSheetData.personalReview.trim()) {
+        setUserReview(productSheetData.personalReview.trim())
+      }
+      
+      console.log('Music product sheet saved:', data)
+      setShowProductSheet(false)
+    }
+  }
+
+  const loadProductSheet = () => {
+    if (albumDetail) {
+      const saved = localStorage.getItem(`musicProductSheet_${albumDetail.id}`)
+      if (saved) {
+        const data = JSON.parse(saved)
+        setProductSheetData(data)
+        
+        // Synchroniser les données avec la section générale
+        if (data.personalRating > 0) {
+          setUserRating(data.personalRating)
+        }
+        if (data.personalReview && data.personalReview.trim()) {
+          setUserReview(data.personalReview.trim())
+        }
+      }
+    }
+  }
+
+  const isProductSheetCompleted = () => {
+    if (!albumDetail) return false
+    const saved = localStorage.getItem(`musicProductSheet_${albumDetail.id}`)
+    if (!saved) return false
+    const data = JSON.parse(saved)
+    return !!(data.listenDate && data.platform && data.personalRating > 0)
+  }
+
+  // Charger la fiche produit quand l'album change
+  useEffect(() => {
+    if (albumDetail) {
+      loadProductSheet()
+    }
+  }, [albumDetail])
 
   if (!isOpen) return null
 
@@ -518,6 +612,23 @@ export default function MusicDetailModalV2({
                       </div>
                     )}
                   </div>
+
+                  {/* Product Sheet Button - Only show for currently-playing or completed */}
+                  {(selectedStatus === 'currently-playing' || selectedStatus === 'completed') && (
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={() => setShowProductSheet(true)}
+                        className="py-2 px-4 rounded-lg font-medium text-white hover:opacity-90 transition flex items-center space-x-2 bg-gray-800"
+                        style={isProductSheetCompleted() ? {
+                          boxShadow: '0 0 0 2px #1DB954, 0 4px 8px rgba(29, 185, 84, 0.3)'
+                        } : {}}
+                        title="Music Sheet"
+                      >
+                        <FileText size={16} />
+                        <span>Music Sheet</span>
+                      </button>
+                    </div>
+                  )}
 
                   {/* Rate this album - Only show if Listening or Listened */}
                   {(selectedStatus === 'currently-playing' || selectedStatus === 'completed') && (
@@ -1136,6 +1247,272 @@ export default function MusicDetailModalV2({
           </div>
         )}
       </div>
+
+      {/* Music Product Sheet Modal */}
+      {showProductSheet && (
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-[#1A1A1A] rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white font-semibold text-lg">Music Sheet</h3>
+              <button
+                onClick={() => setShowProductSheet(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Album Info Header */}
+            <div className="flex items-start space-x-3 mb-6 pb-4 border-b border-gray-700">
+              {albumDetail?.image && (
+                <img
+                  src={albumDetail.image}
+                  alt={albumDetail.title}
+                  className="w-16 h-16 object-cover rounded-lg"
+                />
+              )}
+              <div className="flex-1">
+                <h4 className="text-white font-medium text-lg">{albumDetail?.title}</h4>
+                <p className="text-gray-400 text-sm">{albumDetail?.artist} • {albumDetail?.releaseDate ? new Date(albumDetail.releaseDate).getFullYear() : 'TBA'}</p>
+              </div>
+            </div>
+
+            {/* Personal Info Form */}
+            <div className="space-y-4">
+              {/* Listen Date */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-sm">Listen Date</label>
+                <input
+                  type={isMobile ? "month" : "date"}
+                  value={productSheetData.listenDate}
+                  onChange={(e) => setProductSheetData(prev => ({ ...prev, listenDate: e.target.value }))}
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#1DB954]"
+                  placeholder={isMobile ? "Select month" : "Select date"}
+                />
+              </div>
+
+              {/* Platform */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-sm">Platform Used</label>
+                <select 
+                  value={productSheetData.platform}
+                  onChange={(e) => setProductSheetData(prev => ({ ...prev, platform: e.target.value }))}
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#1DB954]"
+                >
+                  <option value="">Select...</option>
+                  <option value="spotify">Spotify</option>
+                  <option value="apple-music">Apple Music</option>
+                  <option value="youtube-music">YouTube Music</option>
+                  <option value="amazon-music">Amazon Music</option>
+                  <option value="tidal">Tidal</option>
+                  <option value="deezer">Deezer</option>
+                  <option value="soundcloud">SoundCloud</option>
+                  <option value="bandcamp">Bandcamp</option>
+                  <option value="vinyl">Vinyl</option>
+                  <option value="cd">CD</option>
+                  <option value="digital-purchase">Digital Purchase</option>
+                  <option value="radio">Radio</option>
+                  <option value="live-concert">Live Concert</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* Audiophile Setup (when physical media is selected) */}
+              {(productSheetData.platform === 'vinyl' || productSheetData.platform === 'cd') && (
+                <div>
+                  <label className="block text-white font-medium mb-2 text-sm">Audiophile Setup</label>
+                  <select 
+                    value={productSheetData.audiophileSetup}
+                    onChange={(e) => setProductSheetData(prev => ({ ...prev, audiophileSetup: e.target.value }))}
+                    className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#1DB954]"
+                  >
+                    <option value="">Select...</option>
+                    <option value="turntable-basic">Basic Turntable</option>
+                    <option value="turntable-high-end">High-End Turntable</option>
+                    <option value="cd-player-basic">Basic CD Player</option>
+                    <option value="cd-player-audiophile">Audiophile CD Player</option>
+                    <option value="headphones">High-Quality Headphones</option>
+                    <option value="speakers-bookshelf">Bookshelf Speakers</option>
+                    <option value="speakers-floor">Floor Speakers</option>
+                    <option value="studio-monitors">Studio Monitors</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Listening Context */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-sm">Listening Context</label>
+                <select 
+                  value={productSheetData.context}
+                  onChange={(e) => setProductSheetData(prev => ({ ...prev, context: e.target.value }))}
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#1DB954]"
+                >
+                  <option value="">Select...</option>
+                  <option value="focused-listening">Focused Listening</option>
+                  <option value="background">Background Music</option>
+                  <option value="workout">Workout</option>
+                  <option value="commute">Commute</option>
+                  <option value="work-study">Work/Study</option>
+                  <option value="party-social">Party/Social</option>
+                  <option value="relaxation">Relaxation</option>
+                  <option value="cooking">Cooking</option>
+                  <option value="driving">Driving</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* Location (optional) */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-sm">Location (optional)</label>
+                <input
+                  type="text"
+                  value={productSheetData.location}
+                  onChange={(e) => setProductSheetData(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="e.g: At home, In car, Studio..."
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#1DB954]"
+                />
+              </div>
+
+              {/* Friends Listened With */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-sm">Friends Listened With</label>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {mockFriends.map((friend) => {
+                    const isSelected = productSheetData.friendsListenedWith.find(f => f.id === friend.id)
+                    return (
+                      <button
+                        key={friend.id}
+                        onClick={() => {
+                          setProductSheetData(prev => ({
+                            ...prev,
+                            friendsListenedWith: isSelected 
+                              ? prev.friendsListenedWith.filter(f => f.id !== friend.id)
+                              : [...prev.friendsListenedWith, friend]
+                          }))
+                        }}
+                        className={`w-full flex items-center space-x-3 p-2 rounded-lg transition-colors ${
+                          isSelected ? 'bg-gradient-to-r from-[#1DB954]/20 to-[#1ed760]/20 border border-[#1DB954]/30' : 'hover:bg-gray-700'
+                        }`}
+                      >
+                        <div className="w-6 h-6 bg-gradient-to-r from-[#1DB954] to-[#1ed760] rounded-full flex items-center justify-center text-white text-xs font-medium">
+                          {friend.name.charAt(0)}
+                        </div>
+                        <span className="text-white text-sm">{friend.name}</span>
+                        {isSelected && (
+                          <div className="ml-auto">
+                            <div className="w-4 h-4 bg-gradient-to-r from-[#1DB954] to-[#1ed760] rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs">✓</span>
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Favorite Track */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-sm">Favorite Track</label>
+                <input
+                  type="text"
+                  value={productSheetData.favoriteTrack}
+                  onChange={(e) => setProductSheetData(prev => ({ ...prev, favoriteTrack: e.target.value }))}
+                  placeholder="Which track stood out to you?"
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#1DB954]"
+                />
+              </div>
+
+              {/* Personal Rating */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-sm">My Rating</label>
+                <div className="flex items-center space-x-2 mb-3">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      onClick={() => setProductSheetData(prev => ({ ...prev, personalRating: rating }))}
+                      className="p-1"
+                    >
+                      <Star
+                        size={20}
+                        className={`transition-colors ${
+                          productSheetData.personalRating >= rating
+                            ? 'text-[#1DB954] fill-[#1DB954]'
+                            : 'text-gray-600'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  {productSheetData.personalRating > 0 && (
+                    <span className="text-white ml-2 font-medium text-sm">{productSheetData.personalRating}/5</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Mood */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-sm">Mood While Listening</label>
+                <input
+                  type="text"
+                  value={productSheetData.mood}
+                  onChange={(e) => setProductSheetData(prev => ({ ...prev, mood: e.target.value }))}
+                  placeholder="e.g: Energetic, Relaxed, Nostalgic..."
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#1DB954]"
+                />
+              </div>
+
+              {/* Replay Value */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-sm">Replay Value</label>
+                <select 
+                  value={productSheetData.replayValue}
+                  onChange={(e) => setProductSheetData(prev => ({ ...prev, replayValue: e.target.value }))}
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#1DB954]"
+                >
+                  <option value="">How often would you listen again?</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="occasionally">Occasionally</option>
+                  <option value="rarely">Rarely</option>
+                  <option value="never">Never Again</option>
+                </select>
+              </div>
+
+              {/* Personal Review */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-sm">My Review</label>
+                <textarea
+                  value={productSheetData.personalReview}
+                  onChange={(e) => {
+                    setProductSheetData(prev => ({ ...prev, personalReview: e.target.value }))
+                    // Synchroniser avec la review générale en temps réel
+                    setUserReview(e.target.value)
+                  }}
+                  placeholder="My thoughts on this album..."
+                  className="w-full h-24 px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg resize-none border border-gray-700 focus:outline-none focus:border-[#1DB954]"
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3 mt-6 pt-4 border-t border-gray-700">
+              <button
+                onClick={() => setShowProductSheet(false)}
+                className="flex-1 py-2 px-4 text-gray-400 text-sm font-medium hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveProductSheet}
+                className="flex-1 py-2 px-4 bg-gradient-to-r from-[#1DB954] to-[#1ed760] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
