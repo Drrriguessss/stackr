@@ -462,7 +462,7 @@ export default function MusicDetailModalV3({
       'drake-views': 'uxpDa-c-4Mc', // Hotline Bling (Views era)
       'drake-take care': 'GxgqpCdOKak', // ✅ "Take Care" title track matches album
       'drake-nothing was the same': 'u5j3OM5-rPY', // Started From the Bottom
-      'drake-certified lover boy': 'pU7IOxTjNTk' // Way 2 Sexy
+      'drake-certified lover boy': 'pU7IOxTjNTk', // Way 2 Sexy
       
       // Ariana Grande
       'ariana grande-positions': 'tcYodQoapMg', // positions
