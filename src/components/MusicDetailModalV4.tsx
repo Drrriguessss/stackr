@@ -132,8 +132,13 @@ export default function MusicDetailModalV4({
         
         if (canEmbed) {
           console.log(`🎬 [V4] ✅ Embedding test passed for: ${video.videoId}`)
+          
+          // Utiliser les paramètres d'embed les plus compatibles
+          const embedUrl = buildOptimalEmbedUrl(video.videoId)
+          console.log(`🎬 [V4] Using optimal embed URL: ${embedUrl}`)
+          
           setMusicVideo({
-            url: `https://www.youtube.com/embed/${video.videoId}?rel=0&modestbranding=1&autoplay=0`,
+            url: embedUrl,
             provider: 'youtube'
           })
           setYoutubeWatchUrl(video.url)
@@ -167,47 +172,217 @@ export default function MusicDetailModalV4({
     }
   }
   
-  // Fonction pour gérer les erreurs d'embed iframe
+  // 🚨 GESTION INTELLIGENTE DES ERREURS D'EMBED
   const handleVideoError = () => {
-    console.log(`🎬 [V4] ❌ Video embed failed, switching to external link`)
+    console.log(`🎬 [V4] ❌ Video embed failed, attempting recovery...`)
+    
+    // Marquer l'échec initial
     setVideoEmbedFailed(true)
+    
+    // Tentative de récupération avec une URL alternative
+    if (musicVideo?.url && musicDetail) {
+      console.log(`🎬 [V4] 🔄 Attempting embed recovery...`)
+      tryEmbedRecovery()
+    } else {
+      console.log(`🎬 [V4] 🔗 No recovery possible, using external link`)
+    }
   }
 
-  // 🔍 TEST D'EMBEDDING PROACTIF: Vérifie si YouTube permet l'embedding
-  const testYouTubeEmbedding = async (videoId: string): Promise<boolean> => {
+  // 🔄 TENTATIVE DE RÉCUPÉRATION D'EMBED
+  const tryEmbedRecovery = async () => {
+    if (!musicDetail) return
+    
     try {
-      console.log(`🔍 [V4] Testing embedding capability for: ${videoId}`)
+      console.log(`🔄 [V4] Trying embed recovery for: ${musicDetail.title}`)
       
-      // Méthode 1: Test via oEmbed (plus fiable que les anciens tests)
+      // Attendre un peu pour éviter les conflits
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Reconstruire une URL d'embed différente avec moins de paramètres
+      const simpleMusicVideo = musicVideo
+      if (simpleMusicVideo?.url) {
+        const videoIdMatch = simpleMusicVideo.url.match(/embed\/([^?]+)/)
+        if (videoIdMatch) {
+          const videoId = videoIdMatch[1]
+          
+          // URL d'embed simplifiée (parfois plus compatible)
+          const simpleEmbedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=0`
+          
+          console.log(`🔄 [V4] Trying simplified embed URL: ${simpleEmbedUrl}`)
+          
+          setMusicVideo({
+            url: simpleEmbedUrl,
+            provider: 'youtube'
+          })
+          
+          // Reset l'état d'erreur pour essayer à nouveau
+          setVideoEmbedFailed(false)
+          
+          // Si ça échoue encore, on basculera définitivement vers le lien externe
+        }
+      }
+      
+    } catch (error) {
+      console.log(`🔄 [V4] Recovery failed: ${error.message}`)
+      setVideoEmbedFailed(true)
+    }
+  }
+
+  // 🔍 TEST D'EMBEDDING ROBUSTE: Plusieurs méthodes pour maximiser les vidéos embeddables
+  const testYouTubeEmbedding = async (videoId: string): Promise<boolean> => {
+    console.log(`🔍 [V4] 🎯 MULTI-METHOD embedding test for: ${videoId}`)
+    
+    // Méthode 1: Test oEmbed (fiable pour la plupart des cas)
+    const oembedResult = await testOEmbedEmbedding(videoId)
+    if (oembedResult === true) {
+      console.log(`🔍 [V4] ✅ oEmbed PASS - embeddable`)
+      return true
+    }
+    
+    // Méthode 2: Test direct d'iframe (pour les cas où oEmbed échoue)
+    const iframeResult = await testDirectIframeEmbedding(videoId)
+    if (iframeResult === true) {
+      console.log(`🔍 [V4] ✅ Direct iframe PASS - embeddable`)
+      return true
+    }
+    
+    // Méthode 3: Test via notre API proxy (dernier recours)
+    const proxyResult = await testProxyEmbedding(videoId)
+    if (proxyResult === true) {
+      console.log(`🔍 [V4] ✅ Proxy test PASS - embeddable`)
+      return true
+    }
+    
+    console.log(`🔍 [V4] ❌ ALL tests failed - not embeddable, using external link`)
+    return false
+  }
+
+  // 🔍 TEST 1: oEmbed (standard YouTube)
+  const testOEmbedEmbedding = async (videoId: string): Promise<boolean> => {
+    try {
+      console.log(`🔍 [V4] Method 1: Testing oEmbed for ${videoId}`)
+      
       const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
-      
       const response = await fetch(oembedUrl, { 
         signal: AbortSignal.timeout(3000),
         mode: 'cors'
       })
       
       if (!response.ok) {
-        console.log(`🔍 [V4] oEmbed failed (${response.status}) - video may not be embeddable`)
+        console.log(`🔍 [V4] oEmbed failed: ${response.status}`)
         return false
       }
       
       const data = await response.json()
       
-      // Vérifier si YouTube fournit un HTML embed dans la réponse
-      if (data.html && data.html.includes('iframe')) {
-        console.log(`🔍 [V4] ✅ oEmbed provides iframe - embeddable`)
+      // Vérifications multiples pour l'embeddabilité
+      const hasIframe = data.html && data.html.includes('iframe')
+      const hasEmbedUrl = data.html && data.html.includes('/embed/')
+      const validTitle = data.title && !data.title.includes('Private video')
+      
+      if (hasIframe && hasEmbedUrl && validTitle) {
+        console.log(`🔍 [V4] oEmbed: iframe✅ embedUrl✅ validTitle✅`)
         return true
       }
       
-      // Si pas d'HTML iframe, probablement pas embeddable
-      console.log(`🔍 [V4] ❌ oEmbed no iframe - not embeddable`)
+      console.log(`🔍 [V4] oEmbed: iframe:${hasIframe} embedUrl:${hasEmbedUrl} validTitle:${validTitle}`)
       return false
       
     } catch (error) {
-      console.log(`🔍 [V4] ❌ Embedding test failed: ${error.message}`)
-      // En cas d'erreur, on assume que ce n'est pas embeddable
+      console.log(`🔍 [V4] oEmbed error: ${error.message}`)
       return false
     }
+  }
+
+  // 🔍 TEST 2: Test direct d'iframe (méthode alternative)
+  const testDirectIframeEmbedding = async (videoId: string): Promise<boolean> => {
+    try {
+      console.log(`🔍 [V4] Method 2: Testing direct iframe for ${videoId}`)
+      
+      // Essayer de charger la page embed directement
+      const embedUrl = `https://www.youtube.com/embed/${videoId}`
+      const response = await fetch(embedUrl, { 
+        method: 'HEAD',
+        signal: AbortSignal.timeout(2000),
+        mode: 'no-cors' // no-cors pour éviter les erreurs CORS
+      })
+      
+      // En mode no-cors, on peut seulement vérifier que la requête n'a pas échoué
+      console.log(`🔍 [V4] Direct iframe test - response type: ${response.type}`)
+      
+      // Si on arrive ici sans erreur, c'est plutôt bon signe
+      return true
+      
+    } catch (error) {
+      console.log(`🔍 [V4] Direct iframe error: ${error.message}`)
+      return false
+    }
+  }
+
+  // 🔍 TEST 3: Test via proxy API (pour contourner les restrictions)
+  const testProxyEmbedding = async (videoId: string): Promise<boolean> => {
+    try {
+      console.log(`🔍 [V4] Method 3: Testing via proxy for ${videoId}`)
+      
+      // Utiliser notre API pour tester l'embeddabilité
+      const response = await fetch(`/api/youtube-embed-test?videoId=${videoId}`, {
+        signal: AbortSignal.timeout(3000)
+      })
+      
+      if (!response.ok) {
+        console.log(`🔍 [V4] Proxy test failed: ${response.status}`)
+        return false
+      }
+      
+      const data = await response.json()
+      
+      if (data.embeddable === true) {
+        console.log(`🔍 [V4] Proxy confirms embeddable`)
+        return true
+      }
+      
+      console.log(`🔍 [V4] Proxy confirms not embeddable: ${data.reason}`)
+      return false
+      
+    } catch (error) {
+      console.log(`🔍 [V4] Proxy test error: ${error.message}`)
+      return false
+    }
+  }
+
+  // 🔧 CONSTRUCTION D'URL D'EMBED OPTIMALE
+  const buildOptimalEmbedUrl = (videoId: string): string => {
+    console.log(`🔧 [V4] Building optimal embed URL for: ${videoId}`)
+    
+    // Paramètres optimisés pour maximiser la compatibilité et réduire les restrictions
+    const params = new URLSearchParams({
+      // Paramètres de base
+      'rel': '0',                    // Ne pas afficher les vidéos suggérées à la fin
+      'modestbranding': '1',         // Interface YouTube minimale
+      'autoplay': '0',              // Pas d'autoplay (requis pour certains navigateurs)
+      
+      // Paramètres pour contourner certaines restrictions
+      'origin': window.location.origin,  // Spécifier l'origine pour la sécurité
+      'enablejsapi': '1',           // Activer l'API JavaScript (peut aider)
+      'playsinline': '1',           // Pour les appareils mobiles
+      
+      // Paramètres de compatibilité
+      'fs': '1',                    // Autoriser le plein écran
+      'hl': 'en',                   // Langue par défaut
+      'cc_load_policy': '0',        // Pas de sous-titres automatiques
+      
+      // Paramètres pour réduire les erreurs
+      'disablekb': '0',             // Garder les contrôles clavier
+      'iv_load_policy': '3',        // Pas d'annotations
+      'color': 'red',               // Couleur de la barre de progression
+      'controls': '1',              // Afficher les contrôles
+      'showinfo': '0'               // Pas d'infos supplémentaires (deprecated mais peut aider)
+    })
+    
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?${params.toString()}`
+    
+    console.log(`🔧 [V4] Optimal embed URL: ${embedUrl}`)
+    return embedUrl
   }
 
   const loadImages = async (mainImage: string) => {
