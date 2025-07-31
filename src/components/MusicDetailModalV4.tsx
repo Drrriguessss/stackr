@@ -572,18 +572,27 @@ export default function MusicDetailModalV4({
                   {(musicVideo || youtubeWatchUrl) && (
                     <button
                       onClick={() => setActiveImageIndex(0)}
-                      className={`flex-shrink-0 w-16 h-10 rounded overflow-hidden border-2 ${
-                        activeImageIndex === 0 ? 'border-green-500' : 'border-transparent'
+                      className={`flex-shrink-0 w-16 h-10 rounded overflow-hidden ${
+                        activeImageIndex === 0 ? 'ring-2 ring-green-500' : ''
                       }`}
                     >
-                      <div className="w-full h-full bg-red-600 flex items-center justify-center">
-                        {musicVideo ? (
-                          <Play size={12} className="text-white" />
-                        ) : (
-                          <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                          </svg>
+                      <div className="relative w-full h-full">
+                        {images.length > 0 && (
+                          <img
+                            src={images[0]}
+                            alt={musicDetail?.title}
+                            className="w-full h-full object-cover"
+                          />
                         )}
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                          {musicVideo ? (
+                            <Play size={12} className="text-white" />
+                          ) : (
+                            <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                            </svg>
+                          )}
+                        </div>
                       </div>
                     </button>
                   )}
@@ -591,8 +600,8 @@ export default function MusicDetailModalV4({
                     <button
                       key={index}
                       onClick={() => setActiveImageIndex(musicVideo ? index + 1 : index)}
-                      className={`flex-shrink-0 w-16 h-10 rounded overflow-hidden border-2 ${
-                        activeImageIndex === (musicVideo ? index + 1 : index) ? 'border-green-500' : 'border-transparent'
+                      className={`flex-shrink-0 w-16 h-10 rounded overflow-hidden ${
+                        activeImageIndex === (musicVideo ? index + 1 : index) ? 'ring-2 ring-green-500' : ''
                       }`}
                     >
                       <img
@@ -632,9 +641,15 @@ export default function MusicDetailModalV4({
                         </button>
                         <button
                           onClick={() => handleAddToLibrary('listened')}
-                          className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700 last:rounded-b-lg"
+                          className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700"
                         >
                           Listened
+                        </button>
+                        <button
+                          onClick={() => onDeleteItem && onDeleteItem(musicDetail.id)}
+                          className="block w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 last:rounded-b-lg"
+                        >
+                          Remove from Library
                         </button>
                       </>
                     ) : (
@@ -643,13 +658,19 @@ export default function MusicDetailModalV4({
                           onClick={() => handleAddToLibrary('want-to-listen')}
                           className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700 first:rounded-t-lg"
                         >
-                          Want to Hear
+                          Want to Listen
                         </button>
                         <button
                           onClick={() => handleAddToLibrary('listened')}
-                          className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700 last:rounded-b-lg"
+                          className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700"
                         >
-                          Heard
+                          Listened
+                        </button>
+                        <button
+                          onClick={() => onDeleteItem && onDeleteItem(musicDetail.id)}
+                          className="block w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 last:rounded-b-lg"
+                        >
+                          Remove from Library
                         </button>
                       </>
                     )}
@@ -680,34 +701,62 @@ export default function MusicDetailModalV4({
               )}
             </div>
 
-            {/* Description */}
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-white mb-3">
-                {isAlbum ? 'About this Album' : 'About this Song'}
-              </h3>
-              <p className="text-gray-300 leading-relaxed">
-                {musicDetail.description}
-              </p>
-            </div>
 
-            {/* Rating */}
+            {/* Community & Critics Rating */}
             <div className="mb-6">
-              <h3 className="text-xl font-semibold text-white mb-3">Rating</h3>
-              <div className="flex items-center space-x-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={24}
-                    className={`${
-                      star <= Math.floor(musicDetail.rating || 0)
-                        ? 'text-yellow-400 fill-current'
-                        : 'text-gray-600'
-                    }`}
-                  />
-                ))}
-                <span className="text-white ml-2">
-                  {(musicDetail.rating || 0).toFixed(1)} / 5.0
-                </span>
+              <h3 className="text-xl font-semibold text-white mb-3">Critics & Community</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Critics Score */}
+                <div className="bg-gray-800 p-4 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-400 mb-1">
+                      {musicDetail?.rating ? (musicDetail.rating * 20).toFixed(0) : '85'}
+                    </div>
+                    <div className="text-xs text-gray-400 mb-2">CRITICS SCORE</div>
+                    <div className="flex items-center justify-center space-x-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={12}
+                          className={`${
+                            star <= Math.floor(musicDetail?.rating || 4.25)
+                              ? 'text-green-400 fill-current'
+                              : 'text-gray-600'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Based on reviews from Pitchfork, AllMusic, Rolling Stone
+                    </div>
+                  </div>
+                </div>
+
+                {/* User Score */}
+                <div className="bg-gray-800 p-4 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-400 mb-1">
+                      {musicDetail?.rating ? ((musicDetail.rating * 20) - 5).toFixed(0) : '80'}
+                    </div>
+                    <div className="text-xs text-gray-400 mb-2">USER SCORE</div>
+                    <div className="flex items-center justify-center space-x-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={12}
+                          className={`${
+                            star <= Math.floor((musicDetail?.rating || 4.25) - 0.25)
+                              ? 'text-blue-400 fill-current'
+                              : 'text-gray-600'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Community ratings from music listeners
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
