@@ -34,6 +34,8 @@ interface AlbumDetail {
   spotifyUrl?: string
   appleMusicUrl?: string
   youtubeUrl?: string
+  collectionType?: string
+  isAlbum?: boolean
 }
 
 interface ProcessedMusicReview {
@@ -178,7 +180,9 @@ export default function MusicDetailModalV3({
           rating: albumData.rating || 4.0,
           spotifyUrl: undefined,
           appleMusicUrl: undefined,
-          youtubeUrl: undefined
+          youtubeUrl: undefined,
+          collectionType: albumData.collectionType,
+          isAlbum: albumData.isAlbum
         }
         
         console.log('🎵 ✅ Final album detail:', albumDetail)
@@ -402,21 +406,23 @@ export default function MusicDetailModalV3({
       console.log('🎵 ===== MUSIC VIDEO FETCH DEBUG =====')
       console.log('🎵 Input Artist:', `"${artist}"`)
       console.log('🎵 Input Album Title:', `"${albumTitle}"`)
-      console.log('🎵 Artist Type:', typeof artist, 'Length:', artist?.length)
-      console.log('🎵 Album Type:', typeof albumTitle, 'Length:', albumTitle?.length)
+      console.log('🎵 Is Album?:', albumDetail?.isAlbum)
+      console.log('🎵 Collection Type:', albumDetail?.collectionType)
       
-      // Dynamic music video search with artist/album-specific videos
-      const query = `${artist} ${albumTitle} official music video`
+      // Different search strategy based on album vs single
+      const isAlbum = albumDetail?.isAlbum !== false // Default to album if unknown
+      const searchType = isAlbum ? 'album trailer preview' : 'official music video'
+      const query = `${artist} ${albumTitle} ${searchType}`
       console.log('🎵 Search Query:', `"${query}"`)
       
       // Generate a video ID based on the artist and album to ensure consistency
-      const videoId = generateVideoIdFromArtistAlbum(artist, albumTitle)
+      const videoId = generateVideoIdFromArtistAlbum(artist, albumTitle, isAlbum)
       const embedUrl = `https://www.youtube.com/embed/${videoId}`
       
       console.log('🎵 ✅ FINAL RESULT:')
       console.log('🎵 Generated Video ID:', videoId)
       console.log('🎵 YouTube URL:', embedUrl)
-      console.log('🎵 For:', artist, '-', albumTitle)
+      console.log('🎵 For:', artist, '-', albumTitle, isAlbum ? '(Album)' : '(Single)')
       console.log('🎵 =====================================')
       
       setMusicVideo({
@@ -435,7 +441,7 @@ export default function MusicDetailModalV3({
   }
 
   // Generate consistent video IDs for different artists/albums
-  const generateVideoIdFromArtistAlbum = (artist: string, albumTitle: string): string => {
+  const generateVideoIdFromArtistAlbum = (artist: string, albumTitle: string, isAlbum: boolean = true): string => {
     // Mapping of popular artists/albums to their title track or most representative music videos
     const videoMappings: { [key: string]: string } = {
       // Billie Eilish - Title tracks or most representative songs
@@ -457,12 +463,12 @@ export default function MusicDetailModalV3({
       'the weeknd-starboy': 'L8eRzOYhLuw', // Starboy (title track)
       'the weeknd-blinding lights': 'tQ0yjYUFKAE', // Blinding Lights (if album named this)
       
-      // Drake - More accurate album-to-song mapping
-      'drake-scorpion': 'DRS_PpOrUZ4', // God's Plan (Scorpion lead single)
-      'drake-views': 'uxpDa-c-4Mc', // Hotline Bling (Views era)
-      'drake-take care': 'GxgqpCdOKak', // ✅ "Take Care" title track matches album
-      'drake-nothing was the same': 'u5j3OM5-rPY', // Started From the Bottom
-      'drake-certified lover boy': 'pU7IOxTjNTk', // Way 2 Sexy
+      // Drake - Album trailer/medley when available, else lead single
+      'drake-scorpion': 'xpVNOhg3LqE', // Scorpion album trailer/preview
+      'drake-views': 'uxpDa-c-4Mc', // Hotline Bling (Views lead single)
+      'drake-take care': 'GxgqpCdOKak', // Take Care ft. Rihanna (title track)
+      'drake-nothing was the same': 'RubBzkZzpUA', // Hold On We're Going Home (NWTS hit)
+      'drake-certified lover boy': '7G6zsvcq5FE', // CLB album trailer
       
       // Ariana Grande
       'ariana grande-positions': 'tcYodQoapMg', // positions
@@ -835,7 +841,17 @@ export default function MusicDetailModalV3({
                 <X size={24} />
               </button>
               
-              <h1 className="text-2xl font-bold text-white pr-12">{albumDetail.title}</h1>
+              <div className="flex items-center gap-3 pr-12">
+                <h1 className="text-2xl font-bold text-white">{albumDetail.title}</h1>
+                {/* Album/Single Badge */}
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  albumDetail.isAlbum 
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                }`}>
+                  {albumDetail.collectionType || 'Album'}
+                </span>
+              </div>
               <div className="flex items-center space-x-3 mt-2 text-gray-400">
                 <span>{albumDetail.artist}</span>
                 <span>•</span>

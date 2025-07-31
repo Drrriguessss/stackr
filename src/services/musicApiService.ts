@@ -12,6 +12,8 @@ export interface AlbumData {
   duration?: string
   description?: string
   rating?: number
+  collectionType?: string // 'Album' or 'Single' from iTunes
+  isAlbum?: boolean // Helper boolean
 }
 
 class MusicApiService {
@@ -86,8 +88,10 @@ class MusicApiService {
         genre: album.primaryGenreName || 'Music',
         trackCount: album.trackCount || 10,
         duration: this.calculateDuration(album.trackCount || 10),
-        description: `${album.collectionName} by ${album.artistName} - ${album.primaryGenreName} album.`,
-        rating: 4.0 + Math.random() * 1.0 // Random rating between 4-5
+        description: `${album.collectionName} by ${album.artistName} - ${album.primaryGenreName} ${album.collectionType?.toLowerCase() || 'album'}.`,
+        rating: 4.0 + Math.random() * 1.0, // Random rating between 4-5
+        collectionType: album.collectionType || 'Album',
+        isAlbum: album.collectionType !== 'Single' // true for albums, false for singles
       }
       
     } catch (error) {
@@ -145,7 +149,9 @@ class MusicApiService {
         trackCount: 16,
         duration: '56:24',
         description: 'Happier Than Ever is Billie Eilish\'s deeply personal sophomore album.',
-        rating: 4.7
+        rating: 4.7,
+        collectionType: 'Album',
+        isAlbum: true
       },
       
       // Taylor Swift
