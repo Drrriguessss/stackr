@@ -613,7 +613,7 @@ export default function MusicDetailModalV4({
                   onClick={() => setShowStatusDropdown(!showStatusDropdown)}
                   className={`px-6 py-3 rounded-lg font-medium transition-all ${
                     selectedStatus
-                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                      ? 'bg-gradient-to-r from-[#10B981] to-[#34D399] text-white border-0'
                       : 'bg-gray-800 text-white hover:bg-gray-700'
                   }`}
                 >
@@ -671,7 +671,7 @@ export default function MusicDetailModalV4({
                   onClick={() => setShowProductSheet(true)}
                   className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
                   style={isProductSheetCompleted() ? {
-                    boxShadow: '0 0 0 2px #FF6A00, 0 4px 8px rgba(255, 106, 0, 0.3)'
+                    boxShadow: '0 0 0 2px #10B981, 0 4px 8px rgba(16, 185, 129, 0.3)'
                   } : {}}
                   title="Music Sheet"
                 >
@@ -746,7 +746,7 @@ export default function MusicDetailModalV4({
                       onClick={() => setReviewPrivacy('private')}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                         reviewPrivacy === 'private'
-                          ? 'bg-gradient-to-r from-[#FF6A00] to-[#FFB347] text-white border-0'
+                          ? 'bg-gradient-to-r from-[#10B981] to-[#34D399] text-white border-0'
                           : 'bg-transparent text-gray-400 border border-gray-700'
                       }`}
                     >
@@ -756,7 +756,7 @@ export default function MusicDetailModalV4({
                       onClick={() => setReviewPrivacy('public')}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                         reviewPrivacy === 'public'
-                          ? 'bg-gradient-to-r from-[#FF6A00] to-[#FFB347] text-white border-0'
+                          ? 'bg-gradient-to-r from-[#10B981] to-[#34D399] text-white border-0'
                           : 'bg-transparent text-gray-400 border border-gray-700'
                       }`}
                     >
@@ -784,7 +784,7 @@ export default function MusicDetailModalV4({
                     </button>
                     <button
                       onClick={handleReviewSubmit}
-                      className="px-4 py-2 bg-gradient-to-r from-[#FF6A00] to-[#FFB347] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+                      className="px-4 py-2 bg-gradient-to-r from-[#10B981] to-[#34D399] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
                     >
                       Save
                     </button>
@@ -807,7 +807,7 @@ export default function MusicDetailModalV4({
                       <button
                         key={track.trackId}
                         onClick={() => onMusicSelect && onMusicSelect(`track-${track.trackId}`)}
-                        className="w-full text-left p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors group"
+                        className="w-full text-left p-3 bg-gray-800 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg transition-colors group"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
@@ -815,7 +815,7 @@ export default function MusicDetailModalV4({
                               {track.trackNumber || '-'}
                             </span>
                             <div>
-                              <div className="text-white group-hover:text-blue-400 transition-colors">
+                              <div className="text-white group-hover:text-[#10B981] transition-colors">
                                 {track.trackName}
                               </div>
                               {track.trackTimeMillis && (
@@ -826,7 +826,7 @@ export default function MusicDetailModalV4({
                               )}
                             </div>
                           </div>
-                          <ArrowRight size={16} className="text-gray-400 group-hover:text-blue-400 transition-colors" />
+                          <ArrowRight size={16} className="text-gray-400 group-hover:text-[#10B981] transition-colors" />
                         </div>
                       </button>
                     ))}
@@ -851,7 +851,7 @@ export default function MusicDetailModalV4({
                   {funFacts.map((fact, index) => (
                     <div 
                       key={index}
-                      className="p-4 bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg border-l-4 border-l-yellow-500"
+                      className="p-4 bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg border-l-4 border-l-[#10B981]"
                     >
                       <div className="flex items-start space-x-3">
                         <div className="flex-shrink-0 mt-1">
@@ -1021,7 +1021,7 @@ export default function MusicDetailModalV4({
                   type="date"
                   value={productSheetData.listenDate}
                   onChange={(e) => setProductSheetData(prev => ({ ...prev, listenDate: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#10B981]"
                 />
               </div>
 
@@ -1031,7 +1031,7 @@ export default function MusicDetailModalV4({
                 <select 
                   value={productSheetData.platform}
                   onChange={(e) => setProductSheetData(prev => ({ ...prev, platform: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#10B981]"
                 >
                   <option value="">Select...</option>
                   <option value="spotify">Spotify</option>
@@ -1057,7 +1057,7 @@ export default function MusicDetailModalV4({
                   value={productSheetData.location}
                   onChange={(e) => setProductSheetData(prev => ({ ...prev, location: e.target.value }))}
                   placeholder="e.g: At home, In car, Concert hall..."
-                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#10B981]"
                 />
               </div>
 
@@ -1067,7 +1067,7 @@ export default function MusicDetailModalV4({
                 <select 
                   value={productSheetData.mood}
                   onChange={(e) => setProductSheetData(prev => ({ ...prev, mood: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#10B981]"
                 >
                   <option value="">Select mood...</option>
                   <option value="happy">😊 Happy</option>
@@ -1101,7 +1101,7 @@ export default function MusicDetailModalV4({
                           }))
                         }}
                         className={`w-full flex items-center space-x-3 p-2 rounded-lg transition-colors ${
-                          isSelected ? 'bg-gradient-to-r from-[#FF6A00]/20 to-[#FFB347]/20 border border-[#FF6A00]/30' : 'hover:bg-gray-700'
+                          isSelected ? 'bg-gradient-to-r from-[#10B981]/20 to-[#34D399]/20 border border-[#10B981]/30' : 'hover:bg-gray-700'
                         }`}
                       >
                         <img src={friend.avatar} alt={friend.name} className="w-8 h-8 rounded-full" />
@@ -1126,7 +1126,7 @@ export default function MusicDetailModalV4({
                         size={20}
                         className={`transition-colors ${
                           productSheetData.personalRating >= rating
-                            ? 'text-[#FF6A00] fill-[#FF6A00]'
+                            ? 'text-[#10B981] fill-[#10B981]'
                             : 'text-gray-600'
                         }`}
                       />
@@ -1148,7 +1148,7 @@ export default function MusicDetailModalV4({
                     setUserReview(e.target.value)
                   }}
                   placeholder={`My thoughts on this ${isAlbum ? 'album' : 'song'}...`}
-                  className="w-full h-24 px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg resize-none border border-gray-700 focus:outline-none focus:border-[#FF6A00]"
+                  className="w-full h-24 px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg resize-none border border-gray-700 focus:outline-none focus:border-[#10B981]"
                 />
               </div>
             </div>
@@ -1163,7 +1163,7 @@ export default function MusicDetailModalV4({
               </button>
               <button
                 onClick={saveProductSheet}
-                className="flex-1 py-2 px-4 bg-gradient-to-r from-[#FF6A00] to-[#FFB347] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+                className="flex-1 py-2 px-4 bg-gradient-to-r from-[#10B981] to-[#34D399] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
               >
                 Save
               </button>
