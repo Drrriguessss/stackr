@@ -306,19 +306,93 @@ export default function MusicDetailModalV3({
 
   const fetchImages = async (artist: string, albumTitle: string) => {
     try {
-      // For now, we'll use placeholder images
-      // TODO: Implement proper music image fetching from Last.fm or Spotify APIs
-      const mockImages = [
-        `https://via.placeholder.com/800x600/1a1a1a/ffffff?text=${encodeURIComponent(albumTitle)}+1`,
-        `https://via.placeholder.com/800x600/2a2a2a/ffffff?text=${encodeURIComponent(artist)}+1`,
-        `https://via.placeholder.com/800x600/3a3a3a/ffffff?text=${encodeURIComponent(albumTitle)}+2`,
-        `https://via.placeholder.com/800x600/4a4a4a/ffffff?text=${encodeURIComponent(artist)}+2`
+      console.log('🖼️ Fetching images for:', artist, '-', albumTitle)
+      
+      const imageUrls: string[] = []
+      
+      // 1. Try to get iTunes album artwork in multiple sizes
+      await fetchItunesAlbumArtwork(artist, albumTitle, imageUrls)
+      
+      // 2. Add high-quality music-themed images from Unsplash
+      await fetchUnsplashMusicImages(artist, albumTitle, imageUrls)
+      
+      // 3. Ensure we have at least some images
+      if (imageUrls.length === 0) {
+        imageUrls.push(
+          `https://via.placeholder.com/800x800/1a1a1a/ffffff?text=${encodeURIComponent(albumTitle)}`,
+          `https://via.placeholder.com/800x600/2a2a2a/ffffff?text=${encodeURIComponent(artist)}`
+        )
+      }
+      
+      console.log('🖼️ ✅ Found', imageUrls.length, 'images for carousel')
+      setImages(imageUrls.slice(0, 6)) // Limit to 6 images
+      
+    } catch (error) {
+      console.error('🖼️ Error fetching images:', error)
+      setImages([])
+    }
+  }
+
+  // Fetch iTunes album artwork in different sizes
+  const fetchItunesAlbumArtwork = async (artist: string, albumTitle: string, imageUrls: string[]) => {
+    try {
+      const searchQuery = `${artist} ${albumTitle}`.trim()
+      const response = await fetch(
+        `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&media=music&entity=album&limit=3`,
+        { signal: AbortSignal.timeout(5000) }
+      )
+      
+      if (response.ok) {
+        const data = await response.json()
+        
+        if (data.results && data.results.length > 0) {
+          for (const album of data.results.slice(0, 2)) { // Take first 2 albums
+            if (album.artworkUrl100) {
+              // Generate multiple sizes of the same artwork
+              const baseUrl = album.artworkUrl100.replace('100x100bb.jpg', '')
+              const sizes = ['600x600bb.jpg', '400x400bb.jpg', '300x300bb.jpg']
+              
+              for (const size of sizes) {
+                const imageUrl = baseUrl + size
+                if (!imageUrls.includes(imageUrl)) {
+                  imageUrls.push(imageUrl)
+                }
+              }
+            }
+          }
+          
+          console.log('🖼️ iTunes: Found', imageUrls.length, 'album artworks')
+        }
+      }
+    } catch (error) {
+      console.log('🖼️ iTunes artwork fetch failed:', error)
+    }
+  }
+
+  // Fetch high-quality music images from Unsplash
+  const fetchUnsplashMusicImages = async (artist: string, albumTitle: string, imageUrls: string[]) => {
+    try {
+      // Add curated music images that look professional
+      const musicImages = [
+        // General music/studio images
+        `https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=600&fit=crop&q=80`, // Music studio
+        `https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop&q=80`, // Headphones
+        `https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&h=600&fit=crop&q=80`, // Music studio 2
+        `https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=800&fit=crop&q=80`, // Square format
+        
+        // Artist-specific images (if we can generate based on artist)
+        `https://source.unsplash.com/800x600/?music,${encodeURIComponent(artist.split(' ')[0])}`,
+        `https://source.unsplash.com/800x800/?album,music,${encodeURIComponent(albumTitle.split(' ')[0])}`
       ]
       
-      setImages(mockImages)
+      // Add 2-3 curated images to the collection
+      const selectedImages = musicImages.slice(0, 3)
+      imageUrls.push(...selectedImages)
+      
+      console.log('🖼️ Unsplash: Added', selectedImages.length, 'music images')
+      
     } catch (error) {
-      console.error('Error fetching images:', error)
-      setImages([])
+      console.log('🖼️ Unsplash music images failed:', error)
     }
   }
 
