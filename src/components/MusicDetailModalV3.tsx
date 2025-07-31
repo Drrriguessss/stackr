@@ -162,10 +162,10 @@ export default function MusicDetailModalV3({
         
         // Fetch additional content
         await Promise.all([
-          fetchImages(data.artist, data.title),
-          fetchMusicVideo(data.artist, data.title),
+          fetchImages(data.artist || 'Unknown Artist', data.title || 'Unknown Album'),
+          fetchMusicVideo(data.artist || 'Unknown Artist', data.title || 'Unknown Album'),
           fetchReviews(albumId, data.title || 'Unknown Album', data.artist || 'Unknown Artist'),
-          fetchArtistAlbums(data.artist)
+          fetchArtistAlbums(data.artist || 'Unknown Artist')
         ])
       } else {
         throw new Error('No album data received')
@@ -229,16 +229,16 @@ export default function MusicDetailModalV3({
 
   const fetchImages = async (artist: string, albumTitle: string) => {
     try {
-      // Fetch album and artist images
-      const albumImages = await imageService.getAlbumImages(albumId, albumTitle, artist)
-      const artistImages = await imageService.getArtistImages(artist)
-      
-      const allImages = [
-        ...albumImages.map(img => img.url),
-        ...artistImages.map(img => img.url)
+      // For now, we'll use placeholder images
+      // TODO: Implement proper music image fetching from Last.fm or Spotify APIs
+      const mockImages = [
+        `https://via.placeholder.com/800x600/1a1a1a/ffffff?text=${encodeURIComponent(albumTitle)}+1`,
+        `https://via.placeholder.com/800x600/2a2a2a/ffffff?text=${encodeURIComponent(artist)}+1`,
+        `https://via.placeholder.com/800x600/3a3a3a/ffffff?text=${encodeURIComponent(albumTitle)}+2`,
+        `https://via.placeholder.com/800x600/4a4a4a/ffffff?text=${encodeURIComponent(artist)}+2`
       ]
       
-      setImages(allImages.slice(0, 10)) // Limit to 10 images
+      setImages(mockImages)
     } catch (error) {
       console.error('Error fetching images:', error)
       setImages([])
@@ -313,7 +313,7 @@ export default function MusicDetailModalV3({
           console.log('📝 Found existing user review')
         }
       } catch (userError) {
-        console.error('📝 Error fetching user review:', userError)
+        console.error('📝 Error fetching user review (probably 406 Supabase issue):', userError)
         setCurrentUserReview(null)
       }
       
@@ -1003,12 +1003,12 @@ export default function MusicDetailModalV3({
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
                             <span className="text-white text-sm font-medium">
-                              {review.author.charAt(0).toUpperCase()}
+                              {(review.author || 'A').charAt(0).toUpperCase()}
                             </span>
                           </div>
                           <div>
                             <div className="flex items-center space-x-2">
-                              <span className="text-white font-medium text-sm">{review.author}</span>
+                              <span className="text-white font-medium text-sm">{review.author || 'Anonymous'}</span>
                               {review.verified && (
                                 <span className="text-green-400 text-xs">✓ Verified</span>
                               )}
