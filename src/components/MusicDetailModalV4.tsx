@@ -152,37 +152,14 @@ export default function MusicDetailModalV4({
   const loadImages = async (mainImage: string) => {
     console.log(`🖼️ [V4] Loading images for ${contentType}`)
     
-    // Image principale avec plusieurs résolutions
-    const imageList = [
-      mainImage,
-      mainImage.replace('400x400', '600x600'),
-      mainImage.replace('400x400', '800x800'),
-      mainImage.replace('400x400', '1000x1000')
-    ]
+    // L'API iTunes ne fournit qu'une seule image (la couverture)
+    // On utilise la meilleure résolution disponible
+    const bestQualityImage = mainImage.replace(/\d+x\d+/, '1000x1000')
     
-    // Pour les albums ou singles sans vidéo, ajouter des images supplémentaires
-    if (isAlbum || !musicDetail?.youtubeVideoId) {
-      console.log(`🖼️ [V4] Adding extra images for better photo carousel`)
-      
-      // Ajouter des variantes d'images
-      const extraImages = [
-        mainImage.replace('400x400', '300x300'),
-        mainImage.replace('400x400', '500x500'),
-        // Essayer d'autres formats iTunes si disponibles
-        mainImage.replace('100x100', '400x400'),
-        mainImage.replace('60x60', '400x400')
-      ]
-      
-      // Filtrer les doublons et ajouter
-      extraImages.forEach(img => {
-        if (!imageList.includes(img)) {
-          imageList.push(img)
-        }
-      })
-    }
+    console.log(`🖼️ [V4] Using single album cover image: ${bestQualityImage}`)
     
-    console.log(`🖼️ [V4] Loaded ${imageList.length} images`)
-    setImages(imageList)
+    // On ne met qu'une seule image pour éviter les duplicatas
+    setImages([bestQualityImage])
   }
 
   const handleGoToAlbum = () => {
@@ -301,23 +278,25 @@ export default function MusicDetailModalV4({
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   />
                 ) : youtubeWatchUrl && activeImageIndex === 0 ? (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-600 to-red-800">
-                    <div className="text-center text-white p-8">
-                      <div className="text-6xl mb-4">▶️</div>
-                      <h3 className="text-xl font-bold mb-2">Watch on YouTube</h3>
-                      <p className="text-red-100 mb-4 text-sm">
-                        Click to search and watch this song
-                      </p>
+                  <div className="relative w-full h-full">
+                    {/* Image de fond */}
+                    {images.length > 0 && (
+                      <img
+                        src={images[0]}
+                        alt={musicDetail?.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    {/* Overlay avec bouton Watch on YouTube */}
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                       <a
                         href={youtubeWatchUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-lg font-medium hover:bg-red-50 transition-colors"
+                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg text-white transition-colors"
                       >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </svg>
-                        Open YouTube
+                        <Play size={20} />
+                        Watch on YouTube
                       </a>
                     </div>
                   </div>
