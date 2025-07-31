@@ -68,16 +68,16 @@ class SimpleMusicVideoService {
       'sia|alive': 'tJJ7AoOEDek', // CORRECT: Alive official video - ID CORRIGÉ
       'sia|the greatest': 'GKSRyLdjsPA', // CORRECT: The Greatest official video
       
-      // Florence + The Machine - IDs corrigés
+      // Florence + The Machine - IDs RE-VÉRIFIÉS manuellement (31/07/25)
       'florence the machine|dog days are over': 'iWOyfLBYtuU',
       'florence and the machine|dog days are over': 'iWOyfLBYtuU',
       'florence + the machine|dog days are over': 'iWOyfLBYtuU',
-      'florence the machine|free': 'bIEOZCcaXzE', // CORRECT: Free official video
-      'florence and the machine|free': 'bIEOZCcaXzE',
-      'florence + the machine|free': 'bIEOZCcaXzE',
-      'florence the machine|king': 'LBYVOvuUqcg', // CORRECT: King official video
-      'florence and the machine|king': 'LBYVOvuUqcg',
-      'florence + the machine|king': 'LBYVOvuUqcg',
+      'florence the machine|free': 'sB6HkKXGAMk', // CORRIGÉ: Free official video (était MGMT Kids!)
+      'florence and the machine|free': 'sB6HkKXGAMk',
+      'florence + the machine|free': 'sB6HkKXGAMk',
+      'florence the machine|king': 'VyoHmLlnJyI', // CORRIGÉ: King official video 
+      'florence and the machine|king': 'VyoHmLlnJyI',
+      'florence + the machine|king': 'VyoHmLlnJyI',
       'florence the machine|shake it out': 'WbN0nX61rIs',
       'florence and the machine|shake it out': 'WbN0nX61rIs',
       'florence + the machine|shake it out': 'WbN0nX61rIs',
@@ -130,7 +130,19 @@ class SimpleMusicVideoService {
       'ariana grande|no tears left to cry': 'ffxKSjUwKdU',
     }
 
-    return exactMatches[key] || null
+    const videoId = exactMatches[key] || null
+    
+    // 🔍 VALIDATION: Vérifier que l'ID correspond bien au titre recherché
+    if (videoId) {
+      console.log(`🎵 [Simple] Found exact match ID: ${videoId} for "${track}" by ${artist}`)
+      
+      // Validation automatique du titre YouTube (async, sans bloquer)
+      this.validateYouTubeTitle(videoId, artist, track).catch(error => {
+        console.warn(`🎵 [Simple] ⚠️ Title validation failed for ${videoId}:`, error.message)
+      })
+    }
+    
+    return videoId
   }
 
   /**
@@ -301,6 +313,49 @@ class SimpleMusicVideoService {
       .trim()
     
     return `${normalize(artist)}|${normalize(track)}`
+  }
+
+  /**
+   * 🔍 VALIDATION: Vérifie que l'ID YouTube correspond au bon titre
+   * (Async, ne bloque pas le système principal)
+   */
+  private async validateYouTubeTitle(videoId: string, expectedArtist: string, expectedTrack: string): Promise<void> {
+    try {
+      // Utiliser l'API oEmbed pour récupérer le titre de la vidéo
+      const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+      
+      const response = await fetch(oembedUrl, { signal: AbortSignal.timeout(3000) })
+      
+      if (!response.ok) {
+        throw new Error(`oEmbed failed: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      const actualTitle = data.title.toLowerCase()
+      
+      // Vérifier si le titre contient l'artiste ET le track
+      const artistNorm = expectedArtist.toLowerCase()
+      const trackNorm = expectedTrack.toLowerCase()
+      
+      const hasArtist = actualTitle.includes(artistNorm) || 
+                       this.getArtistVariants(artistNorm).some(variant => actualTitle.includes(variant))
+      const hasTrack = actualTitle.includes(trackNorm)
+      
+      if (hasArtist && hasTrack) {
+        console.log(`🎵 [Simple] ✅ VALIDATION OK: "${data.title}" matches "${expectedTrack}" by ${expectedArtist}`)
+      } else {
+        console.error(`🎵 [Simple] ❌ VALIDATION FAILED:`)
+        console.error(`  Expected: "${expectedTrack}" by ${expectedArtist}`)
+        console.error(`  Actual: "${data.title}"`)
+        console.error(`  VideoID: ${videoId}`)
+        console.error(`  Has Artist: ${hasArtist}, Has Track: ${hasTrack}`)
+        
+        // En production, on pourrait logger cette erreur pour corriger la base de données
+      }
+      
+    } catch (error) {
+      throw new Error(`YouTube validation error: ${error.message}`)
+    }
   }
 }
 
