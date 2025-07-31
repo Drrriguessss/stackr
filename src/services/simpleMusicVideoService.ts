@@ -11,26 +11,16 @@ interface SimpleMusicVideo {
 class SimpleMusicVideoService {
   /**
    * Point d'entrée unique: trouve la bonne vidéo YouTube pour artist + track
+   * NOUVELLE STRATÉGIE: Recherche directe SANS base de données défaillante
    */
   async findMusicVideo(artist: string, track: string): Promise<SimpleMusicVideo> {
+    console.log(`🎵 [Simple] 🔍 DIRECT SEARCH ONLY - no faulty database lookup`)
     console.log(`🎵 [Simple] Finding video for: "${track}" by ${artist}`)
     
-    // Étape 1: Base de correspondances exactes vérifiées manuellement
-    const exactMatch = this.getExactMatch(artist, track)
-    if (exactMatch) {
-      console.log(`🎵 [Simple] ✅ EXACT match found: ${exactMatch}`)
-      return {
-        videoId: exactMatch,
-        url: `https://www.youtube.com/watch?v=${exactMatch}`,
-        title: `${track} by ${artist}`,
-        matchSource: 'exact'
-      }
-    }
-
-    // Étape 2: Recherche intelligente avec correspondance de titre
+    // RECHERCHE DIRECTE UNIQUEMENT - base de données supprimée définitivement
     const searchMatch = await this.searchWithTitleMatching(artist, track)
     if (searchMatch) {
-      console.log(`🎵 [Simple] ✅ SEARCH match found: ${searchMatch}`)
+      console.log(`🎵 [Simple] ✅ DIRECT SEARCH found: ${searchMatch}`)
       return {
         videoId: searchMatch,
         url: `https://www.youtube.com/watch?v=${searchMatch}`,
@@ -39,8 +29,8 @@ class SimpleMusicVideoService {
       }
     }
 
-    // Étape 3: Fallback vers recherche YouTube directe
-    console.log(`🎵 [Simple] Using fallback search`)
+    // Fallback vers recherche YouTube directe
+    console.log(`🎵 [Simple] 🔗 Using YouTube search fallback`)
     const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${artist} ${track} official`)}`
     return {
       videoId: null,
@@ -50,106 +40,9 @@ class SimpleMusicVideoService {
     }
   }
 
-  /**
-   * Base de correspondances EXACTES vérifiées manuellement
-   * Format: "artist|track" -> videoId
-   */
-  private getExactMatch(artist: string, track: string): string | null {
-    const key = this.normalizeKey(artist, track)
-    
-    // Base de vidéos YouTube VÉRIFIÉES MANUELLEMENT
-    const exactMatches: Record<string, string> = {
-      // Sia - IDs vérifiés manuellement (RE-VÉRIFIÉS le 31/07/25)
-      'sia|chandelier': '2vjPBrBU-TM', // CORRECT: Chandelier official video - ID CORRIGÉ
-      'sia|unstoppable': 'cAVgKdbDlRY', // CORRECT: Unstoppable official video  
-      'sia|cheap thrills': 'nYh-n7EOtMA', // CORRECT: Cheap Thrills official video
-      'sia|elastic heart': 'KWZGAExj-es', // CORRECT: Elastic Heart official video
-      'sia|breathe me': 'hSjIz8oQuko', // CORRECT: Breathe Me official video
-      'sia|alive': 'tJJ7AoOEDek', // CORRECT: Alive official video - ID CORRIGÉ
-      'sia|the greatest': 'GKSRyLdjsPA', // CORRECT: The Greatest official video
-      
-      // Florence + The Machine - IDs RE-VÉRIFIÉS manuellement (31/07/25 - 2ème correction)
-      'florence the machine|dog days are over': 'iWOyfLBYtuU',
-      'florence and the machine|dog days are over': 'iWOyfLBYtuU',
-      'florence + the machine|dog days are over': 'iWOyfLBYtuU',
-      'florence the machine|free': 'bIEOZCcaXzE', // RE-CORRIGÉ: Free official video
-      'florence and the machine|free': 'bIEOZCcaXzE',
-      'florence + the machine|free': 'bIEOZCcaXzE',
-      'florence the machine|king': 'LBYVOvuUqcg', // RE-CORRIGÉ: King official video
-      'florence and the machine|king': 'LBYVOvuUqcg',
-      'florence + the machine|king': 'LBYVOvuUqcg',
-      'florence the machine|shake it out': 'WbN0nX61rIs',
-      'florence and the machine|shake it out': 'WbN0nX61rIs',
-      'florence + the machine|shake it out': 'WbN0nX61rIs',
-      
-      // Taylor Swift - IDs vérifiés
-      'taylor swift|shake it off': 'nfWlot6h_JM',
-      'taylor swift|blank space': 'AOaTJWkKfVU',
-      'taylor swift|bad blood': 'QcIy9NiNbmo',
-      'taylor swift|anti hero': 'b1kbLWvqugk',
-      'taylor swift|look what you made me do': '3tmd-ClpJxA',
-      'taylor swift|we are never ever getting back together': 'WA4iX5D9Z64',
-      'taylor swift|love story': 'd_NS9Vd1sMA',
-      'taylor swift|you belong with me': 'VuNIsY6JdUw',
-      
-      // Billie Eilish - IDs vérifiés
-      'billie eilish|bad guy': 'DyDfgMOUjCI',
-      'billie eilish|when the partys over': 'pbMwTqkKSps',
-      'billie eilish|when the party s over': 'pbMwTqkKSps',
-      'billie eilish|bury a friend': 'HUHC9tYz8ik',
-      'billie eilish|everything i wanted': 'qCTMq7xvdXU',
-      'billie eilish|happier than ever': 'NUVCQXMUVnI',
-      'billie eilish|lovely': 'V1Pl8CzNzCw',
-      'billie eilish|ocean eyes': 'viimfQi_pUw',
-      
-      // The Weeknd - IDs vérifiés
-      'the weeknd|blinding lights': '4NRXx6U8ABQ',
-      'weeknd|blinding lights': '4NRXx6U8ABQ',
-      'the weeknd|cant feel my face': 'KEI4qSrkPAs',
-      'the weeknd|can t feel my face': 'KEI4qSrkPAs',
-      'weeknd|cant feel my face': 'KEI4qSrkPAs',
-      'the weeknd|starboy': 'dqt8Z1k0oWQ',
-      'weeknd|starboy': 'dqt8Z1k0oWQ',
-      'the weeknd|the hills': 'yzTuBuRdAyA',
-      'weeknd|the hills': 'yzTuBuRdAyA',
-      'the weeknd|after hours': 'ygTZZvqH8XY',
-      'weeknd|after hours': 'ygTZZvqH8XY',
-      
-      // Dua Lipa - IDs vérifiés
-      'dua lipa|levitating': 'TUVcZfQe-Kw',
-      'dua lipa|dont start now': 'oygrmJFKYZY',
-      'dua lipa|don t start now': 'oygrmJFKYZY',
-      'dua lipa|new rules': 'k2qgadSvNyU',
-      'dua lipa|physical': '9HDEHj2yzew',
-      
-      // Ariana Grande - IDs vérifiés
-      'ariana grande|thank u next': 'gl1aHhXnN1k',
-      'ariana grande|7 rings': 'QYh6mYIJG2Y',
-      'ariana grande|positions': 'tcYodQoapMg',
-      'ariana grande|breathin': 'kN0iD0pI3o0',
-      'ariana grande|no tears left to cry': 'ffxKSjUwKdU',
-    }
-
-    const videoId = exactMatches[key] || null
-    
-    // 🔍 VALIDATION: Vérifier que l'ID correspond bien au titre recherché
-    if (videoId) {
-      console.log(`🎵 [Simple] Found exact match ID: ${videoId} for "${track}" by ${artist}`)
-      
-      // Validation automatique du titre YouTube (async, sans bloquer)
-      // Si la validation échoue, on logge l'erreur pour correction future
-      this.validateYouTubeTitle(videoId, artist, track).catch(error => {
-        console.warn(`🎵 [Simple] ⚠️ Title validation failed for ${videoId}:`, error.message)
-        
-        // Si c'est une vidéo supprimée/indisponible, suggérer de passer à la recherche
-        if (error.message.includes('404')) {
-          console.warn(`🎵 [Simple] 💡 Suggestion: Remove ${videoId} from database and rely on search`)
-        }
-      })
-    }
-    
-    return videoId
-  }
+  // 🗑️ BASE DE DONNÉES SUPPRIMÉE - trop d'IDs incorrects
+  // Les mappings statiques causaient des liens vers des vidéos supprimées/incorrectes
+  // Utilisation de la recherche directe uniquement pour des résultats fiables
 
   /**
    * Recherche intelligente avec validation du titre
@@ -321,57 +214,8 @@ class SimpleMusicVideoService {
     return `${normalize(artist)}|${normalize(track)}`
   }
 
-  /**
-   * 🔍 VALIDATION: Vérifie que l'ID YouTube correspond au bon titre ET que la vidéo existe
-   * (Async, ne bloque pas le système principal)
-   */
-  private async validateYouTubeTitle(videoId: string, expectedArtist: string, expectedTrack: string): Promise<void> {
-    try {
-      // Utiliser l'API oEmbed pour récupérer le titre de la vidéo
-      const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
-      
-      const response = await fetch(oembedUrl, { signal: AbortSignal.timeout(3000) })
-      
-      if (!response.ok) {
-        // Status 404 = Vidéo supprimée/privée/indisponible
-        if (response.status === 404) {
-          console.error(`🎵 [Simple] ❌ VIDEO DELETED/UNAVAILABLE: ${videoId}`)
-          console.error(`  Expected: "${expectedTrack}" by ${expectedArtist}`)
-          console.error(`  YouTube URL: https://www.youtube.com/watch?v=${videoId}`)
-          console.error(`  🚨 URGENT: Update database with correct video ID`)
-        } else {
-          console.error(`🎵 [Simple] ❌ VALIDATION ERROR: oEmbed failed with status ${response.status}`)
-        }
-        throw new Error(`oEmbed failed: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      const actualTitle = data.title.toLowerCase()
-      
-      // Vérifier si le titre contient l'artiste ET le track
-      const artistNorm = expectedArtist.toLowerCase()
-      const trackNorm = expectedTrack.toLowerCase()
-      
-      const hasArtist = actualTitle.includes(artistNorm) || 
-                       this.getArtistVariants(artistNorm).some(variant => actualTitle.includes(variant))
-      const hasTrack = actualTitle.includes(trackNorm)
-      
-      if (hasArtist && hasTrack) {
-        console.log(`🎵 [Simple] ✅ VALIDATION OK: "${data.title}" matches "${expectedTrack}" by ${expectedArtist}`)
-      } else {
-        console.error(`🎵 [Simple] ❌ VALIDATION FAILED - WRONG VIDEO:`)
-        console.error(`  Expected: "${expectedTrack}" by ${expectedArtist}`)
-        console.error(`  Actual: "${data.title}"`)
-        console.error(`  VideoID: ${videoId}`)
-        console.error(`  YouTube URL: https://www.youtube.com/watch?v=${videoId}`)
-        console.error(`  Has Artist: ${hasArtist}, Has Track: ${hasTrack}`)
-        console.error(`  🚨 URGENT: Update database with correct video ID`)
-      }
-      
-    } catch (error) {
-      throw new Error(`YouTube validation error: ${error.message}`)
-    }
-  }
+  // 🗑️ VALIDATION SUPPRIMÉE - plus de base de données à valider
+  // La recherche directe garantit des résultats plus fiables
 }
 
 export const simpleMusicVideoService = new SimpleMusicVideoService()
