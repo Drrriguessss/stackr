@@ -2,7 +2,7 @@
 import type { MusicTrack, MusicAlbum, AppMusicItem, MusicDetailData, MusicSearchResult } from '@/types/musicTypes'
 
 export class MusicServiceV2 {
-  private readonly baseURL = 'https://itunes.apple.com'
+  private readonly baseURL = '/api/itunes' // Utiliser notre API route pour éviter CORS
   
   /**
    * 🔍 RECHERCHE MIXTE - Albums ET Singles
@@ -36,7 +36,8 @@ export class MusicServiceV2 {
    * 🎵 RECHERCHE ALBUMS UNIQUEMENT
    */
   private async searchAlbums(query: string, limit: number): Promise<MusicAlbum[]> {
-    const url = `${this.baseURL}/search?` + new URLSearchParams({
+    const url = `${this.baseURL}?` + new URLSearchParams({
+      endpoint: 'search',
       term: query,
       media: 'music',
       entity: 'album',
@@ -62,7 +63,8 @@ export class MusicServiceV2 {
    * 🎤 RECHERCHE TRACKS/SINGLES UNIQUEMENT
    */
   private async searchTracks(query: string, limit: number): Promise<MusicTrack[]> {
-    const url = `${this.baseURL}/search?` + new URLSearchParams({
+    const url = `${this.baseURL}?` + new URLSearchParams({
+      endpoint: 'search',
       term: query,
       media: 'music',
       entity: 'song',
@@ -94,7 +96,7 @@ export class MusicServiceV2 {
       const cleanId = albumId.replace('album-', '')
       
       const response = await fetch(
-        `${this.baseURL}/lookup?id=${cleanId}&entity=album`,
+        `${this.baseURL}?endpoint=lookup&id=${cleanId}&entity=album`,
         { signal: AbortSignal.timeout(8000) }
       )
       
@@ -141,7 +143,7 @@ export class MusicServiceV2 {
       const cleanId = trackId.replace('track-', '')
       
       const response = await fetch(
-        `${this.baseURL}/lookup?id=${cleanId}&entity=song`,
+        `${this.baseURL}?endpoint=lookup&id=${cleanId}&entity=song`,
         { signal: AbortSignal.timeout(8000) }
       )
       
