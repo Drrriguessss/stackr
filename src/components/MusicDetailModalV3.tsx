@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Star, Play, ChevronLeft, ChevronRight, Share, FileText } from 'lucide-react'
 import type { LibraryItem, MediaStatus } from '@/types'
 import { musicService } from '@/services/musicService'
+import { musicApiService } from '@/services/musicApiService'
 import { imageService } from '@/services/imageService'
 import { userReviewsService } from '@/services/userReviewsService'
 import { musicReviewsService, type MusicReview } from '@/services/musicReviewsService'
@@ -156,75 +157,151 @@ export default function MusicDetailModalV3({
     try {
       console.log('🎵 Fetching album details for ID:', albumId)
       
-      const data = await musicService.getAlbumDetails(albumId)
-      if (data) {
-        setAlbumDetail(data as AlbumDetail)
+      // ✅ NOUVELLE APPROCHE: Utiliser le service API amélioré
+      const albumData = await musicApiService.getAlbumDetails(albumId)
+      console.log('🎵 ✅ Album data received from musicApiService:', albumData)
+      
+      if (albumData) {
+        // ✅ Convertir les données de l'API vers le format AlbumDetail
+        const albumDetail: AlbumDetail = {
+          id: albumData.id,
+          title: albumData.title,
+          artist: albumData.artist,
+          image: albumData.image,
+          releaseDate: `${albumData.year}-01-01`,
+          genre: albumData.genre,
+          trackCount: albumData.trackCount,
+          duration: albumData.duration || '45:00',
+          label: 'Unknown Label',
+          tracks: [], // TODO: Récupérer les pistes si nécessaire
+          description: albumData.description || `${albumData.title} by ${albumData.artist}`,
+          rating: albumData.rating || 4.0,
+          spotifyUrl: undefined,
+          appleMusicUrl: undefined,
+          youtubeUrl: undefined
+        }
         
-        // Fetch additional content
+        console.log('🎵 ✅ Final album detail:', albumDetail)
+        setAlbumDetail(albumDetail)
+        
+        // ✅ Utiliser les VRAIES données pour toutes les requêtes suivantes
+        console.log('🎵 ✅ Fetching additional content for:', albumData.artist, '-', albumData.title)
+        
+        // Fetch additional content avec les vraies données
         await Promise.all([
-          fetchImages(data.artist || 'Unknown Artist', data.title || 'Unknown Album'),
-          fetchMusicVideo(data.artist || 'Unknown Artist', data.title || 'Unknown Album'),
-          fetchReviews(albumId, data.title || 'Unknown Album', data.artist || 'Unknown Artist'),
-          fetchArtistAlbums(data.artist || 'Unknown Artist')
+          fetchImages(albumData.artist, albumData.title),
+          fetchMusicVideo(albumData.artist, albumData.title),
+          fetchReviews(albumId, albumData.title, albumData.artist),
+          fetchArtistAlbums(albumData.artist)
         ])
       } else {
-        throw new Error('No album data received')
+        throw new Error('No album data received from musicApiService')
       }
       
     } catch (error) {
-      console.error('Error loading album details:', error)
+      console.error('🎵 ❌ Error loading album details:', error)
       
-      // Fallback vers les données statiques
+      // ✅ CORRECTION: Fallback plus robuste
+      await createFallbackAlbumDetail()
+    }
+    
+    setLoading(false)
+  }
+
+  const createFallbackAlbumDetail = async () => {
+    console.log('🎵 Creating fallback album detail for ID:', albumId)
+    
+    // Essayer de récupérer depuis les données sample
+    try {
       const { sampleContent } = require('@/data/sampleContent')
       
       let fallbackAlbum = sampleContent.music?.find((album: any) => 
-        album.id === albumId || album.id === `music-${albumId}` || album.id === albumId
+        album.id === albumId || album.id === `music-${albumId}`
       )
       
-      if (!fallbackAlbum) {
-        fallbackAlbum = sampleContent.music?.[0] || {
-          title: "Sample Album",
-          artist: "Unknown Artist",
-          year: 2024,
-          rating: 4.0,
-          genre: "Pop"
-        }
+      if (!fallbackAlbum && sampleContent.music?.length > 0) {
+        // Prendre un album aléatoire basé sur l'ID
+        const index = parseInt(albumId.replace(/\D/g, '')) % sampleContent.music.length
+        fallbackAlbum = sampleContent.music[index]
       }
       
-      // Convertir en format AlbumDetail
-      setAlbumDetail({
-        id: albumId,
-        title: fallbackAlbum.title,
-        artist: fallbackAlbum.artist,
-        image: fallbackAlbum.image || "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Cover",
-        releaseDate: `${fallbackAlbum.year || 2024}-01-01`,
-        genre: fallbackAlbum.genre || "Pop",
-        trackCount: 12,
-        duration: "45:30",
-        label: "Unknown Label",
-        tracks: [
-          { name: "Track 1", duration: "3:45" },
-          { name: "Track 2", duration: "4:12" },
-          { name: "Track 3", duration: "3:28" },
-          { name: "Track 4", duration: "4:05" },
-          { name: "Track 5", duration: "3:51" }
-        ],
-        description: `${fallbackAlbum.title} is an engaging ${fallbackAlbum.genre || 'musical'} album by ${fallbackAlbum.artist} that showcases their artistic vision and musical talents.`,
-        rating: fallbackAlbum.rating || 4.0,
-        spotifyUrl: "#",
-        appleMusicUrl: "#",
-        youtubeUrl: "#"
-      })
+      if (fallbackAlbum) {
+        console.log('🎵 Using sample content fallback:', fallbackAlbum)
+        
+        const albumDetail: AlbumDetail = {
+          id: albumId,
+          title: fallbackAlbum.title || 'Unknown Album',
+          artist: fallbackAlbum.artist || fallbackAlbum.author || 'Unknown Artist',
+          image: fallbackAlbum.image || "https://via.placeholder.com/400x400/1a1a1a/ffffff?text=Album+Cover",
+          releaseDate: `${fallbackAlbum.year || 2024}-01-01`,
+          genre: fallbackAlbum.genre || "Pop",
+          trackCount: 12,
+          duration: "45:30",
+          label: "Unknown Label",
+          tracks: [
+            { name: "Track 1", duration: "3:45" },
+            { name: "Track 2", duration: "4:12" },
+            { name: "Track 3", duration: "3:28" },
+            { name: "Track 4", duration: "4:05" },
+            { name: "Track 5", duration: "3:51" }
+          ],
+          description: `${fallbackAlbum.title} is an engaging ${fallbackAlbum.genre || 'musical'} album by ${fallbackAlbum.artist} that showcases their artistic vision and musical talents.`,
+          rating: fallbackAlbum.rating || 4.0,
+          spotifyUrl: "#",
+          appleMusicUrl: "#",
+          youtubeUrl: "#"
+        }
+        
+        console.log('🎵 ✅ Created fallback album detail:', albumDetail)
+        setAlbumDetail(albumDetail)
+        
+        // Fetch additional content avec les données fallback
+        await Promise.all([
+          fetchImages(albumDetail.artist, albumDetail.title),
+          fetchMusicVideo(albumDetail.artist, albumDetail.title),
+          fetchReviews(albumId, albumDetail.title, albumDetail.artist),
+          fetchArtistAlbums(albumDetail.artist)
+        ])
+        
+        return
+      }
       
-      await Promise.all([
-        fetchImages(fallbackAlbum.artist, fallbackAlbum.title),
-        fetchMusicVideo(fallbackAlbum.artist, fallbackAlbum.title),
-        fetchReviews(albumId, fallbackAlbum.title, fallbackAlbum.artist),
-        fetchArtistAlbums(fallbackAlbum.artist)
-      ])
-    } finally {
-      setLoading(false)
+    } catch (error) {
+      console.error('🎵 Fallback creation failed:', error)
     }
+    
+    // Ultimate fallback si tout échoue
+    console.log('🎵 Using ultimate fallback')
+    const ultimateFallback: AlbumDetail = {
+      id: albumId,
+      title: 'Music Album',
+      artist: 'Various Artists',
+      image: "https://via.placeholder.com/400x400/1a1a1a/ffffff?text=Music+Album",
+      releaseDate: '2024-01-01',
+      genre: "Pop",
+      trackCount: 10,
+      duration: "40:00",
+      label: "Independent",
+      tracks: [
+        { name: "Song 1", duration: "3:45" },
+        { name: "Song 2", duration: "4:12" },
+        { name: "Song 3", duration: "3:28" }
+      ],
+      description: "A collection of great music tracks.",
+      rating: 4.0,
+      spotifyUrl: "#",
+      appleMusicUrl: "#",
+      youtubeUrl: "#"
+    }
+    
+    setAlbumDetail(ultimateFallback)
+    
+    await Promise.all([
+      fetchImages(ultimateFallback.artist, ultimateFallback.title),
+      fetchMusicVideo(ultimateFallback.artist, ultimateFallback.title),
+      fetchReviews(albumId, ultimateFallback.title, ultimateFallback.artist),
+      fetchArtistAlbums(ultimateFallback.artist)
+    ])
   }
 
   const fetchImages = async (artist: string, albumTitle: string) => {
@@ -324,18 +401,37 @@ export default function MusicDetailModalV3({
       'lorde-solar power': 'wvsP_lzh2-8' // Solar Power
     }
     
-    // Create a normalized key for lookup
+    // Create a normalized key for lookup - more flexible matching
     const normalizedKey = `${artist.toLowerCase()}-${albumTitle.toLowerCase()}`
       .replace(/[^a-z0-9\-\s]/g, '')
-      .replace(/\s+/g, ' ')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
       .trim()
     
     console.log('🎵 Looking for video mapping with key:', normalizedKey)
+    
+    // Also try partial matches for common artist names
+    const artistLower = artist.toLowerCase()
+    const albumLower = albumTitle.toLowerCase()
     
     // Check if we have a specific mapping for this artist/album
     if (videoMappings[normalizedKey]) {
       console.log('🎵 Found specific video mapping:', videoMappings[normalizedKey])
       return videoMappings[normalizedKey]
+    }
+    
+    // Try partial matches for better recognition
+    for (const [key, videoId] of Object.entries(videoMappings)) {
+      const [mappedArtist, mappedAlbum] = key.split('-')
+      
+      // Check if artist matches and album partially matches
+      if (artistLower.includes(mappedArtist) || mappedArtist.includes(artistLower)) {
+        if (albumLower.includes(mappedAlbum) || mappedAlbum.includes(albumLower)) {
+          console.log('🎵 Found partial match video mapping:', videoId, 'for key:', key)
+          return videoId
+        }
+      }
     }
     
     // Fallback: generate a pseudo-random but consistent video ID based on the input
