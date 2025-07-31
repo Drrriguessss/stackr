@@ -299,7 +299,7 @@ export default function MusicDetailModalV4({
               <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
                 {musicVideo && activeImageIndex === 0 ? (
                   <div className="w-full h-full">
-                    {musicVideo.provider === 'youtube' && musicVideo.url.includes('embed') ? (
+                    {musicVideo.url.includes('embed') ? (
                       <iframe
                         src={musicVideo.url}
                         className="w-full h-full"
