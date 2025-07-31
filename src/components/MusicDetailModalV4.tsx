@@ -92,7 +92,7 @@ export default function MusicDetailModalV4({
       return
     }
     
-    // Singles: recherche robuste de vidéo avec validation
+    // Singles: recherche SIMPLE et PRÉCISE
     if (!musicDetail?.artist || !musicDetail?.title) {
       console.log(`🎬 [V4] Missing artist/title info for video search`)
       setMusicVideo(null)
@@ -100,48 +100,42 @@ export default function MusicDetailModalV4({
     }
     
     try {
-      console.log(`🎬 [V4] Starting robust video search for: "${musicDetail.title}" by ${musicDetail.artist}`)
+      console.log(`🎬 [V4] Starting PRECISE video search for: "${musicDetail.title}" by ${musicDetail.artist}`)
       
-      // Utiliser le nouveau service de vidéos musicales robuste
-      const { musicVideoService } = await import('../services/musicVideoService')
-      const video = await musicVideoService.getMusicVideo(musicDetail.artist, musicDetail.title)
+      // Utiliser le service simple qui match exactement les titres
+      const { simpleMusicVideoService } = await import('../services/simpleMusicVideoService')
+      const video = await simpleMusicVideoService.findMusicVideo(musicDetail.artist, musicDetail.title)
       
-      if (!video) {
-        console.log(`🎬 [V4] ❌ No video service available`)
-        setMusicVideo(null)
-        setYoutubeWatchUrl(null)
-        return
-      }
-      
-      console.log(`🎬 [V4] Video service response:`, {
-        provider: video.provider,
-        isEmbeddable: video.isEmbeddable,
-        videoId: video.videoId
+      console.log(`🎬 [V4] Simple video service response:`, {
+        matchSource: video.matchSource,
+        hasVideoId: !!video.videoId,
+        url: video.url
       })
       
-      if (video.isEmbeddable && video.embedUrl) {
-        console.log(`🎬 [V4] ✅ Loading validated embeddable video: ${video.videoId}`)
+      if (video.videoId) {
+        console.log(`🎬 [V4] ✅ Found exact video match: ${video.videoId}`)
+        // Essayer d'embedder la vidéo
         setMusicVideo({
-          url: video.embedUrl,
+          url: `https://www.youtube.com/embed/${video.videoId}?rel=0&modestbranding=1&autoplay=0`,
           provider: 'youtube'
         })
         setYoutubeWatchUrl(video.url)
         setVideoEmbedFailed(false)
       } else {
-        console.log(`🎬 [V4] 🔗 Video not embeddable, providing external link`)
+        console.log(`🎬 [V4] 🔗 No exact match, using search link`)
         setMusicVideo(null)
         setYoutubeWatchUrl(video.url)
         setVideoEmbedFailed(false)
       }
       
     } catch (error) {
-      console.error(`🎬 [V4] Robust video search failed:`, error)
+      console.error(`🎬 [V4] Simple video search failed:`, error)
       
-      // Fallback ultime: créer au moins un lien de recherche YouTube
-      const searchQuery = encodeURIComponent(`${musicDetail.artist} ${musicDetail.title} official music video`)
+      // Fallback ultime: créer un lien de recherche YouTube
+      const searchQuery = encodeURIComponent(`${musicDetail.artist} ${musicDetail.title} official`)
       const fallbackUrl = `https://www.youtube.com/results?search_query=${searchQuery}`
       
-      console.log(`🎬 [V4] 🔗 Using ultimate fallback YouTube search link`)
+      console.log(`🎬 [V4] 🔗 Using fallback YouTube search`)
       setMusicVideo(null)
       setYoutubeWatchUrl(fallbackUrl)
       setVideoEmbedFailed(false)
