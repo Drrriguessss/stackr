@@ -420,6 +420,74 @@ class ImageService {
   }
 
   /**
+   * Récupère la galerie complète (trailer + images) pour un album
+   */
+  async getAlbumGallery(albumId: string, albumTitle: string, artist: string, trailerInfo: any): Promise<MediaGallery> {
+    console.log('🎵 Getting album gallery for:', albumTitle, 'by', artist)
+    
+    const cacheKey = `album-${albumId}-${albumTitle}`
+    if (this.imageCache.has(cacheKey)) {
+      console.log('🎵 Album gallery found in cache')
+      return this.imageCache.get(cacheKey)!
+    }
+
+    const gallery: MediaGallery = {
+      trailer: trailerInfo,
+      images: []
+    }
+
+    // Pour la musique, utiliser des images placeholder pour l'instant
+    // TODO: Implémenter l'intégration avec Last.fm ou Spotify pour les vraies images
+    console.log('🎵 Adding placeholder images for album')
+    
+    // Ajouter des images placeholder de haute qualité
+    const placeholderImages = [
+      {
+        url: `https://via.placeholder.com/800x800/1a1a1a/ffffff?text=${encodeURIComponent(albumTitle)}`,
+        type: 'artwork' as const,
+        aspectRatio: 1
+      },
+      {
+        url: `https://via.placeholder.com/800x600/2a2a2a/ffffff?text=${encodeURIComponent(artist)}`,
+        type: 'artwork' as const,
+        aspectRatio: 16/9
+      },
+      {
+        url: `https://via.placeholder.com/800x800/3a3a3a/ffffff?text=Album+Art`,
+        type: 'artwork' as const,
+        aspectRatio: 1
+      }
+    ]
+
+    gallery.images = placeholderImages
+
+    this.imageCache.set(cacheKey, gallery)
+    return gallery
+  }
+
+  /**
+   * Récupère les images d'un album (méthode spécifique appelée par MusicDetailModalV3)
+   */
+  async getAlbumImages(artist: string, albumTitle: string): Promise<string[]> {
+    try {
+      console.log('🎵 Getting album images for:', albumTitle, 'by', artist)
+      
+      // Pour l'instant, retourner des images placeholder
+      // TODO: Implémenter l'intégration avec Last.fm ou Spotify
+      const mockImages = [
+        `https://via.placeholder.com/800x800/1a1a1a/ffffff?text=${encodeURIComponent(albumTitle)}`,
+        `https://via.placeholder.com/800x600/2a2a2a/ffffff?text=${encodeURIComponent(artist)}`,
+        `https://via.placeholder.com/800x800/3a3a3a/ffffff?text=Album+Cover`
+      ]
+      
+      return mockImages
+    } catch (error) {
+      console.error('🎵 Error fetching album images:', error)
+      return []
+    }
+  }
+
+  /**
    * Nettoie le cache
    */
   clearCache() {
