@@ -49,6 +49,13 @@ export default function MusicDetailModalV4({
     if (!musicId) return
     
     setLoading(true)
+    
+    // 🔄 RESET des états vidéo pour éviter les fuites de la chanson précédente
+    setMusicVideo(null)
+    setYoutubeWatchUrl(null)
+    setVideoEmbedFailed(false)
+    setActiveImageIndex(0)
+    
     try {
       console.log(`🎵 [V4] Fetching ${contentType} details for:`, musicId)
       
@@ -67,8 +74,8 @@ export default function MusicDetailModalV4({
         // Charger images d'abord
         await loadImages(data.image)
         
-        // Puis charger vidéo (qui a besoin des détails musicaux)
-        await loadMusicVideo()
+        // Puis charger vidéo avec les BONNES données (pas le state)
+        await loadMusicVideo(data)
       } else {
         throw new Error(`No ${contentType} data received`)
       }
@@ -81,8 +88,11 @@ export default function MusicDetailModalV4({
     setLoading(false)
   }
 
-  const loadMusicVideo = async () => {
+  const loadMusicVideo = async (musicData?: MusicDetailData) => {
     console.log(`🎬 [V4] Loading video for ${contentType}`)
+    
+    // Utiliser les données passées en paramètre ou le state
+    const currentMusicDetail = musicData || musicDetail
     
     // Albums n'ont JAMAIS de vidéos (photos uniquement)
     if (isAlbum) {
@@ -93,18 +103,18 @@ export default function MusicDetailModalV4({
     }
     
     // Singles: recherche SIMPLE et PRÉCISE
-    if (!musicDetail?.artist || !musicDetail?.title) {
+    if (!currentMusicDetail?.artist || !currentMusicDetail?.title) {
       console.log(`🎬 [V4] Missing artist/title info for video search`)
       setMusicVideo(null)
       return
     }
     
     try {
-      console.log(`🎬 [V4] Starting PRECISE video search for: "${musicDetail.title}" by ${musicDetail.artist}`)
+      console.log(`🎬 [V4] Starting PRECISE video search for: "${currentMusicDetail.title}" by ${currentMusicDetail.artist}`)
       
       // Utiliser le service simple qui match exactement les titres
       const { simpleMusicVideoService } = await import('../services/simpleMusicVideoService')
-      const video = await simpleMusicVideoService.findMusicVideo(musicDetail.artist, musicDetail.title)
+      const video = await simpleMusicVideoService.findMusicVideo(currentMusicDetail.artist, currentMusicDetail.title)
       
       console.log(`🎬 [V4] Simple video service response:`, {
         matchSource: video.matchSource,
@@ -131,8 +141,8 @@ export default function MusicDetailModalV4({
     } catch (error) {
       console.error(`🎬 [V4] Simple video search failed:`, error)
       
-      // Fallback ultime: créer un lien de recherche YouTube
-      const searchQuery = encodeURIComponent(`${musicDetail.artist} ${musicDetail.title} official`)
+      // Fallback ultime: créer un lien de recherche YouTube avec les BONNES données
+      const searchQuery = encodeURIComponent(`${currentMusicDetail.artist} ${currentMusicDetail.title} official`)
       const fallbackUrl = `https://www.youtube.com/results?search_query=${searchQuery}`
       
       console.log(`🎬 [V4] 🔗 Using fallback YouTube search`)
