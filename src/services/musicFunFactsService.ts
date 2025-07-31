@@ -201,70 +201,241 @@ class MusicFunFactsService {
     const artistLower = artist.toLowerCase()
     const titleLower = title.toLowerCase()
     
-    // Base de données de facts connus pour des artistes populaires
+    // Base de données enrichie de facts connus pour des artistes populaires
     const knownFacts: Record<string, FunFact[]> = {
       'taylor swift': [
         {
           type: 'trivia',
-          title: 'Storytelling Master',
-          description: 'Taylor Swift is known for embedding personal stories and Easter eggs in her lyrics that fans love to decode.'
+          title: 'Easter Egg Master',
+          description: 'Taylor Swift hides clues about future releases in her music videos, social media posts, and even outfit choices.'
         },
         {
           type: 'recording',
-          title: 'Genre Evolution',
-          description: 'Swift has masterfully evolved from country to pop to indie folk, reinventing her sound with each era.'
+          title: 'Re-Recording Project',
+          description: 'Swift is re-recording her first six albums to own her master recordings, calling them "Taylor\'s Version".'
+        },
+        {
+          type: 'collaboration',
+          title: 'Surprise Collaborations',
+          description: 'Swift often collaborates with indie artists like Bon Iver and The National, bridging pop and alternative music.'
+        },
+        {
+          type: 'chart',
+          title: 'Chart Domination',
+          description: 'Swift has had multiple albums debut at #1 with over 1 million copies sold in the first week.'
         }
       ],
       
       'billie eilish': [
         {
           type: 'recording',
-          title: 'Bedroom Pop Origins',
-          description: 'Many of Billie Eilish\'s hits were recorded in her bedroom studio with her brother Finneas as producer.'
+          title: 'Bedroom Studio',
+          description: 'Most of Billie Eilish\'s debut album was recorded in her childhood bedroom with her brother Finneas.'
         },
         {
           type: 'trivia',
-          title: 'Whispery Vocals',
-          description: 'Eilish\'s signature whispery vocal style was partly developed to avoid waking her parents while recording at home.'
+          title: 'Whisper Singing',
+          description: 'Eilish developed her signature whisper-singing style to avoid waking her parents during late-night recording sessions.'
+        },
+        {
+          type: 'award',
+          title: 'Youngest Grammy Winner',
+          description: 'At 18, Billie Eilish became the youngest artist to win Grammy\'s "Big Four" categories in a single year.'
+        },
+        {
+          type: 'inspiration',
+          title: 'Horror Movie Influence',
+          description: 'Many of Eilish\'s music videos draw inspiration from horror films, creating a unique aesthetic in pop music.'
         }
       ],
       
       'the weeknd': [
         {
           type: 'trivia',
-          title: 'Mystery Artist',
-          description: 'The Weeknd initially remained anonymous, uploading music to YouTube without revealing his identity.'
+          title: 'Anonymous Beginnings',
+          description: 'The Weeknd released his first songs anonymously on YouTube, with only his voice and no photos or videos.'
         },
         {
           type: 'inspiration',
           title: 'Dark R&B Pioneer',
-          description: 'Abel Tesfaye pioneered the dark, atmospheric R&B sound that influenced a generation of artists.'
+          description: 'Abel Tesfaye helped create the "alternative R&B" genre, influencing artists like Frank Ocean and Drake.'
+        },
+        {
+          type: 'collaboration',
+          title: 'Sample Master',
+          description: 'The Weeknd frequently samples obscure tracks, introducing listeners to forgotten gems from the 80s and 90s.'
+        },
+        {
+          type: 'chart',
+          title: 'Super Bowl Success',
+          description: 'His 2021 Super Bowl halftime show was entirely self-funded and became one of the most-watched performances.'
         }
       ],
       
       'dua lipa': [
         {
           type: 'chart',
-          title: 'Global Dance Pop',
-          description: 'Dua Lipa\'s disco-influenced pop brought dance music back to mainstream radio worldwide.'
+          title: 'Disco Revival',
+          description: 'Dua Lipa\'s "Future Nostalgia" helped bring disco and dance-pop back to mainstream success.'
+        },
+        {
+          type: 'trivia',
+          title: 'Albanian Roots',
+          description: 'Born to Albanian parents, Dua Lipa has performed in Albanian and supports various causes in Albania.'
+        },
+        {
+          type: 'recording',
+          title: 'Pandemic Album',
+          description: 'Her album "Future Nostalgia" was released just as COVID-19 lockdowns began, providing escapist dance music.'
         }
       ],
       
       'olivia rodrigo': [
         {
           type: 'chart',
-          title: 'Breakout Success',
-          description: 'Olivia Rodrigo broke multiple streaming records with her debut, connecting with Gen Z through raw emotion.'
+          title: 'Streaming Records',
+          description: 'Olivia Rodrigo\'s "drivers license" broke Spotify\'s record for most streams in a single day for a non-holiday song.'
+        },
+        {
+          type: 'trivia',
+          title: 'Disney to Pop Star',
+          description: 'Rodrigo transitioned from Disney Channel actress to global pop sensation with her deeply personal songwriting.'
+        },
+        {
+          type: 'inspiration',
+          title: 'Gen Z Anthem Writer',
+          description: 'Her raw, emotional lyrics about teenage heartbreak resonated with an entire generation during the pandemic.'
+        }
+      ],
+      
+      'bad bunny': [
+        {
+          type: 'chart',
+          title: 'Spanish Language Success',
+          description: 'Bad Bunny proved that non-English music could dominate global charts, opening doors for Latino artists worldwide.'
+        },
+        {
+          type: 'trivia',
+          title: 'Wrestling Fan',
+          description: 'Bad Bunny is a huge wrestling fan and has appeared in WWE matches, combining his love of music and sports entertainment.'
+        }
+      ],
+      
+      'kendrick lamar': [
+        {
+          type: 'award',
+          title: 'Pulitzer Prize Winner',
+          description: 'Kendrick Lamar became the first non-classical, non-jazz artist to win the Pulitzer Prize for Music for "DAMN."'
+        },
+        {
+          type: 'inspiration',
+          title: 'Conscious Rap Leader',
+          description: 'Lamar\'s socially conscious lyrics have influenced a new generation of hip-hop artists to address social issues.'
+        }
+      ],
+      
+      'adele': [
+        {
+          type: 'chart',
+          title: 'Album Era Artist',
+          description: 'Adele\'s albums consistently sell millions of physical copies, proving the album format is still powerful in the streaming era.'
+        },
+        {
+          type: 'trivia',
+          title: 'Age-Themed Albums',
+          description: 'Each of Adele\'s albums is named after her age when she wrote it: 19, 21, 25, and 30.'
+        }
+      ],
+      
+      'drake': [
+        {
+          type: 'chart',
+          title: 'Streaming King',
+          description: 'Drake has more Billboard Hot 100 entries than any other artist in history, dominating the streaming era.'
+        },
+        {
+          type: 'trivia',
+          title: 'Degrassi to Rap',
+          description: 'Before rap stardom, Drake played Jimmy Brooks on the Canadian teen drama series "Degrassi: The Next Generation".'
+        }
+      ],
+      
+      'ariana grande': [
+        {
+          type: 'trivia',
+          title: 'Four-Octave Range',
+          description: 'Ariana Grande has a four-octave vocal range, often compared to Mariah Carey\'s impressive vocal abilities.'
+        },
+        {
+          type: 'recording',
+          title: 'Quick Turnaround',
+          description: 'Grande released "thank u, next" just six months after "Sweetener", showcasing her prolific songwriting.'
         }
       ]
     }
     
     // Chercher des facts pour l'artiste
     if (knownFacts[artistLower]) {
-      // Prendre 1-2 facts aléatoires
+      // Prendre 2-3 facts aléatoires
       const artistFacts = knownFacts[artistLower]
-      const randomFacts = artistFacts.sort(() => Math.random() - 0.5).slice(0, 2)
+      const randomFacts = artistFacts.sort(() => Math.random() - 0.5).slice(0, 3)
       facts.push(...randomFacts)
+    }
+    
+    // Ajouter des facts spécifiques au titre si possible
+    const titleSpecificFacts = this.getTitleSpecificFacts(artistLower, titleLower, isAlbum)
+    facts.push(...titleSpecificFacts)
+    
+    return facts
+  }
+
+  /**
+   * Facts spécifiques à certains titres/albums célèbres
+   */
+  private getTitleSpecificFacts(artist: string, title: string, isAlbum: boolean): FunFact[] {
+    const facts: FunFact[] = []
+    
+    const titleFacts: Record<string, Record<string, FunFact>> = {
+      'taylor swift': {
+        'shake it off': {
+          type: 'trivia',
+          title: 'Haters Gonna Hate',
+          description: 'The song\'s message about ignoring critics became an anthem for self-confidence and resilience.'
+        },
+        'anti hero': {
+          type: 'chart',
+          title: 'TikTok Phenomenon',
+          description: 'The bridge of "Anti-Hero" became a viral TikTok sound, with millions of users relating to the self-deprecating lyrics.'
+        },
+        'folklore': {
+          type: 'recording',
+          title: 'Pandemic Project',
+          description: 'Written and recorded during COVID-19 lockdown, this indie folk album marked Swift\'s most introspective work.'
+        }
+      },
+      'billie eilish': {
+        'bad guy': {
+          type: 'trivia',
+          title: 'Minimalist Production',
+          description: 'The entire song was built around a simple bass line, proving that minimal production can create maximum impact.'
+        }
+      },
+      'the weeknd': {
+        'blinding lights': {
+          type: 'chart',
+          title: 'Longest Chart Run',
+          description: 'Spent 88 weeks in the Billboard Hot 100 top 10, the longest run in chart history.'
+        },
+        'after hours': {
+          type: 'inspiration',
+          title: '80s Nostalgia',
+          description: 'The album heavily samples and references 80s music, creating a modern take on retro-wave aesthetics.'
+        }
+      }
+    }
+    
+    if (titleFacts[artist] && titleFacts[artist][title]) {
+      facts.push(titleFacts[artist][title])
     }
     
     return facts

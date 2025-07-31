@@ -5,6 +5,7 @@ import type { LibraryItem, MediaStatus } from '@/types'
 import type { MusicDetailData } from '@/types/musicTypes'
 import { musicServiceV2 } from '@/services/musicServiceV2'
 import { musicFunFactsService, type FunFact } from '@/services/musicFunFactsService'
+import { musicMetacriticService, type MetacriticScore } from '@/services/musicMetacriticService'
 
 interface MusicDetailModalV4Props {
   isOpen: boolean
@@ -58,6 +59,10 @@ export default function MusicDetailModalV4({
   // États pour les Fun Facts
   const [funFacts, setFunFacts] = useState<FunFact[]>([])
   const [loadingFunFacts, setLoadingFunFacts] = useState(false)
+  
+  // États pour Metacritic
+  const [metacriticScore, setMetacriticScore] = useState<MetacriticScore | null>(null)
+  const [loadingMetacritic, setLoadingMetacritic] = useState(false)
 
   // Déterminer le type de contenu
   const contentType = musicId.startsWith('track-') ? 'single' : 'album'
@@ -106,8 +111,11 @@ export default function MusicDetailModalV4({
           await loadAlbumTracks(musicId, data.title, data.artist)
         }
         
-        // Charger les Fun Facts
-        await loadFunFacts(data.artist, data.title)
+        // Charger les Fun Facts et Metacritic en parallèle
+        await Promise.all([
+          loadFunFacts(data.artist, data.title),
+          loadMetacriticScore(data.artist, data.title)
+        ])
       } else {
         throw new Error(`No ${contentType} data received`)
       }
@@ -252,6 +260,30 @@ export default function MusicDetailModalV4({
     setLoadingFunFacts(false)
   }
 
+  const loadMetacriticScore = async (artist: string, title: string) => {
+    console.log(`🏆 [V4] Loading Metacritic score for: "${title}" by ${artist}`)
+    setLoadingMetacritic(true)
+    setMetacriticScore(null)
+    
+    try {
+      const scoreData = await musicMetacriticService.getMetacriticScore(artist, title, isAlbum)
+      
+      if (scoreData.available) {
+        console.log(`🏆 [V4] Found Metacritic score: ${scoreData.score}`)
+        setMetacriticScore(scoreData)
+      } else {
+        console.log(`🏆 [V4] No Metacritic score available`)
+        setMetacriticScore(scoreData)
+      }
+      
+    } catch (error) {
+      console.error(`🏆 [V4] Error loading Metacritic score:`, error)
+      setMetacriticScore(null)
+    }
+    
+    setLoadingMetacritic(false)
+  }
+
   const handleExternalShare = (platform: string) => {
     if (!musicDetail) return
     
@@ -362,6 +394,14 @@ export default function MusicDetailModalV4({
     { id: 4, name: 'Joshua', avatar: '/api/placeholder/32/32' },
     { id: 5, name: 'Jeremy', avatar: '/api/placeholder/32/32' },
     { id: 6, name: 'Ana', avatar: '/api/placeholder/32/32' }
+  ]
+
+  // Mock friends who listened to this song/album
+  const mockFriendsWhoListened = [
+    { id: 2, name: 'Maite', rating: 5, hasReview: true, reviewText: 'Absolutely love this track! The production is incredible.' },
+    { id: 4, name: 'Joshua', rating: 4, hasReview: true, reviewText: 'Great vibe, perfect for my workout playlist.' },
+    { id: 6, name: 'Ana', rating: 4, hasReview: false, reviewText: null },
+    { id: 1, name: 'Alex', rating: 3, hasReview: true, reviewText: 'Not bad, but I prefer their older stuff.' }
   ]
 
   // Charger la fiche produit quand la musique change
@@ -566,51 +606,28 @@ export default function MusicDetailModalV4({
                 )}
               </div>
 
-              {/* Media thumbnails */}
-              {((musicVideo || youtubeWatchUrl ? 1 : 0) + images.length > 1) && (
+              {/* Media thumbnails - Only show if video not embedded AND we have video link */}
+              {(!musicVideo && youtubeWatchUrl) && (
                 <div className="flex space-x-2 overflow-x-auto pb-2">
-                  {(musicVideo || youtubeWatchUrl) && (
-                    <button
-                      onClick={() => setActiveImageIndex(0)}
-                      className={`flex-shrink-0 w-16 h-10 rounded overflow-hidden ${
-                        activeImageIndex === 0 ? 'ring-2 ring-green-500' : ''
-                      }`}
-                    >
-                      <div className="relative w-full h-full">
-                        {images.length > 0 && (
-                          <img
-                            src={images[0]}
-                            alt={musicDetail?.title}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                          {musicVideo ? (
-                            <Play size={12} className="text-white" />
-                          ) : (
-                            <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                            </svg>
-                          )}
-                        </div>
+                  <button
+                    onClick={() => setActiveImageIndex(0)}
+                    className="flex-shrink-0 w-16 h-10 rounded overflow-hidden"
+                  >
+                    <div className="relative w-full h-full">
+                      {images.length > 0 && (
+                        <img
+                          src={images[0]}
+                          alt={musicDetail?.title}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
                       </div>
-                    </button>
-                  )}
-                  {images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setActiveImageIndex(musicVideo ? index + 1 : index)}
-                      className={`flex-shrink-0 w-16 h-10 rounded overflow-hidden ${
-                        activeImageIndex === (musicVideo ? index + 1 : index) ? 'ring-2 ring-green-500' : ''
-                      }`}
-                    >
-                      <img
-                        src={image}
-                        alt={`${musicDetail.title} thumbnail`}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
+                    </div>
+                  </button>
                 </div>
               )}
             </div>
@@ -701,62 +718,99 @@ export default function MusicDetailModalV4({
               )}
             </div>
 
+            {/* Metacritic Score - Only for albums */}
+            {isAlbum && (metacriticScore?.available || loadingMetacritic) && (
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-white mb-3">Metacritic Score</h3>
+                {loadingMetacritic ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="text-gray-400">Loading score...</div>
+                  </div>
+                ) : metacriticScore?.available ? (
+                  <div className="bg-gray-800 p-4 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        <div className={`w-12 h-12 rounded border-2 flex items-center justify-center font-bold text-lg ${
+                          metacriticScore.score! >= 81 ? 'bg-green-500 border-green-400 text-white' :
+                          metacriticScore.score! >= 61 ? 'bg-yellow-500 border-yellow-400 text-black' :
+                          'bg-red-500 border-red-400 text-white'
+                        }`}>
+                          {metacriticScore.score}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-white font-medium">
+                          {musicMetacriticService.getStatusText(metacriticScore.status)}
+                        </div>
+                        <div className="text-gray-400 text-sm">
+                          Based on {metacriticScore.reviewCount} critic reviews
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-800 p-4 rounded-lg text-center">
+                    <div className="text-gray-400">
+                      No Metacritic score available
+                      {!isAlbum && (
+                        <div className="text-xs mt-1">
+                          Metacritic primarily scores albums, not individual tracks
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
-            {/* Community & Critics Rating */}
+            {/* Friends Who Listened */}
             <div className="mb-6">
-              <h3 className="text-xl font-semibold text-white mb-3">Critics & Community</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {/* Critics Score */}
-                <div className="bg-gray-800 p-4 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-400 mb-1">
-                      {musicDetail?.rating ? (musicDetail.rating * 20).toFixed(0) : '85'}
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-semibold text-white">Friends who listened</h3>
+                <button className="text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text text-sm hover:underline">
+                  View all
+                </button>
+              </div>
+              <div className="space-y-3">
+                {mockFriendsWhoListened.map((friend) => (
+                  <div key={friend.id} className="flex items-center space-x-3 p-3 bg-gray-800 rounded-lg">
+                    <div className="w-10 h-10 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      {friend.name.charAt(0)}
                     </div>
-                    <div className="text-xs text-gray-400 mb-2">CRITICS SCORE</div>
-                    <div className="flex items-center justify-center space-x-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={12}
-                          className={`${
-                            star <= Math.floor(musicDetail?.rating || 4.25)
-                              ? 'text-green-400 fill-current'
-                              : 'text-gray-600'
-                          }`}
-                        />
-                      ))}
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-white font-medium">{friend.name}</span>
+                        <div className="flex items-center space-x-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={12}
+                              className={`${
+                                star <= friend.rating
+                                  ? 'text-[#10B981] fill-[#10B981]'
+                                  : 'text-gray-600'
+                              }`}
+                            />
+                          ))}
+                          <span className="text-gray-400 text-sm ml-1">{friend.rating}/5</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Based on reviews from Pitchfork, AllMusic, Rolling Stone
-                    </div>
+                    
+                    {/* Review */}
+                    {friend.hasReview && friend.reviewText ? (
+                      <div className="mt-2">
+                        <p className="text-gray-300 text-sm mb-2">{friend.reviewText}</p>
+                        <button className="text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text text-xs hover:underline">
+                          View full review
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm mt-2">No review written</p>
+                    )}
                   </div>
-                </div>
-
-                {/* User Score */}
-                <div className="bg-gray-800 p-4 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-400 mb-1">
-                      {musicDetail?.rating ? ((musicDetail.rating * 20) - 5).toFixed(0) : '80'}
-                    </div>
-                    <div className="text-xs text-gray-400 mb-2">USER SCORE</div>
-                    <div className="flex items-center justify-center space-x-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={12}
-                          className={`${
-                            star <= Math.floor((musicDetail?.rating || 4.25) - 0.25)
-                              ? 'text-blue-400 fill-current'
-                              : 'text-gray-600'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Community ratings from music listeners
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
