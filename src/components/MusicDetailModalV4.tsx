@@ -32,6 +32,7 @@ export default function MusicDetailModalV4({
   const [musicVideo, setMusicVideo] = useState<{ url: string; provider: string } | null>(null)
   const [youtubeWatchUrl, setYoutubeWatchUrl] = useState<string | null>(null)
   const [videoEmbedFailed, setVideoEmbedFailed] = useState(false)
+  const [embedTestPassed, setEmbedTestPassed] = useState(false)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
 
   // Déterminer le type de contenu
@@ -54,6 +55,7 @@ export default function MusicDetailModalV4({
     setMusicVideo(null)
     setYoutubeWatchUrl(null)
     setVideoEmbedFailed(false)
+    setEmbedTestPassed(false)
     setActiveImageIndex(0)
     
     try {
@@ -124,13 +126,26 @@ export default function MusicDetailModalV4({
       
       if (video.videoId) {
         console.log(`🎬 [V4] ✅ Found exact video match: ${video.videoId}`)
-        // Essayer d'embedder la vidéo
-        setMusicVideo({
-          url: `https://www.youtube.com/embed/${video.videoId}?rel=0&modestbranding=1&autoplay=0`,
-          provider: 'youtube'
-        })
-        setYoutubeWatchUrl(video.url)
-        setVideoEmbedFailed(false)
+        
+        // Test d'embedding proactif AVANT d'afficher l'iframe
+        const canEmbed = await testYouTubeEmbedding(video.videoId)
+        
+        if (canEmbed) {
+          console.log(`🎬 [V4] ✅ Embedding test passed for: ${video.videoId}`)
+          setMusicVideo({
+            url: `https://www.youtube.com/embed/${video.videoId}?rel=0&modestbranding=1&autoplay=0`,
+            provider: 'youtube'
+          })
+          setYoutubeWatchUrl(video.url)
+          setVideoEmbedFailed(false)
+          setEmbedTestPassed(true)
+        } else {
+          console.log(`🎬 [V4] ❌ Embedding blocked, using external link for: ${video.videoId}`)
+          setMusicVideo(null)
+          setYoutubeWatchUrl(video.url)
+          setVideoEmbedFailed(false)
+          setEmbedTestPassed(false)
+        }
       } else {
         console.log(`🎬 [V4] 🔗 No exact match, using search link`)
         setMusicVideo(null)
@@ -156,6 +171,43 @@ export default function MusicDetailModalV4({
   const handleVideoError = () => {
     console.log(`🎬 [V4] ❌ Video embed failed, switching to external link`)
     setVideoEmbedFailed(true)
+  }
+
+  // 🔍 TEST D'EMBEDDING PROACTIF: Vérifie si YouTube permet l'embedding
+  const testYouTubeEmbedding = async (videoId: string): Promise<boolean> => {
+    try {
+      console.log(`🔍 [V4] Testing embedding capability for: ${videoId}`)
+      
+      // Méthode 1: Test via oEmbed (plus fiable que les anciens tests)
+      const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+      
+      const response = await fetch(oembedUrl, { 
+        signal: AbortSignal.timeout(3000),
+        mode: 'cors'
+      })
+      
+      if (!response.ok) {
+        console.log(`🔍 [V4] oEmbed failed (${response.status}) - video may not be embeddable`)
+        return false
+      }
+      
+      const data = await response.json()
+      
+      // Vérifier si YouTube fournit un HTML embed dans la réponse
+      if (data.html && data.html.includes('iframe')) {
+        console.log(`🔍 [V4] ✅ oEmbed provides iframe - embeddable`)
+        return true
+      }
+      
+      // Si pas d'HTML iframe, probablement pas embeddable
+      console.log(`🔍 [V4] ❌ oEmbed no iframe - not embeddable`)
+      return false
+      
+    } catch (error) {
+      console.log(`🔍 [V4] ❌ Embedding test failed: ${error.message}`)
+      // En cas d'erreur, on assume que ce n'est pas embeddable
+      return false
+    }
   }
 
   const loadImages = async (mainImage: string) => {
@@ -316,7 +368,12 @@ export default function MusicDetailModalV4({
                       <div className="text-6xl mb-4">▶️</div>
                       <h3 className="text-xl font-bold mb-2">Watch on YouTube</h3>
                       <p className="text-red-100 mb-4 text-sm">
-                        {videoEmbedFailed ? 'Video embed blocked - click to watch' : 'Click to search and watch this song'}
+                        {videoEmbedFailed 
+                          ? 'Video embed blocked - click to watch' 
+                          : embedTestPassed === false && youtubeWatchUrl?.includes('watch?v=')
+                          ? 'Video found but embedding restricted - click to watch'
+                          : 'Click to search and watch this song'
+                        }
                       </p>
                       <a
                         href={youtubeWatchUrl}
