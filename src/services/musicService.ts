@@ -25,6 +25,7 @@ export interface iTunesAlbum {
   kind?: string
   trackId?: number // Pour les singles
   trackName?: string // Pour les singles
+  isSingleTrack?: boolean // Flag pour identifier les singles convertis
 }
 
 export interface iTunesSearchResponse {
@@ -505,15 +506,19 @@ class MusicService {
       const albums = validItems.map(item => {
         if (item.wrapperType === 'track') {
           // Convertir une chanson en format "album" single
+          console.log('🎵 Converting track to single:', item.trackName, 'TrackID:', item.trackId)
           return {
             ...item,
-            collectionId: item.trackId,
+            collectionId: item.trackId, // Use trackId as collectionId
             collectionName: item.trackName,
             collectionType: 'Single',
             wrapperType: 'collection',
             artworkUrl100: item.artworkUrl100 || item.artworkUrl60 || item.artworkUrl30,
             trackCount: 1,
-            releaseDate: item.releaseDate
+            releaseDate: item.releaseDate,
+            trackId: item.trackId, // IMPORTANT: Keep original trackId
+            trackName: item.trackName, // Keep track name
+            isSingleTrack: true // Flag to identify converted singles
           }
         }
         return item
@@ -839,13 +844,21 @@ class MusicService {
     console.log('🎵 Converting album:', album.collectionName, 'Artist:', artist, 'Image:', imageUrl ? 'YES' : 'NO')
     
     // Déterminer si c'est un single (trackId présent et collectionType = 'Single')
-    const isSingle = album.collectionType === 'Single' && album.trackId
-    const itemId = isSingle ? album.trackId : album.collectionId
+    const isSingle = album.collectionType === 'Single' || album.isSingleTrack === true
+    const itemId = isSingle && album.trackId ? album.trackId : album.collectionId
     
-    console.log('🎵 Is Single?', isSingle, 'Using ID:', itemId)
+    console.log('🎵 Converting to app format:', {
+      title: album.collectionName,
+      collectionType: album.collectionType,
+      isSingleTrack: album.isSingleTrack,
+      trackId: album.trackId,
+      collectionId: album.collectionId,
+      isSingle: isSingle,
+      finalId: itemId
+    })
     
     return {
-      id: `music-${itemId}`,
+      id: isSingle ? `music-track-${itemId}` : `music-${itemId}`,
       title: this.cleanAlbumName(album.collectionName || 'Unknown Album'),
       artist: artist,  // ✅ UTILISÉ directement
       author: artist,  // ✅ UTILISÉ pour compatibilité

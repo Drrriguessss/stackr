@@ -52,11 +52,21 @@ class MusicApiService {
     try {
       console.log('🎵 Trying iTunes API for:', albumId)
       
-      let cleanId = albumId.replace('music-', '')
+      let cleanId = albumId.replace('music-', '').replace('track-', '')
       
       // Déterminer si c'est un single (trackId) ou un album (collectionId)
-      // Les trackIds sont généralement plus longs que les collectionIds
-      const isSingle = albumId.includes('track-') || cleanId.length > 10
+      // Strategy: Check if the ID contains 'track-' prefix
+      const isSingle = albumId.includes('music-track-')
+      
+      console.log('🎵 ID Analysis:', {
+        originalId: albumId,
+        cleanId: cleanId,
+        length: cleanId.length,
+        hasTrack: albumId.includes('track-'),
+        hasSingle: albumId.includes('single-'),
+        detected: isSingle ? 'SINGLE' : 'ALBUM'
+      })
+      
       const entity = isSingle ? 'song' : 'album'
       
       console.log('🎵 Detected type:', isSingle ? 'Single/Track' : 'Album', 'Entity:', entity)
