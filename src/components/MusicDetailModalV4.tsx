@@ -100,7 +100,7 @@ export default function MusicDetailModalV4({
       return
     }
     
-    // Singles: recherche SIMPLE et PRÉCISE
+    // Singles: utiliser le nouveau service d'embed
     if (!currentMusicDetail?.artist || !currentMusicDetail?.title) {
       console.log(`🎬 [V4] Missing artist/title info for video search`)
       setMusicVideo(null)
@@ -108,43 +108,37 @@ export default function MusicDetailModalV4({
     }
     
     try {
-      console.log(`🎬 [V4] Starting PRECISE video search for: "${currentMusicDetail.title}" by ${currentMusicDetail.artist}`)
+      console.log(`🎬 [V4] Getting embed URL for: "${currentMusicDetail.title}" by ${currentMusicDetail.artist}`)
       
-      // Utiliser le service simple qui match exactement les titres
-      const { simpleMusicVideoService } = await import('../services/simpleMusicVideoService')
-      const video = await simpleMusicVideoService.findMusicVideo(currentMusicDetail.artist, currentMusicDetail.title)
+      // Utiliser le nouveau service d'embed qui FONCTIONNE
+      const { musicVideoEmbedService } = await import('../services/musicVideoEmbedService')
+      const videoData = await musicVideoEmbedService.getMusicVideoEmbed(
+        currentMusicDetail.artist, 
+        currentMusicDetail.title
+      )
       
-      console.log(`🎬 [V4] Simple video service response:`, {
-        matchSource: video.matchSource,
-        hasVideoId: !!video.videoId,
-        url: video.url
-      })
+      console.log(`🎬 [V4] Embed service response:`, videoData)
       
-      if (video.videoId) {
-        console.log(`🎬 [V4] ✅ Found exact video match: ${video.videoId}`)
+      if (videoData.embedUrl) {
+        console.log(`🎬 [V4] ✅ Got embed URL: ${videoData.embedUrl}`)
         
-        // 🎯 APPROCHE MOVIE: Pas de test, on fait confiance aux IDs trouvés
-        // URL simple comme dans MovieDetailModalV3 qui fonctionne parfaitement
-        const embedUrl = `https://www.youtube.com/embed/${video.videoId}?rel=0&modestbranding=1&autoplay=0`
-        
-        console.log(`🎬 [V4] 🎥 Using MOVIE-style simple embed: ${embedUrl}`)
-        
+        // Définir directement l'URL d'embed qui fonctionne
         setMusicVideo({
-          url: embedUrl,
+          url: videoData.embedUrl,
           provider: 'youtube'
         })
-        setYoutubeWatchUrl(video.url)
+        setYoutubeWatchUrl(videoData.watchUrl)
       } else {
-        console.log(`🎬 [V4] 🔗 No exact match, using search link`)
+        console.log(`🎬 [V4] 🔗 No embed available, using watch link`)
         setMusicVideo(null)
-        setYoutubeWatchUrl(video.url)
+        setYoutubeWatchUrl(videoData.watchUrl)
       }
       
     } catch (error) {
-      console.error(`🎬 [V4] Simple video search failed:`, error)
+      console.error(`🎬 [V4] Video embed service failed:`, error)
       
-      // Fallback ultime: créer un lien de recherche YouTube avec les BONNES données
-      const searchQuery = encodeURIComponent(`${currentMusicDetail.artist} ${currentMusicDetail.title} official`)
+      // Fallback: lien de recherche YouTube
+      const searchQuery = encodeURIComponent(`${currentMusicDetail.artist} ${currentMusicDetail.title} official video`)
       const fallbackUrl = `https://www.youtube.com/results?search_query=${searchQuery}`
       
       console.log(`🎬 [V4] 🔗 Using fallback YouTube search`)
@@ -298,29 +292,14 @@ export default function MusicDetailModalV4({
             <div className="space-y-4 mb-6">
               <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
                 {musicVideo && activeImageIndex === 0 ? (
-                  <div className="w-full h-full">
-                    {musicVideo.url.includes('embed') ? (
-                      <iframe
-                        src={musicVideo.url}
-                        className="w-full h-full"
-                        allowFullScreen
-                        title="Music Video"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                        <a
-                          href={youtubeWatchUrl || musicVideo.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg text-white"
-                        >
-                          <Play size={20} />
-                          Watch Video
-                        </a>
-                      </div>
-                    )}
-                  </div>
+                  <iframe
+                    src={musicVideo.url}
+                    className="w-full h-full"
+                    frameBorder="0"
+                    allowFullScreen
+                    title="Music Video"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  />
                 ) : youtubeWatchUrl && activeImageIndex === 0 ? (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-600 to-red-800">
                     <div className="text-center text-white p-8">
