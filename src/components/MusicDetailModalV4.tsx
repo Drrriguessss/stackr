@@ -30,6 +30,8 @@ export default function MusicDetailModalV4({
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [images, setImages] = useState<string[]>([])
   const [musicVideo, setMusicVideo] = useState<{ url: string; provider: string } | null>(null)
+  const [youtubeWatchUrl, setYoutubeWatchUrl] = useState<string | null>(null)
+  const [videoEmbedFailed, setVideoEmbedFailed] = useState(false)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
 
   // Déterminer le type de contenu
@@ -62,11 +64,11 @@ export default function MusicDetailModalV4({
         console.log(`🎵 [V4] ✅ ${contentType} data loaded:`, data)
         setMusicDetail(data)
         
-        // Charger vidéo et images
-        await Promise.all([
-          loadMusicVideo(data.youtubeVideoId),
-          loadImages(data.image)
-        ])
+        // Charger images d'abord
+        await loadImages(data.image)
+        
+        // Puis charger vidéo (qui a besoin des détails musicaux)
+        await loadMusicVideo()
       } else {
         throw new Error(`No ${contentType} data received`)
       }
@@ -79,27 +81,78 @@ export default function MusicDetailModalV4({
     setLoading(false)
   }
 
-  const loadMusicVideo = async (videoId?: string) => {
-    console.log(`🎬 [V4] Loading video for ${contentType}:`, videoId)
+  const loadMusicVideo = async () => {
+    console.log(`🎬 [V4] Loading video for ${contentType}`)
     
     // Albums n'ont JAMAIS de vidéos (photos uniquement)
     if (isAlbum) {
       console.log(`🎬 [V4] 📸 Album detected - no video, photos only`)
       setMusicVideo(null)
+      setYoutubeWatchUrl(null)
       return
     }
     
-    // Singles: vidéo si disponible, sinon photo
-    if (videoId && videoId !== 'dQw4w9WgXcQ') {
-      console.log(`🎬 [V4] ✅ Loading YouTube video: ${videoId}`)
-      setMusicVideo({
-        url: `https://www.youtube.com/embed/${videoId}`,
-        provider: 'youtube'
-      })
-    } else {
-      console.log(`🎬 [V4] 📸 No video found for single - using photo instead`)
+    // Singles: recherche agressive de vidéo avec validation
+    if (!musicDetail?.artist || !musicDetail?.title) {
+      console.log(`🎬 [V4] Missing artist/title info for video search`)
       setMusicVideo(null)
+      return
     }
+    
+    try {
+      console.log(`🎬 [V4] Starting enhanced video search for: "${musicDetail.title}" by ${musicDetail.artist}`)
+      
+      // Appeler notre API YouTube améliorée avec validation
+      const response = await fetch(
+        `/api/youtube?artist=${encodeURIComponent(musicDetail.artist)}&track=${encodeURIComponent(musicDetail.title)}&validate=true`,
+        { signal: AbortSignal.timeout(8000) }
+      )
+      
+      if (!response.ok) {
+        throw new Error(`YouTube API failed: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      console.log(`🎬 [V4] YouTube API response:`, data)
+      
+      if (data.videoId) {
+        console.log(`🎬 [V4] ✅ Loading validated YouTube video: ${data.videoId}`)
+        setMusicVideo({
+          url: `https://www.youtube.com/embed/${data.videoId}`,
+          provider: 'youtube'
+        })
+        setYoutubeWatchUrl(data.watchUrl)
+        setVideoEmbedFailed(false)
+      } else if (data.searchUrl || data.watchUrl) {
+        console.log(`🎬 [V4] 📸 No embed video, but providing YouTube search link`)
+        setMusicVideo(null)
+        setYoutubeWatchUrl(data.searchUrl || data.watchUrl)
+        setVideoEmbedFailed(false)
+      } else {
+        console.log(`🎬 [V4] 📸 No video found - photos only`)
+        setMusicVideo(null)
+        setYoutubeWatchUrl(null)
+        setVideoEmbedFailed(false)
+      }
+      
+    } catch (error) {
+      console.error(`🎬 [V4] Enhanced video search failed:`, error)
+      
+      // Fallback: créer au moins un lien de recherche YouTube
+      const searchQuery = encodeURIComponent(`${musicDetail.artist} ${musicDetail.title}`)
+      const fallbackUrl = `https://www.youtube.com/results?search_query=${searchQuery}`
+      
+      console.log(`🎬 [V4] 🔗 Using fallback YouTube search link`)
+      setMusicVideo(null)
+      setYoutubeWatchUrl(fallbackUrl)
+      setVideoEmbedFailed(false)
+    }
+  }
+  
+  // Fonction pour gérer les erreurs d'embed iframe
+  const handleVideoError = () => {
+    console.log(`🎬 [V4] ❌ Video embed failed, switching to external link`)
+    setVideoEmbedFailed(true)
   }
 
   const loadImages = async (mainImage: string) => {
@@ -164,12 +217,14 @@ export default function MusicDetailModalV4({
   }
 
   const nextImage = () => {
-    const totalItems = (musicVideo ? 1 : 0) + images.length
+    const hasVideoSlot = (musicVideo && !videoEmbedFailed) || youtubeWatchUrl
+    const totalItems = (hasVideoSlot ? 1 : 0) + images.length
     setActiveImageIndex((prev) => (prev + 1) % totalItems)
   }
 
   const prevImage = () => {
-    const totalItems = (musicVideo ? 1 : 0) + images.length
+    const hasVideoSlot = (musicVideo && !videoEmbedFailed) || youtubeWatchUrl
+    const totalItems = (hasVideoSlot ? 1 : 0) + images.length
     setActiveImageIndex((prev) => (prev - 1 + totalItems) % totalItems)
   }
 
@@ -242,14 +297,36 @@ export default function MusicDetailModalV4({
             {/* Media Section - Video + Images Carousel */}
             <div className="space-y-4 mb-6">
               <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                {musicVideo && activeImageIndex === 0 ? (
+                {musicVideo && activeImageIndex === 0 && !videoEmbedFailed ? (
                   <div className="w-full h-full">
                     <iframe
                       src={musicVideo.url}
                       className="w-full h-full"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      onError={handleVideoError}
                     />
+                  </div>
+                ) : youtubeWatchUrl && (activeImageIndex === 0 || (!musicVideo && activeImageIndex === 0)) ? (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-600 to-red-800">
+                    <div className="text-center text-white p-8">
+                      <div className="text-6xl mb-4">▶️</div>
+                      <h3 className="text-xl font-bold mb-2">Watch on YouTube</h3>
+                      <p className="text-red-100 mb-4 text-sm">
+                        {videoEmbedFailed ? 'Video embed blocked - click to watch' : 'Click to search and watch this song'}
+                      </p>
+                      <a
+                        href={youtubeWatchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-lg font-medium hover:bg-red-50 transition-colors"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                        Open YouTube
+                      </a>
+                    </div>
                   </div>
                 ) : images.length > 0 ? (
                   <img
@@ -262,12 +339,22 @@ export default function MusicDetailModalV4({
                     <div className="text-gray-500 text-center">
                       <div className="text-5xl mb-2">🎵</div>
                       <p>No media available</p>
+                      {youtubeWatchUrl && (
+                        <a
+                          href={youtubeWatchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 inline-block text-blue-400 hover:text-blue-300 underline"
+                        >
+                          Search on YouTube
+                        </a>
+                      )}
                     </div>
                   </div>
                 )}
                 
                 {/* Navigation arrows */}
-                {((musicVideo ? 1 : 0) + images.length > 1) && (
+                {(((musicVideo && !videoEmbedFailed) || youtubeWatchUrl ? 1 : 0) + images.length > 1) && (
                   <>
                     <button
                       onClick={prevImage}
@@ -286,9 +373,9 @@ export default function MusicDetailModalV4({
               </div>
 
               {/* Media thumbnails */}
-              {((musicVideo ? 1 : 0) + images.length > 1) && (
+              {(((musicVideo && !videoEmbedFailed) || youtubeWatchUrl ? 1 : 0) + images.length > 1) && (
                 <div className="flex space-x-2 overflow-x-auto pb-2">
-                  {musicVideo && (
+                  {((musicVideo && !videoEmbedFailed) || youtubeWatchUrl) && (
                     <button
                       onClick={() => setActiveImageIndex(0)}
                       className={`flex-shrink-0 w-16 h-10 rounded overflow-hidden border-2 ${
@@ -296,7 +383,13 @@ export default function MusicDetailModalV4({
                       }`}
                     >
                       <div className="w-full h-full bg-red-600 flex items-center justify-center">
-                        <Play size={12} className="text-white" />
+                        {musicVideo && !videoEmbedFailed ? (
+                          <Play size={12} className="text-white" />
+                        ) : (
+                          <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                          </svg>
+                        )}
                       </div>
                     </button>
                   )}
