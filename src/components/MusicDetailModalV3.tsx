@@ -398,15 +398,26 @@ export default function MusicDetailModalV3({
 
   const fetchMusicVideo = async (artist: string, albumTitle: string) => {
     try {
+      // 🎵 DEBUG: Log exact input parameters
+      console.log('🎵 ===== MUSIC VIDEO FETCH DEBUG =====')
+      console.log('🎵 Input Artist:', `"${artist}"`)
+      console.log('🎵 Input Album Title:', `"${albumTitle}"`)
+      console.log('🎵 Artist Type:', typeof artist, 'Length:', artist?.length)
+      console.log('🎵 Album Type:', typeof albumTitle, 'Length:', albumTitle?.length)
+      
       // Dynamic music video search with artist/album-specific videos
       const query = `${artist} ${albumTitle} official music video`
-      console.log('🎵 Searching music video for:', query)
+      console.log('🎵 Search Query:', `"${query}"`)
       
       // Generate a video ID based on the artist and album to ensure consistency
       const videoId = generateVideoIdFromArtistAlbum(artist, albumTitle)
       const embedUrl = `https://www.youtube.com/embed/${videoId}`
       
-      console.log('🎵 Generated video ID:', videoId, 'for', artist, '-', albumTitle)
+      console.log('🎵 ✅ FINAL RESULT:')
+      console.log('🎵 Generated Video ID:', videoId)
+      console.log('🎵 YouTube URL:', embedUrl)
+      console.log('🎵 For:', artist, '-', albumTitle)
+      console.log('🎵 =====================================')
       
       setMusicVideo({
         url: embedUrl,
@@ -425,29 +436,33 @@ export default function MusicDetailModalV3({
 
   // Generate consistent video IDs for different artists/albums
   const generateVideoIdFromArtistAlbum = (artist: string, albumTitle: string): string => {
-    // Mapping of popular artists/albums to their actual music videos
+    // Mapping of popular artists/albums to their title track or most representative music videos
     const videoMappings: { [key: string]: string } = {
-      // Billie Eilish
-      'billie eilish-happier than ever': 'NUVCQXMUVnI', // Happier Than Ever
-      'billie eilish-when we all fall asleep': 'DyDfgMOUjCI', // bad guy
-      'billie eilish-sour': 'gBRi6aZJGj4', // everything i wanted
+      // Billie Eilish - Title tracks or most representative songs
+      'billie eilish-happier than ever': 'NUVCQXMUVnI', // ✅ "Happier Than Ever" title track
+      'billie eilish-when we all fall asleep where do we go': 'DyDfgMOUjCI', // bad guy (main hit)
+      'billie eilish-when we all fall asleep': 'DyDfgMOUjCI', // bad guy (shortened title)
+      'billie eilish-hit me hard and soft': 'qc6_yTv4zAE', // LUNCH (if this album exists)
       
-      // Taylor Swift
-      'taylor swift-midnights': 'b1kbLWvqugk', // Anti-Hero
-      'taylor swift-folklore': 'DIgqbci0ZWk', // cardigan
-      'taylor swift-lover': 'FuXNumBwDOM', // Lover
-      'taylor swift-reputation': 'wIft-t-MQuE', // Look What You Made Me Do
-      'taylor swift-1989': 'nfWlot6h_JM', // Shake It Off
+      // Taylor Swift - Title tracks when possible
+      'taylor swift-midnights': 'b1kbLWvqugk', // Anti-Hero (lead single)
+      'taylor swift-folklore': 'DIgqbci0ZWk', // cardigan (lead single)
+      'taylor swift-lover': 'FuXNumBwDOM', // ✅ "Lover" title track matches album
+      'taylor swift-reputation': 'wIft-t-MQuE', // Look What You Made Me Do (lead single)
+      'taylor swift-1989': 'nfWlot6h_JM', // Shake It Off (lead single)
       
-      // The Weeknd
-      'the weeknd-after hours': 'tQ0yjYUFKAE', // Blinding Lights
-      'the weeknd-dawn fm': 'waU75jdUnYw', // Take My Breath
-      'the weeknd-starboy': 'L8eRzOYhLuw', // Starboy
+      // The Weeknd - Songs that match album titles
+      'the weeknd-after hours': 'ygTZZvqH8XY', // After Hours (Official Music Video)
+      'the weeknd-dawn fm': 'waU75jdUnYw', // Take My Breath (Dawn FM lead single)
+      'the weeknd-starboy': 'L8eRzOYhLuw', // Starboy (title track)
+      'the weeknd-blinding lights': 'tQ0yjYUFKAE', // Blinding Lights (if album named this)
       
-      // Drake
-      'drake-scorpion': 'DRS_PpOrUZ4', // God's Plan
-      'drake-views': 'uxpDa-c-4Mc', // Hotline Bling
-      'drake-take care': 'GxgqpCdOKak', // Take Care
+      // Drake - More accurate album-to-song mapping
+      'drake-scorpion': 'DRS_PpOrUZ4', // God's Plan (Scorpion lead single)
+      'drake-views': 'uxpDa-c-4Mc', // Hotline Bling (Views era)
+      'drake-take care': 'GxgqpCdOKak', // ✅ "Take Care" title track matches album
+      'drake-nothing was the same': 'u5j3OM5-rPY', // Started From the Bottom
+      'drake-certified lover boy': 'pU7IOxTjNTk' // Way 2 Sexy
       
       // Ariana Grande
       'ariana grande-positions': 'tcYodQoapMg', // positions
@@ -506,6 +521,28 @@ export default function MusicDetailModalV3({
           return videoId
         }
       }
+    }
+    
+    // NEW: Try to find title track - if album title appears as a song name, prioritize it
+    const titleTrackMappings: { [key: string]: string } = {
+      // Common album-song title matches
+      'after hours': 'ygTZZvqH8XY', // The Weeknd - After Hours
+      'blinding lights': 'tQ0yjYUFKAE', // The Weeknd - Blinding Lights  
+      'lover': 'FuXNumBwDOM', // Taylor Swift - Lover
+      'folklore': 'DIgqbci0ZWk', // Taylor Swift - cardigan (folklore lead single)
+      'midnights': 'b1kbLWvqugk', // Taylor Swift - Anti-Hero (Midnights lead)
+      'happier than ever': 'NUVCQXMUVnI', // Billie Eilish - Happier Than Ever
+      'positions': 'tcYodQoapMg', // Ariana Grande - positions
+      'thank u next': 'gl1aHhXnN1k', // Ariana Grande - thank u, next
+      'starboy': 'L8eRzOYhLuw', // The Weeknd - Starboy
+      'take care': 'GxgqpCdOKak' // Drake - Take Care
+    }
+    
+    // Check if the album title itself matches a known song
+    const albumTitleKey = albumLower.replace(/[^a-z0-9\s]/g, '').trim()
+    if (titleTrackMappings[albumTitleKey]) {
+      console.log('🎵 Found title track match:', titleTrackMappings[albumTitleKey], 'for album:', albumTitleKey)
+      return titleTrackMappings[albumTitleKey]
     }
     
     // Fallback: generate a pseudo-random but consistent video ID based on the input
