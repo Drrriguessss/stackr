@@ -192,19 +192,23 @@ export default function MusicDetailModalV2({
       console.log('🎵 Fetching album details for ID:', albumId)
       
       const data = await musicService.getAlbumDetails(albumId)
-      setAlbumDetail(data as AlbumDetail)
-      
-      // Fetch reviews
-      fetchReviews(albumId, data.title, data.artist)
-      
-      // Fetch similar albums
-      if (data?.genre) {
-        await fetchSimilarAlbums(data.genre)
-      }
-      
-      // Fetch artist albums
-      if (data?.artist) {
-        await fetchArtistAlbums(data.artist)
+      if (data) {
+        setAlbumDetail(data as AlbumDetail)
+        
+        // Fetch reviews only if we have valid data
+        fetchReviews(albumId, data.title || 'Unknown Album', data.artist || 'Unknown Artist')
+        
+        // Fetch similar albums
+        if (data.genre) {
+          await fetchSimilarAlbums(data.genre)
+        }
+        
+        // Fetch artist albums
+        if (data.artist) {
+          await fetchArtistAlbums(data.artist)
+        }
+      } else {
+        throw new Error('No album data received')
       }
       
     } catch (error) {
@@ -269,28 +273,55 @@ export default function MusicDetailModalV2({
     try {
       console.log('📝 Fetching reviews for album:', albumTitle, 'by', artist)
       
-      // Fetch API reviews
-      const reviewsResponse = await musicReviewsService.getMusicReviews(albumId, albumTitle, artist)
-      setMusicReviews(reviewsResponse.reviews)
-      console.log('📝 Loaded', reviewsResponse.reviews.length, 'API reviews')
-      
-      // Fetch user public reviews
-      const publicReviews = await userReviewsService.getPublicReviewsForMedia(albumId)
-      setUserPublicReviews(publicReviews)
-      console.log('📝 Loaded', publicReviews.length, 'user public reviews')
-      
-      // Fetch current user's review (if any)
-      const userReview = await userReviewsService.getUserReviewForMedia(albumId)
-      setCurrentUserReview(userReview)
-      if (userReview) {
-        setUserRating(userReview.rating)
-        setUserReview(userReview.review_text || '')
-        console.log('📝 Found existing user review')
+      // Fetch API reviews with error handling
+      try {
+        const reviewsResponse = await musicReviewsService.getMusicReviews(albumId, albumTitle, artist)
+        if (reviewsResponse && reviewsResponse.reviews && Array.isArray(reviewsResponse.reviews)) {
+          setMusicReviews(reviewsResponse.reviews)
+          console.log('📝 Loaded', reviewsResponse.reviews.length, 'API reviews')
+        } else {
+          setMusicReviews([])
+          console.log('📝 No valid API reviews found')
+        }
+      } catch (apiError) {
+        console.error('📝 Error fetching API reviews:', apiError)
+        setMusicReviews([])
       }
+      
+      // Fetch user public reviews with error handling
+      try {
+        const publicReviews = await userReviewsService.getPublicReviewsForMedia(albumId)
+        if (publicReviews && Array.isArray(publicReviews)) {
+          setUserPublicReviews(publicReviews)
+          console.log('📝 Loaded', publicReviews.length, 'user public reviews')
+        } else {
+          setUserPublicReviews([])
+          console.log('📝 No valid public reviews found')
+        }
+      } catch (publicError) {
+        console.error('📝 Error fetching public reviews:', publicError)
+        setUserPublicReviews([])
+      }
+      
+      // Fetch current user's review with error handling
+      try {
+        const userReview = await userReviewsService.getUserReviewForMedia(albumId)
+        setCurrentUserReview(userReview)
+        if (userReview) {
+          setUserRating(userReview.rating)
+          setUserReview(userReview.review_text || '')
+          console.log('📝 Found existing user review')
+        }
+      } catch (userError) {
+        console.error('📝 Error fetching user review:', userError)
+        setCurrentUserReview(null)
+      }
+      
     } catch (error) {
       console.error('📝 Error fetching reviews:', error)
       setMusicReviews([])
       setUserPublicReviews([])
+      setCurrentUserReview(null)
     } finally {
       setReviewsLoading(false)
     }
@@ -822,7 +853,7 @@ export default function MusicDetailModalV2({
                   <div>
                     <h3 className="text-white font-medium mb-3">Track List</h3>
                     <div className="space-y-2">
-                      {albumDetail.tracks.slice(0, showAllTracks ? undefined : 5).map((track, index) => (
+                      {(albumDetail.tracks || []).slice(0, showAllTracks ? undefined : 5).map((track, index) => (
                         <div key={index} className="flex items-center justify-between p-2 bg-[#1A1A1A] rounded-lg">
                           <div className="flex items-center space-x-3">
                             <span className="text-[#B0B0B0] text-sm w-6">{index + 1}</span>
@@ -831,12 +862,12 @@ export default function MusicDetailModalV2({
                           <span className="text-[#B0B0B0] text-sm">{track.duration}</span>
                         </div>
                       ))}
-                      {albumDetail.tracks.length > 5 && (
+                      {(albumDetail.tracks || []).length > 5 && (
                         <button
                           onClick={() => setShowAllTracks(!showAllTracks)}
                           className="text-white text-sm mt-2 flex items-center space-x-1 hover:underline"
                         >
-                          <span>{showAllTracks ? 'Show Less' : `Show All ${albumDetail.tracks.length} Tracks`}</span>
+                          <span>{showAllTracks ? 'Show Less' : `Show All ${(albumDetail.tracks || []).length} Tracks`}</span>
                           <ChevronRight className={`transition-transform ${showAllTracks ? 'rotate-90' : ''}`} size={16} />
                         </button>
                       )}
