@@ -35,10 +35,12 @@ interface BookDetail {
     small: string
     medium: string
     large: string
+    extraLarge?: string
   }
   previewLink: string
   infoLink: string
   buyLink: string
+  subtitle?: string
 }
 
 export default function BookDetailModalV3({
@@ -90,6 +92,16 @@ export default function BookDetailModalV3({
   const [editRating, setEditRating] = useState(0)
   const [editReviewText, setEditReviewText] = useState('')
   const [editReviewPrivacy, setEditReviewPrivacy] = useState<'private' | 'public'>('private')
+  const [authorBooks, setAuthorBooks] = useState<any[]>([])
+  const [loadingAuthorBooks, setLoadingAuthorBooks] = useState(false)
+
+  // Helper function pour Product Sheet
+  const isProductSheetCompleted = () => {
+    return productSheetData.personalRating > 0 || 
+           productSheetData.personalReview.trim() !== '' ||
+           productSheetData.readDate !== '' ||
+           productSheetData.format !== ''
+  }
 
   // Mock friends data pour le partage
   const mockFriends = [
@@ -150,27 +162,79 @@ export default function BookDetailModalV3({
     try {
       // Charger les détails du livre
       const data = await googleBooksService.getBookDetails(bookId)
-      setBookDetail(data as BookDetail)
       
-      // Charger les images
-      if (data.imageLinks) {
-        const imageUrls = [
-          data.imageLinks.extraLarge,
-          data.imageLinks.large, 
-          data.imageLinks.medium,
-          data.imageLinks.small,
-          data.imageLinks.thumbnail
-        ].filter(Boolean)
-        setImages(imageUrls)
+      if (data && data.volumeInfo) {
+        const volumeInfo = data.volumeInfo
+        
+        // Mapper les données Google Books vers notre structure
+        const bookData: BookDetail = {
+          id: data.id,
+          title: volumeInfo.title || 'Unknown Title',
+          authors: volumeInfo.authors || ['Unknown Author'],
+          description: volumeInfo.description || '',
+          publishedDate: volumeInfo.publishedDate || '',
+          pageCount: volumeInfo.pageCount || 0,
+          categories: volumeInfo.categories || [],
+          averageRating: volumeInfo.averageRating || 0,
+          ratingsCount: volumeInfo.ratingsCount || 0,
+          language: volumeInfo.language || 'en',
+          publisher: volumeInfo.publisher || '',
+          isbn10: volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier || '',
+          isbn13: volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier || '',
+          imageLinks: {
+            thumbnail: volumeInfo.imageLinks?.thumbnail || '',
+            small: volumeInfo.imageLinks?.small || volumeInfo.imageLinks?.thumbnail || '',
+            medium: volumeInfo.imageLinks?.medium || volumeInfo.imageLinks?.thumbnail || '',
+            large: volumeInfo.imageLinks?.large || volumeInfo.imageLinks?.medium || volumeInfo.imageLinks?.thumbnail || ''
+          },
+          previewLink: volumeInfo.previewLink || '',
+          infoLink: volumeInfo.infoLink || '',
+          buyLink: data.saleInfo?.buyLink || ''
+        }
+        
+        setBookDetail(bookData)
+        
+        // Charger les images
+        if (volumeInfo.imageLinks) {
+          const imageUrls = [
+            volumeInfo.imageLinks.extraLarge,
+            volumeInfo.imageLinks.large, 
+            volumeInfo.imageLinks.medium,
+            volumeInfo.imageLinks.small,
+            volumeInfo.imageLinks.thumbnail
+          ].filter(Boolean)
+          setImages(imageUrls)
+        }
       }
       
       // Charger les reviews utilisateur
       await loadUserReviews(bookId)
       
+      // Charger d'autres livres du même auteur
+      if (bookData.authors && bookData.authors.length > 0) {
+        await loadAuthorBooks(bookData.authors[0], bookData.id)
+      }
+      
     } catch (error) {
       console.error('Error loading book:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadAuthorBooks = async (author: string, currentBookId: string) => {
+    try {
+      setLoadingAuthorBooks(true)
+      const books = await googleBooksService.getBooksByAuthor(author, 10)
+      const filteredBooks = books
+        .filter(book => book.id !== currentBookId)
+        .slice(0, 6)
+        .map(book => googleBooksService.convertToAppFormat(book))
+      setAuthorBooks(filteredBooks)
+    } catch (error) {
+      console.error('Error loading author books:', error)
+    } finally {
+      setLoadingAuthorBooks(false)
     }
   }
 
@@ -413,9 +477,9 @@ export default function BookDetailModalV3({
                 )}
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons - Same as MusicDetailModalV4 */}
               <div className="flex flex-col space-y-3 mb-6">
-                {/* Add to Library Button */}
+                {/* Status Button */}
                 <div className="relative">
                   <button
                     onClick={() => setShowStatusDropdown(!showStatusDropdown)}
@@ -440,26 +504,91 @@ export default function BookDetailModalV3({
                   )}
                 </div>
 
-                {/* Share and Preview Buttons */}
-                <div className="flex space-x-3">
+              </div>
+
+              {/* Actions - Same layout as MusicDetailModalV4 */}
+              <div className="flex items-center justify-center space-x-4 mb-6">
+                <div className="relative">
                   <button
-                    onClick={() => setShowShareModal(true)}
-                    className="flex-1 py-2 px-4 border border-green-600 text-green-400 text-sm font-medium rounded-lg hover:bg-green-600/10 transition-colors flex items-center justify-center space-x-2"
+                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                    className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                      selectedStatus
+                        ? 'bg-gradient-to-r from-[#10B981] to-[#34D399] text-white border-0'
+                        : 'bg-gray-800 text-white hover:bg-gray-700'
+                    }`}
                   >
-                    <Share size={16} />
-                    <span>Share</span>
+                    {formatStatusForDisplay(selectedStatus)}
                   </button>
                   
-                  {bookDetail.previewLink && (
-                    <button
-                      onClick={() => window.open(bookDetail.previewLink, '_blank')}
-                      className="flex-1 py-2 px-4 border border-green-600 text-green-400 text-sm font-medium rounded-lg hover:bg-green-600/10 transition-colors flex items-center justify-center space-x-2"
-                    >
-                      <ExternalLink size={16} />
-                      <span>Preview</span>
-                    </button>
+                  {showStatusDropdown && (
+                    <div className="absolute top-full mt-2 bg-gray-800 rounded-lg shadow-lg z-10 min-w-48">
+                      <button
+                        onClick={() => handleAddToLibrary('want-to-read')}
+                        className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700 first:rounded-t-lg"
+                      >
+                        Want To Read
+                      </button>
+                      <button
+                        onClick={() => handleAddToLibrary('currently-reading')}
+                        className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700"
+                      >
+                        Currently Reading
+                      </button>
+                      <button
+                        onClick={() => handleAddToLibrary('read')}
+                        className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700"
+                      >
+                        Read
+                      </button>
+                      <button
+                        onClick={() => handleAddToLibrary('paused')}
+                        className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700"
+                      >
+                        Paused
+                      </button>
+                      <button
+                        onClick={() => handleAddToLibrary('dropped')}
+                        className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700"
+                      >
+                        Dropped
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (bookDetail && onDeleteItem && libraryItem) {
+                            onDeleteItem(libraryItem.id)
+                            setShowStatusDropdown(false)
+                            setSelectedStatus(null)
+                          }
+                        }}
+                        className="block w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 last:rounded-b-lg"
+                      >
+                        Remove from Library
+                      </button>
+                    </div>
                   )}
                 </div>
+                
+                <button 
+                  onClick={() => setShowShareModal(true)}
+                  className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+                >
+                  <Share size={20} />
+                  <span>Share</span>
+                </button>
+                
+                {/* Product Sheet Button - Only show for read */}
+                {selectedStatus === 'read' && (
+                  <button
+                    onClick={() => setShowProductSheet(true)}
+                    className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    style={isProductSheetCompleted() ? {
+                      boxShadow: '0 0 0 2px #10B981, 0 4px 8px rgba(16, 185, 129, 0.3)'
+                    } : {}}
+                    title="Book Sheet"
+                  >
+                    <FileText size={20} />
+                  </button>
+                )}
               </div>
 
               {/* Rating System */}
@@ -791,6 +920,40 @@ export default function BookDetailModalV3({
                 </div>
               )}
 
+              {/* More from this author */}
+              {authorBooks.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-white font-semibold mb-4">More from {bookDetail.authors?.[0]}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {authorBooks.map((book) => (
+                      <button
+                        key={book.id}
+                        onClick={() => onBookSelect?.(book.id.replace('book-', ''))}
+                        className="group text-left"
+                      >
+                        <div className="aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden mb-2">
+                          {book.image ? (
+                            <img 
+                              src={book.image} 
+                              alt={book.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <BookOpen size={24} className="text-gray-600" />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-white text-sm font-medium line-clamp-1 group-hover:text-green-400 transition-colors">
+                          {book.title}
+                        </p>
+                        <p className="text-gray-400 text-xs">{book.year}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* External Links */}
               <div className="mb-6">
                 <h3 className="text-white font-semibold mb-3">Links</h3>
@@ -825,6 +988,126 @@ export default function BookDetailModalV3({
                 </div>
               </div>
             </div>
+
+            {/* Product Sheet Modal */}
+            {showProductSheet && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-white font-semibold">Book Sheet</h3>
+                    <button
+                      onClick={() => setShowProductSheet(false)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-gray-300 text-sm mb-1">Read Date</label>
+                      <input
+                        type="date"
+                        value={productSheetData.readDate}
+                        onChange={(e) => setProductSheetData(prev => ({ ...prev, readDate: e.target.value }))}
+                        className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-300 text-sm mb-1">Format</label>
+                      <select
+                        value={productSheetData.format}
+                        onChange={(e) => setProductSheetData(prev => ({ ...prev, format: e.target.value }))}
+                        className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:border-green-500"
+                      >
+                        <option value="">Select format</option>
+                        <option value="physical">Physical Book</option>
+                        <option value="ebook">E-Book</option>
+                        <option value="audiobook">Audiobook</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-300 text-sm mb-1">Location</label>
+                      <input
+                        type="text"
+                        value={productSheetData.location}
+                        onChange={(e) => setProductSheetData(prev => ({ ...prev, location: e.target.value }))}
+                        placeholder="Where did you read it?"
+                        className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-300 text-sm mb-1">Mood</label>
+                      <input
+                        type="text"
+                        value={productSheetData.mood}
+                        onChange={(e) => setProductSheetData(prev => ({ ...prev, mood: e.target.value }))}
+                        placeholder="How did it make you feel?"
+                        className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-300 text-sm mb-1">Rating</label>
+                      <div className="flex space-x-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => setProductSheetData(prev => ({ ...prev, personalRating: star }))}
+                            className="p-1"
+                          >
+                            <Star
+                              size={20}
+                              className={`${
+                                star <= productSheetData.personalRating
+                                  ? 'text-green-400 fill-green-400'
+                                  : 'text-gray-600'
+                              } transition-colors`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-300 text-sm mb-1">Notes</label>
+                      <textarea
+                        value={productSheetData.personalReview}
+                        onChange={(e) => setProductSheetData(prev => ({ ...prev, personalReview: e.target.value }))}
+                        placeholder="Personal thoughts..."
+                        className="w-full h-20 px-3 py-2 bg-gray-700 text-white rounded-lg resize-none border border-gray-600 focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-2 mt-6">
+                    <button
+                      onClick={() => setShowProductSheet(false)}
+                      className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Save to localStorage
+                        if (bookDetail) {
+                          const data = { ...productSheetData, bookId: bookDetail.id }
+                          localStorage.setItem(`bookProductSheet_${bookDetail.id}`, JSON.stringify(data))
+                          console.log('Book sheet saved:', data)
+                        }
+                        setShowProductSheet(false)
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Share Modal */}
             {showShareModal && (
