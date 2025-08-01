@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { X, Star, Play, ChevronLeft, ChevronRight, Share, FileText, ArrowRight } from 'lucide-react'
+import { X, Star, Play, ChevronLeft, ChevronRight, Share, FileText, ArrowRight, Music } from 'lucide-react'
 import type { LibraryItem, MediaStatus } from '@/types'
 import type { MusicDetailData } from '@/types/musicTypes'
 import { musicServiceV2 } from '@/services/musicServiceV2'
@@ -1244,36 +1244,113 @@ export default function MusicDetailModalV4({
               </div>
             )}
 
-            {/* Other songs from album - Carrousel horizontal */}
+            {/* Other songs from album - Liste verticale optimisée mobile */}
             {isSingle && albumTracks.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-xl font-semibold text-white mb-3">Other songs from this album</h3>
-                <div className="flex space-x-3 overflow-x-auto pb-2">
-                  {albumTracks.map((track: any) => (
-                    <button
-                      key={track.trackId}
-                      onClick={() => onMusicSelect && onMusicSelect(track.trackId.toString())}
-                      className="flex-shrink-0 w-32 h-20 p-3 bg-gray-800 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg transition-colors group flex flex-col justify-between"
-                    >
-                      <div className="flex items-start space-x-2 w-full">
-                        <span className="text-gray-400 text-xs w-4 flex-shrink-0">
-                          {track.trackNumber || '-'}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-white text-xs group-hover:text-[#10B981] transition-colors leading-tight">
-                            {track.trackName}
+                <h3 className="text-xl font-semibold text-white mb-4">Other songs from this album</h3>
+                
+                {/* Mobile: Liste verticale */}
+                <div className="block md:hidden space-y-2">
+                  {albumTracks.map((track: any) => {
+                    // Extraire le titre principal et les featuring artists
+                    const trackName = track.trackName || ''
+                    const featMatch = trackName.match(/^(.+?)\s*\((?:feat|featuring|ft)\.?\s*(.+?)\)/i)
+                    const mainTitle = featMatch ? featMatch[1].trim() : trackName
+                    const featArtists = featMatch ? featMatch[2].trim() : null
+                    
+                    return (
+                      <button
+                        key={track.trackId}
+                        onClick={() => onMusicSelect && onMusicSelect(track.trackId.toString())}
+                        className="w-full p-3 bg-gray-800/50 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg border border-gray-700/50 hover:border-[#10B981]/30 transition-all group"
+                      >
+                        <div className="flex items-center space-x-3">
+                          {/* Icône album + numéro track */}
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <Music size={16} className="text-gray-400 group-hover:text-[#10B981] transition-colors" />
+                            <span className="text-gray-400 text-sm min-w-[20px] text-center group-hover:text-[#10B981] transition-colors">
+                              {track.trackNumber || '-'}
+                            </span>
+                          </div>
+                          
+                          {/* Titre et featuring */}
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="text-white text-sm font-medium group-hover:text-[#10B981] transition-colors leading-tight">
+                              {mainTitle}
+                            </div>
+                            {featArtists && (
+                              <div className="text-gray-400 text-xs mt-0.5 leading-tight">
+                                (feat. {featArtists})
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Durée et bouton play */}
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            {track.trackTimeMillis && (
+                              <span className="text-gray-400 text-xs tabular-nums">
+                                {Math.floor(track.trackTimeMillis / 60000)}:
+                                {String(Math.floor((track.trackTimeMillis % 60000) / 1000)).padStart(2, '0')}
+                              </span>
+                            )}
+                            <Play size={14} className="text-gray-400 group-hover:text-[#10B981] transition-colors" />
                           </div>
                         </div>
-                      </div>
-                      {track.trackTimeMillis && (
-                        <div className="text-gray-400 text-xs text-left">
-                          {Math.floor(track.trackTimeMillis / 60000)}:
-                          {String(Math.floor((track.trackTimeMillis % 60000) / 1000)).padStart(2, '0')}
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                      </button>
+                    )
+                  })}
                 </div>
+                
+                {/* Desktop: Grid horizontal */}
+                <div className="hidden md:block">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                    {albumTracks.map((track: any) => {
+                      const trackName = track.trackName || ''
+                      const featMatch = trackName.match(/^(.+?)\s*\((?:feat|featuring|ft)\.?\s*(.+?)\)/i)
+                      const mainTitle = featMatch ? featMatch[1].trim() : trackName
+                      const featArtists = featMatch ? featMatch[2].trim() : null
+                      
+                      return (
+                        <button
+                          key={track.trackId}
+                          onClick={() => onMusicSelect && onMusicSelect(track.trackId.toString())}
+                          className="p-4 bg-gray-800/50 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg border border-gray-700/50 hover:border-[#10B981]/30 transition-all group text-left"
+                        >
+                          <div className="flex items-start space-x-3">
+                            <span className="text-gray-400 text-sm group-hover:text-[#10B981] transition-colors flex-shrink-0 mt-0.5">
+                              {track.trackNumber || '-'}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-white text-sm font-medium group-hover:text-[#10B981] transition-colors leading-tight">
+                                {mainTitle}
+                              </div>
+                              {featArtists && (
+                                <div className="text-gray-400 text-xs mt-1 leading-tight">
+                                  (feat. {featArtists})
+                                </div>
+                              )}
+                              {track.trackTimeMillis && (
+                                <div className="text-gray-400 text-xs mt-2 tabular-nums">
+                                  {Math.floor(track.trackTimeMillis / 60000)}:
+                                  {String(Math.floor((track.trackTimeMillis % 60000) / 1000)).padStart(2, '0')}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                
+                {/* Optionnel: View Full Album si plus de 8 tracks */}
+                {albumTracks.length > 8 && (
+                  <div className="mt-4 text-center">
+                    <button className="text-[#10B981] hover:text-[#34D399] text-sm font-medium transition-colors">
+                      View Full Album ({albumTracks.length} songs)
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
