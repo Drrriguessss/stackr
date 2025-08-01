@@ -80,7 +80,7 @@ export default function MusicDetailModalV4({
   const [isEditingReview, setIsEditingReview] = useState(false)
   const [editRating, setEditRating] = useState(0)
   const [editReviewText, setEditReviewText] = useState('')
-  const [editIsPublic, setEditIsPublic] = useState(false)
+  const [editReviewPrivacy, setEditReviewPrivacy] = useState<'private' | 'public'>('private')
 
   // Mock friends data pour le partage
   const mockFriends = [
@@ -546,7 +546,7 @@ export default function MusicDetailModalV4({
     
     setEditRating(currentUserReview.rating)
     setEditReviewText(currentUserReview.review_text || '')
-    setEditIsPublic(currentUserReview.is_public)
+    setEditReviewPrivacy(currentUserReview.is_public ? 'public' : 'private')
     setIsEditingReview(true)
   }
 
@@ -556,7 +556,7 @@ export default function MusicDetailModalV4({
     
     try {
       // Utiliser la même fonction de soumission
-      await submitUserReview(editRating, editReviewText, editIsPublic)
+      await submitUserReview(editRating, editReviewText, editReviewPrivacy === 'public')
       setIsEditingReview(false)
     } catch (error) {
       console.error('❌ Error updating review:', error)
@@ -568,7 +568,7 @@ export default function MusicDetailModalV4({
     setIsEditingReview(false)
     setEditRating(0)
     setEditReviewText('')
-    setEditIsPublic(false)
+    setEditReviewPrivacy('private')
   }
 
   // Supprimer une review
@@ -666,28 +666,6 @@ export default function MusicDetailModalV4({
                   )}
                 </div>
                 
-                {/* iTunes Preview Player - Singles seulement */}
-                {isSingle && musicDetail.previewUrl && (
-                  <div className="mt-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse"></div>
-                      <span className="text-white text-sm font-medium">30-second preview</span>
-                      <span className="text-xs text-gray-400">via iTunes</span>
-                    </div>
-                    <audio 
-                      controls 
-                      className="w-full h-10"
-                      preload="metadata"
-                      style={{
-                        background: 'transparent',
-                        outline: 'none'
-                      }}
-                    >
-                      <source src={musicDetail.previewUrl} type="audio/mpeg" />
-                      <p className="text-gray-400 text-sm">Your browser doesn't support audio playback.</p>
-                    </audio>
-                  </div>
-                )}
                 
                 {/* Single Badge + Album Link */}
                 {isSingle && (
@@ -718,9 +696,11 @@ export default function MusicDetailModalV4({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6">
-              {/* Media Section - Video + Images Carousel */}
+              {/* Media Section - Image/Video + Preview */}
             <div className="space-y-4 mb-6">
-              <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
+              <div className="flex gap-4">
+                {/* Image/Video à gauche */}
+                <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden flex-1">
                 {musicVideo && activeImageIndex === 0 ? (
                   <iframe
                     src={musicVideo.url}
@@ -796,6 +776,32 @@ export default function MusicDetailModalV4({
                   </>
                 )}
               </div>
+              
+              {/* iTunes Preview Player à droite - Singles seulement */}
+              {isSingle && musicDetail.previewUrl && (
+                <div className="w-80 flex-shrink-0">
+                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 h-fit">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse"></div>
+                      <span className="text-white text-sm font-medium">30-second preview</span>
+                      <span className="text-xs text-gray-400">via iTunes</span>
+                    </div>
+                    <audio 
+                      controls 
+                      className="w-full h-10"
+                      preload="metadata"
+                      style={{
+                        background: 'transparent',
+                        outline: 'none'
+                      }}
+                    >
+                      <source src={musicDetail.previewUrl} type="audio/mpeg" />
+                      <p className="text-gray-400 text-sm">Your browser doesn't support audio playback.</p>
+                    </audio>
+                  </div>
+                </div>
+              )}
+              </div>
 
               {/* Media thumbnails - Only show if video not embedded AND we have video link */}
               {(!musicVideo && youtubeWatchUrl) && (
@@ -845,7 +851,7 @@ export default function MusicDetailModalV4({
                           onClick={() => handleAddToLibrary('want-to-listen')}
                           className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700 first:rounded-t-lg"
                         >
-                          Want to Listen
+                          Want To Listen
                         </button>
                         <button
                           onClick={() => handleAddToLibrary('listened')}
@@ -872,7 +878,7 @@ export default function MusicDetailModalV4({
                           onClick={() => handleAddToLibrary('want-to-listen')}
                           className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700 first:rounded-t-lg"
                         >
-                          Want to Listen
+                          Want To Listen
                         </button>
                         <button
                           onClick={() => handleAddToLibrary('listened')}
@@ -1082,9 +1088,31 @@ export default function MusicDetailModalV4({
                       </div>
                     </div>
 
-                    {/* Edit Review Text */}
+                    {/* Privacy buttons comme MovieDetailModalV3 */}
                     <div className="mb-4">
-                      <label className="text-white text-sm font-medium mb-2 block">Review</label>
+                      <label className="text-white text-sm font-medium mb-2 block">Share your thoughts about this {isAlbum ? 'album' : 'song'}</label>
+                      <div className="flex space-x-2 mb-3">
+                        <button
+                          onClick={() => setEditReviewPrivacy('private')}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                            editReviewPrivacy === 'private'
+                              ? 'bg-gradient-to-r from-[#10B981] to-[#34D399] text-white border-0'
+                              : 'bg-transparent text-gray-400 border border-gray-700'
+                          }`}
+                        >
+                          Private Note
+                        </button>
+                        <button
+                          onClick={() => setEditReviewPrivacy('public')}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                            editReviewPrivacy === 'public'
+                              ? 'bg-gradient-to-r from-[#10B981] to-[#34D399] text-white border-0'
+                              : 'bg-transparent text-gray-400 border border-gray-700'
+                          }`}
+                        >
+                          Share publicly
+                        </button>
+                      </div>
                       <textarea
                         value={editReviewText}
                         onChange={(e) => setEditReviewText(e.target.value)}
@@ -1094,25 +1122,12 @@ export default function MusicDetailModalV4({
                       />
                     </div>
 
-                    {/* Edit Privacy */}
-                    <div className="mb-4">
-                      <label className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={editIsPublic}
-                          onChange={(e) => setEditIsPublic(e.target.checked)}
-                          className="rounded border-gray-600 bg-gray-700 text-green-400 focus:ring-green-400 focus:ring-offset-0"
-                        />
-                        <span className="text-white text-sm">Make this review public</span>
-                      </label>
-                    </div>
-
                     {/* Edit Actions */}
                     <div className="flex space-x-3">
                       <button
                         onClick={handleSaveEditedReview}
                         disabled={editRating === 0}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm"
+                        className="px-4 py-2 bg-gradient-to-r from-[#10B981] to-[#34D399] hover:opacity-90 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium"
                       >
                         Save Changes
                       </button>
@@ -1127,14 +1142,13 @@ export default function MusicDetailModalV4({
                 ) : (
                   <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-green-400">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-white text-sm font-medium">Your Review</span>
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs">
-                          {currentUserReview.is_public ? 
-                            <span className="text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text">Public</span> : 
-                            <span className="text-white">Private</span>
-                          }
+                        <span className="text-white text-sm font-medium">Your Review</span>
+                        <span className="text-xs text-gray-400">
+                          ({currentUserReview.is_public ? 'Public' : 'Private'})
                         </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
                         <button
                           onClick={handleEditReview}
                           className="text-white text-xs hover:underline"
@@ -1143,7 +1157,7 @@ export default function MusicDetailModalV4({
                         </button>
                         <button
                           onClick={handleDeleteReview}
-                          className="text-red-400 text-xs hover:underline"
+                          className="text-white text-xs hover:underline"
                         >
                           Delete
                         </button>
@@ -1176,73 +1190,88 @@ export default function MusicDetailModalV4({
               </div>
             )}
 
-            {/* Public Reviews */}
+            {/* Popular Reviews - Style Steam/Letterboxd */}
             {publicReviews.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-white font-medium mb-3">
-                  Community Reviews ({publicReviews.length})
-                </h3>
-                <div className="space-y-4">
-                  {publicReviews.slice(0, 3).map((review) => (
-                    <div key={review.id} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700/50">
-                      {/* Header: Avatar + Username */}
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-8 h-8 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
-                          {review.username?.charAt(0) || 'U'}
+              <div className="mb-8">
+                {/* Header avec MORE à droite */}
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-white font-bold text-lg tracking-wide">POPULAR REVIEWS</h3>
+                  <button className="text-gray-400 hover:text-white text-sm font-medium transition-colors">
+                    MORE
+                  </button>
+                </div>
+                
+                {/* Reviews list avec séparateurs */}
+                <div className="space-y-0">
+                  {publicReviews.slice(0, 3).map((review, index) => (
+                    <div key={review.id}>
+                      {/* Review content */}
+                      <div className="py-6">
+                        {/* Header: Avatar + Review by + Rating + Comments */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            {/* Avatar 40px */}
+                            <div className="w-10 h-10 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-sm font-medium text-white flex-shrink-0">
+                              {review.username?.charAt(0) || 'U'}
+                            </div>
+                            
+                            {/* Review by username */}
+                            <div className="flex items-center space-x-2">
+                              <span className="text-white text-sm">Review by</span>
+                              <span className="text-white font-medium text-sm">{review.username || 'Anonymous'}</span>
+                              
+                              {/* Rating étoiles immédiatement après */}
+                              <div className="flex items-center space-x-1 ml-2">
+                                <div className="flex">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      size={16}
+                                      className={`${
+                                        star <= review.rating
+                                          ? 'text-green-400 fill-current'
+                                          : 'text-gray-600'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Comments count à droite */}
+                          <div className="flex items-center space-x-1 text-gray-400">
+                            <span>💬</span>
+                            <span className="text-sm">{Math.floor(Math.random() * 500) + 50}</span>
+                          </div>
                         </div>
-                        <span className="text-white font-medium text-sm">{review.username || 'Anonymous'}</span>
-                      </div>
-                      
-                      {/* Rating ligne séparée */}
-                      <div className="flex items-center space-x-2 mb-1">
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              size={14}
-                              className={`${
-                                star <= review.rating
-                                  ? 'text-green-400 fill-current'
-                                  : 'text-gray-600'
-                              }`}
-                            />
-                          ))}
+                        
+                        {/* Review text avec padding aligné au texte */}
+                        {review.review_text && (
+                          <div className="ml-13"> {/* 52px = 40px avatar + 12px gap */}
+                            <p className="text-gray-300 text-sm leading-relaxed mb-4">
+                              {review.review_text}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Footer: Likes avec même padding */}
+                        <div className="ml-13">
+                          <div className="flex items-center space-x-1 text-gray-400">
+                            <span>❤️</span>
+                            <span className="text-sm">
+                              {(Math.floor(Math.random() * 100000) + 1000).toLocaleString()} likes
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-green-400 text-sm font-medium">{review.rating}/5</span>
                       </div>
                       
-                      {/* Date en dessous du rating */}
-                      <div className="text-xs text-gray-500 mb-3">
-                        {new Date(review.created_at).toLocaleDateString()}
-                      </div>
-                      
-                      {/* Review text avec padding */}
-                      {review.review_text && (
-                        <p className="text-gray-300 text-sm leading-relaxed mb-3">{review.review_text}</p>
+                      {/* Séparateur subtil (sauf pour le dernier) */}
+                      {index < publicReviews.slice(0, 3).length - 1 && (
+                        <div className="border-t border-gray-800"></div>
                       )}
-                      
-                      {/* Actions: Like, Reply, Share */}
-                      <div className="flex items-center space-x-4 pt-2 border-t border-gray-700/50">
-                        <button className="flex items-center space-x-1 text-gray-400 hover:text-green-400 transition-colors text-xs">
-                          <span>👍</span>
-                          <span>{Math.floor(Math.random() * 20) + 1}</span>
-                        </button>
-                        <button className="flex items-center space-x-1 text-gray-400 hover:text-green-400 transition-colors text-xs">
-                          <span>💬</span>
-                          <span>Reply</span>
-                        </button>
-                        <button className="flex items-center space-x-1 text-gray-400 hover:text-green-400 transition-colors text-xs">
-                          <span>📤</span>
-                          <span>Share</span>
-                        </button>
-                      </div>
                     </div>
                   ))}
-                  {publicReviews.length > 3 && (
-                    <button className="text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text text-sm hover:underline">
-                      View all {publicReviews.length} reviews
-                    </button>
-                  )}
                 </div>
               </div>
             )}
