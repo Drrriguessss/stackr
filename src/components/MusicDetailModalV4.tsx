@@ -850,7 +850,7 @@ export default function MusicDetailModalV4({
                 <div className="relative">
                   <button 
                     onClick={handlePreviewToggle}
-                    className="w-full animate-wave-gradient text-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden hover:scale-105"
+                    className="w-full animate-ocean-wave text-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden hover:scale-105"
                   >
                     {/* Overlay pour accentuer l'effet de vague */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50 animate-shimmer"></div>
