@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Star, Play, ChevronLeft, ChevronRight, Share, FileText, ArrowRight } from 'lucide-react'
 import type { LibraryItem, MediaStatus } from '@/types'
 import type { MusicDetailData } from '@/types/musicTypes'
@@ -542,7 +542,7 @@ export default function MusicDetailModalV4({
             <div className="text-white">Loading {contentType}...</div>
           </div>
         ) : musicDetail ? (
-          <React.Fragment>
+          <>
             {/* Header - Same structure as MovieDetailModalV3 */}
             <div className="relative px-6 pt-6 pb-4">
               <button
@@ -553,62 +553,61 @@ export default function MusicDetailModalV4({
               </button>
               
               <h1 className="text-2xl font-bold text-white pr-12">{musicDetail.title}</h1>
-              
-              {/* Artist on separate line */}
-              <div className="mt-3">
-                <span className="text-lg text-white">{musicDetail.artist}</span>
-              </div>
-              
-              {/* Metadata line */}
-              <div className="flex items-center space-x-3 mt-2 text-gray-400">
-                <span>{musicDetail.releaseDate ? new Date(musicDetail.releaseDate).getFullYear() : 'TBA'}</span>
-                <span>•</span>
-                <span>{musicDetail.genre}</span>
-                {musicDetail.duration && (
-                  <>
-                    <span>•</span>
-                    <span>{musicDetail.duration}</span>
-                  </>
-                )}
-                {musicDetail.trackCount && (
-                  <>
-                    <span>•</span>
-                    <span>{musicDetail.trackCount} tracks</span>
-                  </>
-                )}
-              </div>
-              
-              {/* Single Badge + Album Link */}
-              {isSingle && (
-                <div className="flex items-center gap-3 mt-3">
-                  <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-[#10B981] to-[#34D399] text-white">
-                    Single
-                  </span>
-                  {musicDetail.parentAlbum && (
-                    <button
-                      onClick={handleGoToAlbum}
-                      className="flex items-center gap-2 text-sm text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text hover:underline transition-colors"
-                    >
-                      <span>Album "{musicDetail.parentAlbum.title}" ({musicDetail.parentAlbum.year || 'TBA'})</span>
-                    </button>
+                
+                {/* Artist on separate line */}
+                <div className="mt-3">
+                  <span className="text-lg text-white">{musicDetail.artist}</span>
+                </div>
+                
+                {/* Metadata line */}
+                <div className="flex items-center space-x-3 mt-2 text-gray-400">
+                  <span>{musicDetail.releaseDate ? new Date(musicDetail.releaseDate).getFullYear() : 'TBA'}</span>
+                  <span>•</span>
+                  <span>{musicDetail.genre}</span>
+                  {musicDetail.duration && (
+                    <>
+                      <span>•</span>
+                      <span>{musicDetail.duration}</span>
+                    </>
+                  )}
+                  {musicDetail.trackCount && (
+                    <>
+                      <span>•</span>
+                      <span>{musicDetail.trackCount} tracks</span>
+                    </>
                   )}
                 </div>
-              )}
-              
-              {/* Album Badge */}
-              {isAlbum && (
-                <div className="mt-3">
-                  <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-[#10B981] to-[#34D399] text-white">
-                    Album
-                  </span>
-                </div>
-              )}
+                
+                {/* Single Badge + Album Link */}
+                {isSingle && (
+                  <div className="flex items-center gap-3 mt-3">
+                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-[#10B981] to-[#34D399] text-white">
+                      Single
+                    </span>
+                    {musicDetail.parentAlbum && (
+                      <button
+                        onClick={handleGoToAlbum}
+                        className="flex items-center gap-2 text-sm text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text hover:underline transition-colors"
+                      >
+                        <span>Album "{musicDetail.parentAlbum.title}" ({musicDetail.parentAlbum.year || 'TBA'})</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Album Badge */}
+                {isAlbum && (
+                  <div className="mt-3">
+                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-[#10B981] to-[#34D399] text-white">
+                      Album
+                    </span>
+                  </div>
+                )}
             </div>
 
-            {/* Content - Same structure as MovieDetailModalV3 */}
+            {/* Content */}
             <div className="flex-1 overflow-y-auto px-6">
-
-            {/* Media Section - Video + Images Carousel */}
+              {/* Media Section - Video + Images Carousel */}
             <div className="space-y-4 mb-6">
               <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
                 {musicVideo && activeImageIndex === 0 ? (
@@ -1142,7 +1141,8 @@ export default function MusicDetailModalV4({
                 </div>
               )}
             </div>
-          </div>
+            </div>
+          </>
         ) : (
           <div className="p-8 text-center text-white">
             <div className="text-xl mb-2">Content not found</div>
@@ -1431,10 +1431,6 @@ export default function MusicDetailModalV4({
           </div>
         </div>
       )}
-            </div>
-          </React.Fragment>
-        ) : null}
-      </div>
 
       {/* Friends Who Listened Modal */}
       {showFriendsWhoListened && (
