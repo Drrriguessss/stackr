@@ -7,6 +7,7 @@ import { musicServiceV2 } from '@/services/musicServiceV2'
 import { musicFunFactsService, type FunFact } from '@/services/musicFunFactsService'
 import { musicMetacriticService, type MetacriticScore } from '@/services/musicMetacriticService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
+import StackrLoadingSkeleton from './StackrLoadingSkeleton'
 
 interface MusicDetailModalV4Props {
   isOpen: boolean
@@ -47,6 +48,7 @@ export default function MusicDetailModalV4({
   const [userRating, setUserRating] = useState<number>(0)
   const [hoverRating, setHoverRating] = useState<number>(0)
   const [showReviewBox, setShowReviewBox] = useState(false)
+  const [showShareThoughtsPrompt, setShowShareThoughtsPrompt] = useState(true)
   const [userReview, setUserReview] = useState('')
   const [reviewPrivacy, setReviewPrivacy] = useState<'private' | 'public'>('private')
   const [showProductSheet, setShowProductSheet] = useState(false)
@@ -119,6 +121,13 @@ export default function MusicDetailModalV4({
     setYoutubeWatchUrl(null)
     setActiveImageIndex(0)
     
+    // 🔄 RESET des états de review
+    setUserRating(0)
+    setShowReviewBox(false)
+    setShowShareThoughtsPrompt(true)
+    setUserReview('')
+    setReviewPrivacy('private')
+    
     try {
       console.log(`🎵 [V4] Fetching ${contentType} details for:`, musicId)
       
@@ -134,28 +143,28 @@ export default function MusicDetailModalV4({
         console.log(`🎵 [V4] ✅ ${contentType} data loaded:`, data)
         setMusicDetail(data)
         
-        // Charger images d'abord
-        await loadImages(data.image)
-        
-        // Puis charger vidéo avec les BONNES données (pas le state)
-        await loadMusicVideo(data)
-        
-        // Si c'est un album, charger la liste des chansons
-        if (isAlbum) {
-          await loadAlbumTracks(musicId, data.title, data.artist)
-        }
-        
-        // Si c'est un single et qu'il a un album parent, charger les autres chansons de l'album
-        if (isSingle && data.parentAlbum) {
-          await loadAlbumTracks(data.parentAlbum.id, data.parentAlbum.title, data.artist)
-        }
-        
-        // Charger les Fun Facts, Metacritic et Reviews en parallèle
-        await Promise.all([
+        // 🚀 OPTIMISATION: Charger tout en parallèle pour de meilleures performances
+        const parallelTasks = [
+          // Images (rapide)
+          loadImages(data.image),
+          // Vidéo (peut être lent)
+          loadMusicVideo(data),
+          // Fun Facts, Metacritic et Reviews
           loadFunFacts(data.artist, data.title),
           loadMetacriticScore(data.artist, data.title),
           loadUserReviews(data.id)
-        ])
+        ]
+        
+        // Album tracks selon le type
+        if (isAlbum) {
+          parallelTasks.push(loadAlbumTracks(musicId, data.title, data.artist))
+        } else if (isSingle && data.parentAlbum) {
+          parallelTasks.push(loadAlbumTracks(data.parentAlbum.id, data.parentAlbum.title, data.artist))
+        }
+        
+        // Exécuter toutes les tâches en parallèle
+        await Promise.allSettled(parallelTasks)
+        console.log(`🎵 [V4] ⚡ All data loaded in parallel for ${contentType}`)
       } else {
         throw new Error(`No ${contentType} data received`)
       }
@@ -620,15 +629,27 @@ export default function MusicDetailModalV4({
     setActiveImageIndex((prev) => (prev - 1 + totalItems) % totalItems)
   }
 
+  // Fonction pour formater les statuts d'affichage
+  const formatStatusForDisplay = (status: string | null) => {
+    if (!status) return 'Add to Library'
+    switch (status) {
+      case 'want-to-listen': return 'Want To Listen'
+      case 'listened': return 'Listened'
+      case 'currently-listening': return 'Currently Listening'
+      default: return status
+    }
+  }
+
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center">
       <div className="bg-[#0B0B0B] w-full h-full md:max-w-4xl md:h-[95vh] md:rounded-2xl overflow-hidden flex flex-col">
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="text-white">Loading {contentType}...</div>
-          </div>
+          <StackrLoadingSkeleton 
+            message={`Loading your ${contentType}...`}
+            className="flex-1 justify-center"
+          />
         ) : musicDetail ? (
           <>
             {/* Header - Same structure as MovieDetailModalV3 */}
@@ -840,7 +861,7 @@ export default function MusicDetailModalV4({
                       : 'bg-gray-800 text-white hover:bg-gray-700'
                   }`}
                 >
-                  {selectedStatus || 'Add to Library'}
+                  {formatStatusForDisplay(selectedStatus)}
                 </button>
                 
                 {showStatusDropdown && (
@@ -999,6 +1020,30 @@ export default function MusicDetailModalV4({
                   <span className="text-white ml-2 font-medium">{userRating}/5</span>
                 )}
               </div>
+
+              {/* Share your thoughts prompt - appears after rating */}
+              {userRating > 0 && !showReviewBox && showShareThoughtsPrompt && (
+                <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <p className="text-gray-300 text-sm mb-3">Share your thoughts about this {isAlbum ? 'album' : 'song'}</p>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => {
+                        setShowReviewBox(true)
+                        setShowShareThoughtsPrompt(false)
+                      }}
+                      className="px-4 py-2 bg-gradient-to-r from-[#10B981] to-[#34D399] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                      Write Review
+                    </button>
+                    <button
+                      onClick={() => setShowShareThoughtsPrompt(false)}
+                      className="px-4 py-2 text-gray-400 hover:text-white text-sm font-medium transition-colors"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {showReviewBox && (
                 <div className="mt-4 p-4 bg-gray-800 rounded-lg">
@@ -1206,35 +1251,32 @@ export default function MusicDetailModalV4({
                   {publicReviews.slice(0, 3).map((review, index) => (
                     <div key={review.id}>
                       {/* Review content */}
-                      <div className="py-6">
-                        {/* Header: Avatar + Review by + Rating + Comments */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-3">
-                            {/* Avatar 40px */}
-                            <div className="w-10 h-10 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-sm font-medium text-white flex-shrink-0">
+                      <div className="py-4 md:py-6">
+                        {/* Header compacte: Avatar + Username + Rating + Comments */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            {/* Avatar responsive 36px mobile, 40px desktop */}
+                            <div className="w-9 h-9 md:w-10 md:h-10 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-xs md:text-sm font-medium text-white flex-shrink-0">
                               {review.username?.charAt(0) || 'U'}
                             </div>
                             
-                            {/* Review by username */}
+                            {/* Username + Rating sur même ligne */}
                             <div className="flex items-center space-x-2">
-                              <span className="text-white text-sm">Review by</span>
                               <span className="text-white font-medium text-sm">{review.username || 'Anonymous'}</span>
                               
-                              {/* Rating étoiles immédiatement après */}
-                              <div className="flex items-center space-x-1 ml-2">
-                                <div className="flex">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                      key={star}
-                                      size={16}
-                                      className={`${
-                                        star <= review.rating
-                                          ? 'text-green-400 fill-current'
-                                          : 'text-gray-600'
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
+                              {/* Rating étoiles compactes */}
+                              <div className="flex">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    size={14}
+                                    className={`${
+                                      star <= review.rating
+                                        ? 'text-green-400 fill-current'
+                                        : 'text-gray-600'
+                                    }`}
+                                  />
+                                ))}
                               </div>
                             </div>
                           </div>
@@ -1246,17 +1288,17 @@ export default function MusicDetailModalV4({
                           </div>
                         </div>
                         
-                        {/* Review text avec padding aligné au texte */}
+                        {/* Review text avec padding aligné au username */}
                         {review.review_text && (
-                          <div className="ml-13"> {/* 52px = 40px avatar + 12px gap */}
-                            <p className="text-gray-300 text-sm leading-relaxed mb-4">
+                          <div className="ml-11 md:ml-12 mb-2"> {/* 44px mobile, 48px desktop */}
+                            <p className="text-gray-300 text-sm leading-relaxed">
                               {review.review_text}
                             </p>
                           </div>
                         )}
                         
                         {/* Footer: Likes avec même padding */}
-                        <div className="ml-13">
+                        <div className="ml-11 md:ml-12">
                           <div className="flex items-center space-x-1 text-gray-400">
                             <span>❤️</span>
                             <span className="text-sm">
@@ -1268,7 +1310,7 @@ export default function MusicDetailModalV4({
                       
                       {/* Séparateur subtil (sauf pour le dernier) */}
                       {index < publicReviews.slice(0, 3).length - 1 && (
-                        <div className="border-t border-gray-800"></div>
+                        <div className="border-t border-gray-800 opacity-10"></div>
                       )}
                     </div>
                   ))}

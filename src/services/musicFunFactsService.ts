@@ -94,7 +94,7 @@ class MusicFunFactsService {
           const searchResponse = await fetch(
             `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`,
             { 
-              signal: AbortSignal.timeout(5000),
+              signal: AbortSignal.timeout(3000),
               headers: {
                 'User-Agent': 'StackrApp/1.0 (https://stackr.app) Educational'
               }
