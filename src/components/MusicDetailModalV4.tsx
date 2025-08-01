@@ -553,14 +553,14 @@ export default function MusicDetailModalV4({
                   <X size={24} />
                 </button>
                 
-                <h1 className="text-2xl font-bold text-white pr-12 mt-2">{musicDetail.title}</h1>
+                <h1 className="text-2xl font-bold text-white pr-12">{musicDetail.title}</h1>
                 
                 {/* Artist on separate line */}
                 <div className="mt-3">
                   <span className="text-lg text-white">{musicDetail.artist}</span>
                 </div>
                 
-                {/* Metadata line with badge moved */}
+                {/* Metadata line */}
                 <div className="flex items-center space-x-3 mt-2 text-gray-400">
                   <span>{musicDetail.releaseDate ? new Date(musicDetail.releaseDate).getFullYear() : 'TBA'}</span>
                   <span>•</span>
@@ -591,7 +591,6 @@ export default function MusicDetailModalV4({
                         className="flex items-center gap-2 text-sm text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text hover:underline transition-colors"
                       >
                         <span>Album "{musicDetail.parentAlbum.title}" ({musicDetail.parentAlbum.year || 'TBA'})</span>
-                        <ArrowRight size={16} className="text-green-400" />
                       </button>
                     )}
                   </div>
@@ -811,48 +810,15 @@ export default function MusicDetailModalV4({
               )}
             </div>
 
-            {/* Metacritic Score - Only for albums */}
-            {isAlbum && (metacriticScore?.available || loadingMetacritic) && (
+            {/* Ratings - Small inline like IMDB in movies */}
+            {isAlbum && metacriticScore?.available && (
               <div className="mb-6">
-                <h3 className="text-xl font-semibold text-white mb-3">Metacritic Score</h3>
-                {loadingMetacritic ? (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="text-gray-400">Loading score...</div>
+                <div className="flex space-x-8">
+                  <div>
+                    <h3 className="text-white font-semibold mb-1">Metacritic</h3>
+                    <p className="text-gray-300">{metacriticScore.score}/100</p>
                   </div>
-                ) : metacriticScore?.available ? (
-                  <div className="bg-gray-800 p-4 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className={`w-12 h-12 rounded border-2 flex items-center justify-center font-bold text-lg ${
-                          metacriticScore.score! >= 81 ? 'bg-green-500 border-green-400 text-white' :
-                          metacriticScore.score! >= 61 ? 'bg-yellow-500 border-yellow-400 text-black' :
-                          'bg-red-500 border-red-400 text-white'
-                        }`}>
-                          {metacriticScore.score}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-white font-medium">
-                          {musicMetacriticService.getStatusText(metacriticScore.status)}
-                        </div>
-                        <div className="text-gray-400 text-sm">
-                          Based on {metacriticScore.reviewCount} critic reviews
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-gray-800 p-4 rounded-lg text-center">
-                    <div className="text-gray-400">
-                      No Metacritic score available
-                      {!isAlbum && (
-                        <div className="text-xs mt-1">
-                          Metacritic primarily scores albums, not individual tracks
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -892,7 +858,7 @@ export default function MusicDetailModalV4({
             {/* User Rating & Review */}
             <div className="mb-6">
               <h3 className="text-white font-medium mb-3">Rate this {isAlbum ? 'album' : 'song'}</h3>
-              <div className="flex items-center space-x-2 mb-4">
+              <div className="flex items-center space-x-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
