@@ -122,6 +122,97 @@ body {
     animation-delay: 1.5s;
   }
 
+  .animation-delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 0.4s;
+  }
+
+  /* Animations pour le logo Stackr animé */
+  @keyframes falling {
+    0% {
+      transform: translateY(-100vh) rotate(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    85% {
+      transform: translateY(calc(100vh - 200px)) rotate(360deg);
+    }
+    95% {
+      transform: translateY(calc(100vh - 180px)) rotate(360deg);
+    }
+    100% {
+      transform: translateY(calc(100vh - 200px)) rotate(360deg);
+    }
+  }
+
+  @keyframes organizing {
+    0% {
+      transform: translateY(calc(100vh - 200px)) rotate(360deg);
+    }
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+  }
+
+  @keyframes crystallize {
+    0% {
+      filter: brightness(1) hue-rotate(0deg);
+      border-radius: 4px;
+    }
+    50% {
+      filter: brightness(1.5) hue-rotate(60deg);
+      transform: scale(1.1);
+    }
+    100% {
+      filter: brightness(1) hue-rotate(120deg);
+      border-radius: 2px;
+      background: linear-gradient(135deg, #10B981, #34D399);
+    }
+  }
+
+  @keyframes logoGlow {
+    0%, 100% {
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.6), 0 0 30px rgba(52, 211, 153, 0.3);
+    }
+  }
+
+  @keyframes breathe {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+
+  .animate-falling {
+    animation: falling 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  .animate-organizing {
+    animation: organizing 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  .animate-crystallize {
+    animation: crystallize 1s ease-in-out forwards;
+  }
+
+  .animate-logo-glow {
+    animation: logoGlow 2s ease-in-out infinite;
+  }
+
+  .animate-breathe {
+    animation: breathe 3s ease-in-out infinite;
+  }
+
   /* Animation vague pour le bouton audio preview - Version plus visible */
   @keyframes waveGradient {
     0% { background-position: 0% 50%; }
