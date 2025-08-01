@@ -86,13 +86,13 @@ export default function MusicDetailModalV4({
 
   // Mock friends data pour le partage
   const mockFriends = [
-    { id: 1, name: 'Axel', avatar: '/api/placeholder/32/32' },
-    { id: 2, name: 'Maite', avatar: '/api/placeholder/32/32' },
-    { id: 3, name: 'Darren', avatar: '/api/placeholder/32/32' },
-    { id: 4, name: 'Joshua', avatar: '/api/placeholder/32/32' },
-    { id: 5, name: 'Jeremy', avatar: '/api/placeholder/32/32' },
-    { id: 6, name: 'Ana', avatar: '/api/placeholder/32/32' },
-    { id: 7, name: 'Susete', avatar: '/api/placeholder/32/32' }
+    { id: 1, name: 'Axel', avatar: null },
+    { id: 2, name: 'Maite', avatar: null },
+    { id: 3, name: 'Darren', avatar: null },
+    { id: 4, name: 'Joshua', avatar: null },
+    { id: 5, name: 'Jeremy', avatar: null },
+    { id: 6, name: 'Ana', avatar: null },
+    { id: 7, name: 'Susete', avatar: null }
   ]
 
   // Filtrer les amis pour la recherche
@@ -661,7 +661,28 @@ export default function MusicDetailModalV4({
                 <X size={24} />
               </button>
               
-              <h1 className="text-2xl font-bold text-white pr-12">{musicDetail.title}</h1>
+              <div className="flex items-start space-x-3">
+                <h1 className="text-2xl font-bold text-white flex-1 pr-12">{musicDetail.title}</h1>
+                
+                {/* Audio Preview Button - Singles seulement, même hauteur que le titre */}
+                {isSingle && musicDetail.previewUrl && (
+                  <div className="flex-shrink-0">
+                    <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-2">
+                      <audio 
+                        controls 
+                        className="w-32 h-8"
+                        preload="metadata"
+                        style={{
+                          background: 'transparent',
+                          outline: 'none'
+                        }}
+                      >
+                        <source src={musicDetail.previewUrl} type="audio/mpeg" />
+                      </audio>
+                    </div>
+                  </div>
+                )}
+              </div>
                 
                 {/* Artist on separate line */}
                 <div className="mt-3">
@@ -824,33 +845,6 @@ export default function MusicDetailModalV4({
                 </div>
               )}
             </div>
-
-            {/* iTunes Preview Player - Singles seulement, centré entre trailer et boutons */}
-            {isSingle && musicDetail.previewUrl && (
-              <div className="mb-6 flex justify-center">
-                <div className="max-w-md w-full">
-                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                    <div className="flex items-center space-x-2 mb-3 justify-center">
-                      <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse"></div>
-                      <span className="text-white text-sm font-medium">30-second preview</span>
-                      <span className="text-xs text-gray-400">via iTunes</span>
-                    </div>
-                    <audio 
-                      controls 
-                      className="w-full h-10"
-                      preload="metadata"
-                      style={{
-                        background: 'transparent',
-                        outline: 'none'
-                      }}
-                    >
-                      <source src={musicDetail.previewUrl} type="audio/mpeg" />
-                      <p className="text-gray-400 text-sm">Your browser doesn't support audio playback.</p>
-                    </audio>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Actions */}
             <div className="flex items-center justify-center space-x-4 mb-6">
