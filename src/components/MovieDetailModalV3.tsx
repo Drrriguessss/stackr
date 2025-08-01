@@ -1184,20 +1184,20 @@ export default function MovieDetailModalV3({
               {/* Details */}
               <div className="space-y-3 mb-6">
                 <div className="flex">
-                  <span className="text-gray-400 w-24">Director:</span>
-                  <span className="text-white">{movieDetail.Director}</span>
+                  <span className="text-gray-400 w-20 flex-shrink-0">Director:</span>
+                  <span className="text-white flex-1">{movieDetail.Director}</span>
                 </div>
                 <div className="flex">
-                  <span className="text-gray-400 w-24">Cast:</span>
-                  <span className="text-white">{movieDetail.Actors}</span>
+                  <span className="text-gray-400 w-20 flex-shrink-0">Cast:</span>
+                  <span className="text-white flex-1">{movieDetail.Actors}</span>
                 </div>
                 <div className="flex">
-                  <span className="text-gray-400 w-24">Genre:</span>
-                  <span className="text-white">{movieDetail.Genre}</span>
+                  <span className="text-gray-400 w-20 flex-shrink-0">Genre:</span>
+                  <span className="text-white flex-1">{movieDetail.Genre}</span>
                 </div>
                 <div className="flex">
-                  <span className="text-gray-400 w-24">Released:</span>
-                  <span className="text-white">{movieDetail.Released}</span>
+                  <span className="text-gray-400 w-20 flex-shrink-0">Released:</span>
+                  <span className="text-white flex-1">{movieDetail.Released}</span>
                 </div>
               </div>
 
