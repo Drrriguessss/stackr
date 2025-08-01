@@ -129,31 +129,17 @@ body {
     100% { background-position: 0% 50%; }
   }
 
-  /* Pattern 1: Vagues alternées foncé/clair très contrastées - VERSION AMÉLIORÉE */
+  /* Pattern 1: Vagues subtiles - VERSION ORIGINALE DOUCE */
   .animate-wave-gradient {
-    background: repeating-linear-gradient(
-      90deg,
-      #047857 0px,
-      #047857 20px,
-      #059669 20px,
-      #059669 40px,
-      #10B981 40px,
-      #10B981 60px,
-      #34D399 60px,
-      #34D399 80px,
-      #6EE7B7 80px,
-      #6EE7B7 100px,
-      #34D399 100px,
-      #34D399 120px,
-      #10B981 120px,
-      #10B981 140px,
-      #059669 140px,
-      #059669 160px,
-      #047857 160px,
-      #047857 180px
+    background: linear-gradient(
+      270deg, 
+      #10B981, 
+      #34D399, 
+      #059669, 
+      #10B981
     );
-    background-size: 360px 100%;
-    animation: waveGradient 4s linear infinite;
+    background-size: 400% 400%;
+    animation: waveGradient 3s ease-in-out infinite;
   }
 
   /* Pattern 2: Effet tourbillon (à activer en changeant la classe) */
