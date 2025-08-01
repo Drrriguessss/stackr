@@ -6,6 +6,7 @@ import type { MusicDetailData } from '@/types/musicTypes'
 import { musicServiceV2 } from '@/services/musicServiceV2'
 import { musicFunFactsService, type FunFact } from '@/services/musicFunFactsService'
 import { musicMetacriticService, type MetacriticScore } from '@/services/musicMetacriticService'
+import { userReviewsService, type UserReview } from '@/services/userReviewsService'
 
 interface MusicDetailModalV4Props {
   isOpen: boolean
@@ -66,6 +67,11 @@ export default function MusicDetailModalV4({
   
   // États pour Friends modal
   const [showFriendsWhoListened, setShowFriendsWhoListened] = useState(false)
+  
+  // États pour les reviews utilisateur
+  const [currentUserReview, setCurrentUserReview] = useState<UserReview | null>(null)
+  const [publicReviews, setPublicReviews] = useState<UserReview[]>([])
+  const [loadingReviews, setLoadingReviews] = useState(false)
 
   // Déterminer le type de contenu
   const contentType = musicId.startsWith('track-') ? 'single' : 'album'
@@ -119,10 +125,11 @@ export default function MusicDetailModalV4({
           await loadAlbumTracks(data.parentAlbum.id, data.parentAlbum.title, data.artist)
         }
         
-        // Charger les Fun Facts et Metacritic en parallèle
+        // Charger les Fun Facts, Metacritic et Reviews en parallèle
         await Promise.all([
           loadFunFacts(data.artist, data.title),
-          loadMetacriticScore(data.artist, data.title)
+          loadMetacriticScore(data.artist, data.title),
+          loadUserReviews(data.id)
         ])
       } else {
         throw new Error(`No ${contentType} data received`)
@@ -328,26 +335,26 @@ export default function MusicDetailModalV4({
     }
   }
 
-  const handleRatingClick = (rating: number) => {
+  const handleRatingClick = async (rating: number) => {
     setUserRating(rating)
     setProductSheetData(prev => ({ ...prev, personalRating: rating }))
     setShowReviewBox(true)
+    
+    // Sauvegarder automatiquement le rating
+    if (musicDetail && rating > 0) {
+      await submitUserReview(rating, userReview, reviewPrivacy === 'public')
+    }
   }
 
-  const handleReviewSubmit = () => {
-    // TODO: Sauvegarder la review dans un service
-    console.log('Review submitted:', {
-      rating: userRating,
-      review: userReview,
-      privacy: reviewPrivacy,
-      musicId: musicDetail?.id
-    })
+  const handleReviewSubmit = async () => {
+    if (!musicDetail || userRating === 0) return
     
     setProductSheetData(prev => ({ 
       ...prev, 
       personalReview: userReview.trim() 
     }))
     
+    await submitUserReview(userRating, userReview, reviewPrivacy === 'public')
     setShowReviewBox(false)
   }
 
@@ -438,6 +445,62 @@ export default function MusicDetailModalV4({
     }
   }
 
+  // Charger les reviews utilisateur
+  const loadUserReviews = async (mediaId: string) => {
+    setLoadingReviews(true)
+    try {
+      // Charger la review de l'utilisateur actuel
+      const userReview = await userReviewsService.getUserReviewForMedia(mediaId)
+      setCurrentUserReview(userReview)
+      
+      if (userReview) {
+        setUserRating(userReview.rating)
+        setUserReview(userReview.review_text || '')
+        setReviewPrivacy(userReview.is_public ? 'public' : 'private')
+      }
+      
+      // Charger les reviews publiques
+      const reviews = await userReviewsService.getPublicReviewsForMedia(mediaId)
+      setPublicReviews(reviews)
+      
+      console.log(`📝 Loaded ${reviews.length} public reviews for ${mediaId}`)
+    } catch (error) {
+      console.error('Error loading user reviews:', error)
+    } finally {
+      setLoadingReviews(false)
+    }
+  }
+
+  // Soumettre une review
+  const submitUserReview = async (rating: number, reviewText: string, isPublic: boolean) => {
+    if (!musicDetail) return
+    
+    try {
+      const reviewData = {
+        mediaId: musicDetail.id,
+        mediaTitle: musicDetail.title,
+        mediaCategory: 'music' as const,
+        rating,
+        reviewText: reviewText || undefined,
+        isPublic
+      }
+      
+      const savedReview = await userReviewsService.submitReview(reviewData)
+      
+      if (savedReview) {
+        setCurrentUserReview(savedReview)
+        // Recharger les reviews publiques si la review est publique
+        if (isPublic) {
+          const updatedReviews = await userReviewsService.getPublicReviewsForMedia(musicDetail.id)
+          setPublicReviews(updatedReviews)
+        }
+        console.log('✅ Review saved successfully')
+      }
+    } catch (error) {
+      console.error('❌ Error saving review:', error)
+    }
+  }
+
   const handleAddToLibrary = (status: MediaStatus) => {
     if (!musicDetail) return
     
@@ -490,18 +553,18 @@ export default function MusicDetailModalV4({
                   <X size={24} />
                 </button>
                 
-                <h1 className="text-2xl font-bold text-white pr-12">{musicDetail.title}</h1>
+                <h1 className="text-2xl font-bold text-white pr-12 mt-2">{musicDetail.title}</h1>
                 
+                {/* Artist on separate line */}
+                <div className="mt-3">
+                  <span className="text-lg text-white">{musicDetail.artist}</span>
+                </div>
+                
+                {/* Metadata line with badge moved */}
                 <div className="flex items-center space-x-3 mt-2 text-gray-400">
-                  <span className="text-lg">{musicDetail.artist}</span>
-                  <span>•</span>
                   <span>{musicDetail.releaseDate ? new Date(musicDetail.releaseDate).getFullYear() : 'TBA'}</span>
                   <span>•</span>
                   <span>{musicDetail.genre}</span>
-                  {/* Badge Type - VERT */}
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full bg-green-500/20 text-green-400 border border-green-500/30`}>
-                    {isAlbum ? 'Album' : 'Single'}
-                  </span>
                   {musicDetail.duration && (
                     <>
                       <span>•</span>
@@ -516,15 +579,31 @@ export default function MusicDetailModalV4({
                   )}
                 </div>
                 
-                {/* Lien vers album parent pour les singles - VERT */}
-                {isSingle && musicDetail.parentAlbum && (
-                  <button
-                    onClick={handleGoToAlbum}
-                    className="flex items-center gap-2 mt-3 text-sm text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text hover:underline transition-colors"
-                  >
-                    From the album "{musicDetail.parentAlbum.title}" ({musicDetail.parentAlbum.year})
-                    <ArrowRight size={16} className="text-green-400" />
-                  </button>
+                {/* Single Badge + Album Link */}
+                {isSingle && (
+                  <div className="flex items-center gap-3 mt-3">
+                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-[#10B981] to-[#34D399] text-white">
+                      Single
+                    </span>
+                    {musicDetail.parentAlbum && (
+                      <button
+                        onClick={handleGoToAlbum}
+                        className="flex items-center gap-2 text-sm text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text hover:underline transition-colors"
+                      >
+                        <span>Album "{musicDetail.parentAlbum.title}" ({musicDetail.parentAlbum.year || 'TBA'})</span>
+                        <ArrowRight size={16} className="text-green-400" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Album Badge */}
+                {isAlbum && (
+                  <div className="mt-3">
+                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-[#10B981] to-[#34D399] text-white">
+                      Album
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
@@ -891,6 +970,88 @@ export default function MusicDetailModalV4({
                 </div>
               )}
             </div>
+
+            {/* Current User Review Display */}
+            {currentUserReview && (
+              <div className="mb-6">
+                <h3 className="text-white font-medium mb-3">Your Review</h3>
+                <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-green-400">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={16}
+                          className={`${
+                            star <= currentUserReview.rating
+                              ? 'text-green-400 fill-current'
+                              : 'text-gray-600'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-green-400 text-sm font-medium">{currentUserReview.rating}/5</span>
+                    <span className="text-gray-400 text-xs">
+                      {currentUserReview.is_public ? '(Public)' : '(Private)'}
+                    </span>
+                  </div>
+                  {currentUserReview.review_text && (
+                    <p className="text-gray-300 text-sm mt-2">{currentUserReview.review_text}</p>
+                  )}
+                  <div className="text-xs text-gray-500 mt-2">
+                    {new Date(currentUserReview.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Public Reviews */}
+            {publicReviews.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-white font-medium mb-3">
+                  Community Reviews ({publicReviews.length})
+                </h3>
+                <div className="space-y-3">
+                  {publicReviews.slice(0, 3).map((review) => (
+                    <div key={review.id} className="bg-gray-800 p-4 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-xs font-medium text-white">
+                            {review.username?.charAt(0) || 'U'}
+                          </div>
+                          <span className="text-white font-medium text-sm">{review.username || 'Anonymous'}</span>
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={14}
+                                className={`${
+                                  star <= review.rating
+                                    ? 'text-green-400 fill-current'
+                                    : 'text-gray-600'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-green-400 text-sm">{review.rating}/5</span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {review.review_text && (
+                        <p className="text-gray-300 text-sm">{review.review_text}</p>
+                      )}
+                    </div>
+                  ))}
+                  {publicReviews.length > 3 && (
+                    <button className="text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text text-sm hover:underline">
+                      View all {publicReviews.length} reviews
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Tracklist pour les albums */}
             {isAlbum && (
