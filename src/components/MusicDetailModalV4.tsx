@@ -797,31 +797,6 @@ export default function MusicDetailModalV4({
                   </>
                 )}
               </div>
-              
-              {/* iTunes Preview Player à droite - Singles seulement */}
-              {isSingle && musicDetail.previewUrl && (
-                <div className="w-80 flex-shrink-0">
-                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 h-fit">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse"></div>
-                      <span className="text-white text-sm font-medium">30-second preview</span>
-                      <span className="text-xs text-gray-400">via iTunes</span>
-                    </div>
-                    <audio 
-                      controls 
-                      className="w-full h-10"
-                      preload="metadata"
-                      style={{
-                        background: 'transparent',
-                        outline: 'none'
-                      }}
-                    >
-                      <source src={musicDetail.previewUrl} type="audio/mpeg" />
-                      <p className="text-gray-400 text-sm">Your browser doesn't support audio playback.</p>
-                    </audio>
-                  </div>
-                </div>
-              )}
               </div>
 
               {/* Media thumbnails - Only show if video not embedded AND we have video link */}
@@ -849,6 +824,33 @@ export default function MusicDetailModalV4({
                 </div>
               )}
             </div>
+
+            {/* iTunes Preview Player - Singles seulement, centré entre trailer et boutons */}
+            {isSingle && musicDetail.previewUrl && (
+              <div className="mb-6 flex justify-center">
+                <div className="max-w-md w-full">
+                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                    <div className="flex items-center space-x-2 mb-3 justify-center">
+                      <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse"></div>
+                      <span className="text-white text-sm font-medium">30-second preview</span>
+                      <span className="text-xs text-gray-400">via iTunes</span>
+                    </div>
+                    <audio 
+                      controls 
+                      className="w-full h-10"
+                      preload="metadata"
+                      style={{
+                        background: 'transparent',
+                        outline: 'none'
+                      }}
+                    >
+                      <source src={musicDetail.previewUrl} type="audio/mpeg" />
+                      <p className="text-gray-400 text-sm">Your browser doesn't support audio playback.</p>
+                    </audio>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex items-center justify-center space-x-4 mb-6">
@@ -1771,11 +1773,7 @@ export default function MusicDetailModalV4({
                 <h4 className="text-white font-medium text-base">{musicDetail?.title}</h4>
                 <p className="text-gray-400 text-sm">{musicDetail?.artist}</p>
                 <div className="flex items-center space-x-2 mt-1">
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                    isAlbum 
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                      : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                  }`}>
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
                     {isAlbum ? 'Album' : 'Single'}
                   </span>
                 </div>
@@ -1874,7 +1872,13 @@ export default function MusicDetailModalV4({
                           isSelected ? 'bg-gradient-to-r from-[#10B981]/20 to-[#34D399]/20 border border-[#10B981]/30' : 'hover:bg-gray-700'
                         }`}
                       >
-                        <img src={friend.avatar} alt={friend.name} className="w-8 h-8 rounded-full" />
+                        {friend.avatar ? (
+                          <img src={friend.avatar} alt={friend.name} className="w-8 h-8 rounded-full" />
+                        ) : (
+                          <div className="w-8 h-8 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs font-medium">{friend.name.charAt(0)}</span>
+                          </div>
+                        )}
                         <span className="text-white text-sm">{friend.name}</span>
                       </button>
                     )
