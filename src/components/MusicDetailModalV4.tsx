@@ -83,6 +83,8 @@ export default function MusicDetailModalV4({
   const [editRating, setEditRating] = useState(0)
   const [editReviewText, setEditReviewText] = useState('')
   const [editReviewPrivacy, setEditReviewPrivacy] = useState<'private' | 'public'>('private')
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false)
+  const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null)
 
   // Mock friends data pour le partage
   const mockFriends = [
@@ -127,6 +129,10 @@ export default function MusicDetailModalV4({
     setShowShareThoughtsPrompt(true)
     setUserReview('')
     setReviewPrivacy('private')
+    
+    // 🔄 RESET des états audio
+    setIsPreviewPlaying(false)
+    setAudioRef(null)
     
     try {
       console.log(`🎵 [V4] Fetching ${contentType} details for:`, musicId)
@@ -598,6 +604,19 @@ export default function MusicDetailModalV4({
     }
   }
 
+  // Fonction pour contrôler la lecture audio
+  const handlePreviewToggle = () => {
+    if (audioRef) {
+      if (isPreviewPlaying) {
+        audioRef.pause()
+        setIsPreviewPlaying(false)
+      } else {
+        audioRef.play()
+        setIsPreviewPlaying(true)
+      }
+    }
+  }
+
   const handleAddToLibrary = (status: MediaStatus) => {
     if (!musicDetail) return
     
@@ -661,28 +680,7 @@ export default function MusicDetailModalV4({
                 <X size={24} />
               </button>
               
-              <div className="flex items-start space-x-3">
-                <h1 className="text-2xl font-bold text-white flex-1 pr-12">{musicDetail.title}</h1>
-                
-                {/* Audio Preview Button - Singles seulement, même hauteur que le titre */}
-                {isSingle && musicDetail.previewUrl && (
-                  <div className="flex-shrink-0">
-                    <div className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-2">
-                      <audio 
-                        controls 
-                        className="w-32 h-8"
-                        preload="metadata"
-                        style={{
-                          background: 'transparent',
-                          outline: 'none'
-                        }}
-                      >
-                        <source src={musicDetail.previewUrl} type="audio/mpeg" />
-                      </audio>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <h1 className="text-2xl font-bold text-white pr-12">{musicDetail.title}</h1>
                 
                 {/* Artist on separate line */}
                 <div className="mt-3">
@@ -845,6 +843,54 @@ export default function MusicDetailModalV4({
                 </div>
               )}
             </div>
+
+            {/* iTunes Preview Player - Singles seulement, pleine largeur avec effet vague */}
+            {isSingle && musicDetail.previewUrl && (
+              <div className="mb-6 px-4">
+                <div className="relative">
+                  <button 
+                    onClick={handlePreviewToggle}
+                    className="w-full animate-wave-gradient text-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden hover:scale-105"
+                  >
+                    <div className="flex items-center justify-center space-x-3">
+                      {/* Icône Play/Pause */}
+                      <div className="flex items-center justify-center w-6 h-6 bg-white/20 rounded-full">
+                        {isPreviewPlaying ? (
+                          <div className="flex space-x-0.5">
+                            <div className="w-1 h-3 bg-white rounded-full"></div>
+                            <div className="w-1 h-3 bg-white rounded-full"></div>
+                          </div>
+                        ) : (
+                          <div className="w-0 h-0 border-l-[6px] border-l-white border-t-[3px] border-t-transparent border-b-[3px] border-b-transparent ml-0.5"></div>
+                        )}
+                      </div>
+                      
+                      <span className="text-white text-sm font-medium">30-second preview</span>
+                      <span className="text-xs text-white/70">via iTunes</span>
+                      
+                      {/* Indicateur visuel vague */}
+                      <div className="flex items-center space-x-1">
+                        <div className="w-1 h-1 bg-white/60 rounded-full animate-pulse"></div>
+                        <div className="w-1 h-1 bg-white/60 rounded-full animate-pulse animation-delay-500"></div>
+                        <div className="w-1 h-1 bg-white/60 rounded-full animate-pulse animation-delay-1000"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Audio player caché mais fonctionnel */}
+                    <audio 
+                      ref={setAudioRef}
+                      preload="metadata"
+                      onEnded={() => setIsPreviewPlaying(false)}
+                      onPause={() => setIsPreviewPlaying(false)}
+                      onPlay={() => setIsPreviewPlaying(true)}
+                      className="absolute opacity-0 pointer-events-none"
+                    >
+                      <source src={musicDetail.previewUrl} type="audio/mpeg" />
+                    </audio>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex items-center justify-center space-x-4 mb-6">

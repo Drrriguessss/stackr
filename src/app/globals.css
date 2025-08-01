@@ -121,6 +121,19 @@ body {
   .animation-delay-1500 {
     animation-delay: 1.5s;
   }
+
+  /* Animation vague pour le bouton audio preview */
+  @keyframes waveGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .animate-wave-gradient {
+    background: linear-gradient(270deg, #10B981, #34D399, #059669, #10B981);
+    background-size: 400% 400%;
+    animation: waveGradient 3s ease-in-out infinite;
+  }
 }
 
 @layer components {
