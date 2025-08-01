@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Star, Play, ChevronLeft, ChevronRight, Share, FileText, ArrowRight } from 'lucide-react'
 import type { LibraryItem, MediaStatus } from '@/types'
 import type { MusicDetailData } from '@/types/musicTypes'
@@ -542,7 +542,7 @@ export default function MusicDetailModalV4({
             <div className="text-white">Loading {contentType}...</div>
           </div>
         ) : musicDetail ? (
-          <>
+          <React.Fragment>
             {/* Header - Same structure as MovieDetailModalV3 */}
             <div className="relative px-6 pt-6 pb-4">
               <button
@@ -1432,7 +1432,7 @@ export default function MusicDetailModalV4({
         </div>
       )}
             </div>
-          </>
+          </React.Fragment>
         ) : null}
       </div>
 
