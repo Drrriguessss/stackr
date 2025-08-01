@@ -852,28 +852,33 @@ export default function MusicDetailModalV4({
                     onClick={handlePreviewToggle}
                     className="w-full animate-wave-gradient text-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden hover:scale-105"
                   >
-                    <div className="flex items-center justify-center space-x-3">
-                      {/* Icône Play/Pause */}
-                      <div className="flex items-center justify-center w-6 h-6 bg-white/20 rounded-full">
+                    {/* Overlay pour accentuer l'effet de vague */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50 animate-shimmer"></div>
+                    
+                    <div className="relative z-10 flex items-center justify-center space-x-3">
+                      {/* Icône Play/Pause avec ombre */}
+                      <div className="flex items-center justify-center w-8 h-8 bg-black/20 backdrop-blur-sm rounded-full shadow-lg">
                         {isPreviewPlaying ? (
-                          <div className="flex space-x-0.5">
-                            <div className="w-1 h-3 bg-white rounded-full"></div>
-                            <div className="w-1 h-3 bg-white rounded-full"></div>
+                          <div className="flex space-x-1">
+                            <div className="w-1.5 h-4 bg-white rounded-full shadow-sm"></div>
+                            <div className="w-1.5 h-4 bg-white rounded-full shadow-sm"></div>
                           </div>
                         ) : (
-                          <div className="w-0 h-0 border-l-[6px] border-l-white border-t-[3px] border-t-transparent border-b-[3px] border-b-transparent ml-0.5"></div>
+                          <div className="w-0 h-0 border-l-[8px] border-l-white border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent ml-1 drop-shadow-sm"></div>
                         )}
                       </div>
                       
-                      <span className="text-white text-sm font-medium">30-second preview</span>
-                      <span className="text-xs text-white/70">via iTunes</span>
+                      <span className="text-white text-base font-semibold drop-shadow-sm">30-second preview</span>
+                      <span className="text-sm text-white/80 drop-shadow-sm">via iTunes</span>
                       
-                      {/* Indicateur visuel vague */}
-                      <div className="flex items-center space-x-1">
-                        <div className="w-1 h-1 bg-white/60 rounded-full animate-pulse"></div>
-                        <div className="w-1 h-1 bg-white/60 rounded-full animate-pulse animation-delay-500"></div>
-                        <div className="w-1 h-1 bg-white/60 rounded-full animate-pulse animation-delay-1000"></div>
-                      </div>
+                      {/* Indicateur visuel vague amélioré */}
+                      {isPreviewPlaying && (
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-white/80 rounded-full animate-pulse shadow-sm"></div>
+                          <div className="w-2 h-2 bg-white/80 rounded-full animate-pulse animation-delay-500 shadow-sm"></div>
+                          <div className="w-2 h-2 bg-white/80 rounded-full animate-pulse animation-delay-1000 shadow-sm"></div>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Audio player caché mais fonctionnel */}

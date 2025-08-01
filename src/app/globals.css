@@ -122,17 +122,111 @@ body {
     animation-delay: 1.5s;
   }
 
-  /* Animation vague pour le bouton audio preview */
+  /* Animation vague pour le bouton audio preview - Version plus visible */
   @keyframes waveGradient {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
   }
 
+  /* Pattern 1: Vagues alternées foncé/clair très contrastées - VERSION AMÉLIORÉE */
   .animate-wave-gradient {
-    background: linear-gradient(270deg, #10B981, #34D399, #059669, #10B981);
-    background-size: 400% 400%;
-    animation: waveGradient 3s ease-in-out infinite;
+    background: repeating-linear-gradient(
+      90deg,
+      #047857 0px,
+      #047857 20px,
+      #059669 20px,
+      #059669 40px,
+      #10B981 40px,
+      #10B981 60px,
+      #34D399 60px,
+      #34D399 80px,
+      #6EE7B7 80px,
+      #6EE7B7 100px,
+      #34D399 100px,
+      #34D399 120px,
+      #10B981 120px,
+      #10B981 140px,
+      #059669 140px,
+      #059669 160px,
+      #047857 160px,
+      #047857 180px
+    );
+    background-size: 360px 100%;
+    animation: waveGradient 4s linear infinite;
+  }
+
+  /* Pattern 2: Effet tourbillon (à activer en changeant la classe) */
+  @keyframes swirl {
+    0% { 
+      background-position: 0% 50%;
+      filter: hue-rotate(0deg);
+    }
+    50% { 
+      background-position: 100% 50%;
+      filter: hue-rotate(20deg);
+    }
+    100% { 
+      background-position: 0% 50%;
+      filter: hue-rotate(0deg);
+    }
+  }
+
+  .animate-swirl-gradient {
+    background: repeating-linear-gradient(
+      -45deg,
+      #059669,
+      #059669 10px,
+      #34D399 10px,
+      #34D399 20px,
+      #10B981 20px,
+      #10B981 30px,
+      #6EE7B7 30px,
+      #6EE7B7 40px
+    );
+    background-size: 200% 200%;
+    animation: swirl 8s ease-in-out infinite;
+  }
+
+  /* Pattern 3: Vagues ondulantes (à activer en changeant la classe) */
+  @keyframes oceanWave {
+    0% { 
+      background-position: 0% 0%;
+      transform: rotate(0deg);
+    }
+    25% { 
+      background-position: 25% 0%;
+      transform: rotate(0.5deg);
+    }
+    50% { 
+      background-position: 50% 0%;
+      transform: rotate(0deg);
+    }
+    75% { 
+      background-position: 75% 0%;
+      transform: rotate(-0.5deg);
+    }
+    100% { 
+      background-position: 100% 0%;
+      transform: rotate(0deg);
+    }
+  }
+
+  .animate-ocean-wave {
+    background: repeating-radial-gradient(
+      ellipse at center,
+      #047857 0px,
+      #059669 15px,
+      #10B981 25px,
+      #34D399 35px,
+      #6EE7B7 45px,
+      #34D399 55px,
+      #10B981 65px,
+      #059669 75px,
+      #047857 85px
+    );
+    background-size: 200% 100%;
+    animation: oceanWave 10s linear infinite;
   }
 }
 
