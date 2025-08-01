@@ -41,6 +41,9 @@ export default function MusicDetailModalV4({
   // États pour le partage et les reviews
   const [showShareModal, setShowShareModal] = useState(false)
   const [showMoreShareOptions, setShowMoreShareOptions] = useState(false)
+  const [recommendMessage, setRecommendMessage] = useState('')
+  const [selectedRecommendFriends, setSelectedRecommendFriends] = useState<any[]>([])
+  const [recommendSearch, setRecommendSearch] = useState('')
   const [userRating, setUserRating] = useState<number>(0)
   const [hoverRating, setHoverRating] = useState<number>(0)
   const [showReviewBox, setShowReviewBox] = useState(false)
@@ -72,6 +75,22 @@ export default function MusicDetailModalV4({
   const [currentUserReview, setCurrentUserReview] = useState<UserReview | null>(null)
   const [publicReviews, setPublicReviews] = useState<UserReview[]>([])
   const [loadingReviews, setLoadingReviews] = useState(false)
+
+  // Mock friends data pour le partage
+  const mockFriends = [
+    { id: 1, name: 'Axel', avatar: '/api/placeholder/32/32' },
+    { id: 2, name: 'Maite', avatar: '/api/placeholder/32/32' },
+    { id: 3, name: 'Darren', avatar: '/api/placeholder/32/32' },
+    { id: 4, name: 'Joshua', avatar: '/api/placeholder/32/32' },
+    { id: 5, name: 'Jeremy', avatar: '/api/placeholder/32/32' },
+    { id: 6, name: 'Ana', avatar: '/api/placeholder/32/32' },
+    { id: 7, name: 'Susete', avatar: '/api/placeholder/32/32' }
+  ]
+
+  // Filtrer les amis pour la recherche
+  const filteredRecommendFriends = mockFriends.filter(friend =>
+    friend.name.toLowerCase().includes(recommendSearch.toLowerCase())
+  )
 
   // Déterminer le type de contenu
   const contentType = musicId.startsWith('track-') ? 'single' : 'album'
@@ -333,6 +352,29 @@ export default function MusicDetailModalV4({
         }
         break
     }
+  }
+
+  // Fonctions pour gérer les amis dans le share modal
+  const toggleRecommendFriend = (friend: any) => {
+    const isSelected = selectedRecommendFriends.find(f => f.id === friend.id)
+    if (isSelected) {
+      setSelectedRecommendFriends(prev => prev.filter(f => f.id !== friend.id))
+    } else {
+      setSelectedRecommendFriends(prev => [...prev, friend])
+    }
+  }
+
+  const handleSendToFriends = () => {
+    if (selectedRecommendFriends.length === 0 || !musicDetail) return
+    
+    const friendNames = selectedRecommendFriends.map(f => f.name).join(', ')
+    const mediaType = isAlbum ? 'album' : 'song'
+    alert(`Recommendation sent to: ${friendNames}${recommendMessage ? `\nMessage: "${recommendMessage}"` : ''}`)
+    
+    // Reset form
+    setSelectedRecommendFriends([])
+    setRecommendMessage('')
+    setShowShareModal(false)
   }
 
   const handleRatingClick = async (rating: number) => {
@@ -1165,6 +1207,91 @@ export default function MusicDetailModalV4({
               </button>
             </div>
 
+            {/* Send to Friends Section */}
+            <div className="mb-6">
+              <h4 className="text-white font-medium mb-3">Send to friends in Stackr</h4>
+              
+              {/* Friend Search */}
+              <div className="mb-3">
+                <input
+                  type="text"
+                  placeholder="Search friends..."
+                  value={recommendSearch}
+                  onChange={(e) => setRecommendSearch(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg border border-gray-700 focus:outline-none focus:border-[#10B981]"
+                />
+              </div>
+
+              {/* Friends List */}
+              <div className="max-h-32 overflow-y-auto mb-3">
+                <div className="space-y-2">
+                  {filteredRecommendFriends.map((friend) => {
+                    const isSelected = selectedRecommendFriends.find(f => f.id === friend.id)
+                    return (
+                      <button
+                        key={friend.id}
+                        onClick={() => toggleRecommendFriend(friend)}
+                        className={`w-full flex items-center space-x-3 p-2 rounded-lg transition-colors ${
+                          isSelected ? 'bg-gradient-to-r from-[#10B981]/20 to-[#34D399]/20 border border-[#10B981]/30' : 'hover:bg-gray-700'
+                        }`}
+                      >
+                        <div className="w-6 h-6 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-white text-xs font-medium">
+                          {friend.name.charAt(0)}
+                        </div>
+                        <span className="text-white text-sm">{friend.name}</span>
+                        {isSelected && (
+                          <div className="ml-auto">
+                            <div className="w-4 h-4 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs">✓</span>
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Selected Count */}
+              {selectedRecommendFriends.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-gray-400 text-sm">
+                    {selectedRecommendFriends.length} friend{selectedRecommendFriends.length > 1 ? 's' : ''} selected
+                  </p>
+                </div>
+              )}
+
+              {/* Message Input */}
+              <div className="mb-4">
+                <label className="text-white text-sm font-medium mb-2 block">
+                  Add a message (optional)
+                </label>
+                <textarea
+                  value={recommendMessage}
+                  onChange={(e) => setRecommendMessage(e.target.value)}
+                  placeholder={`Why do you recommend this ${isAlbum ? 'album' : 'song'}?`}
+                  className="w-full h-20 px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg resize-none border border-gray-700 focus:outline-none focus:border-[#10B981]"
+                  maxLength={200}
+                />
+                <div className="text-right text-gray-500 text-xs mt-1">
+                  {recommendMessage.length}/200
+                </div>
+              </div>
+
+              {/* Send to Friends Button */}
+              <button
+                onClick={handleSendToFriends}
+                disabled={selectedRecommendFriends.length === 0}
+                className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-opacity ${
+                  selectedRecommendFriends.length > 0 
+                    ? 'bg-gradient-to-r from-[#10B981] to-[#34D399] text-white hover:opacity-90' 
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                Send to Friends ({selectedRecommendFriends.length})
+              </button>
+            </div>
+
             {/* More Options Toggle */}
             <div className="text-center mb-4">
               <button
@@ -1175,61 +1302,61 @@ export default function MusicDetailModalV4({
               </button>
             </div>
 
-            {/* External Share Section */}
+            {/* External Share Section - Hidden by default */}
             {showMoreShareOptions && (
               <div className="border-t border-gray-700 pt-4 mb-6">
                 <h4 className="text-white font-medium mb-3">Share externally</h4>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleExternalShare('whatsapp')}
+                  className="flex items-center justify-center space-x-2 py-2 px-3 bg-[#25D366]/20 border border-[#25D366]/30 rounded-lg hover:bg-[#25D366]/30 transition-colors"
+                >
+                  <span>💬</span>
+                  <span className="text-white text-sm">WhatsApp</span>
+                </button>
+                
+                <button
+                  onClick={() => handleExternalShare('imessage')}
+                  className="flex items-center justify-center space-x-2 py-2 px-3 bg-[#007AFF]/20 border border-[#007AFF]/30 rounded-lg hover:bg-[#007AFF]/30 transition-colors"
+                >
+                  <span>💬</span>
+                  <span className="text-white text-sm">iMessage</span>
+                </button>
+                
+                <button
+                  onClick={() => handleExternalShare('email')}
+                  className="flex items-center justify-center space-x-2 py-2 px-3 bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  <span>📧</span>
+                  <span className="text-white text-sm">Email</span>
+                </button>
+                
+                <button
+                  onClick={() => handleExternalShare('copy')}
+                  className="flex items-center justify-center space-x-2 py-2 px-3 bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  <span>📋</span>
+                  <span className="text-white text-sm">Copy Link</span>
+                </button>
+                
+                <button
+                  onClick={() => handleExternalShare('twitter')}
+                  className="flex items-center justify-center space-x-2 py-2 px-3 bg-[#1DA1F2]/20 border border-[#1DA1F2]/30 rounded-lg hover:bg-[#1DA1F2]/30 transition-colors"
+                >
+                  <span>🐦</span>
+                  <span className="text-white text-sm">Twitter</span>
+                </button>
+                
+                {navigator.share && (
                   <button
-                    onClick={() => handleExternalShare('whatsapp')}
-                    className="flex items-center justify-center space-x-2 py-2 px-3 bg-[#25D366]/20 border border-[#25D366]/30 rounded-lg hover:bg-[#25D366]/30 transition-colors"
+                    onClick={() => handleExternalShare('native')}
+                    className="flex items-center justify-center space-x-2 py-2 px-3 bg-gradient-to-r from-[#10B981]/20 to-[#34D399]/20 border border-[#10B981]/30 rounded-lg hover:bg-gradient-to-r hover:from-[#10B981]/30 hover:to-[#34D399]/30 transition-colors"
                   >
-                    <span>💬</span>
-                    <span className="text-white text-sm">WhatsApp</span>
+                    <span>📱</span>
+                    <span className="text-white text-sm">Share</span>
                   </button>
-                  
-                  <button
-                    onClick={() => handleExternalShare('imessage')}
-                    className="flex items-center justify-center space-x-2 py-2 px-3 bg-[#007AFF]/20 border border-[#007AFF]/30 rounded-lg hover:bg-[#007AFF]/30 transition-colors"
-                  >
-                    <span>💬</span>
-                    <span className="text-white text-sm">iMessage</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => handleExternalShare('email')}
-                    className="flex items-center justify-center space-x-2 py-2 px-3 bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 transition-colors"
-                  >
-                    <span>📧</span>
-                    <span className="text-white text-sm">Email</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => handleExternalShare('copy')}
-                    className="flex items-center justify-center space-x-2 py-2 px-3 bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 transition-colors"
-                  >
-                    <span>📋</span>
-                    <span className="text-white text-sm">Copy Link</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => handleExternalShare('twitter')}
-                    className="flex items-center justify-center space-x-2 py-2 px-3 bg-[#1DA1F2]/20 border border-[#1DA1F2]/30 rounded-lg hover:bg-[#1DA1F2]/30 transition-colors"
-                  >
-                    <span>🐦</span>
-                    <span className="text-white text-sm">Twitter</span>
-                  </button>
-                  
-                  {navigator.share && (
-                    <button
-                      onClick={() => handleExternalShare('native')}
-                      className="flex items-center justify-center space-x-2 py-2 px-3 bg-gradient-to-r from-[#FF6A00]/20 to-[#FFB347]/20 border border-[#FF6A00]/30 rounded-lg hover:bg-gradient-to-r hover:from-[#FF6A00]/30 hover:to-[#FFB347]/30 transition-colors"
-                    >
-                      <span>📱</span>
-                      <span className="text-white text-sm">Share</span>
-                    </button>
-                  )}
-                </div>
+                )}
+              </div>
               </div>
             )}
           </div>
