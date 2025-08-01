@@ -1103,7 +1103,7 @@ export default function MusicDetailModalV4({
               <div className="mb-6">
                 <h3 className="text-xl font-semibold text-white mb-3">Other songs from this album</h3>
                 <div className="flex space-x-3 overflow-x-auto pb-2">
-                  {albumTracks.slice(0, 8).map((track: any) => (
+                  {albumTracks.map((track: any) => (
                     <button
                       key={track.trackId}
                       onClick={() => onMusicSelect && onMusicSelect(`track-${track.trackId}`)}
