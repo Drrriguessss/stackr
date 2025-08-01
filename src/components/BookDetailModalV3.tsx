@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { X, Star, Share, FileText, ArrowRight, BookOpen, ExternalLink } from 'lucide-react'
+import { X, Star, Share, FileText, ArrowRight, BookOpen, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { LibraryItem, MediaStatus } from '@/types'
 import { googleBooksService } from '@/services/googleBooksService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
@@ -205,14 +205,14 @@ export default function BookDetailModalV3({
           ].filter(Boolean)
           setImages(imageUrls)
         }
-      }
-      
-      // Charger les reviews utilisateur
-      await loadUserReviews(bookId)
-      
-      // Charger d'autres livres du même auteur
-      if (bookData.authors && bookData.authors.length > 0) {
-        await loadAuthorBooks(bookData.authors[0], bookData.id)
+        
+        // Charger les reviews utilisateur
+        await loadUserReviews(bookId)
+        
+        // Charger d'autres livres du même auteur
+        if (bookData.authors && bookData.authors.length > 0) {
+          await loadAuthorBooks(bookData.authors[0], bookData.id)
+        }
       }
       
     } catch (error) {
