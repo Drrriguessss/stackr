@@ -6,7 +6,7 @@ import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
 import GameDetailDarkV2 from '@/components/GameDetailDarkV2'
 import MovieDetailModalV3 from '@/components/MovieDetailModalV3'
-import BookDetailModalV2 from '@/components/BookDetailModalV2'
+import BookDetailModalV3 from '@/components/BookDetailModalV3'
 import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
@@ -853,16 +853,14 @@ export default function Home() {
         onMovieSelect={(movieId) => setSelectedMovieId(movieId)}
       />
 
-      <BookDetailModalV2
+      <BookDetailModalV3
         isOpen={!!selectedBookId}
         onClose={() => setSelectedBookId(null)}
         bookId={selectedBookId || ''}
         onAddToLibrary={handleAddToLibrary}
         onDeleteItem={handleDeleteItem}
         library={library}
-        userReviews={selectedBookId ? userReviews[selectedBookId] || [] : []}
-        goodreadsReviews={selectedBookId ? generateGoodreadsReviews(selectedBookId) : []}
-        onReviewSubmit={handleReviewSubmit}
+        onBookSelect={(bookId) => setSelectedBookId(bookId)}
       />
 
       <MusicDetailModalV4
