@@ -443,15 +443,6 @@ export default function MusicDetailModalV4({
     return !!(data.listenDate && data.platform && data.personalRating > 0)
   }
 
-  // Mock friends data
-  const mockFriends = [
-    { id: 1, name: 'Alex', avatar: '/api/placeholder/32/32' },
-    { id: 2, name: 'Maite', avatar: '/api/placeholder/32/32' },
-    { id: 3, name: 'Darren', avatar: '/api/placeholder/32/32' },
-    { id: 4, name: 'Joshua', avatar: '/api/placeholder/32/32' },
-    { id: 5, name: 'Jeremy', avatar: '/api/placeholder/32/32' },
-    { id: 6, name: 'Ana', avatar: '/api/placeholder/32/32' }
-  ]
 
   // Mock friends who listened to this song/album
   const mockFriendsWhoListened = [
