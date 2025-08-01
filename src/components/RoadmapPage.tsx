@@ -72,6 +72,24 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
         { text: 'Native mobile apps (iOS/Android)', completed: false },
         { text: 'Public API for developers', completed: false }
       ]
+    },
+    {
+      id: 'phase6',
+      title: 'Phase 6 - Additional Ideas',
+      status: 'future',
+      description: 'Community suggestions and innovative features',
+      items: [
+        { text: 'Shazam integration for instant music recognition', completed: false, isNew: true },
+        { text: 'Enhanced Spotify & Apple Music integration', completed: false, isNew: true },
+        { text: 'Audio visualizer with live waveform animation synced to beat', completed: false, isNew: true },
+        { text: 'Dynamic color variations based on music rhythm & BPM', completed: false, isNew: true },
+        { text: 'Rewards system for active users (badges, points, exclusive content)', completed: false },
+        { text: 'Enhanced profile with genre preferences stats & director analytics', completed: false },
+        { text: 'AI recommendation engine based on listening/viewing patterns', completed: false },
+        { text: 'Live chat rooms for media discussions (like Chinese platforms)', completed: false, isNew: true },
+        { text: 'Music listening parties organization feature', completed: false },
+        { text: '"Favorite" status for music tracks & albums (beyond want/listened)', completed: false, isNew: true }
+      ]
     }
   ]
 
@@ -163,7 +181,7 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
                 <div className="text-xs text-gray-600">Remaining</div>
               </div>
               <div className="bg-white rounded-xl p-3 border border-gray-200">
-                <div className="text-lg font-bold text-gray-900">5</div>
+                <div className="text-lg font-bold text-gray-900">6</div>
                 <div className="text-xs text-gray-600">Phases</div>
               </div>
             </div>
