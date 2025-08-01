@@ -490,27 +490,18 @@ export default function MusicDetailModalV4({
                   <X size={24} />
                 </button>
                 
-                <div className="flex items-center gap-3 pr-12">
-                  <h1 className="text-3xl font-bold text-white break-words">{musicDetail.title}</h1>
-                  {/* Badge Type - VERT pour Single */}
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    isAlbum 
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                      : 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  }`}>
-                    {isAlbum ? 'Album' : 'Single'}
-                  </span>
-                </div>
-                
-                {/* Artiste sur ligne séparée */}
-                <div className="mt-2">
-                  <span className="text-xl text-gray-300">{musicDetail.artist}</span>
-                </div>
+                <h1 className="text-2xl font-bold text-white pr-12">{musicDetail.title}</h1>
                 
                 <div className="flex items-center space-x-3 mt-2 text-gray-400">
+                  <span className="text-lg">{musicDetail.artist}</span>
+                  <span>•</span>
                   <span>{musicDetail.releaseDate ? new Date(musicDetail.releaseDate).getFullYear() : 'TBA'}</span>
                   <span>•</span>
                   <span>{musicDetail.genre}</span>
+                  {/* Badge Type - VERT */}
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full bg-green-500/20 text-green-400 border border-green-500/30`}>
+                    {isAlbum ? 'Album' : 'Single'}
+                  </span>
                   {musicDetail.duration && (
                     <>
                       <span>•</span>
@@ -821,7 +812,7 @@ export default function MusicDetailModalV4({
 
             {/* User Rating & Review */}
             <div className="mb-6">
-              <h3 className="text-xl font-semibold text-white mb-3">Your Rating</h3>
+              <h3 className="text-white font-medium mb-3">Rate this {isAlbum ? 'album' : 'song'}</h3>
               <div className="flex items-center space-x-2 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
