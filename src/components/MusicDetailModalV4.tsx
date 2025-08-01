@@ -672,7 +672,7 @@ export default function MusicDetailModalV4({
         ) : musicDetail ? (
           <>
             {/* Header - Same structure as MovieDetailModalV3 */}
-            <div className="relative px-6 pt-6 pb-4 bg-gradient-to-b from-[#151515] via-[#121212] to-[#0B0B0B] border-b border-gray-800/30 shadow-lg backdrop-blur-sm">
+            <div className="relative px-6 pt-6 pb-4 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] border-b border-gray-700/50 shadow-xl">
               <button
                 onClick={onClose}
                 className="absolute top-6 right-6 text-gray-400 hover:text-white"
