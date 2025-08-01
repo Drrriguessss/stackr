@@ -7,6 +7,7 @@ import { imageService } from '@/services/imageService'
 import { trailerService } from '@/services/trailerService'
 import { userReviewsService } from '@/services/userReviewsService'
 import { tmdbReviewsService, type ProcessedReview } from '@/services/tmdbReviewsService'
+import StackrLoadingSkeleton from './StackrLoadingSkeleton'
 
 interface MovieDetailModalV3Props {
   isOpen: boolean
@@ -703,7 +704,12 @@ export default function MovieDetailModalV3({
       <div className="bg-[#0B0B0B] w-full h-full md:max-w-4xl md:h-[95vh] md:rounded-2xl overflow-hidden flex flex-col">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <StackrLoadingSkeleton 
+              message="Loading your movie..."
+              theme="orange"
+              size="medium"
+              speed="normal"
+            />
           </div>
         ) : movieDetail ? (
           <>

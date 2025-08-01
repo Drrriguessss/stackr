@@ -94,6 +94,11 @@ body {
     50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.6), 0 0 60px rgba(52, 211, 153, 0.3); }
   }
 
+  @keyframes glowOrange {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 106, 0, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(255, 106, 0, 0.6), 0 0 60px rgba(255, 179, 71, 0.3); }
+  }
+
   .animate-shimmer {
     animation: shimmer 2s infinite;
   }
@@ -108,6 +113,10 @@ body {
 
   .animate-glow {
     animation: glow 2s ease-in-out infinite;
+  }
+
+  .animate-glow-orange {
+    animation: glowOrange 2s ease-in-out infinite;
   }
 
   .animation-delay-500 {

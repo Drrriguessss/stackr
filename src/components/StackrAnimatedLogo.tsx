@@ -6,13 +6,15 @@ interface StackrAnimatedLogoProps {
   speed?: 'fast' | 'normal' | 'slow'
   loop?: boolean
   onAnimationComplete?: () => void
+  theme?: 'green' | 'orange'
 }
 
 export default function StackrAnimatedLogo({ 
   size = 'medium',
   speed = 'normal',
   loop = false,
-  onAnimationComplete
+  onAnimationComplete,
+  theme = 'green'
 }: StackrAnimatedLogoProps) {
   const [showSegment, setShowSegment] = useState([false, false, false, false])
   const [animationKey, setAnimationKey] = useState(0)
@@ -21,6 +23,17 @@ export default function StackrAnimatedLogo({
     small: { container: 'w-20 h-20', logo: 'w-16 h-16' },
     medium: { container: 'w-32 h-32', logo: 'w-24 h-24' },
     large: { container: 'w-48 h-48', logo: 'w-36 h-36' }
+  }
+
+  const themeConfig = {
+    green: {
+      gradient: 'bg-gradient-to-r from-green-400 to-emerald-600',
+      glow: 'animate-glow'
+    },
+    orange: {
+      gradient: 'bg-gradient-to-r from-[#FF6A00] to-[#FFB347]',
+      glow: 'animate-glow-orange'
+    }
   }
 
   const speedConfig = {
@@ -82,9 +95,9 @@ export default function StackrAnimatedLogo({
           {sSegments.map((segment, index) => (
             <div
               key={`segment-${index}-${animationKey}`}
-              className={`absolute bg-gradient-to-r from-green-400 to-emerald-600 rounded-sm shadow-lg transition-all duration-500 ${
+              className={`absolute ${themeConfig[theme].gradient} rounded-sm shadow-lg transition-all duration-500 ${
                 showSegment[index] 
-                  ? 'opacity-100 scale-100 animate-glow' 
+                  ? `opacity-100 scale-100 ${themeConfig[theme].glow}` 
                   : 'opacity-0 scale-75'
               }`}
               style={{
@@ -104,17 +117,6 @@ export default function StackrAnimatedLogo({
         </div>
       </div>
 
-      {/* Texte "Loading" */}
-      <div className="text-center mt-4">
-        <span className="text-white text-sm font-medium animate-pulse">
-          Loading
-        </span>
-        <div className="flex justify-center space-x-1 mt-2">
-          <div className="w-1 h-1 bg-green-400 rounded-full animate-bounce"></div>
-          <div className="w-1 h-1 bg-green-400 rounded-full animate-bounce animation-delay-200"></div>
-          <div className="w-1 h-1 bg-green-400 rounded-full animate-bounce animation-delay-400"></div>
-        </div>
-      </div>
     </div>
   )
 }
