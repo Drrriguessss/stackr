@@ -1028,25 +1028,6 @@ export default function MusicDetailModalV4({
             {/* Current User Review Display */}
             {currentUserReview && (
               <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-white font-medium">Your Review</h3>
-                  {!isEditingReview && (
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={handleEditReview}
-                        className="text-green-400 hover:text-green-300 text-sm transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={handleDeleteReview}
-                        className="text-red-400 hover:text-red-300 text-sm transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
                 
                 {isEditingReview ? (
                   <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-green-400">
@@ -1120,6 +1101,29 @@ export default function MusicDetailModalV4({
                   </div>
                 ) : (
                   <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-green-400">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white text-sm font-medium">Your Review</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs">
+                          {currentUserReview.is_public ? 
+                            <span className="text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text">Public</span> : 
+                            <span className="text-white">Private</span>
+                          }
+                        </span>
+                        <button
+                          onClick={handleEditReview}
+                          className="text-white text-xs hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={handleDeleteReview}
+                          className="text-red-400 text-xs hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                     <div className="flex items-center space-x-2 mb-2">
                       <div className="flex">
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -1135,9 +1139,6 @@ export default function MusicDetailModalV4({
                         ))}
                       </div>
                       <span className="text-green-400 text-sm font-medium">{currentUserReview.rating}/5</span>
-                      <span className="text-gray-400 text-xs">
-                        {currentUserReview.is_public ? '(Public)' : '(Private)'}
-                      </span>
                     </div>
                     {currentUserReview.review_text && (
                       <p className="text-gray-300 text-sm mt-2">{currentUserReview.review_text}</p>
@@ -1198,44 +1199,110 @@ export default function MusicDetailModalV4({
               </div>
             )}
 
-            {/* Tracklist pour les albums */}
+            {/* Tracklist pour les albums - Format optimisé mobile */}
             {isAlbum && (
               <div className="mb-6">
-                <h3 className="text-xl font-semibold text-white mb-3">Tracklist</h3>
+                <h3 className="text-xl font-semibold text-white mb-4">Tracklist</h3>
                 {loadingTracks ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="text-gray-400">Loading tracks...</div>
                   </div>
                 ) : albumTracks.length > 0 ? (
-                  <div className="space-y-2">
-                    {albumTracks.map((track: any) => (
-                      <button
-                        key={track.trackId}
-                        onClick={() => onMusicSelect && onMusicSelect(`track-${track.trackId}`)}
-                        className="w-full text-left p-3 bg-gray-800 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg transition-colors group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-gray-400 text-sm w-6">
-                              {track.trackNumber || '-'}
-                            </span>
-                            <div>
-                              <div className="text-white group-hover:text-[#10B981] transition-colors">
-                                {track.trackName}
+                  <>
+                    {/* Mobile: Liste verticale */}
+                    <div className="block md:hidden space-y-2">
+                      {albumTracks.map((track: any) => {
+                        // Extraire le titre principal et les featuring artists
+                        const trackName = track.trackName || ''
+                        const featMatch = trackName.match(/^(.+?)\s*\((?:feat|featuring|ft)\.?\s*(.+?)\)/i)
+                        const mainTitle = featMatch ? featMatch[1].trim() : trackName
+                        const featArtists = featMatch ? featMatch[2].trim() : null
+                        
+                        return (
+                          <button
+                            key={track.trackId}
+                            onClick={() => onMusicSelect && onMusicSelect(track.trackId.toString())}
+                            className="w-full p-3 bg-gray-800/50 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg border border-gray-700/50 hover:border-[#10B981]/30 transition-all group"
+                          >
+                            <div className="flex items-center space-x-3">
+                              {/* Icône album + numéro track */}
+                              <div className="flex items-center space-x-2 flex-shrink-0">
+                                <Music size={16} className="text-gray-400 group-hover:text-[#10B981] transition-colors" />
+                                <span className="text-gray-400 text-sm min-w-[20px] text-center group-hover:text-[#10B981] transition-colors">
+                                  {track.trackNumber || '-'}
+                                </span>
                               </div>
-                              {track.trackTimeMillis && (
-                                <div className="text-gray-400 text-sm">
-                                  {Math.floor(track.trackTimeMillis / 60000)}:
-                                  {String(Math.floor((track.trackTimeMillis % 60000) / 1000)).padStart(2, '0')}
+                              
+                              {/* Titre et featuring */}
+                              <div className="flex-1 min-w-0 text-left">
+                                <div className="text-white text-sm font-medium group-hover:text-[#10B981] transition-colors leading-tight">
+                                  {mainTitle}
                                 </div>
-                              )}
+                                {featArtists && (
+                                  <div className="text-gray-400 text-xs mt-0.5 leading-tight">
+                                    (feat. {featArtists})
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Durée et bouton play */}
+                              <div className="flex items-center space-x-2 flex-shrink-0">
+                                {track.trackTimeMillis && (
+                                  <span className="text-gray-400 text-xs tabular-nums">
+                                    {Math.floor(track.trackTimeMillis / 60000)}:
+                                    {String(Math.floor((track.trackTimeMillis % 60000) / 1000)).padStart(2, '0')}
+                                  </span>
+                                )}
+                                <Play size={14} className="text-gray-400 group-hover:text-[#10B981] transition-colors" />
+                              </div>
                             </div>
-                          </div>
-                          <ArrowRight size={16} className="text-gray-400 group-hover:text-[#10B981] transition-colors" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    
+                    {/* Desktop: Grid horizontal */}
+                    <div className="hidden md:block">
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                        {albumTracks.map((track: any) => {
+                          const trackName = track.trackName || ''
+                          const featMatch = trackName.match(/^(.+?)\s*\((?:feat|featuring|ft)\.?\s*(.+?)\)/i)
+                          const mainTitle = featMatch ? featMatch[1].trim() : trackName
+                          const featArtists = featMatch ? featMatch[2].trim() : null
+                          
+                          return (
+                            <button
+                              key={track.trackId}
+                              onClick={() => onMusicSelect && onMusicSelect(track.trackId.toString())}
+                              className="p-4 bg-gray-800/50 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg border border-gray-700/50 hover:border-[#10B981]/30 transition-all group text-left"
+                            >
+                              <div className="flex items-start space-x-3">
+                                <span className="text-gray-400 text-sm group-hover:text-[#10B981] transition-colors flex-shrink-0 mt-0.5">
+                                  {track.trackNumber || '-'}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-white text-sm font-medium group-hover:text-[#10B981] transition-colors leading-tight">
+                                    {mainTitle}
+                                  </div>
+                                  {featArtists && (
+                                    <div className="text-gray-400 text-xs mt-1 leading-tight">
+                                      (feat. {featArtists})
+                                    </div>
+                                  )}
+                                  {track.trackTimeMillis && (
+                                    <div className="text-gray-400 text-xs mt-2 tabular-nums">
+                                      {Math.floor(track.trackTimeMillis / 60000)}:
+                                      {String(Math.floor((track.trackTimeMillis % 60000) / 1000)).padStart(2, '0')}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="text-gray-400 text-center py-4">
                     No tracks found for this album
@@ -1343,25 +1410,13 @@ export default function MusicDetailModalV4({
                   </div>
                 </div>
                 
-                {/* Optionnel: View Full Album si plus de 8 tracks */}
-                {albumTracks.length > 8 && (
-                  <div className="mt-4 text-center">
-                    <button className="text-[#10B981] hover:text-[#34D399] text-sm font-medium transition-colors">
-                      View Full Album ({albumTracks.length} songs)
-                    </button>
-                  </div>
-                )}
               </div>
             )}
 
-            {/* Fun Facts Section */}
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-white mb-3">Fun Facts</h3>
-              {loadingFunFacts ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-gray-400">Loading fun facts...</div>
-                </div>
-              ) : funFacts.length > 0 ? (
+            {/* Fun Facts Section - Seulement si il y a des facts réels */}
+            {(!loadingFunFacts && funFacts.length > 0) && (
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-white mb-3">Fun Facts</h3>
                 <div className="space-y-4">
                   {funFacts.map((fact, index) => (
                     <div 
@@ -1390,13 +1445,8 @@ export default function MusicDetailModalV4({
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-6 text-gray-400">
-                  <div className="text-4xl mb-2">🎭</div>
-                  <p>No fun facts available for this {isAlbum ? 'album' : 'song'}</p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
             </div>
           </>
         ) : (

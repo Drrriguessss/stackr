@@ -44,11 +44,8 @@ class MusicFunFactsService {
       const patternFacts = await this.generatePatternBasedFacts(artist, title, isAlbum)
       facts.push(...patternFacts)
       
-      // 3. Si on n'a pas assez de facts, ajouter des facts génériques intéressants
-      if (facts.length < 2) {
-        const genericFacts = this.getGenericMusicFacts(artist, title, isAlbum)
-        facts.push(...genericFacts)
-      }
+      // 3. Ne PAS ajouter de facts génériques/placeholder
+      // Si on n'a pas de facts réels, on préfère ne rien montrer
       
       // Limiter à 4 facts maximum
       const limitedFacts = facts.slice(0, 4)
