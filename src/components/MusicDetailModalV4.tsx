@@ -63,6 +63,9 @@ export default function MusicDetailModalV4({
   // États pour Metacritic
   const [metacriticScore, setMetacriticScore] = useState<MetacriticScore | null>(null)
   const [loadingMetacritic, setLoadingMetacritic] = useState(false)
+  
+  // États pour Friends modal
+  const [showFriendsWhoListened, setShowFriendsWhoListened] = useState(false)
 
   // Déterminer le type de contenu
   const contentType = musicId.startsWith('track-') ? 'single' : 'album'
@@ -109,6 +112,11 @@ export default function MusicDetailModalV4({
         // Si c'est un album, charger la liste des chansons
         if (isAlbum) {
           await loadAlbumTracks(musicId, data.title, data.artist)
+        }
+        
+        // Si c'est un single et qu'il a un album parent, charger les autres chansons de l'album
+        if (isSingle && data.parentAlbum) {
+          await loadAlbumTracks(data.parentAlbum.id, data.parentAlbum.title, data.artist)
         }
         
         // Charger les Fun Facts et Metacritic en parallèle
@@ -483,20 +491,23 @@ export default function MusicDetailModalV4({
                 </button>
                 
                 <div className="flex items-center gap-3 pr-12">
-                  <h1 className="text-3xl font-bold text-white">{musicDetail.title}</h1>
-                  {/* Badge Type */}
+                  <h1 className="text-3xl font-bold text-white break-words">{musicDetail.title}</h1>
+                  {/* Badge Type - VERT pour Single */}
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     isAlbum 
                       ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                      : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      : 'bg-green-500/20 text-green-400 border border-green-500/30'
                   }`}>
                     {isAlbum ? 'Album' : 'Single'}
                   </span>
                 </div>
                 
+                {/* Artiste sur ligne séparée */}
+                <div className="mt-2">
+                  <span className="text-xl text-gray-300">{musicDetail.artist}</span>
+                </div>
+                
                 <div className="flex items-center space-x-3 mt-2 text-gray-400">
-                  <span className="text-lg">{musicDetail.artist}</span>
-                  <span>•</span>
                   <span>{musicDetail.releaseDate ? new Date(musicDetail.releaseDate).getFullYear() : 'TBA'}</span>
                   <span>•</span>
                   <span>{musicDetail.genre}</span>
@@ -514,14 +525,14 @@ export default function MusicDetailModalV4({
                   )}
                 </div>
                 
-                {/* Lien vers album parent pour les singles */}
+                {/* Lien vers album parent pour les singles - VERT */}
                 {isSingle && musicDetail.parentAlbum && (
                   <button
                     onClick={handleGoToAlbum}
-                    className="flex items-center gap-2 mt-3 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                    className="flex items-center gap-2 mt-3 text-sm text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text hover:underline transition-colors"
                   >
                     From the album "{musicDetail.parentAlbum.title}" ({musicDetail.parentAlbum.year})
-                    <ArrowRight size={16} />
+                    <ArrowRight size={16} className="text-green-400" />
                   </button>
                 )}
               </div>
@@ -549,7 +560,7 @@ export default function MusicDetailModalV4({
                         className="w-full h-full object-cover"
                       />
                     )}
-                    {/* Overlay avec bouton Watch on YouTube */}
+                    {/* Overlay avec bouton Watch on YouTube - Style Films */}
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                       <a
                         href={youtubeWatchUrl}
@@ -663,7 +674,13 @@ export default function MusicDetailModalV4({
                           Listened
                         </button>
                         <button
-                          onClick={() => onDeleteItem && onDeleteItem(musicDetail.id)}
+                          onClick={() => {
+                            if (musicDetail && onDeleteItem) {
+                              onDeleteItem(musicDetail.id)
+                              setShowStatusDropdown(false)
+                              setSelectedStatus(null)
+                            }
+                          }}
                           className="block w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 last:rounded-b-lg"
                         >
                           Remove from Library
@@ -684,7 +701,13 @@ export default function MusicDetailModalV4({
                           Listened
                         </button>
                         <button
-                          onClick={() => onDeleteItem && onDeleteItem(musicDetail.id)}
+                          onClick={() => {
+                            if (musicDetail && onDeleteItem) {
+                              onDeleteItem(musicDetail.id)
+                              setShowStatusDropdown(false)
+                              setSelectedStatus(null)
+                            }
+                          }}
                           className="block w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 last:rounded-b-lg"
                         >
                           Remove from Library
@@ -763,56 +786,38 @@ export default function MusicDetailModalV4({
               </div>
             )}
 
-            {/* Friends Who Listened */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xl font-semibold text-white">Friends who listened</h3>
-                <button className="text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text text-sm hover:underline">
-                  View all
-                </button>
-              </div>
-              <div className="space-y-3">
-                {mockFriendsWhoListened.map((friend) => (
-                  <div key={friend.id} className="flex items-center space-x-3 p-3 bg-gray-800 rounded-lg">
-                    <div className="w-10 h-10 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-white text-sm font-medium">
-                      {friend.name.charAt(0)}
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-white font-medium">{friend.name}</span>
-                        <div className="flex items-center space-x-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              size={12}
-                              className={`${
-                                star <= friend.rating
-                                  ? 'text-[#10B981] fill-[#10B981]'
-                                  : 'text-gray-600'
-                              }`}
-                            />
-                          ))}
-                          <span className="text-gray-400 text-sm ml-1">{friend.rating}/5</span>
+            {/* Friends who listened - Style Films */}
+            {mockFriendsWhoListened.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-400 text-sm">Friends who listened:</span>
+                    <div className="flex -space-x-1">
+                      {mockFriendsWhoListened.slice(0, 4).map((friend) => (
+                        <div
+                          key={friend.id}
+                          className="w-6 h-6 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0B0B0B]"
+                          title={`${friend.name} - ${friend.rating}/5 stars`}
+                        >
+                          {friend.name.charAt(0)}
                         </div>
-                      </div>
+                      ))}
+                      {mockFriendsWhoListened.length > 4 && (
+                        <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0B0B0B]">
+                          +{mockFriendsWhoListened.length - 4}
+                        </div>
+                      )}
                     </div>
-                    
-                    {/* Review */}
-                    {friend.hasReview && friend.reviewText ? (
-                      <div className="mt-2">
-                        <p className="text-gray-300 text-sm mb-2">{friend.reviewText}</p>
-                        <button className="text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text text-xs hover:underline">
-                          View full review
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 text-sm mt-2">No review written</p>
-                    )}
                   </div>
-                ))}
+                  <button
+                    onClick={() => setShowFriendsWhoListened(true)}
+                    className="text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text text-sm hover:underline"
+                  >
+                    View all
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* User Rating & Review */}
             <div className="mb-6">
@@ -830,7 +835,7 @@ export default function MusicDetailModalV4({
                       size={24}
                       className={`transition-colors ${
                         star <= (hoverRating || userRating)
-                          ? 'text-yellow-400 fill-current'
+                          ? 'text-green-400 fill-current'
                           : 'text-gray-600'
                       }`}
                     />
@@ -939,6 +944,39 @@ export default function MusicDetailModalV4({
                     No tracks found for this album
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Other songs from album - Carrousel horizontal */}
+            {isSingle && albumTracks.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-white mb-3">Other songs from this album</h3>
+                <div className="flex space-x-3 overflow-x-auto pb-2">
+                  {albumTracks.slice(0, 8).map((track: any) => (
+                    <button
+                      key={track.trackId}
+                      onClick={() => onMusicSelect && onMusicSelect(`track-${track.trackId}`)}
+                      className="flex-shrink-0 w-48 p-3 bg-gray-800 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg transition-colors group"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="text-gray-400 text-sm w-6">
+                          {track.trackNumber || '-'}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white text-sm group-hover:text-[#10B981] transition-colors truncate">
+                            {track.trackName}
+                          </div>
+                          {track.trackTimeMillis && (
+                            <div className="text-gray-400 text-xs">
+                              {Math.floor(track.trackTimeMillis / 60000)}:
+                              {String(Math.floor((track.trackTimeMillis % 60000) / 1000)).padStart(2, '0')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -1269,6 +1307,74 @@ export default function MusicDetailModalV4({
                 className="flex-1 py-2 px-4 bg-gradient-to-r from-[#10B981] to-[#34D399] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Friends Who Listened Modal */}
+      {showFriendsWhoListened && (
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-[#1A1A1A] rounded-lg p-6 w-96 max-h-96">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-medium">Friends who listened to {musicDetail?.title}</h3>
+              <button
+                onClick={() => setShowFriendsWhoListened(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            {/* Friends List */}
+            <div className="max-h-64 overflow-y-auto">
+              {mockFriendsWhoListened.map((friend) => (
+                <div key={friend.id} className="flex items-start space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    {friend.name.charAt(0)}
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="text-white font-medium">{friend.name}</span>
+                      <div className="flex items-center space-x-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= friend.rating
+                                ? 'text-[#10B981] fill-[#10B981]'
+                                : 'text-gray-600'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-gray-400 text-sm ml-1">{friend.rating}/5</span>
+                      </div>
+                    </div>
+                    
+                    {/* Review */}
+                    {friend.hasReview && friend.reviewText ? (
+                      <div className="mt-2">
+                        <p className="text-gray-300 text-sm mb-2">{friend.reviewText}</p>
+                        <button className="text-transparent bg-gradient-to-r from-[#10B981] to-[#34D399] bg-clip-text text-xs hover:underline">
+                          View full review
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm mt-2">No review written</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Close Button */}
+            <div className="flex justify-end mt-4 pt-4 border-t border-gray-700">
+              <button
+                onClick={() => setShowFriendsWhoListened(false)}
+                className="py-2 px-4 bg-gradient-to-r from-[#10B981] to-[#34D399] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+              >
+                Close
               </button>
             </div>
           </div>
