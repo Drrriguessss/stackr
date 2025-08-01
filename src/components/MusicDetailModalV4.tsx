@@ -7,7 +7,7 @@ import { musicServiceV2 } from '@/services/musicServiceV2'
 import { musicFunFactsService, type FunFact } from '@/services/musicFunFactsService'
 import { musicMetacriticService, type MetacriticScore } from '@/services/musicMetacriticService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
-import StackrLoadingSkeleton from './StackrLoadingSkeleton'
+import StackrLoadingSkeletonText from './StackrLoadingSkeletonText'
 
 interface MusicDetailModalV4Props {
   isOpen: boolean
@@ -665,9 +665,12 @@ export default function MusicDetailModalV4({
     <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center">
       <div className="bg-[#0B0B0B] w-full h-full md:max-w-4xl md:h-[95vh] md:rounded-2xl overflow-hidden flex flex-col">
         {loading ? (
-          <StackrLoadingSkeleton 
+          <StackrLoadingSkeletonText 
             message={`Loading your ${contentType}...`}
             className="flex-1 justify-center"
+            theme="green"
+            size="medium"
+            speed="normal"
           />
         ) : musicDetail ? (
           <>
