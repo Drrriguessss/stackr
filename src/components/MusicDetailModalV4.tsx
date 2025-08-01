@@ -75,6 +75,12 @@ export default function MusicDetailModalV4({
   const [currentUserReview, setCurrentUserReview] = useState<UserReview | null>(null)
   const [publicReviews, setPublicReviews] = useState<UserReview[]>([])
   const [loadingReviews, setLoadingReviews] = useState(false)
+  
+  // États pour l'édition des reviews
+  const [isEditingReview, setIsEditingReview] = useState(false)
+  const [editRating, setEditRating] = useState(0)
+  const [editReviewText, setEditReviewText] = useState('')
+  const [editIsPublic, setEditIsPublic] = useState(false)
 
   // Mock friends data pour le partage
   const mockFriends = [
@@ -534,6 +540,55 @@ export default function MusicDetailModalV4({
     }
   }
 
+  // Initier l'édition d'une review
+  const handleEditReview = () => {
+    if (!currentUserReview) return
+    
+    setEditRating(currentUserReview.rating)
+    setEditReviewText(currentUserReview.review_text || '')
+    setEditIsPublic(currentUserReview.is_public)
+    setIsEditingReview(true)
+  }
+
+  // Sauvegarder les modifications de la review
+  const handleSaveEditedReview = async () => {
+    if (!musicDetail || editRating === 0) return
+    
+    try {
+      // Utiliser la même fonction de soumission
+      await submitUserReview(editRating, editReviewText, editIsPublic)
+      setIsEditingReview(false)
+    } catch (error) {
+      console.error('❌ Error updating review:', error)
+    }
+  }
+
+  // Annuler l'édition
+  const handleCancelEdit = () => {
+    setIsEditingReview(false)
+    setEditRating(0)
+    setEditReviewText('')
+    setEditIsPublic(false)
+  }
+
+  // Supprimer une review
+  const handleDeleteReview = async () => {
+    if (!musicDetail || !currentUserReview) return
+    
+    try {
+      const success = await userReviewsService.deleteUserReview(musicDetail.id)
+      if (success) {
+        setCurrentUserReview(null)
+        // Recharger les reviews publiques
+        const updatedReviews = await userReviewsService.getPublicReviewsForMedia(musicDetail.id)
+        setPublicReviews(updatedReviews)
+        console.log('✅ Review deleted successfully')
+      }
+    } catch (error) {
+      console.error('❌ Error deleting review:', error)
+    }
+  }
+
   const handleAddToLibrary = (status: MediaStatus) => {
     if (!musicDetail) return
     
@@ -973,34 +1028,125 @@ export default function MusicDetailModalV4({
             {/* Current User Review Display */}
             {currentUserReview && (
               <div className="mb-6">
-                <h3 className="text-white font-medium mb-3">Your Review</h3>
-                <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-green-400">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={16}
-                          className={`${
-                            star <= currentUserReview.rating
-                              ? 'text-green-400 fill-current'
-                              : 'text-gray-600'
-                          }`}
-                        />
-                      ))}
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-white font-medium">Your Review</h3>
+                  {!isEditingReview && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleEditReview}
+                        className="text-green-400 hover:text-green-300 text-sm transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={handleDeleteReview}
+                        className="text-red-400 hover:text-red-300 text-sm transition-colors"
+                      >
+                        Delete
+                      </button>
                     </div>
-                    <span className="text-green-400 text-sm font-medium">{currentUserReview.rating}/5</span>
-                    <span className="text-gray-400 text-xs">
-                      {currentUserReview.is_public ? '(Public)' : '(Private)'}
-                    </span>
-                  </div>
-                  {currentUserReview.review_text && (
-                    <p className="text-gray-300 text-sm mt-2">{currentUserReview.review_text}</p>
                   )}
-                  <div className="text-xs text-gray-500 mt-2">
-                    {new Date(currentUserReview.created_at).toLocaleDateString()}
-                  </div>
                 </div>
+                
+                {isEditingReview ? (
+                  <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-green-400">
+                    {/* Edit Rating */}
+                    <div className="mb-4">
+                      <label className="text-white text-sm font-medium mb-2 block">Rating</label>
+                      <div className="flex items-center space-x-2">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              onClick={() => setEditRating(star)}
+                              className="focus:outline-none"
+                            >
+                              <Star
+                                size={20}
+                                className={`${
+                                  star <= editRating
+                                    ? 'text-green-400 fill-current'
+                                    : 'text-gray-600 hover:text-green-400'
+                                } transition-colors cursor-pointer`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-green-400 text-sm font-medium">{editRating}/5</span>
+                      </div>
+                    </div>
+
+                    {/* Edit Review Text */}
+                    <div className="mb-4">
+                      <label className="text-white text-sm font-medium mb-2 block">Review</label>
+                      <textarea
+                        value={editReviewText}
+                        onChange={(e) => setEditReviewText(e.target.value)}
+                        placeholder="Share your thoughts about this song/album..."
+                        className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-green-400 focus:outline-none resize-none"
+                        rows={3}
+                      />
+                    </div>
+
+                    {/* Edit Privacy */}
+                    <div className="mb-4">
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editIsPublic}
+                          onChange={(e) => setEditIsPublic(e.target.checked)}
+                          className="rounded border-gray-600 bg-gray-700 text-green-400 focus:ring-green-400 focus:ring-offset-0"
+                        />
+                        <span className="text-white text-sm">Make this review public</span>
+                      </label>
+                    </div>
+
+                    {/* Edit Actions */}
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={handleSaveEditedReview}
+                        disabled={editRating === 0}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm"
+                      >
+                        Save Changes
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-green-400">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={16}
+                            className={`${
+                              star <= currentUserReview.rating
+                                ? 'text-green-400 fill-current'
+                                : 'text-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-green-400 text-sm font-medium">{currentUserReview.rating}/5</span>
+                      <span className="text-gray-400 text-xs">
+                        {currentUserReview.is_public ? '(Public)' : '(Private)'}
+                      </span>
+                    </div>
+                    {currentUserReview.review_text && (
+                      <p className="text-gray-300 text-sm mt-2">{currentUserReview.review_text}</p>
+                    )}
+                    <div className="text-xs text-gray-500 mt-2">
+                      {new Date(currentUserReview.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1106,25 +1252,25 @@ export default function MusicDetailModalV4({
                   {albumTracks.map((track: any) => (
                     <button
                       key={track.trackId}
-                      onClick={() => onMusicSelect && onMusicSelect(`track-${track.trackId}`)}
-                      className="flex-shrink-0 w-48 p-3 bg-gray-800 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg transition-colors group"
+                      onClick={() => onMusicSelect && onMusicSelect(track.trackId.toString())}
+                      className="flex-shrink-0 w-32 h-20 p-3 bg-gray-800 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg transition-colors group flex flex-col justify-between"
                     >
-                      <div className="flex items-center space-x-3">
-                        <span className="text-gray-400 text-sm w-6">
+                      <div className="flex items-start space-x-2 w-full">
+                        <span className="text-gray-400 text-xs w-4 flex-shrink-0">
                           {track.trackNumber || '-'}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-white text-sm group-hover:text-[#10B981] transition-colors truncate">
+                          <div className="text-white text-xs group-hover:text-[#10B981] transition-colors leading-tight">
                             {track.trackName}
                           </div>
-                          {track.trackTimeMillis && (
-                            <div className="text-gray-400 text-xs">
-                              {Math.floor(track.trackTimeMillis / 60000)}:
-                              {String(Math.floor((track.trackTimeMillis % 60000) / 1000)).padStart(2, '0')}
-                            </div>
-                          )}
                         </div>
                       </div>
+                      {track.trackTimeMillis && (
+                        <div className="text-gray-400 text-xs text-left">
+                          {Math.floor(track.trackTimeMillis / 60000)}:
+                          {String(Math.floor((track.trackTimeMillis % 60000) / 1000)).padStart(2, '0')}
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>
