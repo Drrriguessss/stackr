@@ -175,7 +175,8 @@ export class MusicServiceV2 {
         },
         description: `"${track.trackName}" by ${track.artistName} - Single from the album "${track.collectionName}"`,
         rating: 4.0 + Math.random() * 1.0,
-        youtubeVideoId: await this.findTrackVideo(track.artistName, track.trackName)
+        youtubeVideoId: await this.findTrackVideo(track.artistName, track.trackName),
+        previewUrl: track.previewUrl
       }
       
     } catch (error) {

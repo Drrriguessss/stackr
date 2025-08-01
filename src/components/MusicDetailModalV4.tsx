@@ -666,6 +666,29 @@ export default function MusicDetailModalV4({
                   )}
                 </div>
                 
+                {/* iTunes Preview Player - Singles seulement */}
+                {isSingle && musicDetail.previewUrl && (
+                  <div className="mt-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse"></div>
+                      <span className="text-white text-sm font-medium">30-second preview</span>
+                      <span className="text-xs text-gray-400">via iTunes</span>
+                    </div>
+                    <audio 
+                      controls 
+                      className="w-full h-10"
+                      preload="metadata"
+                      style={{
+                        background: 'transparent',
+                        outline: 'none'
+                      }}
+                    >
+                      <source src={musicDetail.previewUrl} type="audio/mpeg" />
+                      <p className="text-gray-400 text-sm">Your browser doesn't support audio playback.</p>
+                    </audio>
+                  </div>
+                )}
+                
                 {/* Single Badge + Album Link */}
                 {isSingle && (
                   <div className="flex items-center gap-3 mt-3">
@@ -943,8 +966,9 @@ export default function MusicDetailModalV4({
               </div>
             )}
 
-            {/* User Rating & Review */}
-            <div className="mb-6">
+            {/* User Rating & Review - Seulement si pas de review existante */}
+            {!currentUserReview && (
+              <div className="mb-6">
               <h3 className="text-white font-medium mb-3">Rate this {isAlbum ? 'album' : 'song'}</h3>
               <div className="flex items-center space-x-2">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -1023,7 +1047,8 @@ export default function MusicDetailModalV4({
                   </div>
                 </div>
               )}
-            </div>
+              </div>
+            )}
 
             {/* Current User Review Display */}
             {currentUserReview && (
@@ -1157,37 +1182,60 @@ export default function MusicDetailModalV4({
                 <h3 className="text-white font-medium mb-3">
                   Community Reviews ({publicReviews.length})
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {publicReviews.slice(0, 3).map((review) => (
-                    <div key={review.id} className="bg-gray-800 p-4 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-xs font-medium text-white">
-                            {review.username?.charAt(0) || 'U'}
-                          </div>
-                          <span className="text-white font-medium text-sm">{review.username || 'Anonymous'}</span>
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                size={14}
-                                className={`${
-                                  star <= review.rating
-                                    ? 'text-green-400 fill-current'
-                                    : 'text-gray-600'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-green-400 text-sm">{review.rating}/5</span>
+                    <div key={review.id} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700/50">
+                      {/* Header: Avatar + Username */}
+                      <div className="flex items-center space-x-3 mb-2">
+                        <div className="w-8 h-8 bg-gradient-to-r from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
+                          {review.username?.charAt(0) || 'U'}
                         </div>
-                        <span className="text-xs text-gray-500">
-                          {new Date(review.created_at).toLocaleDateString()}
-                        </span>
+                        <span className="text-white font-medium text-sm">{review.username || 'Anonymous'}</span>
                       </div>
+                      
+                      {/* Rating ligne séparée */}
+                      <div className="flex items-center space-x-2 mb-1">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={14}
+                              className={`${
+                                star <= review.rating
+                                  ? 'text-green-400 fill-current'
+                                  : 'text-gray-600'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-green-400 text-sm font-medium">{review.rating}/5</span>
+                      </div>
+                      
+                      {/* Date en dessous du rating */}
+                      <div className="text-xs text-gray-500 mb-3">
+                        {new Date(review.created_at).toLocaleDateString()}
+                      </div>
+                      
+                      {/* Review text avec padding */}
                       {review.review_text && (
-                        <p className="text-gray-300 text-sm">{review.review_text}</p>
+                        <p className="text-gray-300 text-sm leading-relaxed mb-3">{review.review_text}</p>
                       )}
+                      
+                      {/* Actions: Like, Reply, Share */}
+                      <div className="flex items-center space-x-4 pt-2 border-t border-gray-700/50">
+                        <button className="flex items-center space-x-1 text-gray-400 hover:text-green-400 transition-colors text-xs">
+                          <span>👍</span>
+                          <span>{Math.floor(Math.random() * 20) + 1}</span>
+                        </button>
+                        <button className="flex items-center space-x-1 text-gray-400 hover:text-green-400 transition-colors text-xs">
+                          <span>💬</span>
+                          <span>Reply</span>
+                        </button>
+                        <button className="flex items-center space-x-1 text-gray-400 hover:text-green-400 transition-colors text-xs">
+                          <span>📤</span>
+                          <span>Share</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {publicReviews.length > 3 && (
@@ -1221,7 +1269,7 @@ export default function MusicDetailModalV4({
                         return (
                           <button
                             key={track.trackId}
-                            onClick={() => onMusicSelect && onMusicSelect(track.trackId.toString())}
+                            onClick={() => onMusicSelect && onMusicSelect(`track-${track.trackId}`)}
                             className="w-full p-3 bg-gray-800/50 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg border border-gray-700/50 hover:border-[#10B981]/30 transition-all group"
                           >
                             <div className="flex items-center space-x-3">
@@ -1273,7 +1321,7 @@ export default function MusicDetailModalV4({
                           return (
                             <button
                               key={track.trackId}
-                              onClick={() => onMusicSelect && onMusicSelect(track.trackId.toString())}
+                              onClick={() => onMusicSelect && onMusicSelect(`track-${track.trackId}`)}
                               className="p-4 bg-gray-800/50 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg border border-gray-700/50 hover:border-[#10B981]/30 transition-all group text-left"
                             >
                               <div className="flex items-start space-x-3">
@@ -1328,7 +1376,7 @@ export default function MusicDetailModalV4({
                     return (
                       <button
                         key={track.trackId}
-                        onClick={() => onMusicSelect && onMusicSelect(track.trackId.toString())}
+                        onClick={() => onMusicSelect && onMusicSelect(`track-${track.trackId}`)}
                         className="w-full p-3 bg-gray-800/50 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg border border-gray-700/50 hover:border-[#10B981]/30 transition-all group"
                       >
                         <div className="flex items-center space-x-3">
@@ -1380,7 +1428,7 @@ export default function MusicDetailModalV4({
                       return (
                         <button
                           key={track.trackId}
-                          onClick={() => onMusicSelect && onMusicSelect(track.trackId.toString())}
+                          onClick={() => onMusicSelect && onMusicSelect(`track-${track.trackId}`)}
                           className="p-4 bg-gray-800/50 hover:bg-gradient-to-r hover:from-[#10B981]/10 hover:to-[#34D399]/10 rounded-lg border border-gray-700/50 hover:border-[#10B981]/30 transition-all group text-left"
                         >
                           <div className="flex items-start space-x-3">

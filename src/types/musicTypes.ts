@@ -122,6 +122,7 @@ export interface MusicDetailData {
   description: string
   rating: number
   youtubeVideoId?: string
+  previewUrl?: string
 }
 
 export type MusicSearchResult = MusicTrack | MusicAlbum
