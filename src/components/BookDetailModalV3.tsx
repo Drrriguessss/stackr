@@ -398,7 +398,7 @@ export default function BookDetailModalV3({
           />
         ) : bookDetail ? (
           <>
-            {/* Header */}
+            {/* Header with Book Cover */}
             <div className="relative px-6 pt-6 pb-4 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] border-b border-gray-700/50 shadow-xl">
               <button
                 onClick={onClose}
@@ -407,75 +407,63 @@ export default function BookDetailModalV3({
                 <X size={24} />
               </button>
               
-              <h1 className="text-2xl font-bold text-white pr-12 mb-1">{bookDetail.title}</h1>
-              <div className="flex items-center space-x-3 text-gray-400">
-                <span>{bookDetail.authors?.join(', ')}</span>
-                {bookDetail.publishedDate && (
-                  <>
-                    <span>•</span>
-                    <span>{new Date(bookDetail.publishedDate).getFullYear()}</span>
-                  </>
-                )}
-                {bookDetail.pageCount && (
-                  <>
-                    <span>•</span>
-                    <span>{bookDetail.pageCount} pages</span>
-                  </>
-                )}
+              <div className="flex items-start space-x-4">
+                {/* Small Book Cover */}
+                <div className="w-16 h-20 bg-gray-900 rounded-lg overflow-hidden flex-shrink-0">
+                  {images.length > 0 ? (
+                    <img
+                      src={images[0]}
+                      alt={bookDetail.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                      <BookOpen size={20} className="text-gray-600" />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Title and Info */}
+                <div className="flex-1 pr-12">
+                  <h1 className="text-2xl font-bold text-white mb-1">{bookDetail.title}</h1>
+                  <div className="flex items-center space-x-3 text-gray-400">
+                    <span>{bookDetail.authors?.join(', ')}</span>
+                    {bookDetail.publishedDate && (
+                      <>
+                        <span>•</span>
+                        <span>{new Date(bookDetail.publishedDate).getFullYear()}</span>
+                      </>
+                    )}
+                    {bookDetail.pageCount && (
+                      <>
+                        <span>•</span>
+                        <span>{bookDetail.pageCount} pages</span>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6">
-              {/* Media Section */}
-              <div className="space-y-4 mb-6 mt-6">
-                <div className="relative aspect-[3/4] bg-gray-900 rounded-lg overflow-hidden max-w-sm mx-auto">
-                  {images.length > 0 ? (
-                    <>
-                      <img
-                        src={images[activeImageIndex]}
-                        alt={bookDetail.title}
-                        className="w-full h-full object-cover"
-                      />
-                      {images.length > 1 && (
-                        <>
-                          <button
-                            onClick={prevImage}
-                            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
-                          >
-                            <ChevronLeft size={20} />
-                          </button>
-                          <button
-                            onClick={nextImage}
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
-                          >
-                            <ChevronRight size={20} />
-                          </button>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                      <BookOpen size={48} className="text-gray-600" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Image indicators */}
-                {images.length > 1 && (
-                  <div className="flex justify-center space-x-2">
-                    {images.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setActiveImageIndex(index)}
-                        className={`w-2 h-2 rounded-full ${
-                          index === activeImageIndex ? 'bg-green-500' : 'bg-gray-600'
-                        }`}
-                      />
+              {/* Additional Images Gallery (if multiple images exist) */}
+              {images.length > 1 && (
+                <div className="space-y-4 mb-6 mt-6">
+                  <h3 className="text-white font-semibold">Additional Images</h3>
+                  <div className="flex space-x-3 overflow-x-auto pb-2">
+                    {images.slice(1).map((image, index) => (
+                      <div key={index + 1} className="w-16 h-20 bg-gray-900 rounded-lg overflow-hidden flex-shrink-0">
+                        <img
+                          src={image}
+                          alt={`${bookDetail.title} - Image ${index + 2}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Action Buttons - Same as MusicDetailModalV4 */}
               <div className="flex flex-col space-y-3 mb-6">
