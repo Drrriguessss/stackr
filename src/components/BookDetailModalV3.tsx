@@ -108,30 +108,52 @@ export default function BookDetailModalV3({
   const getHighQualityImageUrl = () => {
     if (!bookDetail?.imageLinks) return images[0]
     
-    // Try to get the highest quality image available
     const imageLinks = bookDetail.imageLinks
-    let bestUrl = imageLinks.large || imageLinks.medium || imageLinks.small || imageLinks.thumbnail || images[0]
     
-    // Enhance Google Books URLs for maximum quality
-    if (bestUrl && bestUrl.includes('books.google.com/books/content')) {
-      bestUrl = bestUrl
-        .replace(/zoom=\d+/, 'zoom=0') // zoom=0 gives largest size
-        .replace(/&w=\d+/, '') // Remove width restriction
-        .replace(/&h=\d+/, '') // Remove height restriction
-        .replace('&edge=curl', '') // Remove edge curl
-        .replace('http://', 'https://') // Ensure HTTPS
-        .replace('&img=1', '&img=1&zoom=0') // Force largest size
+    // Try multiple strategies to get the best image
+    const candidates = [
+      imageLinks.extraLarge,
+      imageLinks.large,
+      imageLinks.medium,
+      imageLinks.small,
+      imageLinks.thumbnail,
+      images[0]
+    ].filter(Boolean)
+    
+    // For each candidate, try to enhance it
+    for (const url of candidates) {
+      if (!url) continue
+      
+      let enhancedUrl = url
+      
+      // Enhance Google Books URLs for maximum quality
+      if (url.includes('books.google.com/books/content')) {
+        enhancedUrl = url
+          .replace(/zoom=\d+/, 'zoom=0') // zoom=0 gives largest size
+          .replace(/&w=\d+/, '') // Remove width restriction
+          .replace(/&h=\d+/, '') // Remove height restriction
+          .replace('&edge=curl', '') // Remove edge curl
+          .replace('http://', 'https://') // Ensure HTTPS
+        
+        // Try to force even larger size by manipulating the URL
+        if (!enhancedUrl.includes('zoom=')) {
+          enhancedUrl += '&zoom=0'
+        }
+      }
+      
+      // If it's a googleusercontent URL, force larger dimensions
+      if (url.includes('books.googleusercontent.com')) {
+        enhancedUrl = url
+          .replace(/&w=\d+/, '&w=800') // Force larger width
+          .replace(/&h=\d+/, '&h=1200') // Force larger height
+          .replace('http://', 'https://')
+      }
+      
+      console.log(`📚 Enhanced image URL (${candidates.indexOf(url) + 1}/${candidates.length}):`, enhancedUrl)
+      return enhancedUrl
     }
     
-    // If it's a googleusercontent URL, force larger dimensions
-    if (bestUrl && bestUrl.includes('books.googleusercontent.com')) {
-      bestUrl = bestUrl
-        .replace(/&w=\d+/, '&w=800') // Force larger width
-        .replace(/&h=\d+/, '&h=1200') // Force larger height
-    }
-    
-    console.log('📚 High quality image URL for popup:', bestUrl)
-    return bestUrl
+    return images[0] || ''
   }
 
   // Mock friends data pour le partage
@@ -616,7 +638,7 @@ export default function BookDetailModalV3({
             {/* Image Popup */}
             {showImagePopup && images.length > 0 && bookDetail && (
               <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4" onClick={() => setShowImagePopup(false)}>
-                <div className="relative max-w-5xl max-h-[95vh]">
+                <div className="relative w-full max-w-2xl h-full max-h-[90vh] flex items-center justify-center">
                   <button
                     onClick={() => setShowImagePopup(false)}
                     className="absolute top-4 right-4 text-white bg-black/70 hover:bg-black/90 rounded-full p-3 z-10 shadow-lg"
@@ -627,6 +649,10 @@ export default function BookDetailModalV3({
                     src={getHighQualityImageUrl()}
                     alt={bookDetail.title}
                     className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                    style={{
+                      minHeight: '400px',
+                      minWidth: '300px'
+                    }}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
