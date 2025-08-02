@@ -579,6 +579,26 @@ export default function BookDetailModalV3({
                 )}
               </div>
 
+            {/* Image Popup */}
+            {showImagePopup && images.length > 0 && (
+              <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setShowImagePopup(false)}>
+                <div className="relative max-w-4xl max-h-[90vh]">
+                  <button
+                    onClick={() => setShowImagePopup(false)}
+                    className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 z-10"
+                  >
+                    <X size={24} />
+                  </button>
+                  <img
+                    src={images[0]}
+                    alt={bookDetail.title}
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              </div>
+            )}
+
               {/* Rating System */}
               {!currentUserReview && (
                 <div className="mb-6">
