@@ -72,6 +72,7 @@ export default function BookDetailModalV3({
   const [userReview, setUserReview] = useState('')
   const [reviewPrivacy, setReviewPrivacy] = useState<'private' | 'public'>('private')
   const [showProductSheet, setShowProductSheet] = useState(false)
+  const [showImagePopup, setShowImagePopup] = useState(false)
   const [productSheetData, setProductSheetData] = useState({
     readDate: '',
     format: '',
