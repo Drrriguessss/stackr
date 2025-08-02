@@ -478,20 +478,19 @@ export default function BookDetailModalV3({
                 
                 {/* Title and Info */}
                 <div className="flex-1 pr-12">
-                  <h1 className="text-2xl font-bold text-white mb-1">{bookDetail.title}</h1>
-                  <div className="flex items-center space-x-3 text-gray-400">
-                    <span>{bookDetail.authors?.join(', ')}</span>
+                  <h1 className="text-xl font-bold text-white mb-1">{bookDetail.title}</h1>
+                  <div className="text-sm text-gray-400 mb-1">
+                    {bookDetail.authors?.join(', ')}
+                  </div>
+                  <div className="flex items-center space-x-2 text-xs text-gray-500">
                     {bookDetail.publishedDate && (
-                      <>
-                        <span>•</span>
-                        <span>{new Date(bookDetail.publishedDate).getFullYear()}</span>
-                      </>
+                      <span>{new Date(bookDetail.publishedDate).getFullYear()}</span>
+                    )}
+                    {bookDetail.publishedDate && bookDetail.pageCount && (
+                      <span>•</span>
                     )}
                     {bookDetail.pageCount && (
-                      <>
-                        <span>•</span>
-                        <span>{bookDetail.pageCount} pages</span>
-                      </>
+                      <span>{bookDetail.pageCount} pages</span>
                     )}
                   </div>
                 </div>
