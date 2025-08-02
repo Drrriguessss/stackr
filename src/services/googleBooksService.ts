@@ -231,7 +231,7 @@ class GoogleBooksService {
     }
 
     // 2. Mapping manuel pour les livres/auteurs populaires
-    const titleLower = book.volumeInfo.title.toLowerCase()
+    const titleLower = (book.volumeInfo.title || '').toLowerCase()
     const mappings: { [key: string]: string } = {
       // Fiction populaire
       "harry potter and the philosopher's stone": "J.K. Rowling",

@@ -104,119 +104,92 @@ export default function BookDetailModalV3({
            productSheetData.format !== ''
   }
 
-  // Check if Open Library cover exists and is not the default gray image
-  const checkOpenLibraryCover = async (isbn: string, size: 'S' | 'M' | 'L' = 'L'): Promise<string | null> => {
-    try {
-      const cleanISBN = isbn.replace(/[-\s]/g, '')
-      const url = `https://covers.openlibrary.org/b/isbn/${cleanISBN}-${size}.jpg`
-      
-      const response = await fetch(url, { method: 'HEAD' })
-      
-      // Check if it's a valid image (not the default gray placeholder)
-      const contentLength = response.headers.get('content-length')
-      const isValidCover = response.ok && contentLength && parseInt(contentLength) > 1000 // Gray placeholder is very small
-      
-      console.log(`📚 Open Library check for ISBN ${cleanISBN}: ${isValidCover ? 'FOUND' : 'NOT FOUND'} (${contentLength} bytes)`)
-      
-      return isValidCover ? url : null
-    } catch (error) {
-      console.log('📚 Open Library check failed:', error)
-      return null
-    }
+  // Open Library Cover System - Completely Rewritten
+  const getOpenLibraryCover = (isbn: string, size: 'S' | 'M' | 'L') => {
+    const cleanISBN = isbn.replace(/[-\s]/g, '')
+    return `https://covers.openlibrary.org/b/isbn/${cleanISBN}-${size}.jpg`
   }
 
-  // Get book cover from Open Library (high quality alternative)
-  const getOpenLibraryCoverUrl = (size: 'S' | 'M' | 'L' = 'L') => {
-    if (!bookDetail) return null
-    
-    // Try ISBN-13 first, then ISBN-10
-    const isbn = bookDetail.isbn13 || bookDetail.isbn10
+  // Get best thumbnail image (header)
+  const getBookThumbnail = () => {
+    // 1. Try Open Library Medium first if we have ISBN
+    const isbn = bookDetail?.isbn13 || bookDetail?.isbn10
     if (isbn) {
-      const cleanISBN = isbn.replace(/[-\s]/g, '')
-      const url = `https://covers.openlibrary.org/b/isbn/${cleanISBN}-${size}.jpg`
-      console.log('📚 Trying Open Library cover for ISBN:', cleanISBN, '→', url)
-      return url
+      const openLibraryUrl = getOpenLibraryCover(isbn, 'M')
+      console.log('📚 Using Open Library thumbnail:', openLibraryUrl)
+      return openLibraryUrl
     }
     
-    return null
+    // 2. Fallback to Google Books
+    if (images && images.length > 0) {
+      console.log('📚 Using Google Books thumbnail:', images[0])
+      return images[0]
+    }
+    
+    return bookDetail?.imageLinks?.thumbnail || ''
   }
 
-  // Get Google Books enhanced URL
-  const getGoogleBooksEnhancedUrl = () => {
-    if (!bookDetail?.imageLinks) return images[0]
+  // Get best popup image (large)
+  const getBookPopupImage = () => {
+    // 1. Try Open Library Large first if we have ISBN
+    const isbn = bookDetail?.isbn13 || bookDetail?.isbn10
+    if (isbn) {
+      const openLibraryUrl = getOpenLibraryCover(isbn, 'L')
+      console.log('📚 Using Open Library popup:', openLibraryUrl)
+      return openLibraryUrl
+    }
     
-    const imageLinks = bookDetail.imageLinks
-    
-    // Try Google Books with enhancements
-    const candidates = [
-      imageLinks.extraLarge,
-      imageLinks.large,
-      imageLinks.medium,
-      imageLinks.small,
-      imageLinks.thumbnail,
-      images[0]
-    ].filter(Boolean)
-    
-    // For each candidate, try to enhance it
-    for (const url of candidates) {
-      if (!url) continue
+    // 2. Fallback to enhanced Google Books
+    if (bookDetail?.imageLinks) {
+      const imageLinks = bookDetail.imageLinks
+      let bestUrl = imageLinks.large || imageLinks.medium || imageLinks.small || imageLinks.thumbnail
       
-      let enhancedUrl = url
-      
-      // Enhance Google Books URLs for maximum quality
-      if (url.includes('books.google.com/books/content')) {
-        enhancedUrl = url
-          .replace(/zoom=\d+/, 'zoom=0') // zoom=0 gives largest size
-          .replace(/&w=\d+/, '') // Remove width restriction
-          .replace(/&h=\d+/, '') // Remove height restriction
-          .replace('&edge=curl', '') // Remove edge curl
-          .replace('http://', 'https://') // Ensure HTTPS
-        
-        // Try to force even larger size by manipulating the URL
-        if (!enhancedUrl.includes('zoom=')) {
-          enhancedUrl += '&zoom=0'
-        }
-      }
-      
-      // If it's a googleusercontent URL, force larger dimensions
-      if (url.includes('books.googleusercontent.com')) {
-        enhancedUrl = url
-          .replace(/&w=\d+/, '&w=800') // Force larger width
-          .replace(/&h=\d+/, '&h=1200') // Force larger height
+      if (bestUrl && bestUrl.includes('books.google.com/books/content')) {
+        bestUrl = bestUrl
+          .replace(/zoom=\d+/, 'zoom=0')
+          .replace(/&w=\d+/, '')
+          .replace(/&h=\d+/, '')
+          .replace('&edge=curl', '')
           .replace('http://', 'https://')
       }
       
-      console.log(`📚 Using enhanced Google Books URL:`, enhancedUrl)
-      return enhancedUrl
+      console.log('📚 Using enhanced Google Books popup:', bestUrl)
+      return bestUrl
     }
     
-    return images[0] || ''
+    return images?.[0] || ''
   }
 
-  // Get highest quality image for popup
-  const getHighQualityImageUrl = () => {
-    // First, try Open Library for highest quality
-    const openLibraryUrl = getOpenLibraryCoverUrl('L')
-    if (openLibraryUrl) {
-      console.log('📚 Trying Open Library high-quality cover first')
-      return openLibraryUrl
-    }
+  // Fallback handler for Open Library errors
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>, isPopup: boolean = false) => {
+    const target = e.target as HTMLImageElement
     
-    // Fallback to Google Books
-    return getGoogleBooksEnhancedUrl()
-  }
-
-  // Get medium quality image for thumbnail with Open Library fallback
-  const getThumbnailImageUrl = () => {
-    // Try Open Library medium size first
-    const openLibraryUrl = getOpenLibraryCoverUrl('M')
-    if (openLibraryUrl) {
-      console.log('📚 Trying Open Library medium cover for thumbnail first')
-      return openLibraryUrl
+    // Only fallback if it's an Open Library URL that failed
+    if (target.src.includes('openlibrary.org')) {
+      console.log('📚 Open Library failed, switching to Google Books')
+      
+      if (isPopup) {
+        // For popup, use enhanced Google Books
+        if (bookDetail?.imageLinks) {
+          const imageLinks = bookDetail.imageLinks
+          let fallbackUrl = imageLinks.large || imageLinks.medium || imageLinks.small || imageLinks.thumbnail
+          
+          if (fallbackUrl && fallbackUrl.includes('books.google.com/books/content')) {
+            fallbackUrl = fallbackUrl
+              .replace(/zoom=\d+/, 'zoom=0')
+              .replace('&edge=curl', '')
+              .replace('http://', 'https://')
+          }
+          
+          target.src = fallbackUrl || images?.[0] || ''
+        } else {
+          target.src = images?.[0] || ''
+        }
+      } else {
+        // For thumbnail, use Google Books directly
+        target.src = images?.[0] || bookDetail?.imageLinks?.thumbnail || ''
+      }
     }
-    
-    // Fallback to Google Books
-    return images[0] || bookDetail?.imageLinks?.thumbnail || ''
   }
 
   // Mock friends data pour le partage
@@ -529,18 +502,12 @@ export default function BookDetailModalV3({
                   onClick={() => images.length > 0 && setShowImagePopup(true)}
                   className="w-16 h-20 bg-gray-900 rounded-lg overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-green-500 transition-all cursor-pointer"
                 >
-                  {images.length > 0 ? (
+                  {(bookDetail?.isbn13 || bookDetail?.isbn10 || images.length > 0) ? (
                     <img
-                      src={getThumbnailImageUrl()}
+                      src={getBookThumbnail()}
                       alt={bookDetail.title}
                       className="w-full h-full object-contain bg-gray-800"
-                      onError={(e) => {
-                        console.log('📚 Open Library thumbnail failed, falling back to Google Books')
-                        const target = e.target as HTMLImageElement
-                        if (target.src.includes('openlibrary.org')) {
-                          target.src = images[0] || bookDetail?.imageLinks?.thumbnail || ''
-                        }
-                      }}
+                      onError={(e) => handleImageError(e, false)}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-800">
@@ -716,20 +683,14 @@ export default function BookDetailModalV3({
                     <X size={24} />
                   </button>
                   <img
-                    src={getHighQualityImageUrl()}
+                    src={getBookPopupImage()}
                     alt={bookDetail.title}
                     className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                     style={{
                       minHeight: '400px',
                       minWidth: '300px'
                     }}
-                    onError={(e) => {
-                      console.log('📚 Open Library popup image failed, falling back to Google Books')
-                      const target = e.target as HTMLImageElement
-                      if (target.src.includes('openlibrary.org')) {
-                        target.src = getGoogleBooksEnhancedUrl()
-                      }
-                    }}
+                    onError={(e) => handleImageError(e, true)}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
