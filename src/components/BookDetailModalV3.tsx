@@ -104,92 +104,53 @@ export default function BookDetailModalV3({
            productSheetData.format !== ''
   }
 
-  // Open Library Cover System - Completely Rewritten
-  const getOpenLibraryCover = (isbn: string, size: 'S' | 'M' | 'L') => {
-    const cleanISBN = isbn.replace(/[-\s]/g, '')
-    return `https://covers.openlibrary.org/b/isbn/${cleanISBN}-${size}.jpg`
-  }
-
-  // Get best thumbnail image (header)
+  // Google Books Image System - Simplified and Reliable
+  
+  // Get best thumbnail image for header
   const getBookThumbnail = () => {
-    // 1. Try Open Library Medium first if we have ISBN
-    const isbn = bookDetail?.isbn13 || bookDetail?.isbn10
-    if (isbn) {
-      const openLibraryUrl = getOpenLibraryCover(isbn, 'M')
-      console.log('📚 Using Open Library thumbnail:', openLibraryUrl)
-      return openLibraryUrl
-    }
-    
-    // 2. Fallback to Google Books
+    // Use Google Books images in priority order
     if (images && images.length > 0) {
       console.log('📚 Using Google Books thumbnail:', images[0])
       return images[0]
     }
     
-    return bookDetail?.imageLinks?.thumbnail || ''
-  }
-
-  // Get best popup image (large)
-  const getBookPopupImage = () => {
-    // 1. Try Open Library Large first if we have ISBN
-    const isbn = bookDetail?.isbn13 || bookDetail?.isbn10
-    if (isbn) {
-      const openLibraryUrl = getOpenLibraryCover(isbn, 'L')
-      console.log('📚 Using Open Library popup:', openLibraryUrl)
-      return openLibraryUrl
+    // Fallback to bookDetail imageLinks
+    if (bookDetail?.imageLinks) {
+      const url = bookDetail.imageLinks.thumbnail || bookDetail.imageLinks.small || bookDetail.imageLinks.medium
+      console.log('📚 Using bookDetail thumbnail:', url)
+      return url
     }
     
-    // 2. Fallback to enhanced Google Books
+    return ''
+  }
+
+  // Get enhanced popup image for large display
+  const getBookPopupImage = () => {
+    // Priority: Use enhanced Google Books URLs
     if (bookDetail?.imageLinks) {
       const imageLinks = bookDetail.imageLinks
       let bestUrl = imageLinks.large || imageLinks.medium || imageLinks.small || imageLinks.thumbnail
       
       if (bestUrl && bestUrl.includes('books.google.com/books/content')) {
         bestUrl = bestUrl
-          .replace(/zoom=\d+/, 'zoom=0')
-          .replace(/&w=\d+/, '')
-          .replace(/&h=\d+/, '')
-          .replace('&edge=curl', '')
-          .replace('http://', 'https://')
+          .replace(/zoom=\d+/, 'zoom=0') // Maximum zoom for quality
+          .replace(/&w=\d+/, '') // Remove width restrictions
+          .replace(/&h=\d+/, '') // Remove height restrictions
+          .replace('&edge=curl', '') // Remove edge effects
+          .replace('http://', 'https://') // Force HTTPS
       }
       
       console.log('📚 Using enhanced Google Books popup:', bestUrl)
       return bestUrl
     }
     
-    return images?.[0] || ''
-  }
-
-  // Fallback handler for Open Library errors
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>, isPopup: boolean = false) => {
-    const target = e.target as HTMLImageElement
-    
-    // Only fallback if it's an Open Library URL that failed
-    if (target.src.includes('openlibrary.org')) {
-      console.log('📚 Open Library failed, switching to Google Books')
-      
-      if (isPopup) {
-        // For popup, use enhanced Google Books
-        if (bookDetail?.imageLinks) {
-          const imageLinks = bookDetail.imageLinks
-          let fallbackUrl = imageLinks.large || imageLinks.medium || imageLinks.small || imageLinks.thumbnail
-          
-          if (fallbackUrl && fallbackUrl.includes('books.google.com/books/content')) {
-            fallbackUrl = fallbackUrl
-              .replace(/zoom=\d+/, 'zoom=0')
-              .replace('&edge=curl', '')
-              .replace('http://', 'https://')
-          }
-          
-          target.src = fallbackUrl || images?.[0] || ''
-        } else {
-          target.src = images?.[0] || ''
-        }
-      } else {
-        // For thumbnail, use Google Books directly
-        target.src = images?.[0] || bookDetail?.imageLinks?.thumbnail || ''
-      }
+    // Fallback to images array
+    if (images && images.length > 0) {
+      console.log('📚 Using images array for popup:', images[0])
+      return images[0]
     }
+    
+    return ''
   }
 
   // Mock friends data pour le partage
@@ -499,15 +460,14 @@ export default function BookDetailModalV3({
               <div className="flex items-start space-x-4">
                 {/* Small Book Cover - Clickable */}
                 <button
-                  onClick={() => images.length > 0 && setShowImagePopup(true)}
+                  onClick={() => getBookThumbnail() && setShowImagePopup(true)}
                   className="w-16 h-20 bg-gray-900 rounded-lg overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-green-500 transition-all cursor-pointer"
                 >
-                  {(bookDetail?.isbn13 || bookDetail?.isbn10 || images.length > 0) ? (
+                  {getBookThumbnail() ? (
                     <img
                       src={getBookThumbnail()}
                       alt={bookDetail.title}
                       className="w-full h-full object-contain bg-gray-800"
-                      onError={(e) => handleImageError(e, false)}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-800">
@@ -656,7 +616,7 @@ export default function BookDetailModalV3({
               </div>
 
             {/* Image Popup */}
-            {showImagePopup && images.length > 0 && bookDetail && (
+            {showImagePopup && getBookPopupImage() && bookDetail && (
               <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4" onClick={() => setShowImagePopup(false)}>
                 <div className="relative w-full max-w-2xl h-full max-h-[90vh] flex items-center justify-center">
                   <button
@@ -673,7 +633,6 @@ export default function BookDetailModalV3({
                       minHeight: '400px',
                       minWidth: '300px'
                     }}
-                    onError={(e) => handleImageError(e, true)}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
