@@ -104,6 +104,25 @@ export default function BookDetailModalV3({
            productSheetData.format !== ''
   }
 
+  // Get highest quality image for popup
+  const getHighQualityImageUrl = () => {
+    if (!bookDetail?.imageLinks) return images[0]
+    
+    // Try to get the highest quality image available
+    const imageLinks = bookDetail.imageLinks
+    let bestUrl = imageLinks.large || imageLinks.medium || imageLinks.small || imageLinks.thumbnail || images[0]
+    
+    // Enhance Google Books URLs for maximum quality
+    if (bestUrl && bestUrl.includes('books.google.com/books/content')) {
+      bestUrl = bestUrl
+        .replace(/zoom=\d/, 'zoom=1') // Maximum zoom
+        .replace('&edge=curl', '') // Remove edge curl
+        .replace('http://', 'https://') // Ensure HTTPS
+    }
+    
+    return bestUrl
+  }
+
   // Mock friends data pour le partage
   const mockFriends = [
     { id: 1, name: 'Axel', avatar: null },
@@ -418,7 +437,7 @@ export default function BookDetailModalV3({
                     <img
                       src={images[0]}
                       alt={bookDetail.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain bg-gray-800"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-800">
@@ -584,21 +603,25 @@ export default function BookDetailModalV3({
               </div>
 
             {/* Image Popup */}
-            {showImagePopup && images.length > 0 && (
-              <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setShowImagePopup(false)}>
-                <div className="relative max-w-4xl max-h-[90vh]">
+            {showImagePopup && images.length > 0 && bookDetail && (
+              <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4" onClick={() => setShowImagePopup(false)}>
+                <div className="relative max-w-5xl max-h-[95vh]">
                   <button
                     onClick={() => setShowImagePopup(false)}
-                    className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 z-10"
+                    className="absolute top-4 right-4 text-white bg-black/70 hover:bg-black/90 rounded-full p-3 z-10 shadow-lg"
                   >
                     <X size={24} />
                   </button>
                   <img
-                    src={images[0]}
+                    src={getHighQualityImageUrl()}
                     alt={bookDetail.title}
-                    className="max-w-full max-h-full object-contain rounded-lg"
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                     onClick={(e) => e.stopPropagation()}
                   />
+                  <div className="absolute bottom-4 left-4 text-white bg-black/70 px-4 py-2 rounded-lg">
+                    <p className="font-semibold">{bookDetail.title}</p>
+                    <p className="text-sm text-gray-300">{bookDetail.authors?.join(', ')}</p>
+                  </div>
                 </div>
               </div>
             )}
