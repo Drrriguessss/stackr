@@ -104,13 +104,36 @@ export default function BookDetailModalV3({
            productSheetData.format !== ''
   }
 
+  // Get book cover from Open Library (high quality alternative)
+  const getOpenLibraryCoverUrl = (size: 'S' | 'M' | 'L' = 'L') => {
+    if (!bookDetail) return null
+    
+    // Try ISBN-13 first, then ISBN-10
+    const isbn = bookDetail.isbn13 || bookDetail.isbn10
+    if (isbn) {
+      const cleanISBN = isbn.replace(/[-\s]/g, '')
+      const url = `https://covers.openlibrary.org/b/isbn/${cleanISBN}-${size}.jpg`
+      console.log('📚 Trying Open Library cover for ISBN:', cleanISBN, '→', url)
+      return url
+    }
+    
+    return null
+  }
+
   // Get highest quality image for popup
   const getHighQualityImageUrl = () => {
     if (!bookDetail?.imageLinks) return images[0]
     
+    // First, try Open Library for highest quality
+    const openLibraryUrl = getOpenLibraryCoverUrl('L')
+    if (openLibraryUrl) {
+      console.log('📚 Using Open Library high-quality cover')
+      return openLibraryUrl
+    }
+    
     const imageLinks = bookDetail.imageLinks
     
-    // Try multiple strategies to get the best image
+    // Fallback to Google Books with enhancements
     const candidates = [
       imageLinks.extraLarge,
       imageLinks.large,
@@ -149,11 +172,24 @@ export default function BookDetailModalV3({
           .replace('http://', 'https://')
       }
       
-      console.log(`📚 Enhanced image URL (${candidates.indexOf(url) + 1}/${candidates.length}):`, enhancedUrl)
+      console.log(`📚 Enhanced Google Books URL (${candidates.indexOf(url) + 1}/${candidates.length}):`, enhancedUrl)
       return enhancedUrl
     }
     
     return images[0] || ''
+  }
+
+  // Get medium quality image for thumbnail with Open Library fallback
+  const getThumbnailImageUrl = () => {
+    // Try Open Library medium size first
+    const openLibraryUrl = getOpenLibraryCoverUrl('M')
+    if (openLibraryUrl) {
+      console.log('📚 Using Open Library medium cover for thumbnail')
+      return openLibraryUrl
+    }
+    
+    // Fallback to Google Books
+    return images[0] || bookDetail?.imageLinks?.thumbnail || ''
   }
 
   // Mock friends data pour le partage
@@ -468,9 +504,14 @@ export default function BookDetailModalV3({
                 >
                   {images.length > 0 ? (
                     <img
-                      src={images[0]}
+                      src={getThumbnailImageUrl()}
                       alt={bookDetail.title}
                       className="w-full h-full object-contain bg-gray-800"
+                      onError={(e) => {
+                        console.log('📚 Thumbnail failed, falling back to Google Books')
+                        const target = e.target as HTMLImageElement
+                        target.src = images[0] || bookDetail?.imageLinks?.thumbnail || ''
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-800">
@@ -652,6 +693,11 @@ export default function BookDetailModalV3({
                     style={{
                       minHeight: '400px',
                       minWidth: '300px'
+                    }}
+                    onError={(e) => {
+                      console.log('📚 High quality image failed, falling back to Google Books')
+                      const target = e.target as HTMLImageElement
+                      target.src = images[0] || bookDetail?.imageLinks?.large || bookDetail?.imageLinks?.medium || ''
                     }}
                     onClick={(e) => e.stopPropagation()}
                   />
