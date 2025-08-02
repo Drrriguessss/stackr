@@ -115,11 +115,22 @@ export default function BookDetailModalV3({
     // Enhance Google Books URLs for maximum quality
     if (bestUrl && bestUrl.includes('books.google.com/books/content')) {
       bestUrl = bestUrl
-        .replace(/zoom=\d/, 'zoom=1') // Maximum zoom
+        .replace(/zoom=\d+/, 'zoom=0') // zoom=0 gives largest size
+        .replace(/&w=\d+/, '') // Remove width restriction
+        .replace(/&h=\d+/, '') // Remove height restriction
         .replace('&edge=curl', '') // Remove edge curl
         .replace('http://', 'https://') // Ensure HTTPS
+        .replace('&img=1', '&img=1&zoom=0') // Force largest size
     }
     
+    // If it's a googleusercontent URL, force larger dimensions
+    if (bestUrl && bestUrl.includes('books.googleusercontent.com')) {
+      bestUrl = bestUrl
+        .replace(/&w=\d+/, '&w=800') // Force larger width
+        .replace(/&h=\d+/, '&h=1200') // Force larger height
+    }
+    
+    console.log('📚 High quality image URL for popup:', bestUrl)
     return bestUrl
   }
 
@@ -618,10 +629,6 @@ export default function BookDetailModalV3({
                     className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <div className="absolute bottom-4 left-4 text-white bg-black/70 px-4 py-2 rounded-lg">
-                    <p className="font-semibold">{bookDetail.title}</p>
-                    <p className="text-sm text-gray-300">{bookDetail.authors?.join(', ')}</p>
-                  </div>
                 </div>
               </div>
             )}
