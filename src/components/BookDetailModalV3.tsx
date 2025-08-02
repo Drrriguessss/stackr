@@ -500,10 +500,10 @@ export default function BookDetailModalV3({
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6">
 
-              {/* Action Buttons - Same as MusicDetailModalV4 */}
-              <div className="flex flex-col space-y-3 mb-6">
+              {/* Action Buttons - Add to Library + Share */}
+              <div className="flex space-x-3 mb-6 mt-6">
                 {/* Status Button */}
-                <div className="relative">
+                <div className="relative flex-1">
                   <button
                     onClick={() => setShowStatusDropdown(!showStatusDropdown)}
                     className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-800 transition-all duration-200 flex items-center justify-center space-x-2"
@@ -518,79 +518,30 @@ export default function BookDetailModalV3({
                         <button
                           key={status.value}
                           onClick={() => handleAddToLibrary(status.value as MediaStatus)}
-                          className="w-full px-4 py-3 text-left text-white hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg"
+                          className="w-full px-4 py-3 text-left text-white hover:bg-gray-700 first:rounded-t-lg"
                         >
                           {status.label}
                         </button>
                       ))}
+                      {libraryItem && (
+                        <button
+                          onClick={() => {
+                            if (onDeleteItem) {
+                              onDeleteItem(libraryItem.id)
+                              setShowStatusDropdown(false)
+                              setSelectedStatus(null)
+                            }
+                          }}
+                          className="w-full px-4 py-3 text-left text-red-400 hover:bg-gray-700 last:rounded-b-lg"
+                        >
+                          Remove from Library
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
 
-              </div>
-
-              {/* Actions - Same layout as MusicDetailModalV4 */}
-              <div className="flex items-center justify-center space-x-4 mb-6">
-                <div className="relative">
-                  <button
-                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                      selectedStatus
-                        ? 'bg-gradient-to-r from-[#10B981] to-[#34D399] text-white border-0'
-                        : 'bg-gray-800 text-white hover:bg-gray-700'
-                    }`}
-                  >
-                    {formatStatusForDisplay(selectedStatus)}
-                  </button>
-                  
-                  {showStatusDropdown && (
-                    <div className="absolute top-full mt-2 bg-gray-800 rounded-lg shadow-lg z-10 min-w-48">
-                      <button
-                        onClick={() => handleAddToLibrary('want-to-read')}
-                        className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700 first:rounded-t-lg"
-                      >
-                        Want To Read
-                      </button>
-                      <button
-                        onClick={() => handleAddToLibrary('currently-reading')}
-                        className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700"
-                      >
-                        Currently Reading
-                      </button>
-                      <button
-                        onClick={() => handleAddToLibrary('read')}
-                        className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700"
-                      >
-                        Read
-                      </button>
-                      <button
-                        onClick={() => handleAddToLibrary('paused')}
-                        className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700"
-                      >
-                        Paused
-                      </button>
-                      <button
-                        onClick={() => handleAddToLibrary('dropped')}
-                        className="block w-full text-left px-4 py-2 text-white hover:bg-gray-700"
-                      >
-                        Dropped
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (bookDetail && onDeleteItem && libraryItem) {
-                            onDeleteItem(libraryItem.id)
-                            setShowStatusDropdown(false)
-                            setSelectedStatus(null)
-                          }
-                        }}
-                        className="block w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 last:rounded-b-lg"
-                      >
-                        Remove from Library
-                      </button>
-                    </div>
-                  )}
-                </div>
-                
+                {/* Share Button */}
                 <button 
                   onClick={() => setShowShareModal(true)}
                   className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
@@ -598,21 +549,24 @@ export default function BookDetailModalV3({
                   <Share size={20} />
                   <span>Share</span>
                 </button>
-                
-                {/* Product Sheet Button - Only show for read */}
-                {selectedStatus === 'read' && (
+              </div>
+
+              {/* Product Sheet Button - Only show for read */}
+              {selectedStatus === 'read' && (
+                <div className="mb-6">
                   <button
                     onClick={() => setShowProductSheet(true)}
-                    className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
                     style={isProductSheetCompleted() ? {
                       boxShadow: '0 0 0 2px #10B981, 0 4px 8px rgba(16, 185, 129, 0.3)'
                     } : {}}
                     title="Book Sheet"
                   >
                     <FileText size={20} />
+                    <span>Book Sheet</span>
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
             {/* Image Popup */}
             {showImagePopup && getBookPopupImage() && bookDetail && (
