@@ -409,8 +409,11 @@ export default function BookDetailModalV3({
               </button>
               
               <div className="flex items-start space-x-4">
-                {/* Small Book Cover */}
-                <div className="w-16 h-20 bg-gray-900 rounded-lg overflow-hidden flex-shrink-0">
+                {/* Small Book Cover - Clickable */}
+                <button
+                  onClick={() => images.length > 0 && setShowImagePopup(true)}
+                  className="w-16 h-20 bg-gray-900 rounded-lg overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-green-500 transition-all cursor-pointer"
+                >
                   {images.length > 0 ? (
                     <img
                       src={images[0]}
@@ -422,7 +425,7 @@ export default function BookDetailModalV3({
                       <BookOpen size={20} className="text-gray-600" />
                     </div>
                   )}
-                </div>
+                </button>
                 
                 {/* Title and Info */}
                 <div className="flex-1 pr-12">
