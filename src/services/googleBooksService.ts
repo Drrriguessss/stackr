@@ -473,11 +473,24 @@ class GoogleBooksService {
   cleanDescription(description: string): string {
     if (!description) return ''
     return description
+      // Remove all HTML tags (including self-closing and nested)
       .replace(/<[^>]*>/g, '')
+      // Clean HTML entities
       .replace(/&quot;/g, '"')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&ndash;/g, '-')
+      .replace(/&mdash;/g, '-')
+      .replace(/&hellip;/g, '...')
+      .replace(/&rsquo;/g, "'")
+      .replace(/&lsquo;/g, "'")
+      .replace(/&rdquo;/g, '"')
+      .replace(/&ldquo;/g, '"')
+      // Clean up extra whitespace and line breaks
+      .replace(/\s+/g, ' ')
+      .replace(/\n+/g, ' ')
       .trim()
   }
 

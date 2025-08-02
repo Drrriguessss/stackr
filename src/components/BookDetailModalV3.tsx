@@ -549,24 +549,21 @@ export default function BookDetailModalV3({
                   <Share size={20} />
                   <span>Share</span>
                 </button>
-              </div>
-
-              {/* Product Sheet Button - Only show for read */}
-              {selectedStatus === 'read' && (
-                <div className="mb-6">
+                
+                {/* Book Sheet Button - Only show for read */}
+                {selectedStatus === 'read' && (
                   <button
                     onClick={() => setShowProductSheet(true)}
-                    className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+                    className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
                     style={isProductSheetCompleted() ? {
                       boxShadow: '0 0 0 2px #10B981, 0 4px 8px rgba(16, 185, 129, 0.3)'
                     } : {}}
                     title="Book Sheet"
                   >
                     <FileText size={20} />
-                    <span>Book Sheet</span>
                   </button>
-                </div>
-              )}
+                )}
+              </div>
 
             {/* Image Popup */}
             {showImagePopup && getBookPopupImage() && bookDetail && (
