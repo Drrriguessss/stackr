@@ -540,23 +540,6 @@ export default function BookDetailModalV3({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6">
-              {/* Additional Images Gallery (if multiple images exist) */}
-              {images.length > 1 && (
-                <div className="space-y-4 mb-6 mt-6">
-                  <h3 className="text-white font-semibold">Additional Images</h3>
-                  <div className="flex space-x-3 overflow-x-auto pb-2">
-                    {images.slice(1).map((image, index) => (
-                      <div key={index + 1} className="w-16 h-20 bg-gray-900 rounded-lg overflow-hidden flex-shrink-0">
-                        <img
-                          src={image}
-                          alt={`${bookDetail.title} - Image ${index + 2}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Action Buttons - Same as MusicDetailModalV4 */}
               <div className="flex flex-col space-y-3 mb-6">
