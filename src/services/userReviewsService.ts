@@ -1,5 +1,7 @@
 // Service pour gérer les reviews utilisateurs (publiques et privées)
 import { supabase } from '@/lib/supabase'
+import { socialService } from './socialService'
+import { AuthService } from './authService'
 import type { MediaCategory } from '@/types'
 
 // Interface pour les reviews utilisateur
@@ -67,8 +69,21 @@ class UserReviewsService {
   // Soumettre une nouvelle review
   async submitReview(data: SubmitReviewData): Promise<UserReview | null> {
     try {
-      const userId = this.getUserIdentifier()
-      const username = this.getUsername()
+      // Utiliser l'authentification Supabase pour les reviews publiques
+      const currentUser = await AuthService.getCurrentUser()
+      let userId: string
+      let username: string
+      
+      if (data.isPublic && currentUser) {
+        // Pour les reviews publiques, utiliser les vraies données utilisateur
+        userId = currentUser.id
+        const userProfile = await socialService.getUserProfile(currentUser.id)
+        username = userProfile?.display_name || userProfile?.username || 'Anonymous'
+      } else {
+        // Pour les reviews privées, utiliser l'ancien système
+        userId = this.getUserIdentifier()
+        username = this.getUsername()
+      }
       
       const reviewData = {
         media_id: data.mediaId,
@@ -98,6 +113,26 @@ class UserReviewsService {
         }
 
         console.log('✅ Review saved to Supabase:', savedReview)
+        
+        // Créer une activité sociale pour les reviews publiques
+        try {
+          await socialService.createActivity({
+            activity_type: data.reviewText ? 'review' : 'rating',
+            item_id: data.mediaId,
+            item_type: data.mediaCategory as 'games' | 'movies' | 'music' | 'books',
+            item_title: data.mediaTitle,
+            item_image: '', // On pourrait récupérer l'image depuis la bibliothèque
+            metadata: {
+              rating: data.rating,
+              review_text: data.reviewText
+            },
+            visibility: 'friends'
+          })
+          console.log('✅ Social activity created for review/rating')
+        } catch (activityError) {
+          console.error('❌ Failed to create social activity:', activityError)
+        }
+        
         return savedReview as UserReview
       } else {
         // Si privée, sauvegarder uniquement en local

@@ -13,12 +13,17 @@ import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
 import DiscoverPageV2 from '@/components/DiscoverPageV2'
 import FeedPage from '@/components/FeedPage'
+import UserProfileSetup from '@/components/UserProfileSetup'
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
+import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 import { sampleContent } from '@/data/sampleContent'
 import { omdbService } from '@/services/omdbService'
 import { googleBooksService } from '@/services/googleBooksService'
 import { musicServiceV2 } from '@/services/musicServiceV2'
 import { rawgService } from '@/services/rawgService'
 import LibraryService from '@/services/libraryService'
+import { AuthService } from '@/services/authService'
+import { socialService } from '@/services/socialService'
 import { supabase } from '@/lib/supabase'
 import { normalizeId, idsMatch } from '@/utils/idNormalizer'
 import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } from '@/types'
@@ -86,6 +91,26 @@ export default function Home() {
 
   // User reviews state
   const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
+  
+  // User profile state
+  const [showProfileSetup, setShowProfileSetup] = useState(false)
+  const [currentUser, setCurrentUser] = useState<any>(null)
+
+  // Check user profile on mount
+  useEffect(() => {
+    const checkUserProfile = async () => {
+      const user = await AuthService.getCurrentUser()
+      if (user) {
+        setCurrentUser(user)
+        // Check if user has a profile
+        const profile = await socialService.getUserProfile(user.id)
+        if (!profile) {
+          setShowProfileSetup(true)
+        }
+      }
+    }
+    checkUserProfile()
+  }, [])
 
   // Load library on component mount
   useEffect(() => {
@@ -822,6 +847,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
+      <ServiceWorkerRegistration />
+      <PWAInstallPrompt />
       {renderMainContent()}
 
       {/* Bottom Navigation */}
@@ -861,6 +888,7 @@ export default function Home() {
         onDeleteItem={handleDeleteItem}
         library={library}
         onBookSelect={(bookId) => setSelectedBookId(bookId)}
+        onOpenMovieDetail={(movieId) => setSelectedMovieId(movieId)}
       />
 
       <MusicDetailModalV4
@@ -882,6 +910,16 @@ export default function Home() {
         onOpenBookDetail={handleOpenBookDetail}
         onOpenMusicDetail={handleOpenMusicDetail}
         library={library}
+      />
+
+      {/* User Profile Setup Modal */}
+      <UserProfileSetup
+        isOpen={showProfileSetup}
+        onClose={() => setShowProfileSetup(false)}
+        onComplete={() => {
+          setShowProfileSetup(false)
+          // Optionally reload user data or show success message
+        }}
       />
     </div>
   )

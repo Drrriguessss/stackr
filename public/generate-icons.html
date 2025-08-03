@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate PWA Icons</title>
+</head>
+<body>
+    <h1>Stackr PWA Icon Generator</h1>
+    <p>This page helps generate PNG icons from the SVG. Right-click and save each icon:</p>
+    
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; background: #f0f0f0; padding: 20px;">
+        <div>
+            <h3>icon-192.png</h3>
+            <canvas id="canvas-192" width="192" height="192"></canvas>
+        </div>
+        <div>
+            <h3>icon-512.png</h3>
+            <canvas id="canvas-512" width="512" height="512"></canvas>
+        </div>
+        <div>
+            <h3>icon-180.png (Apple Touch)</h3>
+            <canvas id="canvas-180" width="180" height="180"></canvas>
+        </div>
+        <div>
+            <h3>icon-maskable-512.png</h3>
+            <canvas id="canvas-maskable" width="512" height="512"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Load and render SVG to different sizes
+        const sizes = [192, 512, 180];
+        const img = new Image();
+        
+        img.onload = function() {
+            sizes.forEach(size => {
+                const canvas = document.getElementById(`canvas-${size}`);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, size, size);
+            });
+            
+            // Create maskable icon with safe area
+            const maskableCanvas = document.getElementById('canvas-maskable');
+            const maskableCtx = maskableCanvas.getContext('2d');
+            // Add padding for maskable icon (safe area)
+            maskableCtx.drawImage(img, 56, 56, 400, 400);
+        };
+        
+        img.src = 'icon.svg';
+    </script>
+</body>
+</html>

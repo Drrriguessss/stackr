@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 import { Search, User, LogOut, Settings, ChevronDown } from 'lucide-react'
 import SearchModal from './SearchModal'
 import { AuthModal } from './AuthModal'
+import PushNotificationManager from './PushNotificationManager'
+import SimpleNotificationButton from './SimpleNotificationButton'
 import { AuthService, type AuthUser } from '@/services/authService'
 import type { LibraryItem, MediaStatus } from '@/types'
 
@@ -84,15 +86,21 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
           </div>
         </div>
         
-        {/* Profile avec authentification */}
-        <div className="relative user-menu">
-          {currentUser ? (
-            // Utilisateur connecté
-            <div className="flex items-center">
-              <button
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
+        {/* Actions et Profil */}
+        <div className="flex items-center space-x-2">
+          {/* Notification Manager - Only show if user is authenticated */}
+          {currentUser && <SimpleNotificationButton />}
+          {currentUser && <PushNotificationManager />}
+          
+          {/* Profile avec authentification */}
+          <div className="relative user-menu">
+            {currentUser ? (
+              // Utilisateur connecté
+              <div className="flex items-center">
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                   {currentUser.avatar ? (
                     <img 
@@ -142,6 +150,7 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
               <span className="hidden sm:inline">Se connecter</span>
             </button>
           )}
+          </div>
         </div>
       </header>
       

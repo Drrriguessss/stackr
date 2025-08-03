@@ -8,6 +8,7 @@ import { musicFunFactsService, type FunFact } from '@/services/musicFunFactsServ
 import { musicMetacriticService, type MetacriticScore } from '@/services/musicMetacriticService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
 import StackrLoadingSkeleton from './StackrLoadingSkeleton'
+import ShareWithFriendsModal from './ShareWithFriendsModal'
 
 interface MusicDetailModalV4Props {
   isOpen: boolean
@@ -41,6 +42,7 @@ export default function MusicDetailModalV4({
   
   // États pour le partage et les reviews
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
   const [showMoreShareOptions, setShowMoreShareOptions] = useState(false)
   const [recommendMessage, setRecommendMessage] = useState('')
   const [selectedRecommendFriends, setSelectedRecommendFriends] = useState<any[]>([])
@@ -976,7 +978,7 @@ export default function MusicDetailModalV4({
               </div>
               
               <button 
-                onClick={() => setShowShareModal(true)}
+                onClick={() => setShowShareWithFriendsModal(true)}
                 className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
               >
                 <Share size={20} />
@@ -2061,6 +2063,18 @@ export default function MusicDetailModalV4({
           </div>
         </div>
       )}
+
+      {/* ShareWithFriendsModal */}
+      <ShareWithFriendsModal
+        isOpen={showShareWithFriendsModal}
+        onClose={() => setShowShareWithFriendsModal(false)}
+        item={{
+          id: musicDetail?.id || '',
+          type: 'music',
+          title: musicDetail?.title || '',
+          image: musicDetail?.image || ''
+        }}
+      />
     </div>
   )
 }

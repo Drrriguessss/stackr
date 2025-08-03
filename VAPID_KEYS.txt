@@ -1,0 +1,14 @@
+VAPID Keys for Vercel Environment Variables:
+
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=BKr2Wrw92v8j6X8LbiFp17rHbODrPUzvGyDWNqZkirGj3JL7Y6JUH_Crf6Mwye8DUOo_etb76vWi7I5R_VGhaQ4
+
+VAPID_PRIVATE_KEY=rDNPpm5sYwpKdyKuKvmlA5weq1lecl4nsdTWI_bhyUA
+
+Instructions:
+1. Go to Vercel Dashboard
+2. Select your Stackr project
+3. Go to Settings > Environment Variables
+4. Add both variables above
+5. Redeploy the project
+
+Note: The private key should be kept secret and only used on the server side.

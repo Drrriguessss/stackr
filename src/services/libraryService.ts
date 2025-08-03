@@ -1,6 +1,7 @@
 // src/services/libraryService.ts - VERSION COMPLÈTE CORRIGÉE AVEC AUTHENTIFICATION
 import { supabase } from '@/lib/supabase'
 import { AuthService } from './authService'
+import { socialService } from './socialService'
 import type { LibraryItem, MediaStatus } from '@/types'
 
 export class LibraryService {
@@ -317,6 +318,26 @@ export class LibraryService {
           
           localStorage.setItem(storageKey, JSON.stringify(library))
           
+          // Créer une activité sociale
+          if (userId) {
+            try {
+              await socialService.createActivity({
+                activity_type: 'library_add',
+                item_id: newItem.id,
+                item_type: newItem.category as 'games' | 'movies' | 'music' | 'books',
+                item_title: newItem.title,
+                item_image: newItem.image,
+                metadata: {
+                  status: newItem.status,
+                  rating: newItem.rating
+                },
+                visibility: 'friends'
+              })
+            } catch (activityError) {
+              console.error('Failed to create activity:', activityError)
+            }
+          }
+          
           // ✅ DÉCLENCHER ÉVÉNEMENT DE SYNCHRONISATION
           this.notifyLibraryChange('added', newItem)
           return true
@@ -397,6 +418,32 @@ export class LibraryService {
 
         if (!error) {
           console.log('📝 Updated item in Supabase:', itemId)
+          
+          // Créer une activité sociale pour les changements importants
+          if (userId && updates.status) {
+            try {
+              const library = await this.getLibraryFromLocalStorage(userId)
+              const item = library.find(i => i.id === itemId)
+              
+              if (item) {
+                await socialService.createActivity({
+                  activity_type: 'status_update',
+                  item_id: itemId,
+                  item_type: item.category as 'games' | 'movies' | 'music' | 'books',
+                  item_title: item.title,
+                  item_image: item.image,
+                  metadata: {
+                    status: updates.status,
+                    previous_status: item.status,
+                    rating: updates.userRating || item.userRating
+                  },
+                  visibility: 'friends'
+                })
+              }
+            } catch (activityError) {
+              console.error('Failed to create activity:', activityError)
+            }
+          }
         } else {
           console.error('Supabase update error:', error)
         }

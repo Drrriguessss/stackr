@@ -1,14 +1,18 @@
 // Service pour récupérer des reviews de livres depuis diverses sources
 
-interface BookReview {
+export interface BookReview {
   id: string
   username: string
   rating: number
   text: string
+  fullText: string
   date: string
   platform: 'goodreads' | 'amazon' | 'barnes-noble' | 'kirkus' | 'generated' | 'user'
   helpful?: number
   verified?: boolean
+  likes?: number
+  hasLiked?: boolean
+  commentsCount?: number
 }
 
 class BookReviewsService {
@@ -170,11 +174,15 @@ class BookReviewsService {
         id: `${platform}-${bookId}-${index}`,
         username: review.username,
         rating: review.rating,
-        text: review.text,
+        text: this.truncateText(review.text, 120), // Version courte pour l'affichage initial
+        fullText: review.text, // Version complète pour "see more"
         date: this.generateRecentDate(),
         platform: platform === 'barnesNoble' ? 'barnes-noble' : platform as any,
         helpful: Math.floor(Math.random() * 120) + 15,
-        verified: review.verified
+        verified: review.verified,
+        likes: Math.floor(Math.random() * 50) + 5,
+        hasLiked: false,
+        commentsCount: Math.floor(Math.random() * 8)
       }))
       
       allReviews.push(...formatted)
@@ -192,6 +200,40 @@ class BookReviewsService {
     const daysAgo = Math.floor(Math.random() * 90) // 0-90 jours
     const date = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000))
     return date.toISOString().split('T')[0]
+  }
+
+  private truncateText(text: string, maxLength: number): string {
+    if (text.length <= maxLength) return text
+    const truncated = text.substring(0, maxLength)
+    const lastSpaceIndex = truncated.lastIndexOf(' ')
+    return lastSpaceIndex > 0 ? truncated.substring(0, lastSpaceIndex) + '...' : truncated + '...'
+  }
+
+  // Simuler un like sur une review
+  async likeReview(reviewId: string): Promise<{ success: boolean, newLikesCount: number }> {
+    try {
+      console.log('👍 Liking review:', reviewId)
+      // En production, ceci ferait un appel API
+      // Pour la simulation, on retourne un nombre incrémenté
+      const increment = Math.random() > 0.5 ? 1 : -1 // Simuler like/unlike
+      const newCount = Math.max(0, Math.floor(Math.random() * 50) + 5 + increment)
+      return { success: true, newLikesCount: newCount }
+    } catch (error) {
+      console.error('Error liking review:', error)
+      return { success: false, newLikesCount: 0 }
+    }
+  }
+
+  // Simuler l'ajout d'un commentaire
+  async addComment(reviewId: string, commentText: string): Promise<boolean> {
+    try {
+      console.log('💬 Adding comment to review:', reviewId, 'Comment:', commentText)
+      // En production, ceci ferait un appel API
+      return true
+    } catch (error) {
+      console.error('Error adding comment:', error)
+      return false
+    }
   }
 }
 

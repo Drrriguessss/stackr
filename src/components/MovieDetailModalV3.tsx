@@ -8,6 +8,7 @@ import { trailerService } from '@/services/trailerService'
 import { userReviewsService } from '@/services/userReviewsService'
 import { tmdbReviewsService, type ProcessedReview } from '@/services/tmdbReviewsService'
 import StackrLoadingSkeleton from './StackrLoadingSkeleton'
+import ShareWithFriendsModal from './ShareWithFriendsModal'
 
 interface MovieDetailModalV3Props {
   isOpen: boolean
@@ -65,6 +66,7 @@ export default function MovieDetailModalV3({
   const [userPublicReviews, setUserPublicReviews] = useState<any[]>([])
   const [currentUserReview, setCurrentUserReview] = useState<any>(null)
   const [showFriendsModal, setShowFriendsModal] = useState(false)
+  const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
   const [selectedFriends, setSelectedFriends] = useState<any[]>([])
   const [friendsSearch, setFriendsSearch] = useState('')
   const [showFriendsWhoWatched, setShowFriendsWhoWatched] = useState(false)
@@ -946,7 +948,7 @@ export default function MovieDetailModalV3({
 
                 {/* Share Button */}
                 <button
-                  onClick={() => setShowRecommendModal(true)}
+                  onClick={() => setShowShareWithFriendsModal(true)}
                   className="py-2 px-4 rounded-lg font-medium text-white bg-gray-800 hover:opacity-90 transition flex items-center space-x-2"
                 >
                   <Share size={16} />
@@ -2217,6 +2219,20 @@ export default function MovieDetailModalV3({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Share with Friends Modal */}
+      {movieDetail && (
+        <ShareWithFriendsModal
+          isOpen={showShareWithFriendsModal}
+          onClose={() => setShowShareWithFriendsModal(false)}
+          item={{
+            id: movieDetail.imdbID,
+            type: 'movies',
+            title: movieDetail.Title,
+            image: movieDetail.Poster
+          }}
+        />
       )}
     </div>
   )

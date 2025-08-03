@@ -35,7 +35,22 @@
       "Bash(find:*)",
       "Bash(git checkout:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(del test-html-cleaning.js)",
+      "Bash(sed:*)",
+      "Bash(cat:*)",
+      "Bash(del temp_book_modal.tsx temp_modal_end.tsx)",
+      "Bash(rg:*)",
+      "WebFetch(domain:developers.google.com)",
+      "Bash(PORT=3001 npm start)",
+      "WebFetch(domain:openlibrary.org)",
+      "WebFetch(domain:worldcat.org)",
+      "WebFetch(domain:search.worldcat.org)",
+      "WebFetch(domain:www.wikidata.org)",
+      "WebFetch(domain:query.wikidata.org)",
+      "Bash(copy:*)",
+      "Bash(cp:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }

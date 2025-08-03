@@ -42,21 +42,21 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
         { text: 'Progressive Web App (PWA) support', completed: false, isNew: true },
         { text: 'Offline functionality', completed: false },
         { text: 'Push notifications', completed: false },
-        { text: 'User reviews and ratings', completed: false },
-        { text: 'Advanced filtering and sorting', completed: false }
+        { text: 'User reviews and ratings', completed: true },
+        { text: 'Advanced filtering and sorting', completed: true }
       ]
     },
     {
       id: 'phase4',
       title: 'Phase 4 - Social Features',
-      status: 'planned', 
+      status: 'completed', 
       description: 'Connect with friends and share recommendations',
       items: [
-        { text: 'User authentication (Google/Apple)', completed: false },
-        { text: 'Friend system (add/remove friends)', completed: false },
-        { text: 'Friend Recommendations with personal messages', completed: false },
-        { text: 'Activity Feed (see friends\' activities)', completed: false },
-        { text: 'Public profiles and sharing', completed: false }
+        { text: 'User authentication (Google/Apple)', completed: true },
+        { text: 'Friend system (add/remove friends)', completed: true },
+        { text: 'Friend Recommendations with personal messages', completed: true },
+        { text: 'Activity Feed (see friends\' activities)', completed: true },
+        { text: 'Public profiles and sharing', completed: true }
       ]
     },
     {
@@ -76,11 +76,17 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
     {
       id: 'phase6',
       title: 'Phase 6 - Additional Ideas',
-      status: 'future',
+      status: 'in-progress',
       description: 'Community suggestions and innovative features',
       items: [
-        { text: 'Shazam integration for instant music recognition', completed: false, isNew: true },
-        { text: 'Enhanced Spotify & Apple Music integration', completed: false, isNew: true },
+        { text: 'Book Detail Modal: Awards & Recognition section', completed: true, isNew: true },
+        { text: 'Book Detail Modal: Movie/TV/Series adaptations section', completed: true, isNew: true },
+        { text: 'Book Detail Modal: Book quotes and memorable citations', completed: true, isNew: true },
+        { text: 'Book Detail Modal: Local bookstore finder with Claude AI suggestions', completed: false, isNew: true },
+        { text: 'Amazon Affiliate integration across all product pages for monetization', completed: false, isNew: true },
+        { text: 'Music Detail Modal: Shazam integration for instant music recognition', completed: false, isNew: true },
+        { text: 'Music Detail Modal: Direct Spotify/Apple Music playback integration', completed: false, isNew: true },
+        { text: 'Enhanced Spotify & Apple Music account linking', completed: false, isNew: true },
         { text: 'Audio visualizer with live waveform animation synced to beat', completed: false, isNew: true },
         { text: 'Dynamic color variations based on music rhythm & BPM', completed: false, isNew: true },
         { text: 'Rewards system for active users (badges, points, exclusive content)', completed: false },

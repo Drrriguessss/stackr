@@ -23,7 +23,10 @@ import {
 } from 'lucide-react'
 import { AuthModal } from './AuthModal'
 import { AuthService, type AuthUser } from '@/services/authService'
+import { socialService, type Activity, type Friend } from '@/services/socialService'
 import type { LibraryItem } from '@/types'
+import FriendSearchModal from './FriendSearchModal'
+import FriendRequestsModal from './FriendRequestsModal'
 
 interface FeedPageProps {
   library?: LibraryItem[]
@@ -33,29 +36,6 @@ interface FeedPageProps {
   onOpenMusicDetail?: (musicId: string) => void
 }
 
-interface FeedActivity {
-  id: string
-  type: 'library_add' | 'friend_activity' | 'review' | 'achievement'
-  timestamp: Date
-  user: {
-    name: string
-    avatar: string
-    username: string
-  }
-  content: {
-    action: string
-    item?: {
-      title: string
-      category: string
-      image: string
-      rating?: number
-    }
-    review?: {
-      text: string
-      rating: number
-    }
-  }
-}
 
 export default function FeedPage({
   library = [],
@@ -64,13 +44,20 @@ export default function FeedPage({
   onOpenBookDetail,
   onOpenMusicDetail
 }: FeedPageProps) {
-  const [feedActivities, setFeedActivities] = useState<FeedActivity[]>([])
+  const [feedActivities, setFeedActivities] = useState<Activity[]>([])
   const [recentLibraryItems, setRecentLibraryItems] = useState<LibraryItem[]>([])
+  const [friends, setFriends] = useState<Friend[]>([])
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
+  const [isLoadingFeed, setIsLoadingFeed] = useState(true)
   
   // Auth state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
+  
+  // Social modals
+  const [showFriendSearchModal, setShowFriendSearchModal] = useState(false)
+  const [showFriendRequestsModal, setShowFriendRequestsModal] = useState(false)
 
   useEffect(() => {
     // Simuler les derniers items ajoutés à la bibliothèque
@@ -78,10 +65,79 @@ export default function FeedPage({
       .sort((a, b) => new Date(b.addedAt || 0).getTime() - new Date(a.addedAt || 0).getTime())
       .slice(0, 5)
     setRecentLibraryItems(recent)
-
-    // Générer des activités de feed factices
-    generateMockFeedActivities()
   }, [library])
+
+  // Load social data when user is authenticated
+  useEffect(() => {
+    if (currentUser) {
+      loadSocialData()
+    }
+  }, [currentUser])
+
+  const ensureUserProfile = async (user: AuthUser) => {
+    try {
+      const existingProfile = await socialService.getUserProfile(user.id)
+      if (!existingProfile) {
+        // Créer un profil utilisateur automatiquement
+        const username = user.email?.split('@')[0] || `user_${user.id.slice(0, 8)}`
+        const displayName = user.name || username
+        
+        await socialService.createOrUpdateProfile(user.id, {
+          username,
+          display_name: displayName,
+          avatar_url: user.avatar,
+          is_public: true
+        })
+      }
+    } catch (error) {
+      console.error('Error ensuring user profile:', error)
+    }
+  }
+
+  const loadSocialData = async () => {
+    setIsLoadingFeed(true)
+    try {
+      // Load friends
+      const friendsList = await socialService.getFriends()
+      setFriends(friendsList)
+
+      // Load friend activities
+      const activities = await socialService.getFriendActivities(20)
+      setFeedActivities(activities)
+
+      // Load pending friend requests count
+      const requests = await socialService.getPendingFriendRequests()
+      setPendingRequestsCount(requests.length)
+    } catch (error) {
+      console.error('Error loading social data:', error)
+    } finally {
+      setIsLoadingFeed(false)
+    }
+  }
+
+  const handleLikeActivity = async (activityId: string, isLiked: boolean) => {
+    try {
+      if (isLiked) {
+        await socialService.unlikeActivity(activityId)
+      } else {
+        await socialService.likeActivity(activityId)
+      }
+      
+      // Update local state
+      setFeedActivities(prev => prev.map(activity => {
+        if (activity.id === activityId) {
+          return {
+            ...activity,
+            user_liked: !isLiked,
+            likes_count: (activity.likes_count || 0) + (isLiked ? -1 : 1)
+          }
+        }
+        return activity
+      }))
+    } catch (error) {
+      console.error('Error toggling like:', error)
+    }
+  }
 
   // Auth effects
   useEffect(() => {
@@ -93,10 +149,12 @@ export default function FeedPage({
     loadUser()
 
     // Écouter les changements d'authentification
-    const { data: { subscription } } = AuthService.onAuthStateChange((user) => {
+    const { data: { subscription } } = AuthService.onAuthStateChange(async (user) => {
       setCurrentUser(user)
       if (user) {
         setIsAuthModalOpen(false)
+        // Créer ou vérifier le profil utilisateur
+        await ensureUserProfile(user)
       }
     })
 
@@ -128,108 +186,29 @@ export default function FeedPage({
     }
   }
 
-  const generateMockFeedActivities = () => {
-    const mockActivities: FeedActivity[] = [
-      {
-        id: '1',
-        type: 'friend_activity',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2h ago
-        user: {
-          name: 'Alex Martin',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
-          username: '@alexm'
-        },
-        content: {
-          action: 'completed',
-          item: {
-            title: 'The Legend of Zelda: Tears of the Kingdom',
-            category: 'games',
-            image: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5s4k.webp',
-            rating: 5
-          }
-        }
-      },
-      {
-        id: '2',
-        type: 'review',
-        timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4h ago
-        user: {
-          name: 'Sarah Chen',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-          username: '@sarahc'
-        },
-        content: {
-          action: 'reviewed',
-          item: {
-            title: 'Oppenheimer',
-            category: 'movies',
-            image: 'https://m.media-amazon.com/images/M/MV5BMDBkYzU0MjUtYzBhNi00ODk0LWFkMDgtNjBmZGM2YTNhZmJjXkEyXkFqcGc@._V1_SX300.jpg'
-          },
-          review: {
-            text: 'Absolutely stunning cinematography and performances. Nolan at his finest!',
-            rating: 5
-          }
-        }
-      },
-      {
-        id: '3',
-        type: 'friend_activity',
-        timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6h ago
-        user: {
-          name: 'Marcus Johnson',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus',
-          username: '@marcusj'
-        },
-        content: {
-          action: 'started reading',
-          item: {
-            title: 'Fourth Wing',
-            category: 'books',
-            image: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1689087207i/61431922.jpg',
-            rating: 4
-          }
-        }
-      },
-      {
-        id: '4',
-        type: 'achievement',
-        timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8h ago
-        user: {
-          name: 'Emma Wilson',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-          username: '@emmaw'
-        },
-        content: {
-          action: 'reached 100 completed games milestone! 🎮',
-          item: {
-            title: '',
-            category: 'achievement',
-            image: ''
-          }
-        }
-      },
-      {
-        id: '5',
-        type: 'friend_activity',
-        timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12h ago
-        user: {
-          name: 'David Kim',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David',
-          username: '@davidk'
-        },
-        content: {
-          action: 'loved',
-          item: {
-            title: 'Harry\'s House',
-            category: 'music',
-            image: 'https://upload.wikimedia.org/wikipedia/en/a/a7/Harry_Styles_-_Harry%27s_House.png',
-            rating: 5
-          }
-        }
-      }
-    ]
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'games': return <Gamepad2 size={16} className="text-green-600" />
+      case 'movies': return <Film size={16} className="text-blue-600" />
+      case 'books': return <BookOpen size={16} className="text-orange-600" />
+      case 'music': return <Music size={16} className="text-purple-600" />
+      default: return <Star size={16} className="text-gray-600" />
+    }
+  }
 
-    setFeedActivities(mockActivities)
+  const getActivityDescription = (activity: Activity): string => {
+    switch (activity.activity_type) {
+      case 'library_add': return 'added to library'
+      case 'status_update': 
+        const status = activity.metadata?.status
+        if (status === 'completed') return 'completed'
+        if (status === 'currently-playing' || status === 'currently-watching' || status === 'currently-reading') return 'started'
+        return 'updated status for'
+      case 'review': return 'reviewed'
+      case 'rating': return 'rated'
+      case 'achievement': return activity.metadata?.achievement_text || 'unlocked an achievement'
+      default: return 'updated'
+    }
   }
 
   const getTimeAgo = (timestamp: Date) => {
@@ -244,16 +223,6 @@ export default function FeedPage({
     } else {
       const diffInDays = Math.floor(diffInHours / 24)
       return `${diffInDays}d ago`
-    }
-  }
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'games': return <Gamepad2 size={16} className="text-green-600" />
-      case 'movies': return <Film size={16} className="text-blue-600" />
-      case 'books': return <BookOpen size={16} className="text-orange-600" />
-      case 'music': return <Music size={16} className="text-purple-600" />
-      default: return <Star size={16} className="text-gray-600" />
     }
   }
 
@@ -307,7 +276,11 @@ export default function FeedPage({
               <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <Bell size={20} className="text-gray-600" />
                 {/* Badge de notification */}
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                {pendingRequestsCount > 0 && (
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">{pendingRequestsCount}</span>
+                  </div>
+                )}
               </button>
 
               {/* Authentification */}
@@ -343,6 +316,27 @@ export default function FeedPage({
                           <p className="text-sm text-gray-500">{currentUser.email}</p>
                         </div>
                         
+                        <button
+                          onClick={() => setShowFriendSearchModal(true)}
+                          className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full"
+                        >
+                          <Search size={16} />
+                          Rechercher des amis
+                        </button>
+
+                        <button
+                          onClick={() => setShowFriendRequestsModal(true)}
+                          className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full relative"
+                        >
+                          <Users size={16} />
+                          Demandes d'amis
+                          {pendingRequestsCount > 0 && (
+                            <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                              {pendingRequestsCount}
+                            </span>
+                          )}
+                        </button>
+
                         <button className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full">
                           <Settings size={16} />
                           Paramètres
@@ -410,148 +404,175 @@ export default function FeedPage({
         )}
 
         {/* Social Feed */}
-        <div className="space-y-4">
-          {feedActivities.map((activity) => (
-            <div key={activity.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-              {/* Activity Header */}
-              <div className="p-4">
-                <div className="flex items-start space-x-3">
-                  {/* User Avatar */}
-                  <img
-                    src={activity.user.avatar}
-                    alt={activity.user.name}
-                    className="w-10 h-10 rounded-full border-2 border-gray-100"
-                  />
-                  
-                  {/* Activity Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className="font-semibold text-gray-900">{activity.user.name}</span>
-                      <span className="text-sm text-gray-500">{activity.user.username}</span>
-                      <span className="text-sm text-gray-400">•</span>
-                      <span className="text-sm text-gray-500">{getTimeAgo(activity.timestamp)}</span>
-                    </div>
-
-                    {/* Activity Description */}
-                    <div className="flex items-center space-x-2 mb-3">
-                      {activity.content.item?.category && getCategoryIcon(activity.content.item.category)}
-                      <span className="text-gray-700">
-                        {activity.content.action}
-                        {activity.content.item?.title && (
-                          <span className="font-medium"> "{activity.content.item.title}"</span>
-                        )}
-                      </span>
-                    </div>
-
-                    {/* Item Card (if applicable) */}
-                    {activity.content.item?.title && activity.type !== 'achievement' && (
-                      <div 
-                        className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => handleItemClick(activity.content.item, activity.content.item?.category || '')}
-                      >
-                        <img
-                          src={activity.content.item.image}
-                          alt={activity.content.item.title}
-                          className="w-12 h-16 rounded-lg object-cover bg-gray-200"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{activity.content.item.title}</p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            {getCategoryIcon(activity.content.item.category)}
-                            <span className="text-sm text-gray-500 capitalize">{activity.content.item.category}</span>
-                            {activity.content.item.rating && (
-                              <div className="flex items-center space-x-1">
-                                <Star size={12} className="text-yellow-400 fill-current" />
-                                <span className="text-sm text-gray-600">{activity.content.item.rating}/5</span>
-                              </div>
-                            )}
+        {currentUser ? (
+          isLoadingFeed ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-500 mt-3">Loading feed...</p>
+            </div>
+          ) : feedActivities.length > 0 ? (
+            <div className="space-y-4">
+              {feedActivities.map((activity) => {
+                const metadata = activity.metadata || {}
+                const activityDescription = getActivityDescription(activity)
+                
+                return (
+                  <div key={activity.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                    {/* Activity Header */}
+                    <div className="p-4">
+                      <div className="flex items-start space-x-3">
+                        {/* User Avatar */}
+                        {activity.user?.avatar_url ? (
+                          <img
+                            src={activity.user.avatar_url}
+                            alt={activity.user.display_name}
+                            className="w-10 h-10 rounded-full border-2 border-gray-100"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <User size={20} className="text-blue-600" />
                           </div>
-                        </div>
-                      </div>
-                    )}
+                        )}
+                        
+                        {/* Activity Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="font-semibold text-gray-900">{activity.user?.display_name}</span>
+                            <span className="text-sm text-gray-500">@{activity.user?.username}</span>
+                            <span className="text-sm text-gray-400">•</span>
+                            <span className="text-sm text-gray-500">{getTimeAgo(new Date(activity.created_at))}</span>
+                          </div>
 
-                    {/* Review Content */}
-                    {activity.content.review && (
-                      <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                        <div className="flex items-center space-x-1 mb-2">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              size={14}
-                              className={`${
-                                star <= activity.content.review!.rating
-                                  ? 'text-yellow-400 fill-current'
-                                  : 'text-gray-300'
-                              }`}
-                            />
-                          ))}
-                          <span className="text-sm text-gray-600 ml-1">
-                            {activity.content.review.rating}/5
-                          </span>
-                        </div>
-                        <p className="text-gray-700 text-sm italic">"{activity.content.review.text}"</p>
-                      </div>
-                    )}
+                          {/* Activity Description */}
+                          <div className="flex items-center space-x-2 mb-3">
+                            {getCategoryIcon(activity.item_type)}
+                            <span className="text-gray-700">
+                              {activityDescription}
+                              <span className="font-medium"> "{activity.item_title}"</span>
+                            </span>
+                          </div>
 
-                    {/* Achievement Badge */}
-                    {activity.type === 'achievement' && (
-                      <div className="mt-3 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
-                        <div className="flex items-center space-x-2">
-                          <TrendingUp className="text-yellow-600" size={20} />
-                          <span className="font-medium text-yellow-800">Achievement Unlocked!</span>
+                          {/* Item Card */}
+                          {activity.item_title && activity.activity_type !== 'achievement' && (
+                            <div 
+                              className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+                              onClick={() => handleItemClick({ id: activity.item_id }, activity.item_type)}
+                            >
+                              {activity.item_image && (
+                                <img
+                                  src={activity.item_image}
+                                  alt={activity.item_title}
+                                  className="w-12 h-16 rounded-lg object-cover bg-gray-200"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900 truncate">{activity.item_title}</p>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  {getCategoryIcon(activity.item_type)}
+                                  <span className="text-sm text-gray-500 capitalize">{activity.item_type}</span>
+                                  {metadata.rating && (
+                                    <div className="flex items-center space-x-1">
+                                      <Star size={12} className="text-yellow-400 fill-current" />
+                                      <span className="text-sm text-gray-600">{metadata.rating}/5</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Review Content */}
+                          {activity.activity_type === 'review' && metadata.review_text && (
+                            <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                              <div className="flex items-center space-x-1 mb-2">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    size={14}
+                                    className={`${
+                                      star <= (metadata.rating || 0)
+                                        ? 'text-yellow-400 fill-current'
+                                        : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                                <span className="text-sm text-gray-600 ml-1">
+                                  {metadata.rating}/5
+                                </span>
+                              </div>
+                              <p className="text-gray-700 text-sm italic">"{metadata.review_text}"</p>
+                            </div>
+                          )}
+
+                          {/* Achievement Badge */}
+                          {activity.activity_type === 'achievement' && (
+                            <div className="mt-3 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
+                              <div className="flex items-center space-x-2">
+                                <TrendingUp className="text-yellow-600" size={20} />
+                                <span className="font-medium text-yellow-800">Achievement Unlocked!</span>
+                              </div>
+                              <p className="text-yellow-700 mt-1">{metadata.achievement_text}</p>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-yellow-700 mt-1">{activity.content.action}</p>
                       </div>
-                    )}
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
+                        <div className="flex items-center space-x-6">
+                          <button 
+                            onClick={() => handleLikeActivity(activity.id, activity.user_liked || false)}
+                            className={`flex items-center space-x-2 transition-colors ${
+                              activity.user_liked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
+                            }`}
+                          >
+                            <Heart size={18} className={activity.user_liked ? 'fill-current' : ''} />
+                            <span className="text-sm">{activity.likes_count || 0}</span>
+                          </button>
+                          <button className="flex items-center space-x-2 text-gray-500 hover:text-blue-500 transition-colors">
+                            <MessageCircle size={18} />
+                            <span className="text-sm">{activity.comments_count || 0}</span>
+                          </button>
+                          <button className="flex items-center space-x-2 text-gray-500 hover:text-green-500 transition-colors">
+                            <Share2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
-                  <div className="flex items-center space-x-6">
-                    <button className="flex items-center space-x-2 text-gray-500 hover:text-red-500 transition-colors">
-                      <Heart size={18} />
-                      <span className="text-sm">{Math.floor(Math.random() * 20) + 5}</span>
-                    </button>
-                    <button className="flex items-center space-x-2 text-gray-500 hover:text-blue-500 transition-colors">
-                      <MessageCircle size={18} />
-                      <span className="text-sm">{Math.floor(Math.random() * 10) + 1}</span>
-                    </button>
-                    <button className="flex items-center space-x-2 text-gray-500 hover:text-green-500 transition-colors">
-                      <Share2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+                )
+              })}
             </div>
-          ))}
-        </div>
-
-        {/* Coming Soon Notice */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100 text-center">
-          <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="text-purple-600" size={24} />
+          ) : (
+            <div className="bg-white rounded-2xl p-8 text-center">
+              <Users size={48} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No activity yet</h3>
+              <p className="text-gray-500 mb-4">Add friends to see their activity in your feed!</p>
+              <button
+                onClick={() => setShowFriendSearchModal(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Find Friends
+              </button>
+            </div>
+          )
+        ) : (
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100 text-center">
+            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="text-purple-600" size={24} />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Sign in to see your friends' activity</h3>
+            <p className="text-gray-600 mb-4">
+              Connect with friends, share reviews, and discover new content together.
+            </p>
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Sign In
+            </button>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Social Features Coming Soon!</h3>
-          <p className="text-gray-600 mb-4">
-            Connect with friends, share reviews, and discover new content together. 
-            User profiles and friend system are in development.
-          </p>
-          <div className="flex items-center justify-center space-x-4 text-sm text-purple-600">
-            <div className="flex items-center space-x-1">
-              <User size={16} />
-              <span>User Profiles</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Users size={16} />
-              <span>Friend System</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <MessageCircle size={16} />
-              <span>Real Reviews</span>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Modal d'authentification */}
@@ -561,6 +582,22 @@ export default function FeedPage({
         onAuthSuccess={() => {
           setIsAuthModalOpen(false)
           // L'utilisateur sera mis à jour via onAuthStateChange
+        }}
+      />
+
+      {/* Friend Search Modal */}
+      <FriendSearchModal
+        isOpen={showFriendSearchModal}
+        onClose={() => setShowFriendSearchModal(false)}
+      />
+
+      {/* Friend Requests Modal */}
+      <FriendRequestsModal
+        isOpen={showFriendRequestsModal}
+        onClose={() => setShowFriendRequestsModal(false)}
+        onRequestHandled={() => {
+          // Reload social data to update counts
+          loadSocialData()
         }}
       />
     </div>

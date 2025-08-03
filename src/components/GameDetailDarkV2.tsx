@@ -8,6 +8,7 @@ import { realGameReviewsService, type RealGameReview } from '@/services/realGame
 import { fetchWithCache, apiCache } from '@/utils/apiCache'
 // igdbService ne contient plus getGameImages, nous utilisons directement l'API RAWG
 import { rawgService, type RAWGGame } from '@/services/rawgService'
+import ShareWithFriendsModal from './ShareWithFriendsModal'
 
 interface GameDetailDarkV2Props {
   isOpen: boolean
@@ -64,6 +65,7 @@ export default function GameDetailDarkV2({
   const [showReviewBox, setShowReviewBox] = useState(false)
   const [reviewPrivacy, setReviewPrivacy] = useState<'private' | 'public'>('private')
   const [userReview, setUserReview] = useState('')
+  const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
   const [similarGames, setSimilarGames] = useState<any[]>([])
   const [developerGames, setDeveloperGames] = useState<any[]>([])
   const [showFullOverview, setShowFullOverview] = useState(false)
@@ -944,7 +946,10 @@ export default function GameDetailDarkV2({
                 </div>
 
                 {/* Share Button */}
-                <button className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+                <button 
+                  onClick={() => setShowShareWithFriendsModal(true)}
+                  className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                >
                   <Send size={18} />
                 </button>
               </div>
@@ -1852,6 +1857,18 @@ export default function GameDetailDarkV2({
           </div>
         )}
       </div>
+
+      {/* ShareWithFriendsModal */}
+      <ShareWithFriendsModal
+        isOpen={showShareWithFriendsModal}
+        onClose={() => setShowShareWithFriendsModal(false)}
+        item={{
+          id: gameDetail?.id?.toString() || '',
+          type: 'games',
+          title: gameDetail?.name || '',
+          image: gameDetail?.background_image || ''
+        }}
+      />
     </div>
   )
 }
