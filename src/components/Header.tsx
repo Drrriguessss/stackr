@@ -4,7 +4,6 @@ import { Search, User, LogOut, Settings, ChevronDown } from 'lucide-react'
 import SearchModal from './SearchModal'
 import { AuthModal } from './AuthModal'
 import PushNotificationManager from './PushNotificationManager'
-import SimpleNotificationButton from './SimpleNotificationButton'
 import { AuthService, type AuthUser } from '@/services/authService'
 import type { LibraryItem, MediaStatus } from '@/types'
 
@@ -89,7 +88,6 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
         {/* Actions et Profil */}
         <div className="flex items-center space-x-2">
           {/* Notification Manager - Only show if user is authenticated */}
-          {currentUser && <SimpleNotificationButton />}
           {currentUser && <PushNotificationManager />}
           
           {/* Profile avec authentification */}
