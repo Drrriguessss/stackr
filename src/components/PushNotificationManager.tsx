@@ -102,12 +102,18 @@ export default function PushNotificationManager() {
     <>
       {/* Notification Bell Icon */}
       <button
-        onClick={() => {
-          console.log('🔔 [PushNotificationManager] Bell icon clicked')
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          console.log('🔔 [PushNotificationManager] Bell icon clicked!')
+          console.log('🔔 [PushNotificationManager] showSettings before:', showSettings)
           setShowSettings(true)
+          console.log('🔔 [PushNotificationManager] showSettings set to true')
+          alert('Bell clicked! Check console for logs.')
         }}
-        className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors border-2 border-red-500"
         title="Paramètres de notification"
+        style={{ zIndex: 9999 }}
       >
         {isSubscribed ? (
           <BellRing size={20} className="text-blue-600" />
