@@ -443,13 +443,22 @@ class SocialService {
     // Create in-app notification using our simple notification service
     const recommenderName = fromUserProfile?.display_name || fromUserProfile?.username || 'Un ami'
     
-    await notificationService.createRecommendationNotification(
+    console.log('🔔 Creating recommendation notification for:', {
+      toUserId,
+      recommenderName,
+      itemTitle: item.title,
+      itemType: item.type
+    })
+    
+    const notificationCreated = await notificationService.createRecommendationNotification(
       toUserId,
       recommenderName,
       item.title,
       item.type,
       item.id
     )
+    
+    console.log('🔔 Notification created successfully:', notificationCreated)
     
     return true
   }

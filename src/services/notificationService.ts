@@ -107,7 +107,14 @@ class NotificationService {
     mediaId: string
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      console.log('🔔 [NotificationService] Creating notification:', {
+        recipientId,
+        recommenderName,
+        mediaTitle,
+        mediaType
+      })
+
+      const { data, error } = await supabase
         .from('notifications')
         .insert({
           user_id: recipientId,
@@ -121,15 +128,17 @@ class NotificationService {
             media_id: mediaId
           }
         })
+        .select()
 
       if (error) {
-        console.error('Error creating recommendation notification:', error)
+        console.error('🔔 [NotificationService] Error creating notification:', error)
         return false
       }
 
+      console.log('🔔 [NotificationService] Notification created successfully:', data)
       return true
     } catch (error) {
-      console.error('Error creating recommendation notification:', error)
+      console.error('🔔 [NotificationService] Error creating notification:', error)
       return false
     }
   }
