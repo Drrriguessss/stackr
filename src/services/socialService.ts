@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { AuthUser } from './authService'
+import { notificationService } from './notificationService'
 
 export interface UserProfile {
   id: string
@@ -439,32 +440,16 @@ class SocialService {
       .eq('id', user.id)
       .single()
 
-    // Create in-app notification
-    await supabase
-      .from('notifications')
-      .insert({
-        user_id: toUserId,
-        type: 'media_shared',
-        from_user_id: user.id,
-        message: `shared "${item.title}" with you`
-      })
-
-    // Send push notification
-    try {
-      const { pushNotificationService } = await import('./pushNotificationService')
-      const recommenderName = fromUserProfile?.display_name || fromUserProfile?.username || 'Un ami'
-      
-      await pushNotificationService.notifyFriendRecommendation(
-        toUserId,
-        recommenderName,
-        item.title,
-        item.type,
-        item.id
-      )
-    } catch (pushError) {
-      console.error('Error sending push notification:', pushError)
-      // Don't fail the whole operation if push notification fails
-    }
+    // Create in-app notification using our simple notification service
+    const recommenderName = fromUserProfile?.display_name || fromUserProfile?.username || 'Un ami'
+    
+    await notificationService.createRecommendationNotification(
+      toUserId,
+      recommenderName,
+      item.title,
+      item.type,
+      item.id
+    )
     
     return true
   }

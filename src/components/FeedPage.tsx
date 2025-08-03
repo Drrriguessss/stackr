@@ -27,7 +27,7 @@ import { socialService, type Activity, type Friend } from '@/services/socialServ
 import type { LibraryItem } from '@/types'
 import FriendSearchModal from './FriendSearchModal'
 import FriendRequestsModal from './FriendRequestsModal'
-import PushNotificationManager from './PushNotificationManager'
+import NotificationBell from './NotificationBell'
 
 interface FeedPageProps {
   library?: LibraryItem[]
@@ -274,7 +274,7 @@ export default function FeedPage({
               </button>
               
               {/* Icône notifications */}
-              {currentUser && <PushNotificationManager />}
+              {currentUser && <NotificationBell />}
 
               {/* Authentification */}
               <div className="relative user-menu">
