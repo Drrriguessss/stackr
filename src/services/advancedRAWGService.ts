@@ -123,8 +123,8 @@ class AdvancedRAWGService {
       key: this.apiKey,
       search: query,
       page_size: (options.maxResults || 20).toString(),
-      // ✅ RECHERCHE NORMALE - search_precise était trop restrictif
-      // search_precise: 'true'  // DÉSACTIVÉ: Trop restrictif, empêche de trouver des jeux
+      // ✅ RECHERCHE PRÉCISE pour éviter résultats approximatifs
+      search_precise: 'true'
     })
 
     // ✅ FILTRAGE PAR QUALITÉ - Metacritic minimum
@@ -135,7 +135,7 @@ class AdvancedRAWGService {
     // ✅ EXCLUSIONS POUR ÉVITER LE CONTENU AMATEUR
     if (options.excludeAdditions) {
       params.append('exclude_additions', 'true')
-      // params.append('exclude_parents', 'true')  // DÉSACTIVÉ: Trop restrictif
+      params.append('exclude_parents', 'true')
     }
 
     // ✅ TRI OPTIMISÉ SELON LE TYPE

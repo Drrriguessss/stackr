@@ -58,9 +58,9 @@ export default function GameSearchModal({
         sortBy: 'relevance'         // Tri par pertinence intelligente
       })
       
-      // ✅ FALLBACK 1: Si aucun résultat, essaie sans filtres Metacritic
+      // ✅ FALLBACK: Si aucun résultat, essaie sans filtres Metacritic
       if (advancedResults.length === 0) {
-        console.log('🎮 [GameSearch] No results with Metacritic filter, trying fallback 1...')
+        console.log('🎮 [GameSearch] No results with Metacritic filter, trying fallback...')
         advancedResults = await advancedRAWGService.optimizedGameSearch(searchQuery, {
           minMetacritic: 0,         // ✅ SANS FILTRE Metacritic pour trouver les jeux indies
           excludeAdditions: true,   
@@ -68,36 +68,6 @@ export default function GameSearchModal({
           maxResults: 20,
           sortBy: 'relevance'
         })
-      }
-      
-      // ✅ FALLBACK 2: Si toujours aucun résultat, recherche TOTALEMENT sans filtres
-      if (advancedResults.length === 0) {
-        console.log('🎮 [GameSearch] Still no results, trying unfiltered search...')
-        // Utiliser directement le service RAWG de base
-        const rawgService = (await import('@/services/rawgService')).rawgService
-        const rawResults = await rawgService.searchGames(searchQuery, 20)
-        
-        // Convertir au format SearchResult
-        advancedResults = rawResults
-          .filter(game => game && game.name)
-          .map(game => ({
-            id: game.id.toString(),
-            title: game.name,
-            description: game.description_raw || `${game.genres?.map(g => g.name).join(', ') || 'Game'}`,
-            image: game.background_image,
-            year: game.released ? new Date(game.released).getFullYear() : undefined,
-            rating: game.rating ? Math.min(10, game.rating * 2) : undefined,
-            category: 'games' as const,
-            externalUrl: `https://rawg.io/games/${game.id}`,
-            metadata: {
-              metacritic: game.metacritic,
-              platforms: game.platforms?.map(p => p.platform.name).slice(0, 3),
-              developers: game.developers?.map(d => d.name),
-              genres: game.genres?.map(g => g.name)
-            }
-          }))
-        
-        console.log('🎮 [GameSearch] Unfiltered results:', advancedResults.length)
       }
 
       setSearchResults(advancedResults)
