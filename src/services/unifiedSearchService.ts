@@ -417,8 +417,10 @@ export class UnifiedSearchService {
         return await googleBooksService.searchBooks(query, 12)
       case 'games':
         const rawgGames = await rawgService.searchGames(query)
-        // Convert RAWG games to app format
-        return rawgGames.map(game => rawgService.convertToAppFormat(game))
+        // Convert RAWG games to app format and filter out any null results
+        return rawgGames
+          .map(game => rawgService.convertToAppFormat(game))
+          .filter(game => game !== null && game.title)
       case 'music':
         return await musicServiceV2.searchMusic(query)
       default:

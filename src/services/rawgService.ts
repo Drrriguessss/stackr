@@ -353,12 +353,13 @@ class RAWGService {
    * 🔍 Extraire Steam App ID depuis les stores RAWG
    */
   private extractSteamAppId(game: RAWGGame): string | null {
-    if (!game.stores) return null
+    if (!game.stores || !Array.isArray(game.stores)) return null
     
-    const steamStore = game.stores.find(store => 
-      store.store.name.toLowerCase().includes('steam') ||
-      store.url.includes('store.steampowered.com')
-    )
+    const steamStore = game.stores.find(store => {
+      if (!store || !store.store || !store.store.name || !store.url) return false
+      return store.store.name.toLowerCase().includes('steam') ||
+             store.url.includes('store.steampowered.com')
+    })
     
     if (steamStore?.url) {
       // Extraire l'App ID depuis l'URL Steam
@@ -393,6 +394,11 @@ class RAWGService {
    * ✅ CONVERSION COMPLÈTEMENT RÉÉCRITE AVEC DÉVELOPPEUR CORRECT ET IMAGES AMÉLIORÉES
    */
   convertToAppFormat(game: RAWGGame): any {
+    if (!game || !game.name) {
+      console.error('🎮 Invalid game object:', game)
+      return null
+    }
+    
     const developer = this.getCorrectDeveloper(game)
     const bestImage = this.getBestGameImage(game)
     
