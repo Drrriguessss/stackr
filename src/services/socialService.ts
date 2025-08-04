@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import type { AuthUser } from './authService'
 import { notificationService } from './notificationService'
+import { avatarService } from './avatarService'
 
 export interface UserProfile {
   id: string
@@ -277,6 +278,10 @@ class SocialService {
       return []
     }
 
+    // Get all unique user IDs for batch avatar loading
+    const activityUserIds = [...new Set((data || []).map(activity => activity.user_id))]
+    const avatarMap = await avatarService.getBatchAvatars(activityUserIds)
+
     // Transform the data and get additional info for each activity
     const activities = await Promise.all((data || []).map(async (activity) => {
       // Get user profile separately
@@ -285,6 +290,12 @@ class SocialService {
         .select('id, username, display_name, avatar_url')
         .eq('id', activity.user_id)
         .single()
+
+      // Use optimized avatar
+      const optimizedAvatar = avatarMap.get(activity.user_id)
+      if (userProfile && optimizedAvatar) {
+        userProfile.avatar_url = optimizedAvatar
+      }
 
       // Get likes count
       const { count: likesCount } = await supabase
@@ -489,19 +500,38 @@ class SocialService {
 
     console.log('🔍 [Debug] Found', shares.length, 'shared items')
 
-    // Then get user profiles for each share
-    const userIds = [...new Set(shares.map(share => share.from_user_id))]
+    // Remove duplicates based on item_id and from_user_id
+    const uniqueShares = shares.filter((share, index, arr) => 
+      arr.findIndex(s => s.item_id === share.item_id && s.from_user_id === share.from_user_id) === index
+    )
+
+    console.log('🔍 [Debug] After removing duplicates:', uniqueShares.length, 'items')
+
+    // Get user profiles and avatars for each unique share
+    const userIds = [...new Set(uniqueShares.map(share => share.from_user_id))]
     const { data: userProfiles } = await supabase
       .from('user_profiles')
       .select('id, username, display_name, avatar_url')
       .in('id', userIds)
 
-    // Combine the data
-    const result = shares.map(share => ({
-      ...share,
-      from_user: userProfiles?.find(profile => profile.id === share.from_user_id)
-    }))
+    // Get optimized avatars using avatarService
+    const avatarMap = await avatarService.getBatchAvatars(userIds)
 
+    // Combine the data with proper avatars
+    const result = uniqueShares.map(share => {
+      const profile = userProfiles?.find(profile => profile.id === share.from_user_id)
+      const avatarUrl = avatarMap.get(share.from_user_id) || profile?.avatar_url
+      
+      return {
+        ...share,
+        from_user: profile ? {
+          ...profile,
+          avatar_url: avatarUrl
+        } : null
+      }
+    })
+
+    console.log('🔍 [Debug] Final result with avatars:', result.length, 'items')
     return result as MediaShare[]
   }
 
