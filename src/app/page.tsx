@@ -10,6 +10,9 @@ import BookDetailModalV3 from '@/components/BookDetailModalV3'
 import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
 import SearchModalV2 from '@/components/SearchModalV2'
+import MediaSelectionModal from '@/components/MediaSelectionModal'
+import GameSearchModal from '@/components/GameSearchModal'
+import MovieSearchModal from '@/components/MovieSearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
 import DiscoverPageV2 from '@/components/DiscoverPageV2'
@@ -42,6 +45,11 @@ export default function Home() {
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [useUnifiedSearch, setUseUnifiedSearch] = useState(true) // Toggle between old and new search
+  
+  // New search system states
+  const [isMediaSelectionOpen, setIsMediaSelectionOpen] = useState(false)
+  const [isGameSearchOpen, setIsGameSearchOpen] = useState(false)
+  const [isMovieSearchOpen, setIsMovieSearchOpen] = useState(false)
   
   // Library state
   const [library, setLibrary] = useState<LibraryItem[]>([])
@@ -821,7 +829,7 @@ export default function Home() {
             <div className="flex-1 max-w-2xl mx-auto">
               <div 
                 className="relative cursor-pointer"
-                onClick={() => setIsSearchOpen(true)}
+                onClick={() => setIsMediaSelectionOpen(true)}
               >
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
@@ -940,7 +948,7 @@ export default function Home() {
       <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
         <div 
           className="bg-gray-50 rounded-xl p-4 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
-          onClick={() => setIsSearchOpen(true)}
+          onClick={() => setIsMediaSelectionOpen(true)}
         >
           <div className="flex items-center space-x-3">
             <Search className="text-gray-400" size={20} />
@@ -1007,6 +1015,44 @@ export default function Home() {
         onMusicSelect={setSelectedMusicId}
       />
 
+      {/* New Search System */}
+      <MediaSelectionModal
+        isOpen={isMediaSelectionOpen}
+        onClose={() => setIsMediaSelectionOpen(false)}
+        onSelectMedia={(category) => {
+          setIsMediaSelectionOpen(false)
+          if (category === 'games') {
+            setIsGameSearchOpen(true)
+          } else if (category === 'movies') {
+            setIsMovieSearchOpen(true)
+          }
+          // TODO: Add other categories
+        }}
+      />
+
+      <GameSearchModal
+        isOpen={isGameSearchOpen}
+        onClose={() => setIsGameSearchOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenDetail={handleOpenDetail}
+        onBackToSelection={() => {
+          setIsGameSearchOpen(false)
+          setIsMediaSelectionOpen(true)
+        }}
+      />
+
+      <MovieSearchModal
+        isOpen={isMovieSearchOpen}
+        onClose={() => setIsMovieSearchOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenDetail={handleOpenDetail}
+        onBackToSelection={() => {
+          setIsMovieSearchOpen(false)
+          setIsMediaSelectionOpen(true)
+        }}
+      />
+
+      {/* Legacy Search Modal */}
       {useUnifiedSearch ? (
         <SearchModalV2
           isOpen={isSearchOpen}
