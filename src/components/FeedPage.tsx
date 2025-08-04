@@ -568,83 +568,95 @@ export default function FeedPage({
               </div>
             </div>
             <div className="p-4">
-              {sharedMedia.length > 0 ? (
-                <div className="flex space-x-4 overflow-x-auto pb-2">
-                  {sharedMedia.map((sharedItem) => {
-                    // 📚 DEBUG POUR LES LIVRES PARTAGÉS
-                    if (sharedItem.item_type === 'books') {
-                      console.log('📚 [Recently Recommended] Book item:', {
-                        title: sharedItem.item_title,
-                        image: sharedItem.item_image,
-                        imageType: typeof sharedItem.item_image,
-                        imageLength: sharedItem.item_image?.length,
-                        isValidUrl: sharedItem.item_image?.startsWith('http'),
-                        fullItem: sharedItem
-                      })
-                    }
-                    
-                    return (
-                    <div 
-                      key={sharedItem.id}
-                      className="flex-shrink-0 cursor-pointer group"
-                      onClick={() => handleSharedItemClick(sharedItem)}
-                    >
-                      <div className="w-20 relative">
-                        {/* Media Cover */}
-                        <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
-                          {sharedItem.item_image ? (
-                            <img
-                              src={sharedItem.item_image}
-                              alt={sharedItem.item_title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                console.log('📚 [Recently Recommended] Image failed for:', sharedItem.item_title, sharedItem.item_image)
-                                const target = e.target as HTMLImageElement
-                                target.style.display = 'none'
-                                target.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gray-200">${getCategoryIcon(sharedItem.item_type)}</div>`
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                              {getCategoryIcon(sharedItem.item_type)}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Friend Avatar Badge */}
-                        <div className="absolute top-0 right-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                          {sharedItem.from_user?.avatar_url ? (
-                            <img
-                              src={sharedItem.from_user.avatar_url}
-                              alt={sharedItem.from_user.display_name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <User size={12} className="text-green-600" />
-                          )}
-                        </div>
-                        
-                        {/* Title and Friend Name */}
-                        <div className="mt-2 text-center">
-                          <p className="text-xs text-gray-900 font-medium truncate px-1">
-                            {sharedItem.item_title}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate px-1">
-                            by {sharedItem.from_user?.display_name || 'Friend'}
-                          </p>
+              {(() => {
+                // 🔧 FIX: Utiliser feedActivities au lieu de sharedMedia (même source que la section qui fonctionne)
+                const recommendedItems = feedActivities
+                  .filter(activity => 
+                    activity.activity_type === 'library_add' && 
+                    activity.user?.id !== currentUser?.id &&
+                    activity.item_image &&
+                    activity.item_title
+                  )
+                  .slice(0, 8) // Show max 8 items
+                
+                return recommendedItems.length > 0 ? (
+                  <div className="flex space-x-4 overflow-x-auto pb-2">
+                    {recommendedItems.map((activity) => {
+                      // 📚 DEBUG POUR LES LIVRES RECOMMANDÉS (utilise maintenant feedActivities)
+                      if (activity.item_type === 'books') {
+                        console.log('📚 [Recently Recommended - Fixed] Book activity:', {
+                          title: activity.item_title,
+                          image: activity.item_image,
+                          imageType: typeof activity.item_image,
+                          imageLength: activity.item_image?.length,
+                          isValidUrl: activity.item_image?.startsWith('http'),
+                          fullActivity: activity
+                        })
+                      }
+                      
+                      return (
+                      <div 
+                        key={activity.id}
+                        className="flex-shrink-0 cursor-pointer group"
+                        onClick={() => handleItemClick({ id: activity.item_id }, activity.item_type)}
+                      >
+                        <div className="w-20 relative">
+                          {/* Media Cover */}
+                          <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
+                            {activity.item_image ? (
+                              <img
+                                src={activity.item_image}
+                                alt={activity.item_title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  console.log('📚 [Recently Recommended - Fixed] Image failed for:', activity.item_title, activity.item_image)
+                                  const target = e.target as HTMLImageElement
+                                  target.style.display = 'none'
+                                  target.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gray-200">${getCategoryIcon(activity.item_type)}</div>`
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                {getCategoryIcon(activity.item_type)}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Friend Avatar Badge */}
+                          <div className="absolute top-0 right-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                            {activity.user?.avatar_url ? (
+                              <img
+                                src={activity.user.avatar_url}
+                                alt={activity.user.display_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <User size={12} className="text-green-600" />
+                            )}
+                          </div>
+                          
+                          {/* Title and Friend Name */}
+                          <div className="mt-2 text-center">
+                            <p className="text-xs text-gray-900 font-medium truncate px-1">
+                              {activity.item_title}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate px-1">
+                              by {activity.user?.display_name || 'Friend'}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <Share2 size={32} className="mx-auto text-gray-300 mb-2" />
-                  <p className="text-gray-500 text-sm">No recommendations yet</p>
-                  <p className="text-gray-400 text-xs">Ask friends to share content with you!</p>
-                </div>
-              )}
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <Share2 size={32} className="mx-auto text-gray-300 mb-2" />
+                    <p className="text-gray-500 text-sm">No recommendations yet</p>
+                    <p className="text-gray-400 text-xs">Ask friends to share content with you!</p>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}
