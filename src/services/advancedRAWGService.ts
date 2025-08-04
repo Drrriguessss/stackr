@@ -319,71 +319,82 @@ class AdvancedRAWGService {
   }
 
   /**
-   * 🏆 CALCUL DU SCORE DE QUALITÉ
+   * 🏆 CALCUL DU SCORE DE QUALITÉ ADAPTATIF
    */
   private calculateQualityScore(game: RAWGGame): number {
     let score = 0
 
-    // Metacritic (40% du score)
+    // ✅ METACRITIC: Important mais pas obligatoire (25% du score)
     if (game.metacritic) {
-      score += (game.metacritic / 100) * 40
+      score += (game.metacritic / 100) * 25
+    } else {
+      // ✅ BONUS: Score par défaut pour jeux sans Metacritic (jeux indies)
+      score += 15  // Score neutre pour éviter de pénaliser les indies
     }
 
-    // Rating (30% du score)
+    // ✅ RATING: Plus important pour jeux sans Metacritic (40% du score)
     if (game.rating) {
-      score += (game.rating / 5) * 30
+      const ratingScore = (game.rating / 5) * 40
+      score += ratingScore
     }
 
-    // Popularité basée sur rating_count (20% du score)
+    // ✅ POPULARITÉ: Adaptatif selon le nombre de reviews (20% du score)
     if (game.rating_count) {
-      const popularityScore = Math.min(game.rating_count / 10000, 1)
+      // Plus indulgent pour les jeux avec moins de reviews
+      const popularityScore = Math.min(game.rating_count / 5000, 1)  // Réduit de 10k à 5k
       score += popularityScore * 20
     }
 
-    // Complétude des données (10% du score)
+    // ✅ COMPLÉTUDE: Essentiel pour tous les jeux (15% du score)
     let completeness = 0
-    if (game.background_image) completeness += 2
+    if (game.background_image) completeness += 3  // Plus important
     if (game.genres && game.genres.length > 0) completeness += 2
     if (game.developers && game.developers.length > 0) completeness += 2
     if (game.released) completeness += 2
-    if (game.description_raw) completeness += 2
+    if (game.description_raw) completeness += 1
     
-    score += (completeness / 10) * 10
+    score += (completeness / 10) * 15
 
     return Math.min(100, score)
   }
 
   /**
-   * 🛡️ FILTRES DE QUALITÉ AVANCÉS
+   * 🛡️ FILTRES DE QUALITÉ ADAPTATIFS
    */
   private passesQualityFilters(game: EnhancedRAWGGame, options: AdvancedSearchOptions): boolean {
-    // Rating minimum
-    if (game.rating < 3.0) {
-      console.log(`🛡️ Quality filter: ${game.name} rejected (low rating: ${game.rating})`)
+    // ✅ FILTRES ADAPTATIFS selon si on a un Metacritic minimum ou pas
+    const isStrictMode = (options.minMetacritic || 0) > 0
+    
+    // Rating minimum adaptatif
+    const minRating = isStrictMode ? 3.0 : 2.0  // Plus permissif en mode fallback
+    if (game.rating < minRating) {
+      console.log(`🛡️ Quality filter: ${game.name} rejected (low rating: ${game.rating}, min: ${minRating})`)
       return false
     }
 
-    // Minimum de reviews pour éviter le contenu obscur
-    if (game.rating_count && game.rating_count < 10) {
-      console.log(`🛡️ Quality filter: ${game.name} rejected (too few ratings: ${game.rating_count})`)
+    // Minimum de reviews adaptatif
+    const minReviews = isStrictMode ? 10 : 1  // Plus permissif pour jeux indies
+    if (game.rating_count && game.rating_count < minReviews) {
+      console.log(`🛡️ Quality filter: ${game.name} rejected (too few ratings: ${game.rating_count}, min: ${minReviews})`)
       return false
     }
 
-    // Doit avoir une image
+    // Doit avoir une image (garde ce filtre essentiel)
     if (!game.background_image) {
       console.log(`🛡️ Quality filter: ${game.name} rejected (no image)`)
       return false
     }
 
-    // Doit avoir des genres définis
-    if (!game.genres || game.genres.length === 0) {
+    // ✅ GENRES: Plus permissif en mode fallback
+    if (isStrictMode && (!game.genres || game.genres.length === 0)) {
       console.log(`🛡️ Quality filter: ${game.name} rejected (no genres)`)
       return false
     }
 
-    // Score de qualité minimum
-    if (game.qualityScore < 30) {
-      console.log(`🛡️ Quality filter: ${game.name} rejected (low quality score: ${game.qualityScore})`)
+    // ✅ SCORE DE QUALITÉ: Plus permissif en mode fallback
+    const minQualityScore = isStrictMode ? 30 : 10
+    if (game.qualityScore < minQualityScore) {
+      console.log(`🛡️ Quality filter: ${game.name} rejected (low quality score: ${game.qualityScore}, min: ${minQualityScore})`)
       return false
     }
 

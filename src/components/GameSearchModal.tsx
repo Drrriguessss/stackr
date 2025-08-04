@@ -49,14 +49,26 @@ export default function GameSearchModal({
       console.log('🎮 [AdvancedGameSearch] === PROFESSIONAL GAMING SEARCH ===')
       console.log('🎮 [AdvancedGameSearch] Query:', `"${searchQuery}"`)
       
-      // ✅ RECHERCHE AVEC SERVICE AVANCÉ ET TOUTES LES OPTIMISATIONS
-      const advancedResults = await advancedRAWGService.optimizedGameSearch(searchQuery, {
-        minMetacritic: 60,          // Qualité minimum (baissé à 60 pour plus de résultats)
+      // ✅ RECHERCHE ADAPTIVE - Essaye d'abord optimisé, puis fallback
+      let advancedResults = await advancedRAWGService.optimizedGameSearch(searchQuery, {
+        minMetacritic: 50,          // ✅ RÉDUIT: 50 au lieu de 60 pour inclure plus de jeux indies
         excludeAdditions: true,     // Exclure DLC et add-ons
         excludeFanMade: true,       // Exclure contenu amateur
         maxResults: 20,             // Top 20 résultats
         sortBy: 'relevance'         // Tri par pertinence intelligente
       })
+      
+      // ✅ FALLBACK: Si aucun résultat, essaie sans filtres Metacritic
+      if (advancedResults.length === 0) {
+        console.log('🎮 [GameSearch] No results with Metacritic filter, trying fallback...')
+        advancedResults = await advancedRAWGService.optimizedGameSearch(searchQuery, {
+          minMetacritic: 0,         // ✅ SANS FILTRE Metacritic pour trouver les jeux indies
+          excludeAdditions: true,   
+          excludeFanMade: false,    // ✅ Plus permissif pour contenu amateur
+          maxResults: 20,
+          sortBy: 'relevance'
+        })
+      }
 
       setSearchResults(advancedResults)
       setSearchTime(Date.now() - startTime)
