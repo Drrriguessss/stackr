@@ -15,6 +15,9 @@ import DiscoverPageV2 from '@/components/DiscoverPageV2'
 import FeedPage from '@/components/FeedPage'
 import UserProfileSetup from '@/components/UserProfileSetup'
 import ProfilePage from '@/components/ProfilePage'
+import FriendsPage from '@/components/FriendsPage'
+import GroupsPage from '@/components/GroupsPage'
+import ListsPage from '@/components/ListsPage'
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 import { sampleContent } from '@/data/sampleContent'
@@ -96,6 +99,7 @@ export default function Home() {
   // User profile state
   const [showProfileSetup, setShowProfileSetup] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
 
   // Check user profile on mount
   useEffect(() => {
@@ -133,13 +137,28 @@ export default function Home() {
   // Listen for profile navigation events
   useEffect(() => {
     const handleNavigateToProfile = () => {
+      setProfileUserId(null) // Reset to current user's profile
       setActiveMainTab('profile')
     }
 
+    const handleOpenUserProfile = (event: any) => {
+      const { userId } = event.detail
+      setProfileUserId(userId)
+      setActiveMainTab('profile')
+    }
+
+    const handleOpenGlobalSearch = () => {
+      setIsSearchOpen(true)
+    }
+
     window.addEventListener('navigateToProfile', handleNavigateToProfile)
+    window.addEventListener('openUserProfile', handleOpenUserProfile)
+    window.addEventListener('openGlobalSearch', handleOpenGlobalSearch)
     
     return () => {
       window.removeEventListener('navigateToProfile', handleNavigateToProfile)
+      window.removeEventListener('openUserProfile', handleOpenUserProfile)
+      window.removeEventListener('openGlobalSearch', handleOpenGlobalSearch)
     }
   }, [])
 
@@ -717,7 +736,39 @@ export default function Home() {
       case 'roadmap':
         return <RoadmapPage onBack={() => setActiveMainTab('feed')} />
       case 'profile':
-        return <ProfilePage onBack={() => setActiveMainTab('feed')} library={library} />
+        return (
+          <ProfilePage 
+            onBack={() => setActiveMainTab('feed')} 
+            userId={profileUserId || undefined}
+            library={library} 
+          />
+        )
+      case 'friends':
+        return (
+          <FriendsPage 
+            onBack={() => setActiveMainTab('feed')} 
+            onOpenProfile={(userId) => {
+              setProfileUserId(userId)
+              setActiveMainTab('profile')
+            }}
+          />
+        )
+      case 'groups':
+        return (
+          <GroupsPage 
+            onBack={() => setActiveMainTab('feed')} 
+          />
+        )
+      case 'lists':
+        return (
+          <ListsPage 
+            onBack={() => setActiveMainTab('feed')} 
+            onOpenGameDetail={handleOpenGameDetail}
+            onOpenMovieDetail={handleOpenMovieDetail}
+            onOpenBookDetail={handleOpenBookDetail}
+            onOpenMusicDetail={handleOpenMusicDetail}
+          />
+        )
       default:
         return (
           <FeedPage 

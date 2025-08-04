@@ -123,6 +123,11 @@ export default function FeedPage({
           avatar_url: user.avatar,
           is_public: true
         })
+        
+        // Also save Google avatar to user_avatars table
+        if (user.avatar) {
+          await avatarService.updateUserAvatar(user.id, user.avatar)
+        }
       }
     } catch (error) {
       console.error('Error ensuring user profile:', error)
@@ -340,14 +345,19 @@ export default function FeedPage({
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                   <input
                     type="text"
-                    placeholder="Search feed..."
+                    placeholder="Search games, movies, music, books..."
                     className="pl-10 pr-4 py-2 w-64 bg-gray-50 hover:bg-gray-100 focus:bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    onClick={() => window.dispatchEvent(new CustomEvent('openGlobalSearch'))}
+                    readOnly
                   />
                 </div>
               </div>
               
               {/* Version mobile de la recherche */}
-              <button className="sm:hidden p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <button 
+                className="sm:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
+                onClick={() => window.dispatchEvent(new CustomEvent('openGlobalSearch'))}
+              >
                 <Search size={20} className="text-gray-600" />
               </button>
               
@@ -399,7 +409,7 @@ export default function FeedPage({
                           className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full"
                         >
                           <Search size={16} />
-                          Rechercher des amis
+                          Find Friends
                         </button>
 
                         <button
@@ -407,7 +417,7 @@ export default function FeedPage({
                           className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full relative"
                         >
                           <Users size={16} />
-                          Demandes d'amis
+                          Friend Requests
                           {pendingRequestsCount > 0 && (
                             <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
                               {pendingRequestsCount}
@@ -417,7 +427,7 @@ export default function FeedPage({
 
                         <button className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full">
                           <Settings size={16} />
-                          Paramètres
+                          Settings
                         </button>
 
                         <button
@@ -425,7 +435,7 @@ export default function FeedPage({
                           className="flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 w-full"
                         >
                           <LogOut size={16} />
-                          Se déconnecter
+                          Sign Out
                         </button>
                       </div>
                     )}
@@ -437,7 +447,7 @@ export default function FeedPage({
                     className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <User size={16} />
-                    <span className="hidden sm:inline">Se connecter</span>
+                    <span className="hidden sm:inline">Sign In</span>
                   </button>
                 )}
               </div>
@@ -499,9 +509,9 @@ export default function FeedPage({
                       className="flex-shrink-0 cursor-pointer group"
                       onClick={() => handleSharedItemClick(sharedItem)}
                     >
-                      <div className="w-24 relative">
+                      <div className="w-20 relative">
                         {/* Media Cover */}
-                        <div className="w-20 h-28 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
+                        <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
                           {sharedItem.item_image ? (
                             <img
                               src={sharedItem.item_image}
@@ -516,7 +526,7 @@ export default function FeedPage({
                         </div>
                         
                         {/* Friend Avatar Badge */}
-                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                        <div className="absolute top-0 right-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
                           {sharedItem.from_user?.avatar_url ? (
                             <img
                               src={sharedItem.from_user.avatar_url}
@@ -738,6 +748,9 @@ export default function FeedPage({
       <FriendSearchModal
         isOpen={showFriendSearchModal}
         onClose={() => setShowFriendSearchModal(false)}
+        onOpenProfile={(userId) => {
+          window.dispatchEvent(new CustomEvent('openUserProfile', { detail: { userId } }))
+        }}
       />
 
       {/* Friend Requests Modal */}

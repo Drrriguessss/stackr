@@ -467,7 +467,8 @@ class SocialService {
       item.title,
       item.type,
       item.id,
-      item.image
+      item.image,
+      user.id
     )
     
     console.log('🔔 Notification created successfully:', notificationCreated)
@@ -487,6 +488,14 @@ class SocialService {
       .select('*')
       .eq('to_user_id', user.id)
       .order('created_at', { ascending: false })
+    
+    console.log('🔍 [Debug] Raw shares data:', shares?.map(share => ({
+      id: share.id,
+      from_user_id: share.from_user_id,
+      to_user_id: share.to_user_id,
+      current_user_matches_to: user.id === share.to_user_id,
+      current_user_matches_from: user.id === share.from_user_id
+    })))
     
     if (sharesError) {
       console.error('Error fetching shared media:', sharesError)
@@ -509,29 +518,93 @@ class SocialService {
 
     // Get user profiles and avatars for each unique share
     const userIds = [...new Set(uniqueShares.map(share => share.from_user_id))]
-    const { data: userProfiles } = await supabase
-      .from('user_profiles')
-      .select('id, username, display_name, avatar_url')
-      .in('id', userIds)
+    
+    console.log('🔍 [Debug] Getting profiles for userIds:', userIds)
+    
+    // Try to get user profiles with error handling for RLS issues
+    let userProfiles: any[] = []
+    try {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('id, username, display_name, avatar_url')
+        .in('id', userIds)
+      
+      console.log('🔍 [Debug] User profiles query result:', { profiles, profilesError })
+      
+      if (!profilesError && profiles) {
+        userProfiles = profiles
+      }
+    } catch (error) {
+      console.log('🔍 [Debug] Failed to get user profiles, continuing with fallback:', error)
+    }
 
-    // Get optimized avatars using avatarService
-    const avatarMap = await avatarService.getBatchAvatars(userIds)
+    // Get optimized avatars using avatarService with better error handling
+    let avatarMap = new Map<string, string>()
+    try {
+      avatarMap = await avatarService.getBatchAvatars(userIds)
+      console.log('🔍 [Debug] Avatar map results:', Array.from(avatarMap.entries()))
+    } catch (error) {
+      console.log('🔍 [Debug] Failed to get batch avatars, using consistent fallback:', error)
+      // Create consistent fallback avatars for all users
+      userIds.forEach(userId => {
+        const colors = ['blue', 'green', 'purple', 'red', 'orange', 'teal', 'pink', 'indigo']
+        const names = ['Friend', 'Buddy', 'Pal', 'Mate', 'User', 'Contact', 'Person', 'Someone']
+        
+        // Use consistent hashing based on user ID to always get same color/name
+        const colorIndex = parseInt(userId.slice(-2), 16) % colors.length
+        const nameIndex = parseInt(userId.slice(-3, -1), 16) % names.length
+        
+        const color = colors[colorIndex]
+        const name = names[nameIndex]
+        const defaultAvatar = `https://ui-avatars.com/api/?name=${name}&background=${color}&color=fff&size=64`
+        
+        avatarMap.set(userId, defaultAvatar)
+        console.log('🔍 [Debug] Generated consistent fallback avatar for', userId.slice(0, 8), ':', defaultAvatar)
+      })
+    }
 
     // Combine the data with proper avatars
     const result = uniqueShares.map(share => {
       const profile = userProfiles?.find(profile => profile.id === share.from_user_id)
       const avatarUrl = avatarMap.get(share.from_user_id) || profile?.avatar_url
       
+      // Create fallback profile if none found (due to RLS restrictions)
+      const finalFromUser = profile || {
+        id: share.from_user_id,
+        username: 'friend',
+        display_name: 'Friend', 
+        avatar_url: null
+      }
+      
+      console.log('🔍 [Debug] Processing share:', {
+        shareId: share.id,
+        from_user_id: share.from_user_id,
+        profile_found: !!profile,
+        profile_avatar: profile?.avatar_url,
+        avatar_from_map: avatarMap.get(share.from_user_id),
+        final_avatar: avatarUrl,
+        using_fallback_profile: !profile
+      })
+      
       return {
         ...share,
-        from_user: profile ? {
-          ...profile,
+        from_user: {
+          ...finalFromUser,
           avatar_url: avatarUrl
-        } : null
+        }
       }
     })
 
     console.log('🔍 [Debug] Final result with avatars:', result.length, 'items')
+    result.forEach((item, index) => {
+      console.log(`🔍 [Debug] Item ${index}:`, {
+        current_user_id: user.id,
+        from_user_id: item.from_user_id,
+        to_user_id: item.to_user_id,
+        from_user_name: item.from_user?.display_name,
+        item_title: item.item_title
+      })
+    })
     return result as MediaShare[]
   }
 

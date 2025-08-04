@@ -6,9 +6,10 @@ import { socialService, type SearchUser } from '@/services/socialService'
 interface FriendSearchModalProps {
   isOpen: boolean
   onClose: () => void
+  onOpenProfile?: (userId: string) => void
 }
 
-export default function FriendSearchModal({ isOpen, onClose }: FriendSearchModalProps) {
+export default function FriendSearchModal({ isOpen, onClose, onOpenProfile }: FriendSearchModalProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchUser[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -111,7 +112,15 @@ export default function FriendSearchModal({ isOpen, onClose }: FriendSearchModal
                   key={user.id}
                   className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
                 >
-                  <div className="flex items-center space-x-3">
+                  <div 
+                    className="flex items-center space-x-3 flex-1 cursor-pointer"
+                    onClick={() => {
+                      if (onOpenProfile) {
+                        onOpenProfile(user.id)
+                        onClose()
+                      }
+                    }}
+                  >
                     {user.avatar_url ? (
                       <img
                         src={user.avatar_url}
@@ -124,7 +133,7 @@ export default function FriendSearchModal({ isOpen, onClose }: FriendSearchModal
                       </div>
                     )}
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{user.display_name}</p>
+                      <p className="font-medium text-gray-900 dark:text-white hover:text-blue-600">{user.display_name}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {user.has_profile ? `@${user.username}` : user.email}
                       </p>

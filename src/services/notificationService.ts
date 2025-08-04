@@ -5,12 +5,14 @@ import { supabase } from '@/lib/supabase'
 export interface Notification {
   id: string
   user_id: string
-  type: string
+  type: 'friend_request' | 'friend_accepted' | 'activity_like' | 'activity_comment' | 'media_shared' | 'recommendation'
   title: string
   message: string
-  data: string | any
+  data?: string | any
   read: boolean
   created_at: string
+  from_user_id?: string
+  related_id?: string
 }
 
 class NotificationService {
@@ -105,32 +107,59 @@ class NotificationService {
     mediaTitle: string,
     mediaType: string,
     mediaId: string,
-    mediaImage?: string
+    mediaImage?: string,
+    fromUserId?: string
   ): Promise<boolean> {
     try {
       console.log('🔔 [NotificationService] Creating notification:', {
         recipientId,
         recommenderName,
         mediaTitle,
-        mediaType
+        mediaType,
+        fromUserId
       })
+
+      const notificationData = {
+        user_id: recipientId,
+        type: 'media_shared' as const,
+        title: 'Nouvelle recommandation',
+        message: `${recommenderName} vous recommande "${mediaTitle}" (${mediaType}:${mediaId}${mediaImage ? `|${mediaImage}` : ''})`,
+        read: false,
+        ...(fromUserId && { from_user_id: fromUserId }),
+        related_id: mediaId,
+        data: JSON.stringify({
+          mediaType,
+          mediaId,
+          mediaTitle,
+          mediaImage,
+          recommenderName
+        })
+      }
 
       const { data, error } = await supabase
         .from('notifications')
-        .insert({
-          user_id: recipientId,
-          type: 'recommendation',
-          title: 'Nouvelle recommandation',
-          message: `${recommenderName} vous recommande "${mediaTitle}" (${mediaType}:${mediaId}${mediaImage ? `|${mediaImage}` : ''})`
-        })
+        .insert(notificationData)
         .select()
 
       if (error) {
         console.error('🔔 [NotificationService] Error creating notification:', error)
+        console.error('🔔 [NotificationService] Failed data:', notificationData)
         return false
       }
 
       console.log('🔔 [NotificationService] Notification created successfully:', data)
+      
+      // Try to send real-time notification via channel
+      try {
+        await supabase.channel(`notifications:${recipientId}`).send({
+          type: 'broadcast',
+          event: 'notification',
+          payload: data[0]
+        })
+      } catch (channelError) {
+        console.log('🔔 [NotificationService] Real-time notification failed, but notification saved:', channelError)
+      }
+      
       return true
     } catch (error) {
       console.error('🔔 [NotificationService] Error creating notification:', error)

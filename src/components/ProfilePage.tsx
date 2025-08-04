@@ -260,7 +260,7 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
             <ArrowLeft size={20} />
           </button>
           
-          <h1 className="text-lg font-semibold">Profil</h1>
+          <h1 className="text-lg font-semibold">Profile</h1>
           
           {isOwnProfile && (
             <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -320,11 +320,11 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
             <div className="flex items-center space-x-6 mt-4">
               <div className="text-center">
                 <div className="text-xl font-bold">{stats.totalMedia}</div>
-                <div className="text-sm text-gray-500">Médias</div>
+                <div className="text-sm text-gray-500">Media</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold">{stats.ratedMedia}</div>
-                <div className="text-sm text-gray-500">Notés</div>
+                <div className="text-sm text-gray-500">Rated</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold">{stats.totalReviews}</div>
@@ -362,7 +362,7 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
               }`}
             >
               <Lock size={16} className="inline mr-2" />
-              Privé
+              Private
             </button>
           )}
         </div>
@@ -376,7 +376,7 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
             <section className="bg-white rounded-xl p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center">
                 <TrendingUp size={20} className="mr-2 text-blue-600" />
-                Activité Récente
+                Recent Activity
               </h3>
               
               {recentActivities.length > 0 ? (
@@ -386,7 +386,7 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
                       {getCategoryIcon(activity.item_type)}
                       <div className="flex-1">
                         <p className="text-sm">
-                          A ajouté <span className="font-medium">{activity.item_title}</span>
+                          Added <span className="font-medium">{activity.item_title}</span>
                         </p>
                         <p className="text-xs text-gray-500">
                           {new Date(activity.created_at).toLocaleDateString('fr-FR')}
@@ -396,7 +396,7 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-sm">Aucune activité récente</p>
+                <p className="text-gray-500 text-sm">No recent activity</p>
               )}
             </section>
 
@@ -404,7 +404,7 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
             <section className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center">
                 <Trophy size={20} className="mr-2 text-yellow-600" />
-                Mes Top 5
+                My Top 5
               </h3>
 
               {(['movies', 'games', 'music', 'books'] as const).map((category) => (
@@ -413,9 +413,9 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
                     <h4 className="font-medium flex items-center">
                       {getCategoryIcon(category)}
                       <span className="ml-2">
-                        Top 5 {category === 'movies' ? 'Films' : 
-                               category === 'games' ? 'Jeux' :
-                               category === 'music' ? 'Musiques' : 'Livres'}
+                        Top 5 {category === 'movies' ? 'Movies' : 
+                               category === 'games' ? 'Games' :
+                               category === 'music' ? 'Music' : 'Books'}
                       </span>
                     </h4>
                     {isOwnProfile && (
@@ -423,7 +423,7 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
                         onClick={() => setEditingTopFive(category)}
                         className="text-blue-600 hover:text-blue-700 text-sm"
                       >
-                        {topFive[category].length === 0 ? 'Ajouter' : 'Modifier'}
+                        {topFive[category].length === 0 ? 'Add' : 'Edit'}
                       </button>
                     )}
                   </div>
@@ -444,7 +444,7 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
                       </ol>
                     ) : (
                       <p className="text-gray-500 text-sm italic">
-                        {isOwnProfile ? 'Cliquez sur "Ajouter" pour créer votre top 5' : 'Pas encore défini'}
+                        {isOwnProfile ? 'Click "Add" to create your top 5' : 'Not defined yet'}
                       </p>
                     )
                   )}
@@ -459,16 +459,16 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
             <section className="bg-white rounded-xl p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center">
                 <Users size={20} className="mr-2 text-blue-600" />
-                Mes Amis
+                My Friends
               </h3>
-              <p className="text-gray-500 text-sm">Liste des amis (à implémenter)</p>
+              <p className="text-gray-500 text-sm">Friends list (to be implemented)</p>
             </section>
 
             {/* Detailed Stats */}
             <section className="bg-white rounded-xl p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center">
                 <BarChart3 size={20} className="mr-2 text-green-600" />
-                Statistiques Détaillées
+                Detailed Statistics
               </h3>
               
               <div className="grid grid-cols-2 gap-4">
@@ -484,7 +484,7 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
               </div>
 
               <p className="text-sm text-gray-500 mt-4 italic">
-                Plus de statistiques détaillées à venir...
+                More detailed statistics coming soon...
               </p>
             </section>
           </>
@@ -536,13 +536,13 @@ function TopFiveEditor({
           onClick={handleSave}
           className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
-          Sauvegarder
+          Save
         </button>
         <button
           onClick={onCancel}
           className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors"
         >
-          Annuler
+          Cancel
         </button>
       </div>
     </div>

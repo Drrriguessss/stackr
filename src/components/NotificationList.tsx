@@ -34,10 +34,43 @@ export default function NotificationList({
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'recommendation':
+      case 'media_shared':
         return '🎬'
+      case 'friend_request':
+        return '👥'
+      case 'friend_accepted':
+        return '✅'
+      case 'activity_like':
+        return '❤️'
+      case 'activity_comment':
+        return '💬'
       default:
         return '🔔'
     }
+  }
+
+  const getMediaImage = (notification: Notification): string | null => {
+    // Try to get image from data field first (new format)
+    if (notification.data) {
+      try {
+        const data = typeof notification.data === 'string' ? JSON.parse(notification.data) : notification.data
+        if (data.mediaImage) return data.mediaImage
+      } catch (e) {
+        // Fall through to message parsing
+      }
+    }
+    
+    // Fallback to message parsing (old format)
+    if (notification.message && notification.message.includes('|')) {
+      return notification.message.split('|')[1]
+    }
+    
+    return null
+  }
+
+  const getDisplayMessage = (notification: Notification): string => {
+    // Clean up the message by removing image URL if present
+    return notification.message.split('|')[0]
   }
 
   const unreadCount = notifications.filter(n => !n.read).length
@@ -96,10 +129,10 @@ export default function NotificationList({
                 >
                   <div className="flex items-start space-x-3">
                     {/* Media thumbnail or icon */}
-                    {notification.type === 'recommendation' && notification.message.includes('|') ? (
+                    {((notification.type === 'recommendation' || notification.type === 'media_shared') && getMediaImage(notification)) ? (
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                         <img 
-                          src={notification.message.split('|')[1]} 
+                          src={getMediaImage(notification)} 
                           alt="Media"
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -139,7 +172,7 @@ export default function NotificationList({
                       <p className={`text-sm mt-1 ${
                         !notification.read ? 'text-gray-800' : 'text-gray-600'
                       }`}>
-                        {notification.message.split('|')[0]}
+                        {getDisplayMessage(notification)}
                       </p>
                       
                       <p className="text-xs text-gray-500 mt-2">

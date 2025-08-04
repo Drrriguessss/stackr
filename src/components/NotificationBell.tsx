@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Bell } from 'lucide-react'
 import { notificationService, type Notification } from '@/services/notificationService'
 import { AuthService } from '@/services/authService'
+import { supabase } from '@/lib/supabase'
 import NotificationList from './NotificationList'
 
 export default function NotificationBell() {
@@ -21,12 +22,39 @@ export default function NotificationBell() {
       loadNotifications()
       loadUnreadCount()
       
-      // Poll for new notifications every 30 seconds
+      // Set up real-time subscription for notifications
+      const channel = supabase
+        .channel(`notifications:${currentUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${currentUser.id}`
+          },
+          (payload) => {
+            console.log('🔔 [NotificationBell] New notification received:', payload)
+            loadUnreadCount()
+            loadNotifications()
+          }
+        )
+        .on('broadcast', { event: 'notification' }, (payload) => {
+          console.log('🔔 [NotificationBell] Broadcast notification received:', payload)
+          loadUnreadCount()
+          loadNotifications()
+        })
+        .subscribe()
+      
+      // Fallback polling every 2 minutes for reliability
       const interval = setInterval(() => {
         loadUnreadCount()
-      }, 30000)
+      }, 120000)
 
-      return () => clearInterval(interval)
+      return () => {
+        channel.unsubscribe()
+        clearInterval(interval)
+      }
     }
   }, [currentUser])
 
@@ -77,13 +105,29 @@ export default function NotificationBell() {
     }
 
     // Handle different notification types
-    if (notification.type === 'recommendation') {
-      // Extract media info from message format: "User recommends "Title" (type:id)"
-      const messageMatch = notification.message.match(/\((\w+):([^)]+)\)$/)
+    if (notification.type === 'recommendation' || notification.type === 'media_shared') {
+      let mediaType, mediaId
       
-      if (messageMatch) {
-        const [, mediaType, mediaId] = messageMatch
-        
+      // Try to parse from data field first (new format)
+      if (notification.data) {
+        try {
+          const data = typeof notification.data === 'string' ? JSON.parse(notification.data) : notification.data
+          mediaType = data.mediaType
+          mediaId = data.mediaId
+        } catch (e) {
+          console.log('Failed to parse notification data, falling back to message parsing')
+        }
+      }
+      
+      // Fallback to message parsing (old format)
+      if (!mediaType || !mediaId) {
+        const messageMatch = notification.message.match(/\((\w+):([^)|]+)/)
+        if (messageMatch) {
+          [, mediaType, mediaId] = messageMatch
+        }
+      }
+      
+      if (mediaType && mediaId) {
         // Create a mock event to trigger the appropriate detail modal
         const mockEvent = new CustomEvent('openMediaDetail', {
           detail: {
@@ -112,7 +156,7 @@ export default function NotificationBell() {
         className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
         title="Notifications"
       >
-        <Bell size={20} className={unreadCount > 0 ? "text-blue-600" : "text-gray-600"} />
+        <Bell size={20} className={unreadCount > 0 ? "text-red-500 animate-pulse" : "text-gray-600"} />
         
         {unreadCount > 0 && (
           <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center">

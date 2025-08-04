@@ -39,9 +39,9 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
       status: 'in-progress', 
       description: 'Improved user experience and mobile features',
       items: [
-        { text: 'Progressive Web App (PWA) support', completed: false, isNew: true },
-        { text: 'Offline functionality', completed: false },
-        { text: 'Push notifications', completed: false },
+        { text: 'Progressive Web App (PWA) support', completed: true, isNew: true },
+        { text: 'Push notifications system', completed: true },
+        { text: 'In-app notifications with real-time updates', completed: true },
         { text: 'User reviews and ratings', completed: true },
         { text: 'Advanced filtering and sorting', completed: true }
       ]
@@ -68,17 +68,22 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
         { text: 'AI-powered smart recommendations', completed: false },
         { text: 'Advanced analytics dashboard', completed: false },
         { text: 'Custom themes and personalization', completed: false },
-        { text: 'Groups & Communities', completed: false },
+        { text: 'Groups & Communities with discussions', completed: true },
         { text: 'Native mobile apps (iOS/Android)', completed: false },
         { text: 'Public API for developers', completed: false }
       ]
     },
     {
       id: 'phase6',
-      title: 'Phase 6 - Additional Ideas',
-      status: 'in-progress',
-      description: 'Community suggestions and innovative features',
+      title: 'Phase 6 - Community Features & Lists',
+      status: 'completed',
+      description: 'Community features and content organization',
       items: [
+        { text: 'Custom Lists with mixed media types', completed: true, isNew: true },
+        { text: 'List sharing, likes, and comments system', completed: true, isNew: true },
+        { text: 'Profile pages with public/private sections', completed: true, isNew: true },
+        { text: 'Friends system with search and management', completed: true, isNew: true },
+        { text: 'Avatar system with Google Photos integration', completed: true, isNew: true },
         { text: 'Book Detail Modal: Awards & Recognition section', completed: true, isNew: true },
         { text: 'Book Detail Modal: Movie/TV/Series adaptations section', completed: true, isNew: true },
         { text: 'Book Detail Modal: Book quotes and memorable citations', completed: true, isNew: true },
@@ -90,7 +95,7 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
         { text: 'Audio visualizer with live waveform animation synced to beat', completed: false, isNew: true },
         { text: 'Dynamic color variations based on music rhythm & BPM', completed: false, isNew: true },
         { text: 'Rewards system for active users (badges, points, exclusive content)', completed: false },
-        { text: 'Enhanced profile with genre preferences stats & director analytics', completed: false },
+        { text: 'Enhanced profile with Top 5 lists and statistics', completed: true },
         { text: 'AI recommendation engine based on listening/viewing patterns', completed: false },
         { text: 'Live chat rooms for media discussions (like Chinese platforms)', completed: false, isNew: true },
         { text: 'Music listening parties organization feature', completed: false },
@@ -99,7 +104,33 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
     },
     {
       id: 'phase7',
-      title: 'Phase 7 - Gamification & Achievements',
+      title: 'Phase 7 - Advanced Community Features',
+      status: 'in-progress',
+      description: 'Advanced community and content features',
+      items: [
+        { text: 'Book Detail Modal: Awards & Recognition section', completed: true, isNew: true },
+        { text: 'Book Detail Modal: Movie/TV/Series adaptations section', completed: true, isNew: true },
+        { text: 'Book Detail Modal: Book quotes and memorable citations', completed: true, isNew: true },
+        { text: 'Groups with search, create, join functionality', completed: true, isNew: true },
+        { text: 'Group discussions and mini-forum features', completed: true, isNew: true },
+        { text: 'Currently reading/playing/listening tracking in groups', completed: true, isNew: true },
+        { text: 'Group moderation system with roles', completed: true, isNew: true },
+        { text: 'Book Detail Modal: Local bookstore finder with Claude AI suggestions', completed: false, isNew: true },
+        { text: 'Amazon Affiliate integration across all product pages for monetization', completed: false, isNew: true },
+        { text: 'Music Detail Modal: Shazam integration for instant music recognition', completed: false, isNew: true },
+        { text: 'Music Detail Modal: Direct Spotify/Apple Music playback integration', completed: false, isNew: true },
+        { text: 'Enhanced Spotify & Apple Music account linking', completed: false, isNew: true },
+        { text: 'Audio visualizer with live waveform animation synced to beat', completed: false, isNew: true },
+        { text: 'Dynamic color variations based on music rhythm & BPM', completed: false, isNew: true },
+        { text: 'AI recommendation engine based on listening/viewing patterns', completed: false },
+        { text: 'Live chat rooms for media discussions (like Chinese platforms)', completed: false, isNew: true },
+        { text: 'Music listening parties organization feature', completed: false },
+        { text: '"Favorite" status for music tracks & albums (beyond want/listened)', completed: false, isNew: true }
+      ]
+    },
+    {
+      id: 'phase8',
+      title: 'Phase 8 - Gamification & Achievements',
       status: 'planned',
       description: 'Badge system and user engagement features',
       items: [
@@ -203,7 +234,7 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
                 <div className="text-xs text-gray-600">Remaining</div>
               </div>
               <div className="bg-white rounded-xl p-3 border border-gray-200">
-                <div className="text-lg font-bold text-gray-900">6</div>
+                <div className="text-lg font-bold text-gray-900">{roadmapPhases.length}</div>
                 <div className="text-xs text-gray-600">Phases</div>
               </div>
             </div>
