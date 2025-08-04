@@ -65,6 +65,15 @@ export default function FeedPage({
   const [showFriendRequestsModal, setShowFriendRequestsModal] = useState(false)
 
   useEffect(() => {
+    console.log('📚 [FeedPage] Loading library data...')
+    console.log('📚 [FeedPage] Total library items:', library.length)
+    console.log('📚 [FeedPage] Library items by category:', {
+      games: library.filter(item => item.category === 'games').length,
+      movies: library.filter(item => item.category === 'movies').length,
+      books: library.filter(item => item.category === 'books').length,
+      music: library.filter(item => item.category === 'music').length
+    })
+    
     // Simuler les derniers items ajoutés à la bibliothèque
     const recent = library
       .sort((a, b) => new Date(b.addedAt || 0).getTime() - new Date(a.addedAt || 0).getTime())
@@ -77,6 +86,23 @@ export default function FeedPage({
       image: item.image,
       hasImage: !!item.image
     })))
+    
+    // 📚 DEBUGGING SPÉCIFIQUE POUR LES LIVRES
+    const bookItems = recent.filter(item => item.category === 'books')
+    console.log('📚 [FeedPage] Book items specifically:', bookItems.map(book => ({
+      title: book.title,
+      image: book.image,
+      imageType: typeof book.image,
+      imageLength: book.image?.length,
+      isValidUrl: book.image?.startsWith('http'),
+      fullItem: book
+    })))
+    
+    if (bookItems.length === 0) {
+      console.log('📚 [FeedPage] ❌ NO BOOKS FOUND in recent library items')
+    } else {
+      console.log(`📚 [FeedPage] ✅ Found ${bookItems.length} books in library`)
+    }
     
     setRecentLibraryItems(recent)
   }, [library])
@@ -501,6 +527,13 @@ export default function FeedPage({
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             console.log('📚 [FeedPage] Image failed to load for:', item.title, item.image)
+                            console.log('📚 [FeedPage] Failed image details:', {
+                              itemCategory: item.category,
+                              imageUrl: item.image,
+                              imageLength: item.image?.length,
+                              startsWithHttp: item.image?.startsWith('http'),
+                              errorEvent: e
+                            })
                             const target = e.target as HTMLImageElement
                             target.style.display = 'none'
                             target.nextElementSibling?.classList.remove('hidden')
