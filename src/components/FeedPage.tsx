@@ -112,22 +112,32 @@ export default function FeedPage({
   const ensureUserProfile = async (user: AuthUser) => {
     try {
       const existingProfile = await socialService.getUserProfile(user.id)
+      const username = user.email?.split('@')[0] || `user_${user.id.slice(0, 8)}`
+      const displayName = user.name || username
+      
       if (!existingProfile) {
         // Créer un profil utilisateur automatiquement
-        const username = user.email?.split('@')[0] || `user_${user.id.slice(0, 8)}`
-        const displayName = user.name || username
-        
         await socialService.createOrUpdateProfile(user.id, {
           username,
           display_name: displayName,
           avatar_url: user.avatar,
           is_public: true
         })
-        
-        // Also save Google avatar to user_avatars table
-        if (user.avatar) {
-          await avatarService.updateUserAvatar(user.id, user.avatar)
+      } else {
+        // Mettre à jour l'avatar existant si on a un nouveau de Google
+        if (user.avatar && existingProfile.avatar_url !== user.avatar) {
+          console.log('🔄 [Avatar] Updating existing profile avatar:', user.avatar)
+          await socialService.createOrUpdateProfile(user.id, {
+            ...existingProfile,
+            avatar_url: user.avatar
+          })
         }
+      }
+      
+      // Toujours sauvegarder/mettre à jour l'avatar Google dans user_avatars
+      if (user.avatar) {
+        console.log('🔄 [Avatar] Saving Google avatar to user_avatars:', user.avatar)
+        await avatarService.updateUserAvatar(user.id, user.avatar)
       }
     } catch (error) {
       console.error('Error ensuring user profile:', error)

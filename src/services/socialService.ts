@@ -544,23 +544,34 @@ class SocialService {
       avatarMap = await avatarService.getBatchAvatars(userIds)
       console.log('🔍 [Debug] Avatar map results:', Array.from(avatarMap.entries()))
     } catch (error) {
-      console.log('🔍 [Debug] Failed to get batch avatars, using consistent fallback:', error)
-      // Create consistent fallback avatars for all users
-      userIds.forEach(userId => {
-        const colors = ['blue', 'green', 'purple', 'red', 'orange', 'teal', 'pink', 'indigo']
-        const names = ['Friend', 'Buddy', 'Pal', 'Mate', 'User', 'Contact', 'Person', 'Someone']
-        
-        // Use consistent hashing based on user ID to always get same color/name
-        const colorIndex = parseInt(userId.slice(-2), 16) % colors.length
-        const nameIndex = parseInt(userId.slice(-3, -1), 16) % names.length
-        
-        const color = colors[colorIndex]
-        const name = names[nameIndex]
-        const defaultAvatar = `https://ui-avatars.com/api/?name=${name}&background=${color}&color=fff&size=64`
-        
-        avatarMap.set(userId, defaultAvatar)
-        console.log('🔍 [Debug] Generated consistent fallback avatar for', userId.slice(0, 8), ':', defaultAvatar)
-      })
+      console.log('🔍 [Debug] Failed to get batch avatars, trying individual avatar lookup:', error)
+    }
+    
+    // For any missing avatars, try to get them individually
+    for (const userId of userIds) {
+      if (!avatarMap.has(userId) || !avatarMap.get(userId)) {
+        try {
+          console.log('🔍 [Debug] Trying individual avatar lookup for:', userId.slice(0, 8))
+          const avatarUrl = await avatarService.getAvatarUrl(userId)
+          if (avatarUrl) {
+            avatarMap.set(userId, avatarUrl)
+            console.log('🔍 [Debug] Found individual avatar:', avatarUrl)
+          } else {
+            // Create fallback only if no avatar found
+            const profile = userProfiles?.find(p => p.id === userId)
+            const displayName = profile?.display_name || profile?.username || 'Friend'
+            const initials = displayName.split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase()
+            const colors = ['3B82F6', '10B981', '8B5CF6', 'F59E0B', 'EF4444', '06B6D4', 'EC4899', '6366F1']
+            const colorIndex = parseInt(userId.slice(-2), 16) % colors.length
+            const color = colors[colorIndex]
+            const fallbackAvatar = `https://ui-avatars.com/api/?name=${initials}&background=${color}&color=fff&size=64`
+            avatarMap.set(userId, fallbackAvatar)
+            console.log('🔍 [Debug] Generated fallback avatar for', userId.slice(0, 8), ':', fallbackAvatar)
+          }
+        } catch (individualError) {
+          console.log('🔍 [Debug] Individual avatar lookup failed for', userId.slice(0, 8), ':', individualError)
+        }
+      }
     }
 
     // Combine the data with proper avatars
