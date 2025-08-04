@@ -121,6 +121,12 @@ interface CacheEntry {
 // 🏆 Algorithme de ranking unifié BM25-inspired
 class UnifiedRankingAlgorithm {
   static calculateRelevanceScore(query: string, item: SearchResult): number {
+    // Defensive checks for undefined values
+    if (!item || !item.title) {
+      console.warn('🔥 [UnifiedSearch] Item or title is undefined:', item)
+      return 0
+    }
+    
     const queryLower = query.toLowerCase().trim()
     const titleLower = item.title.toLowerCase().trim()
     
@@ -412,9 +418,17 @@ export class UnifiedSearchService {
   private async searchCategory(category: MediaCategory, query: string): Promise<SearchResult[]> {
     switch (category) {
       case 'movies':
-        return await omdbService.searchMoviesAndSeries(query, 1)
+        const omdbMovies = await omdbService.searchMoviesAndSeries(query, 1)
+        // Convert OMDB movies to app format with proper title field
+        return omdbMovies
+          .map(movie => omdbService.convertToAppFormat(movie))
+          .filter(movie => movie !== null && movie.title)
       case 'books':
-        return await googleBooksService.searchBooks(query, 12)
+        const googleBooks = await googleBooksService.searchBooks(query, 12)
+        // Convert Google Books to app format with proper title field
+        return googleBooks
+          .map(book => googleBooksService.convertToAppFormat(book))
+          .filter(book => book !== null && book.title)
       case 'games':
         const rawgGames = await rawgService.searchGames(query)
         // Convert RAWG games to app format and filter out any null results
@@ -422,7 +436,9 @@ export class UnifiedSearchService {
           .map(game => rawgService.convertToAppFormat(game))
           .filter(game => game !== null && game.title)
       case 'music':
-        return await musicServiceV2.searchMusic(query)
+        const musicItems = await musicServiceV2.searchMusic(query)
+        // Music service already returns the correct format, just filter for safety
+        return musicItems.filter(item => item !== null && item.title)
       default:
         return []
     }
