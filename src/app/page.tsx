@@ -11,7 +11,7 @@ import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
 import SearchModalV2 from '@/components/SearchModalV2'
 import MediaSelectionModal from '@/components/MediaSelectionModal'
-import GameSearchModal from '@/components/GameSearchModal'
+import SimpleGameSearchModal from '@/components/SimpleGameSearchModal'
 import MovieSearchModal from '@/components/MovieSearchModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
@@ -933,27 +933,82 @@ export default function Home() {
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">Search</h1>
-          <button
-            onClick={() => setUseUnifiedSearch(!useUnifiedSearch)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-              useUnifiedSearch 
-                ? 'bg-green-100 text-green-700 border border-green-200' 
-                : 'bg-gray-100 text-gray-700 border border-gray-200'
-            }`}
-          >
-            {useUnifiedSearch ? '🚀 V2.0 Unified' : '📂 V1.0 Legacy'}
-          </button>
         </div>
       </div>
-      <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
-        <div 
-          className="bg-gray-50 rounded-xl p-4 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
-          onClick={() => setIsMediaSelectionOpen(true)}
-        >
-          <div className="flex items-center space-x-3">
-            <Search className="text-gray-400" size={20} />
-            <span className="text-gray-500">Search games, movies, music, books...</span>
-          </div>
+      
+      <div className="px-4 sm:px-6 py-6 pb-24">
+        <h2 className="text-lg font-semibold text-gray-900 mb-6">What are you looking for?</h2>
+        
+        <div className="grid grid-cols-2 gap-4">
+          {/* Games */}
+          <button
+            onClick={() => setIsGameSearchOpen(true)}
+            className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 hover:border-green-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex flex-col items-center space-y-3">
+              <div className="p-3 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4H6a2 2 0 00-2 2v11a2 2 0 002 2h13a2 2 0 002-2V6a2 2 0 00-2-2h-5m-4 0V2m0 2v2m0-2h4m-4 0H9m6 4h2m-2 0v2m0-2H9" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-gray-900">Games</p>
+                <p className="text-sm text-gray-600 mt-1">Video games, PC, console</p>
+              </div>
+            </div>
+          </button>
+
+          {/* Movies */}
+          <button
+            onClick={() => setIsMovieSearchOpen(true)}
+            className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 hover:border-blue-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex flex-col items-center space-y-3">
+              <div className="p-3 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-gray-900">Movies & TV</p>
+                <p className="text-sm text-gray-600 mt-1">Films, series, shows</p>
+              </div>
+            </div>
+          </button>
+
+          {/* Books */}
+          <button
+            className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 hover:border-purple-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex flex-col items-center space-y-3">
+              <div className="p-3 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-gray-900">Books</p>
+                <p className="text-sm text-gray-600 mt-1">Fiction, non-fiction</p>
+              </div>
+            </div>
+          </button>
+
+          {/* Music */}
+          <button
+            className="p-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl border border-orange-200 hover:border-orange-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex flex-col items-center space-y-3">
+              <div className="p-3 bg-orange-100 rounded-full group-hover:bg-orange-200 transition-colors">
+                <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-gray-900">Music</p>
+                <p className="text-sm text-gray-600 mt-1">Albums, artists, songs</p>
+              </div>
+            </div>
+          </button>
         </div>
       </div>
     </div>
@@ -1030,15 +1085,11 @@ export default function Home() {
         }}
       />
 
-      <GameSearchModal
+      <SimpleGameSearchModal
         isOpen={isGameSearchOpen}
         onClose={() => setIsGameSearchOpen(false)}
         onAddToLibrary={handleAddToLibrary}
         onOpenDetail={handleOpenDetail}
-        onBackToSelection={() => {
-          setIsGameSearchOpen(false)
-          setIsMediaSelectionOpen(true)
-        }}
       />
 
       <MovieSearchModal
