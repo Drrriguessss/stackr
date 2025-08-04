@@ -1,5 +1,3 @@
-'use client'
-
 import { supabase } from '@/lib/supabase'
 
 export interface Notification {
@@ -112,12 +110,23 @@ class NotificationService {
   ): Promise<boolean> {
     try {
       console.log('🔔 [NotificationService] Creating notification:', {
-        recipientId,
+        recipientId: recipientId.slice(0, 8) + '...',
         recommenderName,
         mediaTitle,
         mediaType,
-        fromUserId
+        fromUserId: fromUserId?.slice(0, 8) + '...'
       })
+
+      // First, verify we can access the notifications table
+      const { data: testAccess, error: accessError } = await supabase
+        .from('notifications')
+        .select('id')
+        .limit(1)
+
+      if (accessError) {
+        console.error('🔔 [NotificationService] Cannot access notifications table:', accessError)
+        return false
+      }
 
       const notificationData = {
         user_id: recipientId,
@@ -136,6 +145,12 @@ class NotificationService {
         })
       }
 
+      console.log('🔔 [NotificationService] Attempting to insert:', {
+        ...notificationData,
+        user_id: notificationData.user_id.slice(0, 8) + '...',
+        from_user_id: notificationData.from_user_id?.slice(0, 8) + '...'
+      })
+
       const { data, error } = await supabase
         .from('notifications')
         .insert(notificationData)
@@ -143,26 +158,37 @@ class NotificationService {
 
       if (error) {
         console.error('🔔 [NotificationService] Error creating notification:', error)
-        console.error('🔔 [NotificationService] Failed data:', notificationData)
+        console.error('🔔 [NotificationService] Error code:', error.code)
+        console.error('🔔 [NotificationService] Error details:', error.details)
+        console.error('🔔 [NotificationService] Failed data:', {
+          ...notificationData,
+          user_id: notificationData.user_id.slice(0, 8) + '...',
+          from_user_id: notificationData.from_user_id?.slice(0, 8) + '...'
+        })
         return false
       }
 
-      console.log('🔔 [NotificationService] Notification created successfully:', data)
+      console.log('🔔 [NotificationService] Notification created successfully:', {
+        id: data[0]?.id,
+        created_at: data[0]?.created_at
+      })
       
       // Try to send real-time notification via channel
       try {
-        await supabase.channel(`notifications:${recipientId}`).send({
+        const channel = supabase.channel(`notifications:${recipientId}`)
+        await channel.send({
           type: 'broadcast',
           event: 'notification',
           payload: data[0]
         })
+        console.log('🔔 [NotificationService] Real-time notification sent')
       } catch (channelError) {
         console.log('🔔 [NotificationService] Real-time notification failed, but notification saved:', channelError)
       }
       
       return true
     } catch (error) {
-      console.error('🔔 [NotificationService] Error creating notification:', error)
+      console.error('🔔 [NotificationService] Unexpected error creating notification:', error)
       return false
     }
   }
