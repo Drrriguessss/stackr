@@ -120,13 +120,7 @@ class NotificationService {
           user_id: recipientId,
           type: 'recommendation',
           title: 'Nouvelle recommandation',
-          message: `${recommenderName} vous recommande "${mediaTitle}"`,
-          data: {
-            recommender_name: recommenderName,
-            media_title: mediaTitle,
-            media_type: mediaType,
-            media_id: mediaId
-          }
+          message: `${recommenderName} vous recommande "${mediaTitle}"`
         })
         .select()
 
