@@ -31,11 +31,24 @@ export default function NotificationList({
     return date.toLocaleDateString('fr-FR')
   }
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, mediaType?: string) => {
+    if (type === 'recommendation' || type === 'media_shared') {
+      // Déterminer l'icône selon le type de média
+      switch (mediaType?.toLowerCase()) {
+        case 'games':
+          return '🎮'
+        case 'movies':
+          return '🎬'
+        case 'books':
+          return '📚'
+        case 'music':
+          return '🎵'
+        default:
+          return '🎬' // Fallback
+      }
+    }
+    
     switch (type) {
-      case 'recommendation':
-      case 'media_shared':
-        return '🎬'
       case 'friend_request':
         return '👥'
       case 'friend_accepted':
@@ -50,19 +63,56 @@ export default function NotificationList({
   }
 
   const getMediaImage = (notification: Notification): string | null => {
+    // 🔍 DEBUG: Log notification data pour diagnostic
+    console.log('🔔 [NotificationList] Analyzing notification:', {
+      id: notification.id,
+      type: notification.type,
+      message: notification.message,
+      data: notification.data,
+      hasData: !!notification.data
+    })
+    
     // Try to get image from data field first (new format)
     if (notification.data) {
       try {
         const data = typeof notification.data === 'string' ? JSON.parse(notification.data) : notification.data
-        if (data.mediaImage) return data.mediaImage
+        console.log('🔔 [NotificationList] Parsed data:', data)
+        if (data.mediaImage) {
+          console.log('🔔 [NotificationList] Found mediaImage:', data.mediaImage)
+          return data.mediaImage
+        }
       } catch (e) {
+        console.log('🔔 [NotificationList] Error parsing data:', e)
         // Fall through to message parsing
       }
     }
     
     // Fallback to message parsing (old format)
     if (notification.message && notification.message.includes('|')) {
-      return notification.message.split('|')[1]
+      const imageUrl = notification.message.split('|')[1]
+      console.log('🔔 [NotificationList] Found image in message:', imageUrl)
+      return imageUrl
+    }
+    
+    console.log('🔔 [NotificationList] No image found for notification')
+    return null
+  }
+  
+  const getMediaType = (notification: Notification): string | null => {
+    // Try to get media type from data field first
+    if (notification.data) {
+      try {
+        const data = typeof notification.data === 'string' ? JSON.parse(notification.data) : notification.data
+        if (data.mediaType) return data.mediaType
+      } catch (e) {
+        // Fall through to message parsing
+      }
+    }
+    
+    // Fallback to message parsing (old format)
+    if (notification.message && notification.message.includes('(') && notification.message.includes(':')) {
+      const match = notification.message.match(/\(([^:]+):/);
+      if (match) return match[1]
     }
     
     return null
@@ -129,23 +179,29 @@ export default function NotificationList({
                 >
                   <div className="flex items-start space-x-3">
                     {/* Media thumbnail or icon */}
-                    {((notification.type === 'recommendation' || notification.type === 'media_shared') && getMediaImage(notification)) ? (
-                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                        <img 
-                          src={getMediaImage(notification)} 
-                          alt="Media"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none'
-                            e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-2xl">${getNotificationIcon(notification.type)}</div>`
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="text-2xl">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                    )}
+                    {(() => {
+                      const mediaImage = getMediaImage(notification)
+                      const mediaType = getMediaType(notification)
+                      
+                      return ((notification.type === 'recommendation' || notification.type === 'media_shared') && mediaImage) ? (
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          <img 
+                            src={mediaImage} 
+                            alt="Media"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.log('🔔 [NotificationList] Image failed to load:', mediaImage)
+                              e.currentTarget.style.display = 'none'
+                              e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-2xl">${getNotificationIcon(notification.type, mediaType)}</div>`
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-2xl">
+                          {getNotificationIcon(notification.type, mediaType)}
+                        </div>
+                      )
+                    })()}
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
