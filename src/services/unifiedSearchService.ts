@@ -9,11 +9,11 @@ import type { SearchResult, MediaCategory } from '@/types'
 
 // Configuration optimisée basée sur les recommandations
 const SEARCH_CONFIG = {
-  // Debouncing adaptatif selon longueur de query
+  // ✅ NOUVEAU: Debouncing adaptatif basé sur recherches web
   debouncing: {
-    shortQuery: 500,  // 1-2 chars
-    mediumQuery: 300, // 3-4 chars  
-    longQuery: 200    // 5+ chars (optimal selon research)
+    shortQuery: 800,  // 1-2 chars (plus patient)
+    mediumQuery: 400, // 3-4 chars (équilibré)  
+    longQuery: 200    // 5+ chars (réactif)
   },
   
   // Timeouts par API (basé sur performance observée)
@@ -132,10 +132,43 @@ class UnifiedRankingAlgorithm {
     
     console.log(`\n🎯 [Relevance] === SCORING "${item.title}" for "${query}" ===`)
     
-    // Exact match = score parfait
+    // ✅ NOUVEAU: Vérifier correspondance exacte des mots dans l'ordre
+    const queryWordsExact = queryLower.split(/[\s\-_:]+/).filter(w => w.length > 0)
+    const titleWordsExact = titleLower.split(/[\s\-_:]+/).filter(w => w.length > 0)
+    
+    // Match exact de la séquence complète
     if (titleLower === queryLower) {
       console.log(`🎯 [Relevance] ✅ EXACT MATCH! Score: 10`)
       return 10
+    }
+    
+    // ✅ NOUVEAU: Vérifier si le titre contient exactement les mots de la query dans l'ordre
+    let exactSequenceMatch = true
+    let sequenceStartIndex = -1
+    
+    for (let i = 0; i <= titleWordsExact.length - queryWordsExact.length; i++) {
+      let matches = 0
+      for (let j = 0; j < queryWordsExact.length; j++) {
+        if (titleWordsExact[i + j] === queryWordsExact[j]) {
+          matches++
+        } else {
+          break
+        }
+      }
+      if (matches === queryWordsExact.length) {
+        sequenceStartIndex = i
+        break
+      }
+    }
+    
+    if (sequenceStartIndex === 0) {
+      // Les mots de la query commencent le titre
+      console.log(`🎯 [Relevance] ✅ EXACT SEQUENCE AT START! Score: 9.5`)
+      return 9.5
+    } else if (sequenceStartIndex > 0) {
+      // Les mots de la query sont présents dans l'ordre mais pas au début
+      console.log(`🎯 [Relevance] ✅ EXACT SEQUENCE FOUND! Score: 8.5`)
+      return 8.5
     }
     
     let score = 0
@@ -186,14 +219,20 @@ class UnifiedRankingAlgorithm {
       debugInfo.push(`Exact word matches: ${exactWordMatches}, +${exactScore}`)
     }
     
-    // 5. Fuzzy matching pour gérer les typos (réduit)
+    // 5. ✅ NOUVEAU: Bonus pour correspondance de tous les mots de la query
+    if (exactWordMatches === queryWords.length && queryWords.length > 1) {
+      score += 2
+      debugInfo.push(`All query words found: +2`)
+    }
+    
+    // 6. Fuzzy matching pour gérer les typos (réduit)
     const fuzzyScore = this.calculateFuzzyMatch(queryLower, titleLower)
     if (fuzzyScore > 0.8) {
       score += fuzzyScore * 1.5
       debugInfo.push(`Fuzzy match: +${(fuzzyScore * 1.5).toFixed(2)}`)
     }
     
-    // 6. Bonus pour correspondances partielles (réduit)
+    // 7. Bonus pour correspondances partielles (réduit)
     let partialMatches = 0
     queryWords.forEach(qWord => {
       if (qWord.length >= 3) {
@@ -607,7 +646,12 @@ export class UnifiedSearchService {
       'student film', 'homemade', 'low budget', 'b-movie',
       'xxx', 'adult', 'porn', 'erotic',
       'in cannes', 'at cannes', 'cannes film',
-      'behind the scenes', 'making of', 'documentary about'
+      'behind the scenes', 'making of', 'documentary about',
+      // ✅ NOUVEAUX: Singles et contenu musical suspect
+      'single', 'remix', 'karaoke', 'instrumental',
+      'cover version', 'acoustic version', 'live version',
+      // ✅ NOUVEAUX: Termes suspects spécifiques
+      'se pico', 'zentzua', 'ughh', 'unboxing', 'reaction'
     ]
     
     for (const keyword of rejectKeywords) {
@@ -621,7 +665,10 @@ export class UnifiedSearchService {
     const suspectKeywords = [
       'trailer', 'teaser', 'clip', 'scene', 'short film',
       'web series', 'episode', 'pilot', 'deleted scenes',
-      'bloopers', 'outtakes', 'gag reel'
+      'bloopers', 'outtakes', 'gag reel',
+      // ✅ NOUVEAUX: Contenu de faible qualité
+      'gameplay', 'walkthrough', 'tutorial', 'review',
+      'analysis', 'explained', 'theory', 'easter eggs'
     ]
     
     for (const keyword of suspectKeywords) {

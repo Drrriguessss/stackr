@@ -112,8 +112,8 @@ export default function SearchModalV2({
     // Set loading state immediately for better UX
     setIsSearching(true)
 
-    // Intelligent debouncing - shorter delay for longer queries (optimisé)
-    const debounceTime = newQuery.length <= 2 ? 400 : newQuery.length <= 4 ? 250 : 150
+    // ✅ NOUVEAU: Debouncing adaptatif basé sur recherches web (300-1000ms)
+    const debounceTime = newQuery.length <= 2 ? 800 : newQuery.length <= 4 ? 400 : 200
 
     searchTimeoutRef.current = setTimeout(() => {
       performSearch(newQuery)
