@@ -570,7 +570,20 @@ export default function FeedPage({
             <div className="p-4">
               {sharedMedia.length > 0 ? (
                 <div className="flex space-x-4 overflow-x-auto pb-2">
-                  {sharedMedia.map((sharedItem) => (
+                  {sharedMedia.map((sharedItem) => {
+                    // 📚 DEBUG POUR LES LIVRES PARTAGÉS
+                    if (sharedItem.item_type === 'books') {
+                      console.log('📚 [Recently Recommended] Book item:', {
+                        title: sharedItem.item_title,
+                        image: sharedItem.item_image,
+                        imageType: typeof sharedItem.item_image,
+                        imageLength: sharedItem.item_image?.length,
+                        isValidUrl: sharedItem.item_image?.startsWith('http'),
+                        fullItem: sharedItem
+                      })
+                    }
+                    
+                    return (
                     <div 
                       key={sharedItem.id}
                       className="flex-shrink-0 cursor-pointer group"
@@ -584,6 +597,12 @@ export default function FeedPage({
                               src={sharedItem.item_image}
                               alt={sharedItem.item_title}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.log('📚 [Recently Recommended] Image failed for:', sharedItem.item_title, sharedItem.item_image)
+                                const target = e.target as HTMLImageElement
+                                target.style.display = 'none'
+                                target.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gray-200">${getCategoryIcon(sharedItem.item_type)}</div>`
+                              }}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-gray-200">
@@ -616,7 +635,8 @@ export default function FeedPage({
                         </div>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-6">
