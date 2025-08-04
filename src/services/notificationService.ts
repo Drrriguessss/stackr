@@ -8,7 +8,7 @@ export interface Notification {
   type: string
   title: string
   message: string
-  data: any
+  data: string | any
   read: boolean
   created_at: string
 }
@@ -120,7 +120,13 @@ class NotificationService {
           user_id: recipientId,
           type: 'recommendation',
           title: 'Nouvelle recommandation',
-          message: `${recommenderName} vous recommande "${mediaTitle}"`
+          message: `${recommenderName} vous recommande "${mediaTitle}"`,
+          data: JSON.stringify({
+            recommender_name: recommenderName,
+            media_title: mediaTitle,
+            media_type: mediaType,
+            media_id: mediaId
+          })
         })
         .select()
 

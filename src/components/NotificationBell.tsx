@@ -70,6 +70,45 @@ export default function NotificationBell() {
     loadNotifications()
   }
 
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read if not already read
+    if (!notification.read) {
+      handleNotificationRead(notification.id)
+    }
+
+    // Parse the data field if it's a string
+    let notificationData
+    try {
+      notificationData = typeof notification.data === 'string' 
+        ? JSON.parse(notification.data) 
+        : notification.data
+    } catch (error) {
+      console.error('Error parsing notification data:', error)
+      return
+    }
+
+    // Handle different notification types
+    if (notification.type === 'recommendation' && notificationData) {
+      const { media_type, media_id } = notificationData
+      
+      // Create a mock event to trigger the appropriate detail modal
+      const mockEvent = new CustomEvent('openMediaDetail', {
+        detail: {
+          type: media_type,
+          id: media_id
+        }
+      })
+      
+      // Close notification modal first
+      setShowNotifications(false)
+      
+      // Dispatch the event after a small delay to ensure modal is closed
+      setTimeout(() => {
+        window.dispatchEvent(mockEvent)
+      }, 100)
+    }
+  }
+
   if (!currentUser) return null
 
   return (
@@ -96,6 +135,7 @@ export default function NotificationBell() {
           onClose={() => setShowNotifications(false)}
           onNotificationRead={handleNotificationRead}
           onMarkAllRead={handleMarkAllRead}
+          onNotificationClick={handleNotificationClick}
         />
       )}
     </>

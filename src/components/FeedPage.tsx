@@ -75,6 +75,36 @@ export default function FeedPage({
     }
   }, [currentUser])
 
+  // Listen for media detail events from notifications
+  useEffect(() => {
+    const handleOpenMediaDetail = (event: any) => {
+      const { type, id } = event.detail
+      
+      switch (type) {
+        case 'games':
+          onOpenGameDetail?.(id)
+          break
+        case 'movies':
+          onOpenMovieDetail?.(id)
+          break
+        case 'books':
+          onOpenBookDetail?.(id)
+          break
+        case 'music':
+          onOpenMusicDetail?.(id)
+          break
+        default:
+          console.log('Unknown media type:', type)
+      }
+    }
+
+    window.addEventListener('openMediaDetail', handleOpenMediaDetail)
+    
+    return () => {
+      window.removeEventListener('openMediaDetail', handleOpenMediaDetail)
+    }
+  }, [onOpenGameDetail, onOpenMovieDetail, onOpenBookDetail, onOpenMusicDetail])
+
   const ensureUserProfile = async (user: AuthUser) => {
     try {
       const existingProfile = await socialService.getUserProfile(user.id)

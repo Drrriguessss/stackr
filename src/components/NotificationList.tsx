@@ -8,13 +8,15 @@ interface NotificationListProps {
   onClose: () => void
   onNotificationRead: (notificationId: string) => void
   onMarkAllRead: () => void
+  onNotificationClick?: (notification: Notification) => void
 }
 
 export default function NotificationList({ 
   notifications, 
   onClose, 
   onNotificationRead, 
-  onMarkAllRead 
+  onMarkAllRead,
+  onNotificationClick 
 }: NotificationListProps) {
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString)
@@ -90,7 +92,7 @@ export default function NotificationList({
                   className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
                     !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                   }`}
-                  onClick={() => !notification.read && onNotificationRead(notification.id)}
+                  onClick={() => onNotificationClick?.(notification)}
                 >
                   <div className="flex items-start space-x-3">
                     <div className="text-2xl">
