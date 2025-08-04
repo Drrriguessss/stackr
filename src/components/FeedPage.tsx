@@ -925,8 +925,166 @@ export default function FeedPage({
           </div>
         )}
 
-        {/* Social Feed */}
-        {currentUser ? (
+        {/* My Night Planned */}
+        {currentUser && (
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="text-pink-600" size={20} />
+                  <h2 className="text-lg font-semibold text-gray-900">My night planned</h2>
+                </div>
+                <button className="text-sm text-pink-600 hover:text-pink-700 font-medium">
+                  Create event
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              {/* Mock data for planned events - replace with real social events data */}
+              {(() => {
+                const plannedEvents = [
+                  {
+                    id: '1',
+                    type: 'movie_night',
+                    title: 'Horror Movie Marathon',
+                    date: '2024-08-05',
+                    time: '20:00',
+                    participants: [
+                      { name: 'Alex', avatar: '/api/placeholder/24/24' },
+                      { name: 'Sarah', avatar: '/api/placeholder/24/24' },
+                      { name: 'Mike', avatar: '/api/placeholder/24/24' }
+                    ],
+                    movies: [
+                      { title: 'The Conjuring', image: '/api/placeholder/40/60' },
+                      { title: 'Hereditary', image: '/api/placeholder/40/60' },
+                      { title: 'Midsommar', image: '/api/placeholder/40/60' }
+                    ]
+                  },
+                  {
+                    id: '2',
+                    type: 'music_night',
+                    title: 'Indie Rock Session',
+                    date: '2024-08-07',
+                    time: '19:30',
+                    participants: [
+                      { name: 'Emma', avatar: '/api/placeholder/24/24' },
+                      { name: 'Jake', avatar: '/api/placeholder/24/24' }
+                    ],
+                    albums: [
+                      { title: 'In Rainbows', artist: 'Radiohead', image: '/api/placeholder/40/40' },
+                      { title: 'Funeral', artist: 'Arcade Fire', image: '/api/placeholder/40/40' }
+                    ]
+                  }
+                ]
+
+                return plannedEvents.length > 0 ? (
+                  <div className="space-y-4">
+                    {plannedEvents.map((event) => (
+                      <div key={event.id} className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl p-4 border border-pink-100">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                              {event.type === 'movie_night' ? <Film size={16} className="text-pink-600" /> : <Music size={16} className="text-pink-600" />}
+                              {event.title}
+                            </h3>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at {event.time}
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="flex -space-x-2 mr-3">
+                              {event.participants.slice(0, 3).map((participant, index) => (
+                                <div key={index} className="w-8 h-8 rounded-full overflow-hidden border-2 border-white bg-gray-200">
+                                  <img
+                                    src={participant.avatar}
+                                    alt={participant.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ))}
+                              {event.participants.length > 3 && (
+                                <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
+                                  <span className="text-xs text-gray-600">+{event.participants.length - 3}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Media Preview */}
+                        {event.type === 'movie_night' && event.movies && (
+                          <div className="flex space-x-2 overflow-x-auto pb-2">
+                            {event.movies.map((movie, index) => (
+                              <div key={index} className="flex-shrink-0">
+                                <div className="w-10 h-14 rounded-lg overflow-hidden bg-gray-200">
+                                  <img
+                                    src={movie.image}
+                                    alt={movie.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1 text-center truncate w-10">
+                                  {movie.title}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {event.type === 'music_night' && event.albums && (
+                          <div className="flex space-x-3 overflow-x-auto pb-2">
+                            {event.albums.map((album, index) => (
+                              <div key={index} className="flex-shrink-0 flex items-center space-x-2">
+                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200">
+                                  <img
+                                    src={album.image}
+                                    alt={album.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium text-gray-900 truncate">{album.title}</p>
+                                  <p className="text-xs text-gray-600 truncate">{album.artist}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-pink-200">
+                          <div className="flex items-center space-x-2 text-sm text-gray-600">
+                            <Users size={14} />
+                            <span>{event.participants.length} participants</span>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button className="px-3 py-1 text-xs bg-pink-100 text-pink-700 rounded-full hover:bg-pink-200 transition-colors">
+                              View details
+                            </button>
+                            <button className="px-3 py-1 text-xs bg-white text-gray-700 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors">
+                              Join
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Calendar size={32} className="mx-auto text-gray-300 mb-2" />
+                    <h3 className="text-sm font-semibold text-gray-900 mb-1">No events planned</h3>
+                    <p className="text-gray-500 text-sm mb-4">Create a movie night or music session with friends</p>
+                    <button className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors text-sm">
+                      Create your first event
+                    </button>
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* Social Feed - HIDDEN for now since activities are now organized in specific sections above */}
+        {false && currentUser ? (
           isLoadingFeed ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
