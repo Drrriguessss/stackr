@@ -582,48 +582,74 @@ export default function FeedPage({
               </div>
             </div>
             <div className="p-4">
-              <div className="flex space-x-4 overflow-x-auto pb-2">
-                {/* Mock data - vous pouvez remplacer par de vraies données d'amis */}
-                {[
-                  { id: '1', title: 'Baldur\'s Gate 3', image: '/api/placeholder/64/80', friend: { name: 'Alex', avatar: '/api/placeholder/24/24' }, category: 'games' },
-                  { id: '2', title: 'Spider-Man 2', image: '/api/placeholder/64/80', friend: { name: 'Sarah', avatar: '/api/placeholder/24/24' }, category: 'games' },
-                  { id: '3', title: 'The Batman', image: '/api/placeholder/64/80', friend: { name: 'Mike', avatar: '/api/placeholder/24/24' }, category: 'movies' },
-                  { id: '4', title: 'Dune: Part Two', image: '/api/placeholder/64/80', friend: { name: 'Emma', avatar: '/api/placeholder/24/24' }, category: 'movies' },
-                  { id: '5', title: 'Project Hail Mary', image: '/api/placeholder/64/80', friend: { name: 'Jake', avatar: '/api/placeholder/24/24' }, category: 'books' },
-                ].map((item) => (
-                  <div key={item.id} className="flex-shrink-0 cursor-pointer group">
-                    <div className="w-20 relative">
-                      {/* Media Cover */}
-                      <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
+              {/* Filter activities to show only library additions from friends */}
+              {(() => {
+                const recentAdditions = feedActivities
+                  .filter(activity => 
+                    activity.activity_type === 'library_add' && 
+                    activity.user?.id !== currentUser?.id &&
+                    activity.item_image &&
+                    activity.item_title
+                  )
+                  .slice(0, 8) // Show max 8 items
+
+                return recentAdditions.length > 0 ? (
+                  <div className="flex space-x-4 overflow-x-auto pb-2">
+                    {recentAdditions.map((activity) => (
+                      <div 
+                        key={activity.id} 
+                        className="flex-shrink-0 cursor-pointer group"
+                        onClick={() => handleItemClick({ id: activity.item_id }, activity.item_type)}
+                      >
+                        <div className="w-20 relative">
+                          {/* Media Cover */}
+                          <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
+                            {activity.item_image ? (
+                              <img
+                                src={activity.item_image}
+                                alt={activity.item_title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                {getCategoryIcon(activity.item_type)}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Friend Avatar Badge */}
+                          <div className="absolute top-0 right-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                            {activity.user?.avatar_url ? (
+                              <img
+                                src={activity.user.avatar_url}
+                                alt={activity.user.display_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <User size={12} className="text-blue-600" />
+                            )}
+                          </div>
+                          
+                          {/* Title and Friend Name */}
+                          <div className="mt-2 text-center">
+                            <p className="text-xs text-gray-900 font-medium truncate px-1">
+                              {activity.item_title}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate px-1">
+                              by {activity.user?.display_name}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      
-                      {/* Friend Avatar Badge */}
-                      <div className="absolute top-0 right-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                        <img
-                          src={item.friend.avatar}
-                          alt={item.friend.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      
-                      {/* Title and Friend Name */}
-                      <div className="mt-2 text-center">
-                        <p className="text-xs text-gray-900 font-medium truncate px-1">
-                          {item.title}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate px-1">
-                          by {item.friend.name}
-                        </p>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Users size={32} className="mx-auto text-gray-300 mb-2" />
+                    <p className="text-gray-500 text-sm">No recent additions from friends</p>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}
@@ -638,52 +664,79 @@ export default function FeedPage({
               </div>
             </div>
             <div className="p-4">
-              <div className="flex space-x-4 overflow-x-auto pb-2">
-                {/* Mock data pour les ratings d'amis */}
-                {[
-                  { id: '1', title: 'Cyberpunk 2077', image: '/api/placeholder/64/80', rating: 4.5, friend: { name: 'Alex', avatar: '/api/placeholder/24/24' } },
-                  { id: '2', title: 'Oppenheimer', image: '/api/placeholder/64/80', rating: 5.0, friend: { name: 'Sarah', avatar: '/api/placeholder/24/24' } },
-                  { id: '3', title: 'The Witcher 3', image: '/api/placeholder/64/80', rating: 4.8, friend: { name: 'Mike', avatar: '/api/placeholder/24/24' } },
-                  { id: '4', title: 'Interstellar', image: '/api/placeholder/64/80', rating: 4.7, friend: { name: 'Emma', avatar: '/api/placeholder/24/24' } },
-                  { id: '5', title: 'Atomic Habits', image: '/api/placeholder/64/80', rating: 4.3, friend: { name: 'Jake', avatar: '/api/placeholder/24/24' } },
-                ].map((item) => (
-                  <div key={item.id} className="flex-shrink-0 cursor-pointer group">
-                    <div className="w-20 relative">
-                      {/* Media Cover */}
-                      <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      
-                      {/* Friend Avatar Badge */}
-                      <div className="absolute top-0 right-0 w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                        <img
-                          src={item.friend.avatar}
-                          alt={item.friend.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      
-                      {/* Title, Friend Name and Rating */}
-                      <div className="mt-2 text-center">
-                        <p className="text-xs text-gray-900 font-medium truncate px-1">
-                          {item.title}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate px-1">
-                          by {item.friend.name}
-                        </p>
-                        <div className="flex items-center justify-center mt-1">
-                          <Star size={10} className="text-yellow-400 fill-current" />
-                          <span className="text-xs text-gray-700 ml-1">{item.rating}</span>
+              {/* Filter activities to show only ratings from friends */}
+              {(() => {
+                const recentRatings = feedActivities
+                  .filter(activity => 
+                    activity.activity_type === 'rating' && 
+                    activity.user?.id !== currentUser?.id &&
+                    activity.item_image &&
+                    activity.item_title &&
+                    activity.metadata?.rating
+                  )
+                  .slice(0, 8) // Show max 8 items
+
+                return recentRatings.length > 0 ? (
+                  <div className="flex space-x-4 overflow-x-auto pb-2">
+                    {recentRatings.map((activity) => (
+                      <div 
+                        key={activity.id} 
+                        className="flex-shrink-0 cursor-pointer group"
+                        onClick={() => handleItemClick({ id: activity.item_id }, activity.item_type)}
+                      >
+                        <div className="w-20 relative">
+                          {/* Media Cover */}
+                          <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
+                            {activity.item_image ? (
+                              <img
+                                src={activity.item_image}
+                                alt={activity.item_title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                {getCategoryIcon(activity.item_type)}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Friend Avatar Badge */}
+                          <div className="absolute top-0 right-0 w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                            {activity.user?.avatar_url ? (
+                              <img
+                                src={activity.user.avatar_url}
+                                alt={activity.user.display_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <User size={12} className="text-yellow-600" />
+                            )}
+                          </div>
+                          
+                          {/* Title, Friend Name and Rating */}
+                          <div className="mt-2 text-center">
+                            <p className="text-xs text-gray-900 font-medium truncate px-1">
+                              {activity.item_title}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate px-1">
+                              by {activity.user?.display_name}
+                            </p>
+                            <div className="flex items-center justify-center mt-1">
+                              <Star size={10} className="text-yellow-400 fill-current" />
+                              <span className="text-xs text-gray-700 ml-1">{activity.metadata?.rating}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Star size={32} className="mx-auto text-gray-300 mb-2" />
+                    <p className="text-gray-500 text-sm">No recent ratings from friends</p>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}
@@ -698,73 +751,82 @@ export default function FeedPage({
               </div>
             </div>
             <div className="p-4">
-              <div className="flex space-x-4 overflow-x-auto pb-2">
-                {/* Mock data pour les reviews récentes */}
-                {[
-                  { 
-                    id: '1', 
-                    title: 'Baldur\'s Gate 3', 
-                    image: '/api/placeholder/80/100', 
-                    rating: 5.0, 
-                    review: 'Absolutely incredible RPG with amazing character development and storytelling...', 
-                    friend: { name: 'Alex', avatar: '/api/placeholder/32/32' } 
-                  },
-                  { 
-                    id: '2', 
-                    title: 'The Bear (Season 3)', 
-                    image: '/api/placeholder/80/100', 
-                    rating: 4.8, 
-                    review: 'Another fantastic season that keeps the intensity and heart of the show...', 
-                    friend: { name: 'Sarah', avatar: '/api/placeholder/32/32' } 
-                  },
-                  { 
-                    id: '3', 
-                    title: 'Tomorrow, and Tomorrow', 
-                    image: '/api/placeholder/80/100', 
-                    rating: 4.6, 
-                    review: 'A beautiful exploration of friendship, gaming, and what makes life meaningful...', 
-                    friend: { name: 'Mike', avatar: '/api/placeholder/32/32' } 
-                  },
-                ].map((review) => (
-                  <div key={review.id} className="flex-shrink-0 cursor-pointer group w-64">
-                    <div className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
-                      <div className="flex items-start space-x-3">
-                        {/* Media Cover */}
-                        <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 relative">
-                          <img
-                            src={review.image}
-                            alt={review.title}
-                            className="w-full h-full object-cover"
-                          />
-                          {/* Friend Avatar Badge */}
-                          <div className="absolute -top-1 -right-1 w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                            <img
-                              src={review.friend.avatar}
-                              alt={review.friend.name}
-                              className="w-full h-full object-cover"
-                            />
+              {/* Filter activities to show only reviews from friends */}
+              {(() => {
+                const recentReviews = feedActivities
+                  .filter(activity => 
+                    activity.activity_type === 'review' && 
+                    activity.user?.id !== currentUser?.id &&
+                    activity.item_image &&
+                    activity.item_title &&
+                    activity.metadata?.review_text &&
+                    activity.metadata?.rating
+                  )
+                  .slice(0, 6) // Show max 6 reviews
+
+                return recentReviews.length > 0 ? (
+                  <div className="flex space-x-4 overflow-x-auto pb-2">
+                    {recentReviews.map((activity) => (
+                      <div 
+                        key={activity.id} 
+                        className="flex-shrink-0 cursor-pointer group w-64"
+                        onClick={() => handleItemClick({ id: activity.item_id }, activity.item_type)}
+                      >
+                        <div className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+                          <div className="flex items-start space-x-3">
+                            {/* Media Cover */}
+                            <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 relative">
+                              {activity.item_image ? (
+                                <img
+                                  src={activity.item_image}
+                                  alt={activity.item_title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  {getCategoryIcon(activity.item_type)}
+                                </div>
+                              )}
+                              {/* Friend Avatar Badge */}
+                              <div className="absolute -top-1 -right-1 w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                                {activity.user?.avatar_url ? (
+                                  <img
+                                    src={activity.user.avatar_url}
+                                    alt={activity.user.display_name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <User size={12} className="text-purple-600" />
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Review Content */}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-semibold text-gray-900 truncate">
+                                {activity.item_title}
+                              </h4>
+                              <div className="flex items-center space-x-1 mt-1 mb-2">
+                                <Star size={12} className="text-yellow-400 fill-current" />
+                                <span className="text-xs text-gray-700">{activity.metadata?.rating}</span>
+                                <span className="text-xs text-gray-500">• by {activity.user?.display_name}</span>
+                              </div>
+                              <p className="text-xs text-gray-600 line-clamp-3">
+                                {activity.metadata?.review_text}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        
-                        {/* Review Content */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-gray-900 truncate">
-                            {review.title}
-                          </h4>
-                          <div className="flex items-center space-x-1 mt-1 mb-2">
-                            <Star size={12} className="text-yellow-400 fill-current" />
-                            <span className="text-xs text-gray-700">{review.rating}</span>
-                            <span className="text-xs text-gray-500">• by {review.friend.name}</span>
-                          </div>
-                          <p className="text-xs text-gray-600 line-clamp-3">
-                            {review.review}
-                          </p>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <MessageCircle size={32} className="mx-auto text-gray-300 mb-2" />
+                    <p className="text-gray-500 text-sm">No recent reviews from friends</p>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}
@@ -784,55 +846,81 @@ export default function FeedPage({
               </div>
             </div>
             <div className="p-4">
-              {/* Showing only one activity */}
-              <div className="flex items-start space-x-3">
-                {/* User Avatar */}
-                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100">
-                  {currentUser?.avatar_url ? (
-                    <img
-                      src={currentUser.avatar_url}
-                      alt={currentUser.display_name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User size={20} className="text-indigo-600" />
-                  )}
-                </div>
-                
-                {/* Activity Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className="font-semibold text-gray-900">{currentUser?.display_name}</span>
-                    <span className="text-sm text-gray-500">@{currentUser?.username}</span>
-                    <span className="text-sm text-gray-400">•</span>
-                    <span className="text-sm text-gray-500">2 hours ago</span>
-                  </div>
+              {/* Show the user's most recent activity */}
+              {(() => {
+                const myRecentActivity = feedActivities
+                  .filter(activity => activity.user?.id === currentUser?.id)
+                  .slice(0, 1)[0] // Get only the most recent activity
 
-                  {/* Activity Description */}
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Gamepad2 size={16} className="text-indigo-600" />
-                    <span className="text-gray-700">
-                      Added to library
-                      <span className="font-medium"> "Spider-Man 2"</span>
-                    </span>
-                  </div>
-
-                  {/* Item Card */}
-                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                    <div className="w-12 h-16 bg-gray-200 rounded-lg overflow-hidden">
-                      <img
-                        src="/api/placeholder/48/64"
-                        alt="Spider-Man 2"
-                        className="w-full h-full object-cover"
-                      />
+                return myRecentActivity ? (
+                  <div className="flex items-start space-x-3">
+                    {/* User Avatar */}
+                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100">
+                      {currentUser?.avatar_url ? (
+                        <img
+                          src={currentUser.avatar_url}
+                          alt={currentUser.display_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User size={20} className="text-indigo-600" />
+                      )}
                     </div>
+                    
+                    {/* Activity Content */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900">Spider-Man 2</h4>
-                      <p className="text-sm text-gray-500">PlayStation 5 • 2023</p>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="font-semibold text-gray-900">{currentUser?.display_name}</span>
+                        <span className="text-sm text-gray-500">@{currentUser?.username}</span>
+                        <span className="text-sm text-gray-400">•</span>
+                        <span className="text-sm text-gray-500">{getTimeAgo(new Date(myRecentActivity.created_at))}</span>
+                      </div>
+
+                      {/* Activity Description */}
+                      <div className="flex items-center space-x-2 mb-3">
+                        {getCategoryIcon(myRecentActivity.item_type)}
+                        <span className="text-gray-700">
+                          {getActivityDescription(myRecentActivity)}
+                          <span className="font-medium"> "{myRecentActivity.item_title}"</span>
+                        </span>
+                      </div>
+
+                      {/* Item Card */}
+                      {myRecentActivity.item_title && (
+                        <div 
+                          className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleItemClick({ id: myRecentActivity.item_id }, myRecentActivity.item_type)}
+                        >
+                          <div className="w-12 h-16 bg-gray-200 rounded-lg overflow-hidden">
+                            {myRecentActivity.item_image ? (
+                              <img
+                                src={myRecentActivity.item_image}
+                                alt={myRecentActivity.item_title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                {getCategoryIcon(myRecentActivity.item_type)}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900">{myRecentActivity.item_title}</h4>
+                            <p className="text-sm text-gray-500">
+                              {myRecentActivity.item_type} • {myRecentActivity.metadata?.year || new Date(myRecentActivity.created_at).getFullYear()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Clock size={32} className="mx-auto text-gray-300 mb-2" />
+                    <p className="text-gray-500 text-sm">No recent activities</p>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}
