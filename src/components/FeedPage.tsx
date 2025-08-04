@@ -69,6 +69,15 @@ export default function FeedPage({
     const recent = library
       .sort((a, b) => new Date(b.addedAt || 0).getTime() - new Date(a.addedAt || 0).getTime())
       .slice(0, 5)
+    
+    // Debug images des livres
+    console.log('📚 [FeedPage] Recent library items:', recent.map(item => ({
+      title: item.title,
+      category: item.category,
+      image: item.image,
+      hasImage: !!item.image
+    })))
+    
     setRecentLibraryItems(recent)
   }, [library])
 
@@ -485,11 +494,26 @@ export default function FeedPage({
                     onClick={() => handleItemClick(item, item.category)}
                   >
                     <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow">
-                      <img
-                        src={item.image || ''}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                      />
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log('📚 [FeedPage] Image failed to load for:', item.title, item.image)
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            target.nextElementSibling?.classList.remove('hidden')
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50 ${item.image ? 'hidden' : ''}`}>
+                        {item.category === 'books' && <BookOpen size={20} />}
+                        {item.category === 'games' && <Gamepad2 size={20} />}
+                        {item.category === 'movies' && <Film size={20} />}
+                        {item.category === 'music' && <Music size={20} />}
+                        <span className="text-xs mt-1 text-center px-1">No Image</span>
+                      </div>
                     </div>
                     <p className="text-xs text-gray-600 mt-1 text-center max-w-16 truncate">
                       {item.title}
