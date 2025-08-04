@@ -24,6 +24,7 @@ import {
 import { AuthModal } from './AuthModal'
 import { AuthService, type AuthUser } from '@/services/authService'
 import { socialService, type Activity, type Friend } from '@/services/socialService'
+import { avatarService } from '@/services/avatarService'
 import type { LibraryItem } from '@/types'
 import FriendSearchModal from './FriendSearchModal'
 import FriendRequestsModal from './FriendRequestsModal'
@@ -50,11 +51,14 @@ export default function FeedPage({
   const [friends, setFriends] = useState<Friend[]>([])
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
   const [isLoadingFeed, setIsLoadingFeed] = useState(true)
+  const [sharedMedia, setSharedMedia] = useState<any[]>([])
+  const [isLoadingShared, setIsLoadingShared] = useState(true)
   
   // Auth state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
+  const [userAvatar, setUserAvatar] = useState<string | null>(null)
   
   // Social modals
   const [showFriendSearchModal, setShowFriendSearchModal] = useState(false)
@@ -127,6 +131,7 @@ export default function FeedPage({
 
   const loadSocialData = async () => {
     setIsLoadingFeed(true)
+    setIsLoadingShared(true)
     try {
       // Load friends
       const friendsList = await socialService.getFriends()
@@ -136,6 +141,10 @@ export default function FeedPage({
       const activities = await socialService.getFriendActivities(20)
       setFeedActivities(activities)
 
+      // Load shared media
+      const shared = await socialService.getSharedMedia()
+      setSharedMedia(shared)
+
       // Load pending friend requests count
       const requests = await socialService.getPendingFriendRequests()
       setPendingRequestsCount(requests.length)
@@ -143,6 +152,7 @@ export default function FeedPage({
       console.error('Error loading social data:', error)
     } finally {
       setIsLoadingFeed(false)
+      setIsLoadingShared(false)
     }
   }
 
@@ -176,6 +186,10 @@ export default function FeedPage({
     const loadUser = async () => {
       const user = await AuthService.getCurrentUser()
       setCurrentUser(user)
+      if (user) {
+        const avatar = await avatarService.getAvatarUrl(user.id)
+        setUserAvatar(avatar)
+      }
     }
     loadUser()
 
@@ -186,6 +200,10 @@ export default function FeedPage({
         setIsAuthModalOpen(false)
         // Créer ou vérifier le profil utilisateur
         await ensureUserProfile(user)
+        const avatar = await avatarService.getAvatarUrl(user.id)
+        setUserAvatar(avatar)
+      } else {
+        setUserAvatar(null)
       }
     })
 
@@ -199,11 +217,21 @@ export default function FeedPage({
       }
     }
 
+    // Listen for avatar updates
+    const handleAvatarUpdate = (event: any) => {
+      const { userId, avatarUrl } = event.detail
+      if (currentUser && currentUser.id === userId) {
+        setUserAvatar(avatarUrl)
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('avatarUpdated', handleAvatarUpdate)
 
     return () => {
       subscription.unsubscribe()
       document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('avatarUpdated', handleAvatarUpdate)
     }
   }, [isUserMenuOpen])
 
@@ -276,6 +304,26 @@ export default function FeedPage({
     }
   }
 
+  const handleSharedItemClick = (sharedItem: any) => {
+    const itemId = sharedItem.item_id?.toString() || '1'
+    
+    switch (sharedItem.item_type) {
+      case 'games':
+        onOpenGameDetail?.(itemId)
+        break
+      case 'movies':
+        onOpenMovieDetail?.(itemId)
+        break
+      case 'books':
+        onOpenBookDetail?.(itemId)
+        break
+      case 'music':
+        onOpenMusicDetail?.(itemId)
+        break
+    }
+  }
+
+
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Header */}
@@ -316,18 +364,18 @@ export default function FeedPage({
                       className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                       <div 
-                        className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer"
+                        className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer overflow-hidden"
                         onClick={(e) => {
                           e.stopPropagation()
                           window.dispatchEvent(new CustomEvent('navigateToProfile'))
                           setIsUserMenuOpen(false)
                         }}
                       >
-                        {currentUser.avatar ? (
+                        {userAvatar ? (
                           <img 
-                            src={currentUser.avatar} 
+                            src={userAvatar} 
                             alt={currentUser.name || 'User'} 
-                            className="w-8 h-8 rounded-full"
+                            className="w-8 h-8 rounded-full object-cover"
                           />
                         ) : (
                           <span className="text-white text-sm font-medium">
@@ -433,6 +481,69 @@ export default function FeedPage({
           </div>
         )}
 
+        {/* Recently Recommended - Horizontal scroll */}
+        {currentUser && sharedMedia.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center space-x-2">
+                <Share2 className="text-green-600" size={20} />
+                <h2 className="text-lg font-semibold text-gray-900">Recently Recommended</h2>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="flex space-x-4 overflow-x-auto pb-2">
+                {sharedMedia.map((sharedItem) => (
+                  <div 
+                    key={sharedItem.id}
+                    className="flex-shrink-0 cursor-pointer group"
+                    onClick={() => handleSharedItemClick(sharedItem)}
+                  >
+                    <div className="w-24 relative">
+                      {/* Media Cover */}
+                      <div className="w-20 h-28 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
+                        {sharedItem.item_image ? (
+                          <img
+                            src={sharedItem.item_image}
+                            alt={sharedItem.item_title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                            {getCategoryIcon(sharedItem.item_type)}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Friend Avatar Badge */}
+                      <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                        {sharedItem.from_user?.avatar_url ? (
+                          <img
+                            src={sharedItem.from_user.avatar_url}
+                            alt={sharedItem.from_user.display_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User size={12} className="text-green-600" />
+                        )}
+                      </div>
+                      
+                      {/* Title and Friend Name */}
+                      <div className="mt-2 text-center">
+                        <p className="text-xs text-gray-900 font-medium truncate px-1">
+                          {sharedItem.item_title}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate px-1">
+                          by {sharedItem.from_user?.display_name || 'Friend'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Social Feed */}
         {currentUser ? (
           isLoadingFeed ? (
@@ -452,17 +563,17 @@ export default function FeedPage({
                     <div className="p-4">
                       <div className="flex items-start space-x-3">
                         {/* User Avatar */}
-                        {activity.user?.avatar_url ? (
-                          <img
-                            src={activity.user.avatar_url}
-                            alt={activity.user.display_name}
-                            className="w-10 h-10 rounded-full border-2 border-gray-100"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100">
+                          {activity.user?.avatar_url ? (
+                            <img
+                              src={activity.user.avatar_url}
+                              alt={activity.user.display_name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
                             <User size={20} className="text-blue-600" />
-                          </div>
-                        )}
+                          )}
+                        </div>
                         
                         {/* Activity Content */}
                         <div className="flex-1 min-w-0">

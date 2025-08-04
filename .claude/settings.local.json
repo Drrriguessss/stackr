@@ -50,7 +50,9 @@
       "WebFetch(domain:query.wikidata.org)",
       "Bash(copy:*)",
       "Bash(cp:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(psql:*)",
+      "Bash(npx supabase:*)"
     ],
     "deny": []
   }

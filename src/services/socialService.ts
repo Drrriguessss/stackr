@@ -455,7 +455,8 @@ class SocialService {
       recommenderName,
       item.title,
       item.type,
-      item.id
+      item.id,
+      item.image
     )
     
     console.log('🔔 Notification created successfully:', notificationCreated)

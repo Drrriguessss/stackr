@@ -21,6 +21,7 @@ import {
 import { AuthService, type AuthUser } from '@/services/authService'
 import { socialService, type UserProfile } from '@/services/socialService'
 import { libraryService } from '@/services/libraryService'
+import { avatarService } from '@/services/avatarService'
 import type { LibraryItem } from '@/types'
 
 interface ProfilePageProps {
@@ -72,6 +73,8 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
   const [activeTab, setActiveTab] = useState<'public' | 'private'>('public')
   const [editingTopFive, setEditingTopFive] = useState<keyof TopFive | null>(null)
   const [recentActivities, setRecentActivities] = useState<any[]>([])
+  const [userAvatar, setUserAvatar] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -91,6 +94,10 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
       // Load user profile
       const userProfile = await socialService.getUserProfile(profileUserId)
       setProfile(userProfile)
+
+      // Load avatar
+      const avatar = await avatarService.getAvatarUrl(profileUserId)
+      setUserAvatar(avatar)
 
       // Load stats
       if (isOwnProfile || userProfile?.is_public) {
@@ -154,6 +161,83 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
     setEditingTopFive(null)
   }
 
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !currentUser) return
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('Image size should be less than 5MB')
+      return
+    }
+
+    setUploadingAvatar(true)
+    try {
+      // Create a compressed version of the image
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+      
+      img.onload = async () => {
+        // Calculate new dimensions (max 400x400)
+        const maxSize = 400
+        let { width, height } = img
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width
+            width = maxSize
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height
+            height = maxSize
+          }
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        
+        // Draw and compress
+        ctx?.drawImage(img, 0, 0, width, height)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
+        
+        // Update avatar in service
+        const success = await avatarService.updateUserAvatar(currentUser.id, compressedDataUrl)
+        if (success) {
+          setUserAvatar(compressedDataUrl)
+          // Dispatch event to update avatar elsewhere
+          window.dispatchEvent(new CustomEvent('avatarUpdated', { 
+            detail: { userId: currentUser.id, avatarUrl: compressedDataUrl } 
+          }))
+        } else {
+          alert('Failed to update avatar. Please try again.')
+        }
+      }
+      
+      img.onerror = () => {
+        alert('Error loading image. Please try a different file.')
+      }
+      
+      // Load the image
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        img.src = e.target?.result as string
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      alert('Error uploading avatar. Please try again.')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'games': return <Gamepad2 size={16} />
@@ -191,12 +275,12 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
         <div className="flex items-start space-x-6">
           {/* Avatar */}
           <div className="relative">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              {profile?.avatar_url ? (
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center overflow-hidden">
+              {userAvatar ? (
                 <img 
-                  src={profile.avatar_url} 
-                  alt={profile.display_name}
-                  className="w-full h-full rounded-full object-cover"
+                  src={userAvatar} 
+                  alt={profile?.display_name}
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <span className="text-white text-3xl font-bold">
@@ -205,9 +289,25 @@ export default function ProfilePage({ onBack, userId, library }: ProfilePageProp
               )}
             </div>
             {isOwnProfile && (
-              <button className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full text-white shadow-lg">
-                <Camera size={16} />
-              </button>
+              <>
+                <input
+                  type="file"
+                  id="avatar-upload"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+                <label 
+                  htmlFor="avatar-upload"
+                  className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full text-white shadow-lg cursor-pointer hover:bg-blue-700 transition-colors"
+                >
+                  {uploadingAvatar ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Camera size={16} />
+                  )}
+                </label>
+              </>
             )}
           </div>
 

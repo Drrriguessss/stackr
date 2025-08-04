@@ -104,7 +104,8 @@ class NotificationService {
     recommenderName: string,
     mediaTitle: string,
     mediaType: string,
-    mediaId: string
+    mediaId: string,
+    mediaImage?: string
   ): Promise<boolean> {
     try {
       console.log('🔔 [NotificationService] Creating notification:', {
@@ -120,7 +121,7 @@ class NotificationService {
           user_id: recipientId,
           type: 'recommendation',
           title: 'Nouvelle recommandation',
-          message: `${recommenderName} vous recommande "${mediaTitle}" (${mediaType}:${mediaId})`
+          message: `${recommenderName} vous recommande "${mediaTitle}" (${mediaType}:${mediaId}${mediaImage ? `|${mediaImage}` : ''})`
         })
         .select()
 

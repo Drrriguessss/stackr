@@ -5,6 +5,7 @@ import SearchModal from './SearchModal'
 import { AuthModal } from './AuthModal'
 import PushNotificationManager from './PushNotificationManager'
 import { AuthService, type AuthUser } from '@/services/authService'
+import { avatarService } from '@/services/avatarService'
 import type { LibraryItem, MediaStatus } from '@/types'
 
 interface HeaderProps {
@@ -18,20 +19,29 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
+  const [userAvatar, setUserAvatar] = useState<string | null>(null)
 
   useEffect(() => {
     // Charger l'utilisateur actuel
     const loadUser = async () => {
       const user = await AuthService.getCurrentUser()
       setCurrentUser(user)
+      if (user) {
+        const avatar = await avatarService.getAvatarUrl(user.id)
+        setUserAvatar(avatar)
+      }
     }
     loadUser()
 
     // Écouter les changements d'authentification
-    const { data: { subscription } } = AuthService.onAuthStateChange((user) => {
+    const { data: { subscription } } = AuthService.onAuthStateChange(async (user) => {
       setCurrentUser(user)
       if (user) {
         setIsAuthModalOpen(false)
+        const avatar = await avatarService.getAvatarUrl(user.id)
+        setUserAvatar(avatar)
+      } else {
+        setUserAvatar(null)
       }
     })
 
@@ -45,11 +55,21 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
       }
     }
 
+    // Listen for avatar updates
+    const handleAvatarUpdate = (event: any) => {
+      const { userId, avatarUrl } = event.detail
+      if (currentUser && currentUser.id === userId) {
+        setUserAvatar(avatarUrl)
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('avatarUpdated', handleAvatarUpdate)
 
     return () => {
       subscription.unsubscribe()
       document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('avatarUpdated', handleAvatarUpdate)
     }
   }, [isUserMenuOpen])
 
@@ -99,12 +119,12 @@ export default function Header({ onAddToLibrary, library, onOpenGameDetail }: He
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  {currentUser.avatar ? (
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
+                  {userAvatar ? (
                     <img 
-                      src={currentUser.avatar} 
+                      src={userAvatar} 
                       alt={currentUser.name || 'User'} 
-                      className="w-8 h-8 rounded-full"
+                      className="w-8 h-8 rounded-full object-cover"
                     />
                   ) : (
                     <span className="text-white text-sm font-medium">

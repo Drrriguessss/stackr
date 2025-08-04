@@ -95,9 +95,24 @@ export default function NotificationList({
                   onClick={() => onNotificationClick?.(notification)}
                 >
                   <div className="flex items-start space-x-3">
-                    <div className="text-2xl">
-                      {getNotificationIcon(notification.type)}
-                    </div>
+                    {/* Media thumbnail or icon */}
+                    {notification.type === 'recommendation' && notification.message.includes('|') ? (
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                        <img 
+                          src={notification.message.split('|')[1]} 
+                          alt="Media"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                            e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-2xl">${getNotificationIcon(notification.type)}</div>`
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-2xl">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                    )}
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
@@ -124,7 +139,7 @@ export default function NotificationList({
                       <p className={`text-sm mt-1 ${
                         !notification.read ? 'text-gray-800' : 'text-gray-600'
                       }`}>
-                        {notification.message}
+                        {notification.message.split('|')[0]}
                       </p>
                       
                       <p className="text-xs text-gray-500 mt-2">
