@@ -1,8 +1,17 @@
 import { supabase } from '@/lib/supabase'
 
 class AvatarService {
+  // In-memory cache for avatars to avoid repeated requests
+  private avatarCache = new Map<string, { url: string | null, timestamp: number }>()
+  private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
   // Get user avatar (custom or Google)
   async getUserAvatar(userId: string): Promise<string | null> {
+    // Check cache first
+    const cached = this.avatarCache.get(userId)
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      return cached.url
+    }
     try {
       // First try custom avatar
       const { data: customAvatar } = await supabase
@@ -12,6 +21,7 @@ class AvatarService {
         .single()
 
       if (customAvatar?.avatar_url) {
+        this.cacheAvatar(userId, customAvatar.avatar_url)
         return customAvatar.avatar_url
       }
 
@@ -23,20 +33,30 @@ class AvatarService {
         .single()
 
       if (profile?.avatar_url) {
+        this.cacheAvatar(userId, profile.avatar_url)
         return profile.avatar_url
       }
 
       // Finally get from auth user
       const { data: { user } } = await supabase.auth.getUser()
       if (user && user.id === userId) {
-        return user.user_metadata?.avatar_url || null
+        const avatarUrl = user.user_metadata?.avatar_url || null
+        this.cacheAvatar(userId, avatarUrl)
+        return avatarUrl
       }
 
+      // Cache the result (even if null)
+      this.avatarCache.set(userId, { url: null, timestamp: Date.now() })
       return null
     } catch (error) {
       console.error('Error getting user avatar:', error)
       return null
     }
+  }
+
+  // Cache the avatar result
+  private cacheAvatar(userId: string, avatarUrl: string | null) {
+    this.avatarCache.set(userId, { url: avatarUrl, timestamp: Date.now() })
   }
 
   // Update user avatar
@@ -79,6 +99,10 @@ class AvatarService {
       }
 
       console.log('✅ [AvatarService] Avatar updated successfully')
+      
+      // Invalidate cache for this user
+      this.avatarCache.delete(userId)
+      
       return true
     } catch (error) {
       console.error('Error updating user avatar:', error)
@@ -133,20 +157,39 @@ class AvatarService {
   // Batch get avatars for multiple users (optimized for feed)
   async getBatchAvatars(userIds: string[]): Promise<Map<string, string>> {
     const avatarMap = new Map<string, string>()
+    const uncachedUserIds: string[] = []
+
+    // Check cache first for all users
+    for (const userId of userIds) {
+      const cached = this.avatarCache.get(userId)
+      if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+        if (cached.url) {
+          avatarMap.set(userId, cached.url)
+        }
+      } else {
+        uncachedUserIds.push(userId)
+      }
+    }
+
+    // If all users were cached, return early
+    if (uncachedUserIds.length === 0) {
+      return avatarMap
+    }
 
     try {
-      // Get custom avatars
+      // Get custom avatars for uncached users only
       const { data: customAvatars } = await supabase
         .from('user_avatars')
         .select('user_id, avatar_url')
-        .in('user_id', userIds)
+        .in('user_id', uncachedUserIds)
 
       customAvatars?.forEach(avatar => {
         avatarMap.set(avatar.user_id, avatar.avatar_url)
+        this.cacheAvatar(avatar.user_id, avatar.avatar_url)
       })
 
       // Get profile avatars for users without custom avatars
-      const usersWithoutCustom = userIds.filter(id => !avatarMap.has(id))
+      const usersWithoutCustom = uncachedUserIds.filter(id => !avatarMap.has(id))
       if (usersWithoutCustom.length > 0) {
         const { data: profiles } = await supabase
           .from('user_profiles')
@@ -157,17 +200,20 @@ class AvatarService {
         profiles?.forEach(profile => {
           if (profile.avatar_url) {
             avatarMap.set(profile.id, profile.avatar_url)
+            this.cacheAvatar(profile.id, profile.avatar_url)
           }
         })
       }
 
-      // For remaining users, generate defaults
-      userIds.forEach(userId => {
+      // For remaining users, generate defaults and cache them
+      uncachedUserIds.forEach(userId => {
         if (!avatarMap.has(userId)) {
           const colors = ['blue', 'green', 'purple', 'red', 'orange', 'teal', 'pink', 'indigo']
           const colorIndex = parseInt(userId.slice(-1), 16) % colors.length
           const color = colors[colorIndex]
-          avatarMap.set(userId, `https://ui-avatars.com/api/?name=User&background=${color}&color=fff`)
+          const defaultAvatar = `https://ui-avatars.com/api/?name=User&background=${color}&color=fff`
+          avatarMap.set(userId, defaultAvatar)
+          this.cacheAvatar(userId, defaultAvatar)
         }
       })
 
