@@ -838,7 +838,20 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="flex items-center ml-4">
+            <div className="flex items-center ml-4 space-x-2">
+              {/* Search Version Toggle */}
+              <button
+                onClick={() => setUseUnifiedSearch(!useUnifiedSearch)}
+                className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                  useUnifiedSearch 
+                    ? 'bg-green-100 text-green-700 border border-green-200' 
+                    : 'bg-gray-100 text-gray-700 border border-gray-200'
+                }`}
+                title="Toggle search version"
+              >
+                {useUnifiedSearch ? '🚀 V2' : '📂 V1'}
+              </button>
+              
               <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                   <span className="text-gray-600 text-sm font-medium">👤</span>
