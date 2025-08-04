@@ -130,41 +130,92 @@ class UnifiedRankingAlgorithm {
     const queryLower = query.toLowerCase().trim()
     const titleLower = item.title.toLowerCase().trim()
     
+    console.log(`\n🎯 [Relevance] === SCORING "${item.title}" for "${query}" ===`)
+    
     // Exact match = score parfait
-    if (titleLower === queryLower) return 10
+    if (titleLower === queryLower) {
+      console.log(`🎯 [Relevance] ✅ EXACT MATCH! Score: 10`)
+      return 10
+    }
     
     let score = 0
+    let debugInfo = []
     
-    // 1. Starts with query (boost important pour UX)
-    if (titleLower.startsWith(queryLower)) score += 8
+    // 1. ⭐ PRIORITÉ ABSOLUE : Commence par la requête
+    if (titleLower.startsWith(queryLower)) {
+      score += 9 // Boost majeur
+      debugInfo.push(`Starts with query: +9`)
+    }
     
-    // 2. Contains query complet
-    if (titleLower.includes(queryLower)) score += 6
+    // 2. ⭐ DEUXIÈME PRIORITÉ : Un mot commence par la requête
+    const titleWords = titleLower.split(/[\s\-_:]+/).filter(w => w.length > 0)
+    const queryWords = queryLower.split(/[\s\-_:]+/).filter(w => w.length > 0)
     
-    // 3. Word-level matching (BM25-inspired)
-    const queryWords = queryLower.split(' ')
-    const titleWords = titleLower.split(' ')
-    const wordMatchRatio = this.calculateWordMatchRatio(queryWords, titleWords)
-    score += wordMatchRatio * 4
+    let wordStartMatches = 0
+    queryWords.forEach(qWord => {
+      titleWords.forEach(tWord => {
+        if (tWord.startsWith(qWord) && qWord.length >= 2) {
+          wordStartMatches++
+        }
+      })
+    })
     
-    // 4. Fuzzy matching pour gérer les typos
+    if (wordStartMatches > 0) {
+      const wordStartScore = Math.min(6, wordStartMatches * 2)
+      score += wordStartScore
+      debugInfo.push(`Word starts: ${wordStartMatches} matches, +${wordStartScore}`)
+    }
+    
+    // 3. Contains query complet (mais moins prioritaire)
+    if (titleLower.includes(queryLower)) {
+      score += 4
+      debugInfo.push(`Contains query: +4`)
+    }
+    
+    // 4. Word-level matching exact
+    let exactWordMatches = 0
+    queryWords.forEach(qWord => {
+      if (qWord.length >= 2 && titleWords.includes(qWord)) {
+        exactWordMatches++
+      }
+    })
+    
+    if (exactWordMatches > 0) {
+      const exactScore = Math.min(3, exactWordMatches * 1.5)
+      score += exactScore
+      debugInfo.push(`Exact word matches: ${exactWordMatches}, +${exactScore}`)
+    }
+    
+    // 5. Fuzzy matching pour gérer les typos (réduit)
     const fuzzyScore = this.calculateFuzzyMatch(queryLower, titleLower)
-    score += fuzzyScore * 2
+    if (fuzzyScore > 0.8) {
+      score += fuzzyScore * 1.5
+      debugInfo.push(`Fuzzy match: +${(fuzzyScore * 1.5).toFixed(2)}`)
+    }
     
-    // 5. Bonus pour mots clés partiels
+    // 6. Bonus pour correspondances partielles (réduit)
     let partialMatches = 0
     queryWords.forEach(qWord => {
-      if (qWord.length >= 3) { // Ignore mots trop courts
+      if (qWord.length >= 3) {
         titleWords.forEach(tWord => {
-          if (tWord.includes(qWord) || qWord.includes(tWord)) {
+          if (tWord.includes(qWord) && tWord !== qWord) {
             partialMatches++
           }
         })
       }
     })
-    score += (partialMatches / Math.max(queryWords.length, 1)) * 1
     
-    return Math.min(10, Math.max(0, score))
+    if (partialMatches > 0) {
+      const partialScore = Math.min(2, (partialMatches / Math.max(queryWords.length, 1)) * 2)
+      score += partialScore
+      debugInfo.push(`Partial matches: ${partialMatches}, +${partialScore.toFixed(2)}`)
+    }
+    
+    const finalScore = Math.min(10, Math.max(0, score))
+    console.log(`🎯 [Relevance] "${item.title}" relevance score: ${finalScore.toFixed(2)}`)
+    console.log(`🎯 [Relevance] Details: ${debugInfo.join(', ')}\n`)
+    
+    return finalScore
   }
   
   private static calculateWordMatchRatio(queryWords: string[], titleWords: string[]): number {
@@ -362,7 +413,9 @@ export class UnifiedSearchService {
    * 🔄 Recherche parallèle sur toutes les APIs avec timeout
    */
   private async performParallelSearch(query: string, options: SearchOptions): Promise<CategorySearchResult[]> {
+    // ✅ CORRECTION: Utiliser seulement les catégories sélectionnées
     const categories = options.categories || ['movies', 'books', 'games', 'music']
+    console.log('🔍 [UnifiedSearch] Searching categories:', categories)
     
     const searchPromises = categories.map(async (category) => {
       const timeoutMs = SEARCH_CONFIG.apiTimeouts[category as keyof typeof SEARCH_CONFIG.apiTimeouts] || 2000
@@ -445,7 +498,7 @@ export class UnifiedSearchService {
   }
   
   /**
-   * 🏆 Application du ranking unifié avec diversité
+   * 🏆 Application du ranking unifié avec diversité ET tri chronologique
    */
   private applyUnifiedRanking(categoryResults: CategorySearchResult[], query: string): SearchResult[] {
     const allResults: EnhancedSearchResult[] = []
@@ -464,45 +517,149 @@ export class UnifiedSearchService {
       }
     })
     
-    // 2. Trier par score final
-    allResults.sort((a, b) => b.finalScore - a.finalScore)
+    // 2. ✅ TRI CHRONOLOGIQUE DÉCROISSANT (plus récent en premier)
+    allResults.sort((a, b) => {
+      // D'abord par année (décroissant)
+      const yearA = a.year || 0
+      const yearB = b.year || 0
+      if (yearA !== yearB) {
+        return yearB - yearA
+      }
+      
+      // Ensuite par score final
+      return b.finalScore - a.finalScore
+    })
+    
+    console.log('\n🔍 [UnifiedSearch] === FINAL RANKING ===')
+    allResults.slice(0, 10).forEach((r, i) => {
+      console.log(`🔍 ${i + 1}. "${r.title}" (${r.year}) - SCORE: ${r.finalScore.toFixed(2)} - ${r.category}`)
+    })
+    console.log('🔍 [UnifiedSearch] === END RANKING ===\n')
     
     // 3. Appliquer diversité dans le top 12
     return this.applyDiversityRanking(allResults)
   }
   
   /**
-   * 🎯 Calcul du score final unifié
+   * 🎯 Calcul du score final unifié avec filtrage qualité et boost "commence par"
    */
   private calculateFinalScore(item: SearchResult, query: string): number {
+    console.log(`\n🏆 [FinalScore] === SCORING "${item.title}" ===`)
+    
+    // 0. ❌ FILTRE DE QUALITÉ - Éliminer le contenu de faible qualité
+    const qualityPenalty = this.calculateQualityPenalty(item)
+    if (qualityPenalty >= 10) {
+      console.log(`🏆 [FinalScore] ❌ QUALITY FILTER: "${item.title}" REJECTED (penalty: ${qualityPenalty})`)
+      return 0 // Éliminer complètement
+    }
+    
     let score = 0
-    const config = SEARCH_CONFIG.scoring
     
-    // 1. Relevance textuelle (40%)
+    // 1. Relevance textuelle (60% - augmenté car primordial)
     const textRelevance = UnifiedRankingAlgorithm.calculateRelevanceScore(query, item)
-    score += textRelevance * config.textRelevance
+    const textScore = textRelevance * 0.6
+    score += textScore
+    console.log(`🏆 [FinalScore] Text relevance: ${textRelevance.toFixed(2)} * 0.6 = ${textScore.toFixed(2)}`)
     
-    // 2. Popularité/Rating normalisé (30%)
+    // 2. ⭐ MEGA BOOST pour les titres qui commencent par la requête
+    const titleLower = item.title.toLowerCase().trim()
+    const queryLower = query.toLowerCase().trim()
+    
+    if (titleLower.startsWith(queryLower)) {
+      const startsWithBoost = 5.0 // Boost énorme
+      score += startsWithBoost
+      console.log(`🏆 [FinalScore] ⭐ MEGA STARTS WITH BOOST: +${startsWithBoost}`)
+    }
+    
+    // 3. Popularité/Rating normalisé (20%)
     const popularityScore = this.normalizePopularity(item)
-    score += popularityScore * config.popularity
+    const popScore = popularityScore * 0.2
+    score += popScore
+    console.log(`🏆 [FinalScore] Popularity: ${popularityScore.toFixed(2)} * 0.2 = ${popScore.toFixed(2)}`)
     
-    // 3. Boost par catégorie (20%) - préférences utilisateur
-    const categoryBoost = this.userPreferences[item.category] || 1.0
-    score += categoryBoost * config.categoryBoost
-    
-    // 4. Bonus pour contenu récent (10%)
+    // 4. Bonus pour contenu récent (20%)
     const recencyBonus = this.calculateRecencyBonus(item)
-    score += recencyBonus * config.userPrefs
+    const recencyScore = recencyBonus * 0.2
+    score += recencyScore
+    console.log(`🏆 [FinalScore] Recency: ${recencyBonus.toFixed(2)} * 0.2 = ${recencyScore.toFixed(2)}`)
     
-    return Math.max(0, Math.min(10, score))
+    // 5. Appliquer pénalité de qualité
+    score -= qualityPenalty
+    console.log(`🏆 [FinalScore] Quality penalty: -${qualityPenalty.toFixed(2)}`)
+    
+    const finalScore = Math.max(0, Math.min(25, score)) // Augmenté à 25
+    console.log(`🏆 [FinalScore] "${item.title}" FINAL SCORE: ${finalScore.toFixed(2)}\n`)
+    
+    return finalScore
+  }
+  
+  /**
+   * 🛡️ Calculer pénalité de qualité pour filtrer le contenu de faible qualité
+   */
+  private calculateQualityPenalty(item: SearchResult): number {
+    const titleLower = item.title.toLowerCase()
+    let penalty = 0
+    
+    // 🚫 Mots-clés de faible qualité (REJET TOTAL)
+    const rejectKeywords = [
+      'discount', 'bootleg', 'knockoff', 'pirate', 'fake', 'rip-off',
+      'parody', 'spoof', 'fan-made', 'fanmade', 'amateur',
+      'student film', 'homemade', 'low budget', 'b-movie',
+      'xxx', 'adult', 'porn', 'erotic',
+      'in cannes', 'at cannes', 'cannes film',
+      'behind the scenes', 'making of', 'documentary about'
+    ]
+    
+    for (const keyword of rejectKeywords) {
+      if (titleLower.includes(keyword)) {
+        console.log(`🚫 [Quality] REJECT: "${item.title}" contains "${keyword}"`)
+        return 15 // Rejet total
+      }
+    }
+    
+    // ⚠️ Mots-clés suspects (PÉNALITÉ FORTE)
+    const suspectKeywords = [
+      'trailer', 'teaser', 'clip', 'scene', 'short film',
+      'web series', 'episode', 'pilot', 'deleted scenes',
+      'bloopers', 'outtakes', 'gag reel'
+    ]
+    
+    for (const keyword of suspectKeywords) {
+      if (titleLower.includes(keyword)) {
+        penalty += 8
+        console.log(`⚠️ [Quality] SUSPECT: "${item.title}" contains "${keyword}" +8 penalty`)
+      }
+    }
+    
+    // 📊 Vérifier popularité/rating pour contenu suspect
+    if (penalty > 0 && item.rating && item.rating < 3) {
+      penalty += 3
+      console.log(`📊 [Quality] LOW RATING: "${item.title}" rating ${item.rating} +3 penalty`)
+    }
+    
+    return Math.min(15, penalty)
   }
   
   private normalizePopularity(item: SearchResult): number {
+    console.log(`⭐ [Popularity] "${item.title}" rating: ${item.rating}`)
+    
     // Normaliser rating selon la catégorie
     if (item.rating && item.rating > 0) {
+      let normalizedRating
+      
       // La plupart des APIs utilisent 0-10 ou 0-5
-      return Math.min(10, item.rating <= 5 ? item.rating * 2 : item.rating)
+      if (item.rating <= 5) {
+        normalizedRating = item.rating * 2
+      } else {
+        normalizedRating = item.rating
+      }
+      
+      const finalRating = Math.min(10, Math.max(0, normalizedRating))
+      console.log(`⭐ [Popularity] Normalized: ${item.rating} -> ${finalRating}`)
+      return finalRating
     }
+    
+    console.log(`⭐ [Popularity] No rating, using neutral score: 5`)
     return 5 // Score neutre par défaut
   }
   

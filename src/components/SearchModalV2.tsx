@@ -21,6 +21,7 @@ export default function SearchModalV2({
   const [searchResults, setSearchResults] = useState<UnifiedSearchResult | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [searchMetrics, setSearchMetrics] = useState<any>(null)
+  const [selectedCategories, setSelectedCategories] = useState<MediaCategory[]>(['movies', 'books', 'games', 'music'])
   
   const inputRef = useRef<HTMLInputElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout>()
@@ -50,8 +51,12 @@ export default function SearchModalV2({
     setIsSearching(true)
     
     try {
+      console.log('🔍 [SearchModal] === NEW SEARCH ===')
+      console.log('🔍 [SearchModal] Query:', `"${searchQuery}"`)
+      console.log('🔍 [SearchModal] Categories:', selectedCategories)
+      
       const results = await unifiedSearchService.search(searchQuery, {
-        categories: ['movies', 'books', 'games', 'music'],
+        categories: selectedCategories,
         limit: 50
       })
       
@@ -63,9 +68,15 @@ export default function SearchModalV2({
       
       console.log('🚀 [UnifiedSearch] Results:', {
         query: searchQuery,
+        selectedCategories,
         totalResults: results.totalCount,
         responseTime: results.responseTime,
         fromCache: results.fromCache,
+        resultsByCategory: results.results.reduce((acc, r) => {
+          acc[r.category] = (acc[r.category] || 0) + 1
+          return acc
+        }, {} as Record<string, number>),
+        topResults: results.results.slice(0, 5).map(r => `"${r.title}" (${r.category})`),
         metrics: {
           avgResponseTime: metrics.avgResponseTime,
           cacheHitRate: metrics.cacheHitRate,
@@ -79,7 +90,7 @@ export default function SearchModalV2({
     } finally {
       setIsSearching(false)
     }
-  }, [])
+  }, [selectedCategories])
 
   // Handle input changes with intelligent debouncing
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,8 +112,8 @@ export default function SearchModalV2({
     // Set loading state immediately for better UX
     setIsSearching(true)
 
-    // Intelligent debouncing - shorter delay for longer queries
-    const debounceTime = newQuery.length <= 2 ? 500 : newQuery.length <= 4 ? 300 : 200
+    // Intelligent debouncing - shorter delay for longer queries (optimisé)
+    const debounceTime = newQuery.length <= 2 ? 400 : newQuery.length <= 4 ? 250 : 150
 
     searchTimeoutRef.current = setTimeout(() => {
       performSearch(newQuery)
@@ -113,11 +124,38 @@ export default function SearchModalV2({
     setQuery('')
     setSearchResults(null)
     setIsSearching(false)
+    setSelectedCategories(['movies', 'books', 'games', 'music'])
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
     onClose()
   }
+
+  const toggleCategory = (category: MediaCategory) => {
+    setSelectedCategories(prev => {
+      const newCategories = prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+      
+      console.log('🎯 [SearchModal] === CATEGORY TOGGLE ===')
+      console.log('🎯 [SearchModal] Toggled:', category)
+      console.log('🎯 [SearchModal] New selection:', newCategories)
+      
+      return newCategories
+    })
+  }
+  
+  // Effect to re-run search when categories change
+  useEffect(() => {
+    if (query.trim().length >= 2) {
+      console.log('🔄 [SearchModal] Categories changed, re-running search with:', selectedCategories)
+      const timeoutId = setTimeout(() => {
+        performSearch(query)
+      }, 100)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [selectedCategories, query, performSearch])
 
   const getCategoryIcon = (category: MediaCategory) => {
     switch (category) {
@@ -180,9 +218,28 @@ export default function SearchModalV2({
               </button>
             </div>
 
+            {/* Category Filters - Always Visible */}
+            <div className="flex items-center gap-2 mt-3">
+              <span className="text-sm text-gray-600 font-medium">Filter by:</span>
+              {(['games', 'movies', 'books', 'music'] as MediaCategory[]).map((category) => (
+                <button
+                  key={category}
+                  onClick={() => toggleCategory(category)}
+                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    selectedCategories.includes(category)
+                      ? getCategoryColor(category)
+                      : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100 hover:text-gray-600'
+                  }`}
+                >
+                  {getCategoryIcon(category)}
+                  {category}
+                </button>
+              ))}
+            </div>
+
             {/* Search Metrics */}
             {searchResults && (
-              <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
                   <TrendingUp size={14} />
                   <span>{searchResults.totalCount} results</span>
@@ -298,8 +355,8 @@ export default function SearchModalV2({
                                 </div>
                               )}
 
-                              {/* Rating */}
-                              {item.rating && (
+                              {/* Rating - Hide for music */}
+                              {item.rating && item.category !== 'music' && (
                                 <div className="flex items-center gap-1 text-sm text-gray-600">
                                   <Star size={12} className="text-yellow-400 fill-current" />
                                   {item.rating}/10
