@@ -76,36 +76,30 @@ export default function NotificationBell() {
       handleNotificationRead(notification.id)
     }
 
-    // Parse the data field if it's a string
-    let notificationData
-    try {
-      notificationData = typeof notification.data === 'string' 
-        ? JSON.parse(notification.data) 
-        : notification.data
-    } catch (error) {
-      console.error('Error parsing notification data:', error)
-      return
-    }
-
     // Handle different notification types
-    if (notification.type === 'recommendation' && notificationData) {
-      const { media_type, media_id } = notificationData
+    if (notification.type === 'recommendation') {
+      // Extract media info from message format: "User recommends "Title" (type:id)"
+      const messageMatch = notification.message.match(/\((\w+):([^)]+)\)$/)
       
-      // Create a mock event to trigger the appropriate detail modal
-      const mockEvent = new CustomEvent('openMediaDetail', {
-        detail: {
-          type: media_type,
-          id: media_id
-        }
-      })
-      
-      // Close notification modal first
-      setShowNotifications(false)
-      
-      // Dispatch the event after a small delay to ensure modal is closed
-      setTimeout(() => {
-        window.dispatchEvent(mockEvent)
-      }, 100)
+      if (messageMatch) {
+        const [, mediaType, mediaId] = messageMatch
+        
+        // Create a mock event to trigger the appropriate detail modal
+        const mockEvent = new CustomEvent('openMediaDetail', {
+          detail: {
+            type: mediaType,
+            id: mediaId
+          }
+        })
+        
+        // Close notification modal first
+        setShowNotifications(false)
+        
+        // Dispatch the event after a small delay to ensure modal is closed
+        setTimeout(() => {
+          window.dispatchEvent(mockEvent)
+        }, 100)
+      }
     }
   }
 
