@@ -315,7 +315,14 @@ export default function FeedPage({
                       onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                       className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     >
-                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                      <div 
+                        className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          window.dispatchEvent(new CustomEvent('navigateToProfile'))
+                          setIsUserMenuOpen(false)
+                        }}
+                      >
                         {currentUser.avatar ? (
                           <img 
                             src={currentUser.avatar} 

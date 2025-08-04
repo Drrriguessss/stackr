@@ -14,6 +14,7 @@ import RoadmapPage from '@/components/RoadmapPage'
 import DiscoverPageV2 from '@/components/DiscoverPageV2'
 import FeedPage from '@/components/FeedPage'
 import UserProfileSetup from '@/components/UserProfileSetup'
+import ProfilePage from '@/components/ProfilePage'
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 import { sampleContent } from '@/data/sampleContent'
@@ -127,6 +128,19 @@ export default function Home() {
     }
     
     loadLibrary()
+  }, [])
+
+  // Listen for profile navigation events
+  useEffect(() => {
+    const handleNavigateToProfile = () => {
+      setActiveMainTab('profile')
+    }
+
+    window.addEventListener('navigateToProfile', handleNavigateToProfile)
+    
+    return () => {
+      window.removeEventListener('navigateToProfile', handleNavigateToProfile)
+    }
   }, [])
 
   // Real-time synchronization system
@@ -702,6 +716,8 @@ export default function Home() {
         return renderSearchContent()
       case 'roadmap':
         return <RoadmapPage onBack={() => setActiveMainTab('feed')} />
+      case 'profile':
+        return <ProfilePage onBack={() => setActiveMainTab('feed')} library={library} />
       default:
         return (
           <FeedPage 

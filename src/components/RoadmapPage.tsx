@@ -96,6 +96,22 @@ export default function RoadmapPage({ onBack }: RoadmapPageProps) {
         { text: 'Music listening parties organization feature', completed: false },
         { text: '"Favorite" status for music tracks & albums (beyond want/listened)', completed: false, isNew: true }
       ]
+    },
+    {
+      id: 'phase7',
+      title: 'Phase 7 - Gamification & Achievements',
+      status: 'planned',
+      description: 'Badge system and user engagement features',
+      items: [
+        { text: 'Achievement system with collectible badges', completed: false, isNew: true },
+        { text: 'Progress animations when adding media to library', completed: false, isNew: true },
+        { text: 'Milestone celebrations (100 movies watched, 50 books read)', completed: false, isNew: true },
+        { text: 'Leaderboards and rankings among friends', completed: false, isNew: true },
+        { text: 'Seasonal challenges and limited-time events', completed: false, isNew: true },
+        { text: 'Badge showcase on user profile', completed: false, isNew: true },
+        { text: 'Streak tracking (daily activity, reviews)', completed: false, isNew: true },
+        { text: 'Experience points and user levels', completed: false, isNew: true }
+      ]
     }
   ]
 
