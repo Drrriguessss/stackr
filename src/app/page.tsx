@@ -9,6 +9,7 @@ import MovieDetailModalV3 from '@/components/MovieDetailModalV3'
 import BookDetailModalV3 from '@/components/BookDetailModalV3'
 import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
+import SearchModalV2 from '@/components/SearchModalV2'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
 import DiscoverPageV2 from '@/components/DiscoverPageV2'
@@ -40,6 +41,7 @@ export default function Home() {
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [useUnifiedSearch, setUseUnifiedSearch] = useState(true) // Toggle between old and new search
   
   // Library state
   const [library, setLibrary] = useState<LibraryItem[]>([])
@@ -475,6 +477,31 @@ export default function Home() {
     setSelectedMusicId(normalizedMusicId)
   }
 
+  // Unified handler for SearchModalV2
+  const handleOpenDetail = (item: any) => {
+    const itemId = normalizeId(item.id?.toString() || '1')
+    
+    // Close search modal when opening detail
+    setIsSearchOpen(false)
+    
+    switch (item.category) {
+      case 'games':
+        setSelectedGameId(itemId)
+        break
+      case 'movies':
+        setSelectedMovieId(itemId)
+        break
+      case 'books':
+        setSelectedBookId(itemId)
+        break
+      case 'music':
+        setSelectedMusicId(itemId)
+        break
+      default:
+        console.warn('Unknown media category:', item.category)
+    }
+  }
+
   const handleOpenSearch = () => {
     setIsSearchOpen(true)
   }
@@ -896,7 +923,19 @@ export default function Home() {
   const renderSearchContent = () => (
     <div className="bg-white min-h-screen">
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Search</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">Search</h1>
+          <button
+            onClick={() => setUseUnifiedSearch(!useUnifiedSearch)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              useUnifiedSearch 
+                ? 'bg-green-100 text-green-700 border border-green-200' 
+                : 'bg-gray-100 text-gray-700 border border-gray-200'
+            }`}
+          >
+            {useUnifiedSearch ? '🚀 V2.0 Unified' : '📂 V1.0 Legacy'}
+          </button>
+        </div>
       </div>
       <div className="container mx-auto px-4 sm:px-6 py-6 pb-24">
         <div 
@@ -968,16 +1007,25 @@ export default function Home() {
         onMusicSelect={setSelectedMusicId}
       />
 
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenGameDetail={handleOpenGameDetail}
-        onOpenMovieDetail={handleOpenMovieDetail}
-        onOpenBookDetail={handleOpenBookDetail}
-        onOpenMusicDetail={handleOpenMusicDetail}
-        library={library}
-      />
+      {useUnifiedSearch ? (
+        <SearchModalV2
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          onAddToLibrary={handleAddToLibrary}
+          onOpenDetail={handleOpenDetail}
+        />
+      ) : (
+        <SearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          onAddToLibrary={handleAddToLibrary}
+          onOpenGameDetail={handleOpenGameDetail}
+          onOpenMovieDetail={handleOpenMovieDetail}
+          onOpenBookDetail={handleOpenBookDetail}
+          onOpenMusicDetail={handleOpenMusicDetail}
+          library={library}
+        />
+      )}
 
       {/* User Profile Setup Modal */}
       <UserProfileSetup
