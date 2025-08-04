@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, X, Star, Calendar, ExternalLink, Loader2, Gamepad2, Clock, TrendingUp } from 'lucide-react'
-import { rawgService } from '@/services/rawgService'
+import { Search, X, Star, Calendar, ExternalLink, Loader2, Gamepad2, Clock, TrendingUp, Award, Users } from 'lucide-react'
+import { advancedRAWGService } from '@/services/advancedRAWGService'
 import type { SearchResult } from '@/types'
 
 interface GameSearchModalProps {
@@ -34,7 +34,7 @@ export default function GameSearchModal({
     }
   }, [isOpen])
 
-  // Specialized game search with gaming-specific optimizations
+  // ✅ RECHERCHE GAMING AVANCÉE avec toutes les optimisations professionnelles
   const performGameSearch = useCallback(async (searchQuery: string) => {
     if (searchQuery.trim().length < 2) {
       setSearchResults([])
@@ -46,94 +46,47 @@ export default function GameSearchModal({
     const startTime = Date.now()
     
     try {
-      console.log('🎮 [GameSearch] === SPECIALIZED GAME SEARCH ===')
-      console.log('🎮 [GameSearch] Query:', `"${searchQuery}"`)
+      console.log('🎮 [AdvancedGameSearch] === PROFESSIONAL GAMING SEARCH ===')
+      console.log('🎮 [AdvancedGameSearch] Query:', `"${searchQuery}"`)
       
-      // Use RAWG service directly with gaming-specific parameters
-      const rawgGames = await rawgService.searchGames(searchQuery)
-      
-      // Convert and filter results with gaming-specific logic
-      const gameResults = rawgGames
-        .map(game => rawgService.convertToAppFormat(game))
-        .filter(game => game !== null && game.title)
-        .filter(game => !isLowQualityGame(game))
-        .sort((a, b) => {
-          // Gaming-specific sorting
-          const scoreA = calculateGameRelevance(searchQuery, a)
-          const scoreB = calculateGameRelevance(searchQuery, b)
-          return scoreB - scoreA
-        })
-        .slice(0, 20) // Limit to top 20 most relevant games
+      // ✅ RECHERCHE AVEC SERVICE AVANCÉ ET TOUTES LES OPTIMISATIONS
+      const advancedResults = await advancedRAWGService.optimizedGameSearch(searchQuery, {
+        minMetacritic: 60,          // Qualité minimum (baissé à 60 pour plus de résultats)
+        excludeAdditions: true,     // Exclure DLC et add-ons
+        excludeFanMade: true,       // Exclure contenu amateur
+        maxResults: 20,             // Top 20 résultats
+        sortBy: 'relevance'         // Tri par pertinence intelligente
+      })
 
-      setSearchResults(gameResults)
+      setSearchResults(advancedResults)
       setSearchTime(Date.now() - startTime)
       
-      console.log('🎮 [GameSearch] Results:', {
+      console.log('🎮 [AdvancedGameSearch] Professional results:', {
         query: searchQuery,
-        totalResults: gameResults.length,
+        totalResults: advancedResults.length,
         responseTime: Date.now() - startTime,
-        topGames: gameResults.slice(0, 5).map(g => `"${g.title}" (${g.year || 'N/A'})`),
+        topGames: advancedResults.slice(0, 5).map(g => `"${g.title}" (${g.rating}/10 | ${g.year || 'N/A'})`),
+        qualityMetrics: {
+          avgRating: advancedResults.length > 0 
+            ? (advancedResults.reduce((sum, g) => sum + (g.rating || 0), 0) / advancedResults.length).toFixed(1)
+            : 'N/A',
+          withMetacritic: advancedResults.filter(g => g.metadata?.metacritic).length,
+          recentGames: advancedResults.filter(g => g.year && g.year >= 2020).length
+        }
       })
       
     } catch (error) {
-      console.error('🎮 [GameSearch] Search failed:', error)
+      console.error('🎮 [AdvancedGameSearch] Search failed:', error)
       setSearchResults([])
     } finally {
       setIsSearching(false)
     }
   }, [])
 
-  // Gaming-specific quality filter
-  const isLowQualityGame = (game: SearchResult): boolean => {
-    const titleLower = game.title.toLowerCase()
-    
-    // Gaming-specific filters
-    const rejectTerms = [
-      'mod', 'cheat', 'hack', 'trainer', 'crack',
-      'demo', 'beta', 'alpha', 'early access',
-      'dlc', 'expansion pack', 'season pass',
-      'mobile game', 'browser game', 'flash game'
-    ]
-    
-    return rejectTerms.some(term => titleLower.includes(term))
-  }
+  // ✅ NOTE: Filtres de qualité maintenant gérés par advancedRAWGService
+  // Le service avancé inclut déjà tous les filtres professionnels
 
-  // Gaming-specific relevance scoring
-  const calculateGameRelevance = (query: string, game: SearchResult): number => {
-    const queryLower = query.toLowerCase().trim()
-    const titleLower = game.title.toLowerCase().trim()
-    
-    let score = 0
-    
-    // Exact match
-    if (titleLower === queryLower) return 10
-    
-    // Starts with query
-    if (titleLower.startsWith(queryLower)) score += 8
-    
-    // Contains full query
-    if (titleLower.includes(queryLower)) score += 6
-    
-    // Word matches
-    const queryWords = queryLower.split(/\s+/)
-    const titleWords = titleLower.split(/\s+/)
-    
-    queryWords.forEach(qWord => {
-      if (titleWords.some(tWord => tWord.startsWith(qWord))) {
-        score += 3
-      }
-    })
-    
-    // Boost for recent games
-    if (game.year && game.year >= 2020) score += 1
-    
-    // Boost for highly rated games
-    if (game.rating && game.rating >= 8) score += 2
-    
-    return score
-  }
-
-  // Handle input changes with gaming-optimized debouncing
+  // ✅ DEBOUNCING GAMING-OPTIMIZED - Plus rapide pour l'expérience gaming
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newQuery = e.target.value
     setQuery(newQuery)
@@ -150,8 +103,8 @@ export default function GameSearchModal({
 
     setIsSearching(true)
     
-    // Gaming-optimized debouncing (faster for games)
-    const debounceTime = newQuery.length <= 3 ? 300 : 150
+    // ✅ DEBOUNCING ULTRA-OPTIMISÉ POUR GAMING (plus rapide que cinéma)
+    const debounceTime = newQuery.length <= 2 ? 250 : newQuery.length <= 4 ? 150 : 100
 
     searchTimeoutRef.current = setTimeout(() => {
       performGameSearch(newQuery)
@@ -314,7 +267,7 @@ export default function GameSearchModal({
                               </p>
                             )}
 
-                            <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center gap-3 mt-2 flex-wrap">
                               {/* Year */}
                               {game.year && (
                                 <div className="flex items-center gap-1 text-sm text-gray-500">
@@ -328,6 +281,23 @@ export default function GameSearchModal({
                                 <div className="flex items-center gap-1 text-sm text-gray-600">
                                   <Star size={12} className="text-yellow-400 fill-current" />
                                   {game.rating}/10
+                                </div>
+                              )}
+
+                              {/* ✅ NOUVEAU: Metacritic Score */}
+                              {game.metadata?.metacritic && (
+                                <div className="flex items-center gap-1 text-sm text-orange-600">
+                                  <Award size={12} />
+                                  {game.metadata.metacritic}
+                                </div>
+                              )}
+
+                              {/* ✅ NOUVEAU: Platforms */}
+                              {game.metadata?.platforms && game.metadata.platforms.length > 0 && (
+                                <div className="flex items-center gap-1 text-sm text-gray-500">
+                                  <Users size={12} />
+                                  {game.metadata.platforms.slice(0, 2).join(', ')}
+                                  {game.metadata.platforms.length > 2 && ` +${game.metadata.platforms.length - 2}`}
                                 </div>
                               )}
 
@@ -345,6 +315,22 @@ export default function GameSearchModal({
                                 </a>
                               )}
                             </div>
+
+                            {/* ✅ NOUVEAU: Quality Indicators */}
+                            {(game.metadata?.qualityScore || game.metadata?.relevanceScore) && (
+                              <div className="flex items-center gap-2 mt-1">
+                                {game.metadata.qualityScore && (
+                                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                    Quality: {Math.round(game.metadata.qualityScore)}%
+                                  </span>
+                                )}
+                                {game.metadata.relevanceScore && game.metadata.relevanceScore > 500 && (
+                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                    ⭐ Top Match
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           {/* Add to Library Button */}
