@@ -1252,10 +1252,18 @@ export default function MovieDetailModalV3({
                       <div key={`user-${review.id}`} className="bg-gray-800 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
-                            <div className="w-6 h-6 bg-gradient-to-r from-[#FF6A00] to-[#FFB347] rounded-full flex items-center justify-center">
-                              <span className="text-white text-xs font-medium">
-                                {(review.username || 'U').charAt(0).toUpperCase()}
-                              </span>
+                            <div className="w-6 h-6 bg-gradient-to-r from-[#FF6A00] to-[#FFB347] rounded-full flex items-center justify-center overflow-hidden">
+                              {review.avatar_url ? (
+                                <img 
+                                  src={review.avatar_url} 
+                                  alt={review.username || 'User'} 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-white text-xs font-medium">
+                                  {(review.username || 'U').charAt(0).toUpperCase()}
+                                </span>
+                              )}
                             </div>
                             <span className="text-white font-medium">{review.username || 'Anonymous User'}</span>
                             <span className="text-transparent bg-gradient-to-r from-[#FF6A00] to-[#FFB347] bg-clip-text text-xs">✓ Stackr User</span>

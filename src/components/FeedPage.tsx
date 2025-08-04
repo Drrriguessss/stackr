@@ -482,7 +482,7 @@ export default function FeedPage({
         )}
 
         {/* Recently Recommended - Horizontal scroll */}
-        {currentUser && sharedMedia.length > 0 && (
+        {currentUser && (
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center space-x-2">
@@ -491,55 +491,63 @@ export default function FeedPage({
               </div>
             </div>
             <div className="p-4">
-              <div className="flex space-x-4 overflow-x-auto pb-2">
-                {sharedMedia.map((sharedItem) => (
-                  <div 
-                    key={sharedItem.id}
-                    className="flex-shrink-0 cursor-pointer group"
-                    onClick={() => handleSharedItemClick(sharedItem)}
-                  >
-                    <div className="w-24 relative">
-                      {/* Media Cover */}
-                      <div className="w-20 h-28 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
-                        {sharedItem.item_image ? (
-                          <img
-                            src={sharedItem.item_image}
-                            alt={sharedItem.item_title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                            {getCategoryIcon(sharedItem.item_type)}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Friend Avatar Badge */}
-                      <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                        {sharedItem.from_user?.avatar_url ? (
-                          <img
-                            src={sharedItem.from_user.avatar_url}
-                            alt={sharedItem.from_user.display_name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <User size={12} className="text-green-600" />
-                        )}
-                      </div>
-                      
-                      {/* Title and Friend Name */}
-                      <div className="mt-2 text-center">
-                        <p className="text-xs text-gray-900 font-medium truncate px-1">
-                          {sharedItem.item_title}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate px-1">
-                          by {sharedItem.from_user?.display_name || 'Friend'}
-                        </p>
+              {sharedMedia.length > 0 ? (
+                <div className="flex space-x-4 overflow-x-auto pb-2">
+                  {sharedMedia.map((sharedItem) => (
+                    <div 
+                      key={sharedItem.id}
+                      className="flex-shrink-0 cursor-pointer group"
+                      onClick={() => handleSharedItemClick(sharedItem)}
+                    >
+                      <div className="w-24 relative">
+                        {/* Media Cover */}
+                        <div className="w-20 h-28 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
+                          {sharedItem.item_image ? (
+                            <img
+                              src={sharedItem.item_image}
+                              alt={sharedItem.item_title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                              {getCategoryIcon(sharedItem.item_type)}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Friend Avatar Badge */}
+                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                          {sharedItem.from_user?.avatar_url ? (
+                            <img
+                              src={sharedItem.from_user.avatar_url}
+                              alt={sharedItem.from_user.display_name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <User size={12} className="text-green-600" />
+                          )}
+                        </div>
+                        
+                        {/* Title and Friend Name */}
+                        <div className="mt-2 text-center">
+                          <p className="text-xs text-gray-900 font-medium truncate px-1">
+                            {sharedItem.item_title}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate px-1">
+                            by {sharedItem.from_user?.display_name || 'Friend'}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <Share2 size={32} className="mx-auto text-gray-300 mb-2" />
+                  <p className="text-gray-500 text-sm">No recommendations yet</p>
+                  <p className="text-gray-400 text-xs">Ask friends to share content with you!</p>
+                </div>
+              )}
             </div>
           </div>
         )}

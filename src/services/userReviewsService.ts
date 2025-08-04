@@ -12,6 +12,7 @@ export interface UserReview {
   media_category: MediaCategory
   user_identifier: string
   username?: string
+  avatar_url?: string
   rating: number
   review_text?: string
   is_public: boolean
@@ -224,7 +225,15 @@ class UserReviewsService {
       
       const { data: reviews, error } = await supabase
         .from('user_reviews')
-        .select('*')
+        .select(`
+          *,
+          user_profiles!user_reviews_user_id_fkey(
+            id,
+            username,
+            display_name,
+            avatar_url
+          )
+        `)
         .eq('media_id', mediaId)
         .eq('is_public', true)
         .order('helpful_count', { ascending: false })
@@ -237,7 +246,15 @@ class UserReviewsService {
       }
 
       console.log('✅ Found', reviews?.length || 0, 'public reviews')
-      return (reviews || []) as UserReview[]
+      
+      // Process reviews to include user profile data
+      const processedReviews = (reviews || []).map(review => ({
+        ...review,
+        username: review.user_profiles?.display_name || review.user_profiles?.username || review.username,
+        avatar_url: review.user_profiles?.avatar_url
+      }))
+      
+      return processedReviews as UserReview[]
     } catch (error) {
       console.error('Error fetching public reviews:', error)
       return []

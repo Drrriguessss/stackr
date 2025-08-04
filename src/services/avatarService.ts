@@ -46,6 +46,8 @@ class AvatarService {
       const { data: { user } } = await supabase.auth.getUser()
       const googleAvatar = user?.user_metadata?.avatar_url || null
 
+      console.log('🔄 [AvatarService] Updating avatar for user:', userId)
+
       // Upsert into user_avatars
       const { error: avatarError } = await supabase
         .from('user_avatars')
@@ -63,16 +65,20 @@ class AvatarService {
         return false
       }
 
-      // Also update user_profiles for consistency
+      // Also update user_profiles for consistency and to ensure it appears everywhere
       const { error: profileError } = await supabase
         .from('user_profiles')
-        .update({ avatar_url: newAvatarUrl })
+        .update({ 
+          avatar_url: newAvatarUrl,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', userId)
 
       if (profileError) {
         console.error('Error updating profile avatar:', profileError)
       }
 
+      console.log('✅ [AvatarService] Avatar updated successfully')
       return true
     } catch (error) {
       console.error('Error updating user avatar:', error)
