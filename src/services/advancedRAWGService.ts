@@ -123,8 +123,8 @@ class AdvancedRAWGService {
       key: this.apiKey,
       search: query,
       page_size: (options.maxResults || 20).toString(),
-      // ✅ RECHERCHE PRÉCISE pour éviter résultats approximatifs
-      search_precise: 'true'
+      // ✅ RECHERCHE NORMALE (search_precise causait des problèmes)
+      // search_precise: 'true'  // Désactivé: empêchait de trouver des jeux
     })
 
     // ✅ FILTRAGE PAR QUALITÉ - Metacritic minimum
