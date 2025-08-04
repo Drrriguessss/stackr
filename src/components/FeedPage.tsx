@@ -572,6 +572,271 @@ export default function FeedPage({
           </div>
         )}
 
+        {/* Friends Recently Added These Titles */}
+        {currentUser && (
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center space-x-2">
+                <Users className="text-blue-600" size={20} />
+                <h2 className="text-lg font-semibold text-gray-900">Friends recently added these titles to their library</h2>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="flex space-x-4 overflow-x-auto pb-2">
+                {/* Mock data - vous pouvez remplacer par de vraies données d'amis */}
+                {[
+                  { id: '1', title: 'Baldur\'s Gate 3', image: '/api/placeholder/64/80', friend: { name: 'Alex', avatar: '/api/placeholder/24/24' }, category: 'games' },
+                  { id: '2', title: 'Spider-Man 2', image: '/api/placeholder/64/80', friend: { name: 'Sarah', avatar: '/api/placeholder/24/24' }, category: 'games' },
+                  { id: '3', title: 'The Batman', image: '/api/placeholder/64/80', friend: { name: 'Mike', avatar: '/api/placeholder/24/24' }, category: 'movies' },
+                  { id: '4', title: 'Dune: Part Two', image: '/api/placeholder/64/80', friend: { name: 'Emma', avatar: '/api/placeholder/24/24' }, category: 'movies' },
+                  { id: '5', title: 'Project Hail Mary', image: '/api/placeholder/64/80', friend: { name: 'Jake', avatar: '/api/placeholder/24/24' }, category: 'books' },
+                ].map((item) => (
+                  <div key={item.id} className="flex-shrink-0 cursor-pointer group">
+                    <div className="w-20 relative">
+                      {/* Media Cover */}
+                      <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      
+                      {/* Friend Avatar Badge */}
+                      <div className="absolute top-0 right-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                        <img
+                          src={item.friend.avatar}
+                          alt={item.friend.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      
+                      {/* Title and Friend Name */}
+                      <div className="mt-2 text-center">
+                        <p className="text-xs text-gray-900 font-medium truncate px-1">
+                          {item.title}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate px-1">
+                          by {item.friend.name}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Friends Rated These Titles */}
+        {currentUser && (
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center space-x-2">
+                <Star className="text-yellow-600" size={20} />
+                <h2 className="text-lg font-semibold text-gray-900">Friends rated these titles</h2>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="flex space-x-4 overflow-x-auto pb-2">
+                {/* Mock data pour les ratings d'amis */}
+                {[
+                  { id: '1', title: 'Cyberpunk 2077', image: '/api/placeholder/64/80', rating: 4.5, friend: { name: 'Alex', avatar: '/api/placeholder/24/24' } },
+                  { id: '2', title: 'Oppenheimer', image: '/api/placeholder/64/80', rating: 5.0, friend: { name: 'Sarah', avatar: '/api/placeholder/24/24' } },
+                  { id: '3', title: 'The Witcher 3', image: '/api/placeholder/64/80', rating: 4.8, friend: { name: 'Mike', avatar: '/api/placeholder/24/24' } },
+                  { id: '4', title: 'Interstellar', image: '/api/placeholder/64/80', rating: 4.7, friend: { name: 'Emma', avatar: '/api/placeholder/24/24' } },
+                  { id: '5', title: 'Atomic Habits', image: '/api/placeholder/64/80', rating: 4.3, friend: { name: 'Jake', avatar: '/api/placeholder/24/24' } },
+                ].map((item) => (
+                  <div key={item.id} className="flex-shrink-0 cursor-pointer group">
+                    <div className="w-20 relative">
+                      {/* Media Cover */}
+                      <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow mx-auto">
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      
+                      {/* Friend Avatar Badge */}
+                      <div className="absolute top-0 right-0 w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                        <img
+                          src={item.friend.avatar}
+                          alt={item.friend.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      
+                      {/* Title, Friend Name and Rating */}
+                      <div className="mt-2 text-center">
+                        <p className="text-xs text-gray-900 font-medium truncate px-1">
+                          {item.title}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate px-1">
+                          by {item.friend.name}
+                        </p>
+                        <div className="flex items-center justify-center mt-1">
+                          <Star size={10} className="text-yellow-400 fill-current" />
+                          <span className="text-xs text-gray-700 ml-1">{item.rating}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Recent Reviews */}
+        {currentUser && (
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center space-x-2">
+                <MessageCircle className="text-purple-600" size={20} />
+                <h2 className="text-lg font-semibold text-gray-900">Recent reviews</h2>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="flex space-x-4 overflow-x-auto pb-2">
+                {/* Mock data pour les reviews récentes */}
+                {[
+                  { 
+                    id: '1', 
+                    title: 'Baldur\'s Gate 3', 
+                    image: '/api/placeholder/80/100', 
+                    rating: 5.0, 
+                    review: 'Absolutely incredible RPG with amazing character development and storytelling...', 
+                    friend: { name: 'Alex', avatar: '/api/placeholder/32/32' } 
+                  },
+                  { 
+                    id: '2', 
+                    title: 'The Bear (Season 3)', 
+                    image: '/api/placeholder/80/100', 
+                    rating: 4.8, 
+                    review: 'Another fantastic season that keeps the intensity and heart of the show...', 
+                    friend: { name: 'Sarah', avatar: '/api/placeholder/32/32' } 
+                  },
+                  { 
+                    id: '3', 
+                    title: 'Tomorrow, and Tomorrow', 
+                    image: '/api/placeholder/80/100', 
+                    rating: 4.6, 
+                    review: 'A beautiful exploration of friendship, gaming, and what makes life meaningful...', 
+                    friend: { name: 'Mike', avatar: '/api/placeholder/32/32' } 
+                  },
+                ].map((review) => (
+                  <div key={review.id} className="flex-shrink-0 cursor-pointer group w-64">
+                    <div className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+                      <div className="flex items-start space-x-3">
+                        {/* Media Cover */}
+                        <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 relative">
+                          <img
+                            src={review.image}
+                            alt={review.title}
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Friend Avatar Badge */}
+                          <div className="absolute -top-1 -right-1 w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                            <img
+                              src={review.friend.avatar}
+                              alt={review.friend.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Review Content */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-gray-900 truncate">
+                            {review.title}
+                          </h4>
+                          <div className="flex items-center space-x-1 mt-1 mb-2">
+                            <Star size={12} className="text-yellow-400 fill-current" />
+                            <span className="text-xs text-gray-700">{review.rating}</span>
+                            <span className="text-xs text-gray-500">• by {review.friend.name}</span>
+                          </div>
+                          <p className="text-xs text-gray-600 line-clamp-3">
+                            {review.review}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* My Recent Activities */}
+        {currentUser && (
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Clock className="text-indigo-600" size={20} />
+                  <h2 className="text-lg font-semibold text-gray-900">My recent activities</h2>
+                </div>
+                <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                  See more
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              {/* Showing only one activity */}
+              <div className="flex items-start space-x-3">
+                {/* User Avatar */}
+                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100">
+                  {currentUser?.avatar_url ? (
+                    <img
+                      src={currentUser.avatar_url}
+                      alt={currentUser.display_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User size={20} className="text-indigo-600" />
+                  )}
+                </div>
+                
+                {/* Activity Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="font-semibold text-gray-900">{currentUser?.display_name}</span>
+                    <span className="text-sm text-gray-500">@{currentUser?.username}</span>
+                    <span className="text-sm text-gray-400">•</span>
+                    <span className="text-sm text-gray-500">2 hours ago</span>
+                  </div>
+
+                  {/* Activity Description */}
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Gamepad2 size={16} className="text-indigo-600" />
+                    <span className="text-gray-700">
+                      Added to library
+                      <span className="font-medium"> "Spider-Man 2"</span>
+                    </span>
+                  </div>
+
+                  {/* Item Card */}
+                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div className="w-12 h-16 bg-gray-200 rounded-lg overflow-hidden">
+                      <img
+                        src="/api/placeholder/48/64"
+                        alt="Spider-Man 2"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900">Spider-Man 2</h4>
+                      <p className="text-sm text-gray-500">PlayStation 5 • 2023</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Social Feed */}
         {currentUser ? (
           isLoadingFeed ? (
