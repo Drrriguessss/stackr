@@ -304,14 +304,14 @@ class SocialService {
         .select('id')
         .eq('activity_id', activity.id)
         .eq('user_id', user.id)
-        .single()
+        .limit(1)
 
       return {
         ...activity,
         user: userProfile,
         likes_count: likesCount || 0,
         comments_count: commentsCount || 0,
-        user_liked: !!userLiked
+        user_liked: !!(userLiked && userLiked.length > 0)
       }
     }))
 
@@ -468,26 +468,41 @@ class SocialService {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
-    const { data, error } = await supabase
+    console.log('🔍 [Debug] Fetching shared media for user:', user.id)
+
+    // First, get the basic media shares
+    const { data: shares, error: sharesError } = await supabase
       .from('media_shares')
-      .select(`
-        *,
-        from_user:user_profiles!media_shares_from_user_id_fkey(
-          id,
-          username,
-          display_name,
-          avatar_url
-        )
-      `)
+      .select('*')
       .eq('to_user_id', user.id)
       .order('created_at', { ascending: false })
     
-    if (error) {
-      console.error('Error fetching shared media:', error)
+    if (sharesError) {
+      console.error('Error fetching shared media:', sharesError)
       return []
     }
 
-    return data || []
+    if (!shares || shares.length === 0) {
+      console.log('🔍 [Debug] No shared media found')
+      return []
+    }
+
+    console.log('🔍 [Debug] Found', shares.length, 'shared items')
+
+    // Then get user profiles for each share
+    const userIds = [...new Set(shares.map(share => share.from_user_id))]
+    const { data: userProfiles } = await supabase
+      .from('user_profiles')
+      .select('id, username, display_name, avatar_url')
+      .in('id', userIds)
+
+    // Combine the data
+    const result = shares.map(share => ({
+      ...share,
+      from_user: userProfiles?.find(profile => profile.id === share.from_user_id)
+    }))
+
+    return result as MediaShare[]
   }
 
   // Notifications
