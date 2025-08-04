@@ -1,6 +1,6 @@
 'use client'
 
-import { X, Check, CheckCheck } from 'lucide-react'
+import { X, Check, CheckCheck, Bell } from 'lucide-react'
 import { type Notification } from '@/services/notificationService'
 
 interface NotificationListProps {
