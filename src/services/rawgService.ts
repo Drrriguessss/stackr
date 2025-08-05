@@ -143,7 +143,7 @@ class RAWGService {
   }
 
   async searchGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
-    console.log('🎮 TWO-STEP SEARCH for:', query)
+    console.log('🎮 HYBRID SEARCH for:', query)
     
     if (!query || query.length < 2) {
       console.log('🎮 Query too short')
@@ -151,72 +151,43 @@ class RAWGService {
     }
 
     try {
+      // 🎯 STRATEGY: Try multiple approaches to find recent games
       const currentYear = new Date().getFullYear()
-      const futureYear = currentYear + 1
+      const results: RAWGGame[] = []
       
-      // 🎯 STEP 1: Search recent games (2024-2025) with -released ordering
-      console.log('🎮 STEP 1: Searching recent games (2024-2025)...')
-      const recentUrl = `${this.baseURL}/games?` + new URLSearchParams({
-        key: this.apiKey,
-        search: query,
-        page_size: '10',
-        dates: `2024-01-01,${futureYear}-12-31`,
-        ordering: '-released' // Recent games sorted by newest first
-      }).toString()
-
-      console.log('🎮 Recent search URL:', recentUrl)
-      
-      const recentResponse = await fetch(recentUrl)
-      let recentGames: RAWGGame[] = []
-      
-      if (recentResponse.ok) {
-        const recentData = await recentResponse.json()
-        recentGames = recentData.results || []
-        console.log(`🎮 STEP 1 Results: Found ${recentGames.length} recent games`)
-        
-        recentGames.forEach((game: RAWGGame, index: number) => {
-          const year = game.released ? new Date(game.released).getFullYear() : 'TBA'
-          console.log(`🎮 Recent ${index + 1}. ${game.name} (${year})`)
-        })
-      }
-
-      // 🎯 STEP 2: Search historical games (2000-2023) with -relevance ordering
-      console.log('🎮 STEP 2: Searching historical games (2000-2023)...')
-      const historicalUrl = `${this.baseURL}/games?` + new URLSearchParams({
-        key: this.apiKey,
-        search: query,
-        page_size: String(maxResults - recentGames.length),
-        dates: '2000-01-01,2023-12-31',
-        ordering: '-relevance' // Historical games sorted by relevance
-      }).toString()
-
-      console.log('🎮 Historical search URL:', historicalUrl)
-      
-      const historicalResponse = await fetch(historicalUrl)
-      let historicalGames: RAWGGame[] = []
-      
-      if (historicalResponse.ok) {
-        const historicalData = await historicalResponse.json()
-        historicalGames = historicalData.results || []
-        console.log(`🎮 STEP 2 Results: Found ${historicalGames.length} historical games`)
-      }
-
-      // 🎯 COMBINE: Recent games first, then historical games
-      const combinedResults = [...recentGames, ...historicalGames]
-      
-      // Remove duplicates by ID
-      const uniqueResults = combinedResults.filter((game, index, self) => 
-        index === self.findIndex(g => g.id === game.id)
+      // 1. Search specifically for 2025 games
+      console.log('🎮 STEP 1: Searching 2025 games specifically...')
+      const games2025 = await this.fetchGamesByDateRange(
+        '2025-01-01', '2025-12-31', query, '-released', 15
       )
-
-      console.log('🎮 COMBINED RESULTS:', {
-        recentCount: recentGames.length,
-        historicalCount: historicalGames.length,
-        totalBeforeDedup: combinedResults.length,
-        totalAfterDedup: uniqueResults.length
-      })
+      results.push(...games2025)
+      console.log(`🎮 Found ${games2025.length} games from 2025`)
       
-      // Log final results
+      // 2. Search this year's games (2024)
+      if (results.length < 5) {
+        console.log('🎮 STEP 2: Searching 2024 games...')
+        const games2024 = await this.fetchGamesByDateRange(
+          '2024-01-01', '2024-12-31', query, '-released', 10
+        )
+        results.push(...games2024)
+        console.log(`🎮 Found ${games2024.length} games from 2024`)
+      }
+      
+      // 3. Fill with relevant historical games
+      const remainingSlots = maxResults - results.length
+      if (remainingSlots > 0) {
+        console.log(`🎮 STEP 3: Searching historical games (${remainingSlots} slots remaining)...`)
+        const historicalGames = await this.fetchGamesByDateRange(
+          '2000-01-01', '2023-12-31', query, '-relevance', remainingSlots
+        )
+        results.push(...historicalGames)
+        console.log(`🎮 Found ${historicalGames.length} historical games`)
+      }
+
+      // Remove duplicates and sort
+      const uniqueResults = this.deduplicateAndSort(results)
+      
+      console.log('🎮 FINAL HYBRID RESULTS:')
       uniqueResults.forEach((game: RAWGGame, index: number) => {
         const developer = this.getCorrectDeveloper(game)
         const year = game.released ? new Date(game.released).getFullYear() : 'TBA'
@@ -227,9 +198,73 @@ class RAWGService {
       return uniqueResults.slice(0, maxResults)
 
     } catch (error) {
-      console.error('🎮 Two-step search error:', error)
+      console.error('🎮 Hybrid search error:', error)
       return []
     }
+  }
+
+  // Helper method to fetch games by date range
+  private async fetchGamesByDateRange(
+    startDate: string, 
+    endDate: string, 
+    searchTerm: string, 
+    ordering: string, 
+    pageSize: number
+  ): Promise<RAWGGame[]> {
+    try {
+      let url = `${this.baseURL}/games?key=${this.apiKey}&dates=${startDate},${endDate}&ordering=${ordering}&page_size=${pageSize}`
+      
+      if (searchTerm) {
+        url += `&search=${encodeURIComponent(searchTerm)}`
+      }
+
+      console.log(`🎮 Fetching ${startDate} to ${endDate}:`, url)
+      
+      const response = await fetch(url)
+      if (!response.ok) return []
+      
+      const data = await response.json()
+      const games = data.results || []
+      
+      console.log(`🎮 Date range ${startDate}-${endDate}: ${games.length} games found`)
+      games.forEach((game: RAWGGame, index: number) => {
+        const year = game.released ? new Date(game.released).getFullYear() : 'TBA'
+        console.log(`🎮   ${index + 1}. ${game.name} (${year})`)
+      })
+      
+      return games
+      
+    } catch (error) {
+      console.error(`🎮 Error fetching ${startDate} to ${endDate}:`, error)
+      return []
+    }
+  }
+
+  // Helper method to deduplicate and sort games
+  private deduplicateAndSort(games: RAWGGame[]): RAWGGame[] {
+    // Remove duplicates by ID
+    const seen = new Set()
+    const unique = games.filter(game => {
+      if (seen.has(game.id)) return false
+      seen.add(game.id)
+      return true
+    })
+    
+    // Sort: Recent games first, then by relevance
+    return unique.sort((a, b) => {
+      const yearA = a.released ? new Date(a.released).getFullYear() : 0
+      const yearB = b.released ? new Date(b.released).getFullYear() : 0
+      
+      // Recent games (2024+) first
+      if (yearA >= 2024 && yearB < 2024) return -1
+      if (yearB >= 2024 && yearA < 2024) return 1
+      
+      // Within same category, sort by year (newest first)
+      if (yearA !== yearB) return yearB - yearA
+      
+      // If same year, alphabetical
+      return a.name.localeCompare(b.name)
+    })
   }
 
   async searchWithRecentGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
