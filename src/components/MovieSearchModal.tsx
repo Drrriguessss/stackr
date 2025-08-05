@@ -97,7 +97,7 @@ export default function MovieSearchModal({
 
       // Get detailed information for top results (like SearchModal did)
       const detailedMovies = await Promise.all(
-        movies.slice(0, 8).map(async movie => {
+        movies.slice(0, 12).map(async movie => {
           try {
             const movieDetails = await omdbService.getMovieDetails(movie.imdbID)
             
