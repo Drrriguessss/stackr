@@ -228,7 +228,7 @@ export default function MovieSearchModal({
             {searchResults.length > 0 && (
               <div className="flex items-center gap-4 text-sm text-white/80">
                 <div className="flex items-center gap-1">
-                  <TrendingUp size={14} />
+                  <Film size={14} />
                   <span>{searchResults.length} movies/shows found</span>
                 </div>
                 <div className="flex items-center gap-1">
