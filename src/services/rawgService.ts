@@ -143,7 +143,7 @@ class RAWGService {
   }
 
   async searchGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
-    console.log('🎮 Enhanced search for:', query)
+    console.log('🎮 TWO-STEP SEARCH for:', query)
     
     if (!query || query.length < 2) {
       console.log('🎮 Query too short')
@@ -152,55 +152,82 @@ class RAWGService {
 
     try {
       const currentYear = new Date().getFullYear()
-      const futureYear = currentYear + 5 // Include games up to 5 years in the future
+      const futureYear = currentYear + 1
       
-      const url = `${this.baseURL}/games?` + new URLSearchParams({
+      // 🎯 STEP 1: Search recent games (2024-2025) with -released ordering
+      console.log('🎮 STEP 1: Searching recent games (2024-2025)...')
+      const recentUrl = `${this.baseURL}/games?` + new URLSearchParams({
         key: this.apiKey,
         search: query,
-        page_size: '20',
-        dates: `2000-01-01,${futureYear}-12-31`,
-        ordering: '-relevance' // Sort by relevance first, then we'll sort by date client-side
+        page_size: '10',
+        dates: `2024-01-01,${futureYear}-12-31`,
+        ordering: '-released' // Recent games sorted by newest first
       }).toString()
 
-      console.log('🎮 Enhanced URL with future games:', url)
-      console.log('🎮 Date range:', `2000-01-01 to ${futureYear}-12-31`)
-      console.log('🎮 Ordering:', 'by release date (newest first)')
-
-      const response = await fetch(url)
-      console.log('🎮 Response status:', response.status)
-
-      if (!response.ok) {
-        console.error('🎮 Response error:', response.status, response.statusText)
-        return []
-      }
-
-      const data = await response.json()
-      console.log('🎮 Raw API response:', data)
-
-      if (!data.results) {
-        console.error('🎮 No results in response')
-        return []
-      }
-
-      console.log('🎮 Found', data.results.length, 'games (including 2025)')
+      console.log('🎮 Recent search URL:', recentUrl)
       
-      // ✅ Log avec développeurs corrects
-      data.results.forEach((game: RAWGGame, index: number) => {
-        console.log(`🎮 Game ${index + 1} raw data:`, {
-          name: game.name,
-          developers: game.developers,
-          publishers: game.publishers,
-          released: game.released
+      const recentResponse = await fetch(recentUrl)
+      let recentGames: RAWGGame[] = []
+      
+      if (recentResponse.ok) {
+        const recentData = await recentResponse.json()
+        recentGames = recentData.results || []
+        console.log(`🎮 STEP 1 Results: Found ${recentGames.length} recent games`)
+        
+        recentGames.forEach((game: RAWGGame, index: number) => {
+          const year = game.released ? new Date(game.released).getFullYear() : 'TBA'
+          console.log(`🎮 Recent ${index + 1}. ${game.name} (${year})`)
         })
+      }
+
+      // 🎯 STEP 2: Search historical games (2000-2023) with -relevance ordering
+      console.log('🎮 STEP 2: Searching historical games (2000-2023)...')
+      const historicalUrl = `${this.baseURL}/games?` + new URLSearchParams({
+        key: this.apiKey,
+        search: query,
+        page_size: String(maxResults - recentGames.length),
+        dates: '2000-01-01,2023-12-31',
+        ordering: '-relevance' // Historical games sorted by relevance
+      }).toString()
+
+      console.log('🎮 Historical search URL:', historicalUrl)
+      
+      const historicalResponse = await fetch(historicalUrl)
+      let historicalGames: RAWGGame[] = []
+      
+      if (historicalResponse.ok) {
+        const historicalData = await historicalResponse.json()
+        historicalGames = historicalData.results || []
+        console.log(`🎮 STEP 2 Results: Found ${historicalGames.length} historical games`)
+      }
+
+      // 🎯 COMBINE: Recent games first, then historical games
+      const combinedResults = [...recentGames, ...historicalGames]
+      
+      // Remove duplicates by ID
+      const uniqueResults = combinedResults.filter((game, index, self) => 
+        index === self.findIndex(g => g.id === game.id)
+      )
+
+      console.log('🎮 COMBINED RESULTS:', {
+        recentCount: recentGames.length,
+        historicalCount: historicalGames.length,
+        totalBeforeDedup: combinedResults.length,
+        totalAfterDedup: uniqueResults.length
+      })
+      
+      // Log final results
+      uniqueResults.forEach((game: RAWGGame, index: number) => {
         const developer = this.getCorrectDeveloper(game)
         const year = game.released ? new Date(game.released).getFullYear() : 'TBA'
-        console.log(`🎮 ${index + 1}. ${game.name} by ${developer} (${year})`)
+        const isRecent = year >= 2024 ? '🆕' : '📅'
+        console.log(`🎮 Final ${index + 1}. ${isRecent} ${game.name} by ${developer} (${year})`)
       })
 
-      return data.results
+      return uniqueResults.slice(0, maxResults)
 
     } catch (error) {
-      console.error('🎮 Enhanced search error:', error)
+      console.error('🎮 Two-step search error:', error)
       return []
     }
   }
