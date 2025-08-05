@@ -445,6 +445,11 @@ export default function Home() {
     }
   }
 
+  // Legacy wrapper for modals that don't support status selection yet
+  const handleAddToLibraryLegacy = async (item: any) => {
+    await handleAddToLibrary(item, 'want-to-play') // Default status for legacy modals
+  }
+
   const handleUpdateItem = async (id: string, updates: Partial<LibraryItem>) => {
     try {
       await LibraryService.updateLibraryItem(id, updates)
@@ -1108,7 +1113,7 @@ export default function Home() {
       <MovieSearchModal
         isOpen={isMovieSearchOpen}
         onClose={() => setIsMovieSearchOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
+        onAddToLibrary={handleAddToLibraryLegacy}
         onOpenDetail={handleOpenDetail}
         onBackToSelection={() => {
           setIsMovieSearchOpen(false)
@@ -1121,7 +1126,7 @@ export default function Home() {
         <SearchModalV2
           isOpen={isSearchOpen}
           onClose={() => setIsSearchOpen(false)}
-          onAddToLibrary={handleAddToLibrary}
+          onAddToLibrary={handleAddToLibraryLegacy}
           onOpenDetail={handleOpenDetail}
         />
       ) : (

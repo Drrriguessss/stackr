@@ -1,13 +1,13 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, X, Calendar, Loader2, Gamepad2, Clock } from 'lucide-react'
+import { Search, X, Calendar, Loader2, Gamepad2, Clock, ChevronDown, Plus } from 'lucide-react'
 import { rawgService } from '@/services/rawgService'
-import type { SearchResult } from '@/types'
+import type { SearchResult, MediaStatus } from '@/types'
 
 interface SimpleGameSearchModalProps {
   isOpen: boolean
   onClose: () => void
-  onAddToLibrary: (item: SearchResult) => void
+  onAddToLibrary: (item: SearchResult, status: MediaStatus) => void
   onOpenDetail: (item: SearchResult) => void
 }
 
@@ -21,9 +21,19 @@ export default function SimpleGameSearchModal({
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [searchTime, setSearchTime] = useState(0)
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   
   const inputRef = useRef<HTMLInputElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  
+  // Status options for the dropdown
+  const statusOptions: { value: MediaStatus; label: string; icon: string }[] = [
+    { value: 'want-to-play', label: 'Want to Play', icon: '📝' },
+    { value: 'currently-playing', label: 'Currently Playing', icon: '🎮' },
+    { value: 'completed', label: 'Completed', icon: '✅' },
+    { value: 'paused', label: 'Paused', icon: '⏸️' },
+    { value: 'dropped', label: 'Dropped', icon: '❌' }
+  ]
 
   // Focus input when modal opens and prevent body scroll
   useEffect(() => {
@@ -236,11 +246,30 @@ export default function SimpleGameSearchModal({
     setQuery('')
     setSearchResults([])
     setIsSearching(false)
+    setOpenDropdownId(null)
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
     onClose()
   }
+  
+  // Handle adding to library with status
+  const handleAddToLibraryWithStatus = (item: SearchResult, status: MediaStatus) => {
+    onAddToLibrary(item, status)
+    setOpenDropdownId(null) // Close dropdown after adding
+  }
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdownId && !(event.target as Element).closest('.status-dropdown')) {
+        setOpenDropdownId(null)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openDropdownId])
 
   if (!isOpen) return null
 
@@ -413,17 +442,45 @@ export default function SimpleGameSearchModal({
                             </div>
                           </div>
 
-                          {/* Add to Library Button */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onAddToLibrary(game)
-                            }}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 
-                                     transition-colors text-sm font-medium flex-shrink-0"
-                          >
-                            Add to Library
-                          </button>
+                          {/* Add to Library Dropdown */}
+                          <div className="relative status-dropdown flex-shrink-0">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOpenDropdownId(openDropdownId === game.id ? null : game.id)
+                              }}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 
+                                       transition-colors text-sm font-medium flex items-center gap-2"
+                            >
+                              <Plus size={16} />
+                              Add to Library
+                              <ChevronDown size={14} className={`transition-transform ${
+                                openDropdownId === game.id ? 'rotate-180' : ''
+                              }`} />
+                            </button>
+                            
+                            {/* Dropdown Menu */}
+                            {openDropdownId === game.id && (
+                              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                                <div className="py-2">
+                                  {statusOptions.map((option) => (
+                                    <button
+                                      key={option.value}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleAddToLibraryWithStatus(game, option.value)
+                                      }}
+                                      className="w-full text-left px-4 py-2 hover:bg-green-50 transition-colors
+                                               flex items-center gap-3 text-sm"
+                                    >
+                                      <span className="text-lg">{option.icon}</span>
+                                      <span className="text-gray-700">{option.label}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
