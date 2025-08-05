@@ -2,20 +2,22 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, X, Calendar, Loader2, Gamepad2, Clock, ChevronDown, Plus } from 'lucide-react'
 import { rawgService } from '@/services/rawgService'
-import type { SearchResult, MediaStatus } from '@/types'
+import type { SearchResult, MediaStatus, LibraryItem } from '@/types'
 
 interface SimpleGameSearchModalProps {
   isOpen: boolean
   onClose: () => void
   onAddToLibrary: (item: SearchResult, status: MediaStatus) => void
   onOpenDetail: (item: SearchResult) => void
+  library: LibraryItem[]
 }
 
 export default function SimpleGameSearchModal({
   isOpen,
   onClose,
   onAddToLibrary,
-  onOpenDetail
+  onOpenDetail,
+  library
 }: SimpleGameSearchModalProps) {
   const [query, setQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
@@ -34,6 +36,11 @@ export default function SimpleGameSearchModal({
     { value: 'paused', label: 'Paused', icon: '⏸️' },
     { value: 'dropped', label: 'Dropped', icon: '❌' }
   ]
+  
+  // Get status option by value
+  const getStatusOption = (status: MediaStatus) => {
+    return statusOptions.find(option => option.value === status)
+  }
 
   // Focus input when modal opens and prevent body scroll
   useEffect(() => {
@@ -253,6 +260,16 @@ export default function SimpleGameSearchModal({
     onClose()
   }
   
+  // Check if game is in library and get its status
+  const getGameLibraryStatus = (gameId: string): MediaStatus | null => {
+    const libraryItem = library.find(item => 
+      item.id === gameId || 
+      item.id === `game-${gameId}` ||
+      item.id.replace('game-', '') === gameId
+    )
+    return libraryItem ? libraryItem.status : null
+  }
+  
   // Handle adding to library with status
   const handleAddToLibraryWithStatus = (item: SearchResult, status: MediaStatus) => {
     onAddToLibrary(item, status)
@@ -444,39 +461,70 @@ export default function SimpleGameSearchModal({
 
                           {/* Add to Library Dropdown */}
                           <div className="relative status-dropdown flex-shrink-0">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setOpenDropdownId(openDropdownId === game.id ? null : game.id)
-                              }}
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 
-                                       transition-colors text-sm font-medium flex items-center gap-2"
-                            >
-                              <Plus size={16} />
-                              Add to Library
-                              <ChevronDown size={14} className={`transition-transform ${
-                                openDropdownId === game.id ? 'rotate-180' : ''
-                              }`} />
-                            </button>
+                            {(() => {
+                              const currentStatus = getGameLibraryStatus(game.id)
+                              const currentStatusOption = currentStatus ? getStatusOption(currentStatus) : null
+                              const isInLibrary = currentStatus !== null
+
+                              return (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenDropdownId(openDropdownId === game.id ? null : game.id)
+                                  }}
+                                  className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${
+                                    isInLibrary 
+                                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                      : 'bg-green-600 hover:bg-green-700 text-white'
+                                  }`}
+                                >
+                                  {isInLibrary ? (
+                                    <>
+                                      <span className="text-base">{currentStatusOption?.icon}</span>
+                                      {currentStatusOption?.label}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus size={16} />
+                                      Add to Library
+                                    </>
+                                  )}
+                                  <ChevronDown size={14} className={`transition-transform ${
+                                    openDropdownId === game.id ? 'rotate-180' : ''
+                                  }`} />
+                                </button>
+                              )
+                            })()}
                             
                             {/* Dropdown Menu */}
                             {openDropdownId === game.id && (
                               <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
                                 <div className="py-2">
-                                  {statusOptions.map((option) => (
-                                    <button
-                                      key={option.value}
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleAddToLibraryWithStatus(game, option.value)
-                                      }}
-                                      className="w-full text-left px-4 py-2 hover:bg-green-50 transition-colors
-                                               flex items-center gap-3 text-sm"
-                                    >
-                                      <span className="text-lg">{option.icon}</span>
-                                      <span className="text-gray-700">{option.label}</span>
-                                    </button>
-                                  ))}
+                                  {statusOptions.map((option) => {
+                                    const currentStatus = getGameLibraryStatus(game.id)
+                                    const isCurrentStatus = currentStatus === option.value
+                                    
+                                    return (
+                                      <button
+                                        key={option.value}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleAddToLibraryWithStatus(game, option.value)
+                                        }}
+                                        className={`w-full text-left px-4 py-2 transition-colors flex items-center gap-3 text-sm ${
+                                          isCurrentStatus 
+                                            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' 
+                                            : 'hover:bg-green-50 text-gray-700'
+                                        }`}
+                                      >
+                                        <span className="text-lg">{option.icon}</span>
+                                        <span className={isCurrentStatus ? 'font-medium' : ''}>
+                                          {option.label}
+                                          {isCurrentStatus && <span className="text-xs ml-2">(Current)</span>}
+                                        </span>
+                                      </button>
+                                    )
+                                  })}
                                 </div>
                               </div>
                             )}

@@ -1108,6 +1108,7 @@ export default function Home() {
         onClose={() => setIsGameSearchOpen(false)}
         onAddToLibrary={handleAddToLibrary}
         onOpenDetail={handleOpenDetail}
+        library={library}
       />
 
       <MovieSearchModal
