@@ -32,21 +32,9 @@ export default function SimpleGameSearchModal({
     }
   }, [isOpen])
 
-  // Helper function to normalize search queries (fixes RAWG trailing space bug)
-  const normalizeSearchQuery = useCallback((query: string): string => {
-    if (!query || typeof query !== 'string') return ''
-    
-    return query
-      .trim()                     // Remove leading/trailing spaces
-      .replace(/\s+/g, ' ')      // Normalize multiple spaces to single space
-      .toLowerCase()             // Consistent casing
-  }, [])
-
-  // Improved game search with exact match prioritization
+  // Simple game search - just use RAWG service directly
   const performGameSearch = useCallback(async (searchQuery: string) => {
-    const normalizedQuery = normalizeSearchQuery(searchQuery)
-    
-    if (normalizedQuery.length < 2) {
+    if (searchQuery.trim().length < 2) {
       setSearchResults([])
       setIsSearching(false)
       return
@@ -56,29 +44,22 @@ export default function SimpleGameSearchModal({
     const startTime = Date.now()
     
     try {
-      console.log('🎮 [SimpleGameSearch] === IMPROVED RAWG SEARCH ===')
-      console.log('🎮 [SimpleGameSearch] Original Query:', `"${searchQuery}"`)
-      console.log('🎮 [SimpleGameSearch] Normalized Query:', `"${normalizedQuery}"`)
+      console.log('🎮 [SimpleGameSearch] Searching for:', `"${searchQuery}"`)
       
-      // Use direct RAWG service - increase limit for franchise searches
-      // Only consider it a franchise search if it's JUST the franchise name (not specific titles)
-      const queryWords = normalizedQuery.split(' ').filter(w => w.length > 0)
-      const isFranchiseSearch = (
-        (queryWords.length === 2 && queryWords.includes('assassin') && queryWords.includes('creed')) ||
-        (queryWords.length === 3 && queryWords.includes('call') && queryWords.includes('of') && queryWords.includes('duty')) ||
-        (queryWords.length === 2 && queryWords.includes('elder') && queryWords.includes('scrolls'))
-      )
+      // Use RAWG service directly with high limit for franchise searches
+      const queryLower = searchQuery.toLowerCase().trim()
+      const isACSearch = queryLower.includes('assassin') && queryLower.includes('creed')
+      const searchLimit = isACSearch ? 40 : 20
       
-      const searchLimit = isFranchiseSearch ? 30 : 20
-      const rawgGames = await rawgService.searchGames(normalizedQuery, searchLimit)
+      const rawgGames = await rawgService.searchGames(searchQuery, searchLimit)
       
-      // Convert to SearchResult format
+      // Convert to SearchResult format - no filtering, just convert
       const gameResults = rawgGames
         .filter(game => game && game.name && game.background_image)
         .map(game => ({
           id: game.id.toString(),
           title: game.name,
-          description: '', // We'll show genres separately
+          description: '',
           image: game.background_image,
           year: game.released ? new Date(game.released).getFullYear() : undefined,
           rating: game.rating ? Math.min(10, game.rating * 2) : undefined,
@@ -92,138 +73,11 @@ export default function SimpleGameSearchModal({
           }
         }))
 
-      // 🎯 IMPROVED: Filter and sort results by relevance
-      // (queryWords already defined above from normalizedQuery)
-      
-      // First, filter with intelligent word matching
-      const filteredResults = gameResults.filter(game => {
-        const titleLower = game.title.toLowerCase()
-        
-        // 🎯 SPECIAL: For "assassin's creed" searches, be very permissive
-        if (queryWords.length === 2) {
-          const [word1, word2] = queryWords
-          
-          if (word1.includes('assassin') && word2.includes('creed')) {
-            const hasAssassin = titleLower.includes('assassin')
-            const hasCreed = titleLower.includes('creed')
-            
-            // Blacklist only truly bad games
-            const isBadGame = titleLower.includes("moon's creed") || 
-                             (titleLower.includes("assassin's shadows") && !titleLower.includes("creed")) ||
-                             (titleLower.includes('assassins arena') && !titleLower.includes('creed'))
-            
-            // Accept nearly everything else if it has assassin or creed
-            const qualifies = !isBadGame && (hasAssassin || hasCreed)
-            
-            // Debug logging
-            if (titleLower.includes('assassin') || titleLower.includes('creed') || titleLower.includes('shadows')) {
-              console.log('🎯 [AC Filter Debug - SUPER PERMISSIVE]', {
-                title: game.title,
-                hasAssassin,
-                hasCreed,
-                isBadGame,
-                qualifies,
-                reason: qualifies ? 'PASS' : 'BLOCKED'
-              })
-            }
-            
-            return qualifies
-          }
-        }
-        
-        // For all other searches, use simple matching
-        const matchedWords = queryWords.filter(word => titleLower.includes(word)).length
-        const passed = matchedWords >= 1 // Very permissive: just need 1 word match
-        
-        // Log pour debug
-        if (titleLower.includes('assassin') || titleLower.includes('creed') || titleLower.includes('shadows')) {
-          console.log('🎯 [Generic Filter Debug]', {
-            title: game.title,
-            queryWords,
-            matchedWords,
-            passed
-          })
-        }
-        
-        return passed
-      })
-      
-      // Then sort by hybrid relevance + date
-      const sortedResults = [...filteredResults].sort((a, b) => {
-        const titleA = a.title.toLowerCase()
-        const titleB = b.title.toLowerCase()
-        
-        // 1. Exact match first
-        if (titleA === normalizedQuery) return -1
-        if (titleB === normalizedQuery) return 1
-        
-        // 2. Starts with query
-        if (titleA.startsWith(normalizedQuery) && !titleB.startsWith(normalizedQuery)) return -1
-        if (titleB.startsWith(normalizedQuery) && !titleA.startsWith(normalizedQuery)) return 1
-        
-        // 3. Count matching words
-        const aWordsMatched = queryWords.filter(word => titleA.includes(word)).length
-        const bWordsMatched = queryWords.filter(word => titleB.includes(word)).length
-        
-        // Prioritize titles that contain more query words
-        if (aWordsMatched !== bWordsMatched) {
-          return bWordsMatched - aWordsMatched
-        }
-        
-        // 4. For titles with same number of matched words, check consecutive matches
-        if (aWordsMatched === queryWords.length && bWordsMatched === queryWords.length) {
-          // Check if the query appears as a substring
-          const aHasSubstring = titleA.includes(normalizedQuery)
-          const bHasSubstring = titleB.includes(normalizedQuery)
-          
-          if (aHasSubstring && !bHasSubstring) return -1
-          if (bHasSubstring && !aHasSubstring) return 1
-          
-          // 🎯 NEW: If both have exact relevance, prioritize newer games
-          const yearA = a.year || 0
-          const yearB = b.year || 0
-          
-          if (yearA !== yearB) {
-            return yearB - yearA // Newer years first
-          }
-        }
-        
-        // 5. Prioritize shorter titles when relevance is equal
-        const lengthDiff = titleA.length - titleB.length
-        if (Math.abs(lengthDiff) > 10) {
-          return lengthDiff
-        }
-        
-        // 6. If all else is equal, prioritize newer games
-        const yearA = a.year || 0
-        const yearB = b.year || 0
-        
-        if (yearA !== yearB) {
-          return yearB - yearA // Newer years first
-        }
-        
-        // 7. Finally, alphabetical order
-        return titleA.localeCompare(titleB)
-      })
-
-      // Log filtering results for debugging
-      console.log('🎮 [SimpleGameSearch] Filtering results:', {
-        original: gameResults.length,
-        filtered: filteredResults.length,
-        queryWords,
-        topFiltered: sortedResults.slice(0, 5).map(g => g.title)
-      })
-
-      setSearchResults(sortedResults.slice(0, 30)) // Increased from 20 to 30
+      setSearchResults(gameResults)
       setSearchTime(Date.now() - startTime)
       
-      console.log('🎮 [SimpleGameSearch] Results (sorted by relevance):', {
-        originalQuery: searchQuery,
-        normalizedQuery: normalizedQuery,
-        totalResults: sortedResults.length,
-        responseTime: Date.now() - startTime,
-        topGames: sortedResults.slice(0, 5).map(g => `"${g.title}" (${g.year || 'N/A'})`),
-      })
+      console.log('🎮 [SimpleGameSearch] Found', gameResults.length, 'games')
+      console.log('🎮 [SimpleGameSearch] Top 5:', gameResults.slice(0, 5).map(g => g.title))
       
     } catch (error) {
       console.error('🎮 [SimpleGameSearch] Search failed:', error)
@@ -231,7 +85,7 @@ export default function SimpleGameSearchModal({
     } finally {
       setIsSearching(false)
     }
-  }, [normalizeSearchQuery])
+  }, [])
 
   // Handle input changes with debouncing
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

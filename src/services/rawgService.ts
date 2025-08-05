@@ -143,7 +143,7 @@ class RAWGService {
   }
 
   async searchGames(query: string, maxResults: number = 20): Promise<RAWGGame[]> {
-    console.log('🎮 HYBRID SEARCH for:', query)
+    console.log('🎮 SIMPLE DIRECT SEARCH for:', query)
     
     if (!query || query.length < 2) {
       console.log('🎮 Query too short')
@@ -151,108 +151,30 @@ class RAWGService {
     }
 
     try {
-      // 🎯 SPECIAL HANDLING: For franchise searches, use direct search to get ALL games
-      // Only consider it a franchise search if it's JUST the franchise name (not specific titles)
-      const queryLower = query.toLowerCase()
-      const queryWords = queryLower.split(' ').filter(w => w.length > 0)
-      const isFranchiseSearch = (
-        (queryWords.length === 2 && queryWords.includes('assassin') && queryWords.includes('creed')) ||
-        (queryWords.length === 3 && queryWords.includes('call') && queryWords.includes('of') && queryWords.includes('duty')) ||
-        (queryWords.length === 2 && queryWords.includes('elder') && queryWords.includes('scrolls'))
-      )
-
-      if (isFranchiseSearch) {
-        console.log('🎮 FRANCHISE SEARCH DETECTED - Using direct search for maximum results')
-        
-        // Use direct RAWG search with higher page size for franchises
-        const url = `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.max(maxResults, 30)}&ordering=-relevance`
-        console.log('🎮 Direct franchise search URL:', url)
-        
-        const response = await fetch(url)
-        if (!response.ok) {
-          console.error('🎮 Direct franchise search failed')
-          return []
-        }
-        
-        const data = await response.json()
-        const games = data.results || []
-        console.log(`🎮 FRANCHISE SEARCH: Found ${games.length} games directly from RAWG`)
-        
-        // Sort with recent games first, then by relevance
-        const sortedGames = games.sort((a: RAWGGame, b: RAWGGame) => {
-          const yearA = a.released ? new Date(a.released).getFullYear() : 0
-          const yearB = b.released ? new Date(b.released).getFullYear() : 0
-          
-          // Recent games (2024+) first
-          if (yearA >= 2024 && yearB < 2024) return -1
-          if (yearB >= 2024 && yearA < 2024) return 1
-          
-          // Within same category, sort by year (newest first)
-          if (yearA !== yearB) return yearB - yearA
-          
-          // If same year, alphabetical
-          return a.name.localeCompare(b.name)
-        })
-        
-        console.log('🎮 FRANCHISE SEARCH RESULTS:')
-        sortedGames.slice(0, maxResults).forEach((game: RAWGGame, index: number) => {
-          const year = game.released ? new Date(game.released).getFullYear() : 'TBA'
-          const isRecent = year >= 2024 ? '🆕' : '📅'
-          console.log(`🎮 ${index + 1}. ${isRecent} ${game.name} (${year})`)
-        })
-        
-        return sortedGames.slice(0, maxResults)
-      }
-
-      // 🎯 REGULAR SEARCH: For non-franchise searches, use hybrid approach
-      const currentYear = new Date().getFullYear()
-      const results: RAWGGame[] = []
+      // Use direct RAWG search - no complex logic, just search
+      const url = `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${maxResults}&ordering=-relevance`
+      console.log('🎮 Direct search URL:', url)
       
-      // 1. Search specifically for 2025 games
-      console.log('🎮 STEP 1: Searching 2025 games specifically...')
-      const games2025 = await this.fetchGamesByDateRange(
-        '2025-01-01', '2025-12-31', query, '-released', 15
-      )
-      results.push(...games2025)
-      console.log(`🎮 Found ${games2025.length} games from 2025`)
-      
-      // 2. Search this year's games (2024)
-      if (results.length < 5) {
-        console.log('🎮 STEP 2: Searching 2024 games...')
-        const games2024 = await this.fetchGamesByDateRange(
-          '2024-01-01', '2024-12-31', query, '-released', 10
-        )
-        results.push(...games2024)
-        console.log(`🎮 Found ${games2024.length} games from 2024`)
+      const response = await fetch(url)
+      if (!response.ok) {
+        console.error('🎮 Direct search failed:', response.status)
+        return []
       }
       
-      // 3. Fill with relevant historical games
-      const remainingSlots = maxResults - results.length
-      if (remainingSlots > 0) {
-        console.log(`🎮 STEP 3: Searching historical games (${remainingSlots} slots remaining)...`)
-        
-        const historicalGames = await this.fetchGamesByDateRange(
-          '2000-01-01', '2023-12-31', query, '-relevance', remainingSlots
-        )
-        results.push(...historicalGames)
-        console.log(`🎮 Found ${historicalGames.length} historical games`)
-      }
-
-      // Remove duplicates and sort
-      const uniqueResults = this.deduplicateAndSort(results)
+      const data = await response.json()
+      const games = data.results || []
+      console.log(`🎮 DIRECT SEARCH: Found ${games.length} games from RAWG`)
       
-      console.log('🎮 FINAL HYBRID RESULTS:')
-      uniqueResults.forEach((game: RAWGGame, index: number) => {
-        const developer = this.getCorrectDeveloper(game)
+      // Just return the results as-is from RAWG
+      games.forEach((game: RAWGGame, index: number) => {
         const year = game.released ? new Date(game.released).getFullYear() : 'TBA'
-        const isRecent = year >= 2024 ? '🆕' : '📅'
-        console.log(`🎮 Final ${index + 1}. ${isRecent} ${game.name} by ${developer} (${year})`)
+        console.log(`🎮 ${index + 1}. ${game.name} (${year})`)
       })
-
-      return uniqueResults.slice(0, maxResults)
+      
+      return games
 
     } catch (error) {
-      console.error('🎮 Hybrid search error:', error)
+      console.error('🎮 Direct search error:', error)
       return []
     }
   }
