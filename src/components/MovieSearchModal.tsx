@@ -125,6 +125,10 @@ export default function MovieSearchModal({
           const badTerms = ['cam', 'camrip', 'screener', 'dvdscr', 'webrip', 'bootleg', 'pirate', 'fake']
           return !badTerms.some(term => titleLower.includes(term))
         })
+        .filter(movie => {
+          // Filter out results without images (usually documentaries, shorts, less important content)
+          return movie.image && movie.image !== ''
+        })
 
       setSearchResults(validResults)
       setSearchTime(Date.now() - startTime)
@@ -132,6 +136,7 @@ export default function MovieSearchModal({
       console.log('🎬 [MovieSearch] Final results:', {
         query: searchQuery,
         totalResults: validResults.length,
+        filteredNoImage: detailedMovies.filter(m => m && (!m.image || m.image === '')).length,
         responseTime: Date.now() - startTime,
         topMovies: validResults.slice(0, 5).map(m => `"${m.title}" (${m.year || 'N/A'})`),
       })

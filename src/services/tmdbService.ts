@@ -617,6 +617,60 @@ class TMDBService {
   private getMockPopularMovies(): any[] {
     return this.getMockTrendingMovies() // Réutiliser les mêmes données
   }
+
+  /**
+   * Search movies by query
+   */
+  async searchMovies(query: string): Promise<TMDBMovie[]> {
+    if (!TMDB_API_KEY) {
+      console.warn('🎬 [TMDB] No API key, using mock data')
+      return this.getMockTrendingMovies().filter(movie => 
+        movie.title.toLowerCase().includes(query.toLowerCase())
+      )
+    }
+
+    try {
+      const response = await fetchWithCache(
+        this.buildUrl('/search/movie', { query, page: 1 }),
+        `tmdb-search-movies-${query}`,
+        10 // 10 minute cache
+      ) as TMDBResponse
+
+      return response.results || []
+    } catch (error) {
+      console.error('🎬 [TMDB] Search movies error:', error)
+      return []
+    }
+  }
+
+  /**
+   * Search TV shows by query
+   */
+  async searchTVShows(query: string): Promise<any[]> {
+    if (!TMDB_API_KEY) {
+      console.warn('🎬 [TMDB] No API key, using mock data')
+      return this.getMockTrendingMovies().filter(movie => 
+        movie.title.toLowerCase().includes(query.toLowerCase())
+      ).map(movie => ({
+        ...movie,
+        name: movie.title,
+        first_air_date: `${movie.year}-01-01`
+      }))
+    }
+
+    try {
+      const response = await fetchWithCache(
+        this.buildUrl('/search/tv', { query, page: 1 }),
+        `tmdb-search-tv-${query}`,
+        10 // 10 minute cache
+      )
+
+      return response.results || []
+    } catch (error) {
+      console.error('🎬 [TMDB] Search TV error:', error)
+      return []
+    }
+  }
 }
 
 // Export singleton instance
