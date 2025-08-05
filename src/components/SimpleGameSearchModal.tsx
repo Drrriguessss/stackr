@@ -78,31 +78,31 @@ export default function SimpleGameSearchModal({
       const filteredResults = gameResults.filter(game => {
         const titleLower = game.title.toLowerCase()
         
-        // 🎯 SMART FILTERING: Better logic for franchise searches
+        // 🎯 SPECIAL: For "assassin's creed" searches, be very permissive
         if (queryWords.length === 2) {
-          // For 2-word searches like "assassin's creed"
           const [word1, word2] = queryWords
           
-          // Special case: "assassin's creed" - much more permissive
           if (word1.includes('assassin') && word2.includes('creed')) {
-            const hasAssassin = titleLower.includes(word1) || titleLower.includes('assassin')
-            const hasCreed = titleLower.includes(word2) || titleLower.includes('creed')
+            const hasAssassin = titleLower.includes('assassin')
+            const hasCreed = titleLower.includes('creed')
             
-            // Very permissive: accept if EITHER word matches (except known bad games)
+            // Blacklist only truly bad games
             const isBadGame = titleLower.includes("moon's creed") || 
-                             titleLower.includes("assassin's shadows") ||
+                             (titleLower.includes("assassin's shadows") && !titleLower.includes("creed")) ||
                              (titleLower.includes('assassins arena') && !titleLower.includes('creed'))
             
+            // Accept nearly everything else if it has assassin or creed
             const qualifies = !isBadGame && (hasAssassin || hasCreed)
             
             // Debug logging
             if (titleLower.includes('assassin') || titleLower.includes('creed') || titleLower.includes('shadows')) {
-              console.log('🎯 [AC Filter Debug - PERMISSIVE]', {
+              console.log('🎯 [AC Filter Debug - SUPER PERMISSIVE]', {
                 title: game.title,
                 hasAssassin,
                 hasCreed,
                 isBadGame,
-                qualifies
+                qualifies,
+                reason: qualifies ? 'PASS' : 'BLOCKED'
               })
             }
             
@@ -110,28 +110,21 @@ export default function SimpleGameSearchModal({
           }
         }
         
-        // Default filtering for other searches
-        let minWordsRequired
-        if (queryWords.length <= 2) {
-          minWordsRequired = 1 // At least 1 word for short searches
-        } else {
-          minWordsRequired = Math.ceil(queryWords.length / 2) // At least half for longer searches
-        }
-        
+        // For all other searches, use simple matching
         const matchedWords = queryWords.filter(word => titleLower.includes(word)).length
+        const passed = matchedWords >= 1 // Very permissive: just need 1 word match
         
         // Log pour debug
         if (titleLower.includes('assassin') || titleLower.includes('creed') || titleLower.includes('shadows')) {
-          console.log('🎯 [Filter Debug]', {
+          console.log('🎯 [Generic Filter Debug]', {
             title: game.title,
             queryWords,
             matchedWords,
-            minWordsRequired,
-            passed: matchedWords >= minWordsRequired
+            passed
           })
         }
         
-        return matchedWords >= minWordsRequired
+        return passed
       })
       
       // Then sort by hybrid relevance + date
@@ -200,7 +193,7 @@ export default function SimpleGameSearchModal({
         topFiltered: sortedResults.slice(0, 5).map(g => g.title)
       })
 
-      setSearchResults(sortedResults.slice(0, 20))
+      setSearchResults(sortedResults.slice(0, 30)) // Increased from 20 to 30
       setSearchTime(Date.now() - startTime)
       
       console.log('🎮 [SimpleGameSearch] Results (sorted by relevance):', {
