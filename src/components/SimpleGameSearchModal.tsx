@@ -47,8 +47,14 @@ export default function SimpleGameSearchModal({
       console.log('🎮 [SimpleGameSearch] === IMPROVED RAWG SEARCH ===')
       console.log('🎮 [SimpleGameSearch] Query:', `"${searchQuery}"`)
       
-      // Use direct RAWG service - no complex filters
-      const rawgGames = await rawgService.searchGames(searchQuery, 20)
+      // Use direct RAWG service - increase limit for franchise searches
+      const isFranchiseSearch = searchQuery.toLowerCase().includes('assassin') || 
+                                searchQuery.toLowerCase().includes('creed') ||
+                                searchQuery.toLowerCase().includes('call of duty') ||
+                                searchQuery.toLowerCase().includes('elder scrolls')
+      
+      const searchLimit = isFranchiseSearch ? 30 : 20
+      const rawgGames = await rawgService.searchGames(searchQuery, searchLimit)
       
       // Convert to SearchResult format
       const gameResults = rawgGames

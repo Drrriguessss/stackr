@@ -151,7 +151,56 @@ class RAWGService {
     }
 
     try {
-      // 🎯 STRATEGY: Try multiple approaches to find recent games
+      // 🎯 SPECIAL HANDLING: For franchise searches, use direct search to get ALL games
+      const isFranchiseSearch = query.toLowerCase().includes('assassin') || 
+                                query.toLowerCase().includes('creed') ||
+                                query.toLowerCase().includes('call of duty') ||
+                                query.toLowerCase().includes('elder scrolls')
+
+      if (isFranchiseSearch) {
+        console.log('🎮 FRANCHISE SEARCH DETECTED - Using direct search for maximum results')
+        
+        // Use direct RAWG search with higher page size for franchises
+        const url = `${this.baseURL}/games?key=${this.apiKey}&search=${encodeURIComponent(query)}&page_size=${Math.max(maxResults, 30)}&ordering=-relevance`
+        console.log('🎮 Direct franchise search URL:', url)
+        
+        const response = await fetch(url)
+        if (!response.ok) {
+          console.error('🎮 Direct franchise search failed')
+          return []
+        }
+        
+        const data = await response.json()
+        const games = data.results || []
+        console.log(`🎮 FRANCHISE SEARCH: Found ${games.length} games directly from RAWG`)
+        
+        // Sort with recent games first, then by relevance
+        const sortedGames = games.sort((a: RAWGGame, b: RAWGGame) => {
+          const yearA = a.released ? new Date(a.released).getFullYear() : 0
+          const yearB = b.released ? new Date(b.released).getFullYear() : 0
+          
+          // Recent games (2024+) first
+          if (yearA >= 2024 && yearB < 2024) return -1
+          if (yearB >= 2024 && yearA < 2024) return 1
+          
+          // Within same category, sort by year (newest first)
+          if (yearA !== yearB) return yearB - yearA
+          
+          // If same year, alphabetical
+          return a.name.localeCompare(b.name)
+        })
+        
+        console.log('🎮 FRANCHISE SEARCH RESULTS:')
+        sortedGames.slice(0, maxResults).forEach((game: RAWGGame, index: number) => {
+          const year = game.released ? new Date(game.released).getFullYear() : 'TBA'
+          const isRecent = year >= 2024 ? '🆕' : '📅'
+          console.log(`🎮 ${index + 1}. ${isRecent} ${game.name} (${year})`)
+        })
+        
+        return sortedGames.slice(0, maxResults)
+      }
+
+      // 🎯 REGULAR SEARCH: For non-franchise searches, use hybrid approach
       const currentYear = new Date().getFullYear()
       const results: RAWGGame[] = []
       
@@ -173,24 +222,16 @@ class RAWGService {
         console.log(`🎮 Found ${games2024.length} games from 2024`)
       }
       
-      // 3. Fill with relevant historical games (increase limit for franchise searches)
+      // 3. Fill with relevant historical games
       const remainingSlots = maxResults - results.length
       if (remainingSlots > 0) {
         console.log(`🎮 STEP 3: Searching historical games (${remainingSlots} slots remaining)...`)
         
-        // For franchise searches like "assassin's creed", get more historical results
-        const isFranchiseSearch = query.toLowerCase().includes('assassin') || 
-                                  query.toLowerCase().includes('creed') ||
-                                  query.toLowerCase().includes('call of duty') ||
-                                  query.toLowerCase().includes('elder scrolls')
-        
-        const historicalLimit = isFranchiseSearch ? Math.max(remainingSlots, 15) : remainingSlots
-        
         const historicalGames = await this.fetchGamesByDateRange(
-          '2000-01-01', '2023-12-31', query, '-relevance', historicalLimit
+          '2000-01-01', '2023-12-31', query, '-relevance', remainingSlots
         )
         results.push(...historicalGames)
-        console.log(`🎮 Found ${historicalGames.length} historical games (franchise search: ${isFranchiseSearch})`)
+        console.log(`🎮 Found ${historicalGames.length} historical games`)
       }
 
       // Remove duplicates and sort

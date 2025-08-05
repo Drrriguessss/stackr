@@ -2353,7 +2353,7 @@ export default function BookDetailModalV3({
               id: bookDetail.id,
               type: 'books',
               title: bookDetail.title,
-              image: bookDetail.thumbnail
+              image: bookDetail.imageLinks.thumbnail
             }}
           />
         )}

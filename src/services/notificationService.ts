@@ -114,6 +114,9 @@ class NotificationService {
         recommenderName,
         mediaTitle,
         mediaType,
+        mediaImage,
+        hasMediaImage: !!mediaImage,
+        mediaImageType: typeof mediaImage,
         fromUserId: fromUserId?.slice(0, 8) + '...'
       })
 
@@ -140,7 +143,7 @@ class NotificationService {
           mediaType,
           mediaId,
           mediaTitle,
-          mediaImage,
+          mediaImage: mediaImage || null, // Ensure it's explicitly null if undefined
           recommenderName
         })
       }

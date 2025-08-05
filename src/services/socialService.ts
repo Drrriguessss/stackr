@@ -461,6 +461,18 @@ class SocialService {
       itemType: item.type
     })
     
+    // 🔍 DEBUG: Vérifier les données de l'item avant de créer la notification
+    console.log('📤 [SocialService] Sharing item details:', {
+      title: item.title,
+      type: item.type,
+      id: item.id,
+      image: item.image,
+      hasImage: !!item.image,
+      imageType: typeof item.image,
+      imageLength: item.image?.length,
+      fullItem: item
+    })
+    
     const notificationCreated = await notificationService.createRecommendationNotification(
       toUserId,
       recommenderName,
