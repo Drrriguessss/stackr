@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, X, Star, Calendar, ExternalLink, Loader2, Gamepad2, Clock } from 'lucide-react'
+import { Search, X, Calendar, Loader2, Gamepad2, Clock } from 'lucide-react'
 import { rawgService } from '@/services/rawgService'
 import type { SearchResult } from '@/types'
 
@@ -32,7 +32,7 @@ export default function SimpleGameSearchModal({
     }
   }, [isOpen])
 
-  // Simple game search using basic RAWG service
+  // Improved game search with exact match prioritization
   const performGameSearch = useCallback(async (searchQuery: string) => {
     if (searchQuery.trim().length < 2) {
       setSearchResults([])
@@ -44,7 +44,7 @@ export default function SimpleGameSearchModal({
     const startTime = Date.now()
     
     try {
-      console.log('🎮 [SimpleGameSearch] === BASIC RAWG SEARCH ===')
+      console.log('🎮 [SimpleGameSearch] === IMPROVED RAWG SEARCH ===')
       console.log('🎮 [SimpleGameSearch] Query:', `"${searchQuery}"`)
       
       // Use direct RAWG service - no complex filters
@@ -56,7 +56,7 @@ export default function SimpleGameSearchModal({
         .map(game => ({
           id: game.id.toString(),
           title: game.name,
-          description: game.description_raw || `${game.genres?.map(g => g.name).join(', ') || 'Game'} released in ${game.released ? new Date(game.released).getFullYear() : 'Unknown'}`,
+          description: '', // We'll show genres separately
           image: game.background_image,
           year: game.released ? new Date(game.released).getFullYear() : undefined,
           rating: game.rating ? Math.min(10, game.rating * 2) : undefined,
@@ -69,16 +69,97 @@ export default function SimpleGameSearchModal({
             genres: game.genres?.map(g => g.name)
           }
         }))
-        .slice(0, 20)
 
-      setSearchResults(gameResults)
+      // 🎯 IMPROVED: Filter and sort results by relevance
+      const queryLower = searchQuery.toLowerCase().trim()
+      const queryWords = queryLower.split(' ').filter(w => w.length > 0)
+      
+      // First, filter to only include games that contain at least one word from the query
+      const filteredResults = gameResults.filter(game => {
+        const titleLower = game.title.toLowerCase()
+        
+        // For 2-word searches like "minami lane", require both words
+        // For longer searches, require at least 2/3 of the words
+        const minWordsRequired = queryWords.length <= 2 ? queryWords.length : Math.ceil(queryWords.length * 2 / 3)
+        const matchedWords = queryWords.filter(word => titleLower.includes(word)).length
+        
+        return matchedWords >= minWordsRequired
+      })
+      
+      // Then sort by hybrid relevance + date
+      const sortedResults = [...filteredResults].sort((a, b) => {
+        const titleA = a.title.toLowerCase()
+        const titleB = b.title.toLowerCase()
+        
+        // 1. Exact match first
+        if (titleA === queryLower) return -1
+        if (titleB === queryLower) return 1
+        
+        // 2. Starts with query
+        if (titleA.startsWith(queryLower) && !titleB.startsWith(queryLower)) return -1
+        if (titleB.startsWith(queryLower) && !titleA.startsWith(queryLower)) return 1
+        
+        // 3. Count matching words
+        const aWordsMatched = queryWords.filter(word => titleA.includes(word)).length
+        const bWordsMatched = queryWords.filter(word => titleB.includes(word)).length
+        
+        // Prioritize titles that contain more query words
+        if (aWordsMatched !== bWordsMatched) {
+          return bWordsMatched - aWordsMatched
+        }
+        
+        // 4. For titles with same number of matched words, check consecutive matches
+        if (aWordsMatched === queryWords.length && bWordsMatched === queryWords.length) {
+          // Check if the query appears as a substring
+          const aHasSubstring = titleA.includes(queryLower)
+          const bHasSubstring = titleB.includes(queryLower)
+          
+          if (aHasSubstring && !bHasSubstring) return -1
+          if (bHasSubstring && !aHasSubstring) return 1
+          
+          // 🎯 NEW: If both have exact relevance, prioritize newer games
+          const yearA = a.year || 0
+          const yearB = b.year || 0
+          
+          if (yearA !== yearB) {
+            return yearB - yearA // Newer years first
+          }
+        }
+        
+        // 5. Prioritize shorter titles when relevance is equal
+        const lengthDiff = titleA.length - titleB.length
+        if (Math.abs(lengthDiff) > 10) {
+          return lengthDiff
+        }
+        
+        // 6. If all else is equal, prioritize newer games
+        const yearA = a.year || 0
+        const yearB = b.year || 0
+        
+        if (yearA !== yearB) {
+          return yearB - yearA // Newer years first
+        }
+        
+        // 7. Finally, alphabetical order
+        return titleA.localeCompare(titleB)
+      })
+
+      // Log filtering results for debugging
+      console.log('🎮 [SimpleGameSearch] Filtering results:', {
+        original: gameResults.length,
+        filtered: filteredResults.length,
+        queryWords,
+        topFiltered: sortedResults.slice(0, 5).map(g => g.title)
+      })
+
+      setSearchResults(sortedResults.slice(0, 20))
       setSearchTime(Date.now() - startTime)
       
-      console.log('🎮 [SimpleGameSearch] Results:', {
+      console.log('🎮 [SimpleGameSearch] Results (sorted by relevance):', {
         query: searchQuery,
-        totalResults: gameResults.length,
+        totalResults: sortedResults.length,
         responseTime: Date.now() - startTime,
-        topGames: gameResults.slice(0, 5).map(g => `"${g.title}" (${g.year || 'N/A'})`),
+        topGames: sortedResults.slice(0, 5).map(g => `"${g.title}" (${g.year || 'N/A'})`),
       })
       
     } catch (error) {
@@ -249,58 +330,21 @@ export default function SimpleGameSearchModal({
                             <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-green-600 transition-colors">
                               {game.title}
                             </h3>
-                            
-                            {game.description && (
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                                {game.description}
-                              </p>
-                            )}
 
-                            <div className="flex items-center gap-3 mt-2 flex-wrap">
+                            <div className="flex items-center gap-3 mt-1 flex-wrap">
+                              {/* Genres - displayed as first sentence */}
+                              {game.metadata?.genres && game.metadata.genres.length > 0 && (
+                                <div className="text-sm text-gray-600">
+                                  {game.metadata.genres.slice(0, 3).join(', ')}
+                                </div>
+                              )}
+
                               {/* Year */}
                               {game.year && (
                                 <div className="flex items-center gap-1 text-sm text-gray-500">
                                   <Calendar size={12} />
                                   {game.year}
                                 </div>
-                              )}
-
-                              {/* Rating */}
-                              {game.rating && (
-                                <div className="flex items-center gap-1 text-sm text-gray-600">
-                                  <Star size={12} className="text-yellow-400 fill-current" />
-                                  {game.rating}/10
-                                </div>
-                              )}
-
-                              {/* Metacritic Score */}
-                              {game.metadata?.metacritic && (
-                                <div className="flex items-center gap-1 text-sm text-orange-600">
-                                  <span className="font-semibold">MC</span>
-                                  {game.metadata.metacritic}
-                                </div>
-                              )}
-
-                              {/* Platforms */}
-                              {game.metadata?.platforms && game.metadata.platforms.length > 0 && (
-                                <div className="text-sm text-gray-500">
-                                  {game.metadata.platforms.slice(0, 2).join(', ')}
-                                  {game.metadata.platforms.length > 2 && ` +${game.metadata.platforms.length - 2}`}
-                                </div>
-                              )}
-
-                              {/* External Link */}
-                              {game.externalUrl && (
-                                <a
-                                  href={game.externalUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="flex items-center gap-1 text-sm text-green-600 hover:text-green-700"
-                                >
-                                  <ExternalLink size={12} />
-                                  RAWG
-                                </a>
                               )}
                             </div>
                           </div>

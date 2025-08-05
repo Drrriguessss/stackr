@@ -159,7 +159,7 @@ class RAWGService {
         search: query,
         page_size: '20',
         dates: `2000-01-01,${futureYear}-12-31`,
-        ordering: '-released' // Sort by release date, newest first
+        ordering: '-relevance' // Sort by relevance first, then we'll sort by date client-side
       }).toString()
 
       console.log('🎮 Enhanced URL with future games:', url)
