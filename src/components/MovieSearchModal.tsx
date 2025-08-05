@@ -1,15 +1,16 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, X, Star, Calendar, ExternalLink, Loader2, Film, Clock, TrendingUp } from 'lucide-react'
+import { Search, X, Calendar, Loader2, Film, Clock, ChevronDown, Plus, Tv } from 'lucide-react'
 import { omdbService } from '@/services/omdbService'
-import type { SearchResult } from '@/types'
+import type { SearchResult, MediaStatus, LibraryItem } from '@/types'
 
 interface MovieSearchModalProps {
   isOpen: boolean
   onClose: () => void
-  onAddToLibrary: (item: SearchResult) => void
+  onAddToLibrary: (item: SearchResult, status: MediaStatus) => void
   onOpenDetail: (item: SearchResult) => void
   onBackToSelection: () => void
+  library: LibraryItem[]
 }
 
 export default function MovieSearchModal({
@@ -17,24 +18,60 @@ export default function MovieSearchModal({
   onClose,
   onAddToLibrary,
   onOpenDetail,
-  onBackToSelection
+  onBackToSelection,
+  library
 }: MovieSearchModalProps) {
   const [query, setQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [searchTime, setSearchTime] = useState(0)
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   
   const inputRef = useRef<HTMLInputElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  
+  // Status options for movies/TV shows
+  const statusOptions: { value: MediaStatus; label: string; icon: string }[] = [
+    { value: 'want-to-play', label: 'Want to Watch', icon: '📝' },
+    { value: 'currently-playing', label: 'Currently Watching', icon: '🎬' },
+    { value: 'completed', label: 'Watched', icon: '✅' },
+    { value: 'paused', label: 'Paused', icon: '⏸️' },
+    { value: 'dropped', label: 'Dropped', icon: '❌' }
+  ]
+  
+  // Get status option by value
+  const getStatusOption = (status: MediaStatus) => {
+    return statusOptions.find(option => option.value === status)
+  }
 
-  // Focus input when modal opens
+  // Focus input when modal opens and prevent body scroll
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus()
+    if (isOpen) {
+      // Prevent body scroll on mobile
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      
+      if (inputRef.current) {
+        setTimeout(() => {
+          inputRef.current?.focus()
+        }, 100)
+      }
+    } else {
+      // Restore body scroll
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+    
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
     }
   }, [isOpen])
 
-  // Specialized movie search with cinema-specific optimizations
+  // Simple movie search - direct OMDB service call
   const performMovieSearch = useCallback(async (searchQuery: string) => {
     if (searchQuery.trim().length < 2) {
       setSearchResults([])
@@ -46,34 +83,22 @@ export default function MovieSearchModal({
     const startTime = Date.now()
     
     try {
-      console.log('🎬 [MovieSearch] === SPECIALIZED MOVIE SEARCH ===')
-      console.log('🎬 [MovieSearch] Query:', `"${searchQuery}"`)
+      console.log('🎬 [MovieSearch] Searching for:', `"${searchQuery}"`)
       
-      // Use OMDB service directly with movie-specific parameters
-      const omdbMovies = await omdbService.searchMoviesAndSeries(searchQuery, 1)
+      // Use OMDB service directly - let it handle franchises and sorting
+      const omdbMovies = await omdbService.searchMoviesAndSeries(searchQuery, 3) // Search multiple pages for better results
       
-      // Convert and filter results with cinema-specific logic
+      // Convert to SearchResult format - minimal filtering
       const movieResults = omdbMovies
         .map(movie => omdbService.convertToAppFormat(movie))
         .filter(movie => movie !== null && movie.title)
-        .filter(movie => !isLowQualityContent(movie))
-        .sort((a, b) => {
-          // Cinema-specific sorting
-          const scoreA = calculateMovieRelevance(searchQuery, a)
-          const scoreB = calculateMovieRelevance(searchQuery, b)
-          return scoreB - scoreA
-        })
-        .slice(0, 20) // Limit to top 20 most relevant movies
+        .slice(0, 30) // Show more results
 
       setSearchResults(movieResults)
       setSearchTime(Date.now() - startTime)
       
-      console.log('🎬 [MovieSearch] Results:', {
-        query: searchQuery,
-        totalResults: movieResults.length,
-        responseTime: Date.now() - startTime,
-        topMovies: movieResults.slice(0, 5).map(m => `"${m.title}" (${m.year || 'N/A'})`),
-      })
+      console.log('🎬 [MovieSearch] Found', movieResults.length, 'movies/shows')
+      console.log('🎬 [MovieSearch] Top 5:', movieResults.slice(0, 5).map(m => `${m.title} (${m.year})`).join(', '))
       
     } catch (error) {
       console.error('🎬 [MovieSearch] Search failed:', error)
@@ -83,62 +108,20 @@ export default function MovieSearchModal({
     }
   }, [])
 
-  // Cinema-specific quality filter
-  const isLowQualityContent = (movie: SearchResult): boolean => {
-    const titleLower = movie.title.toLowerCase()
-    
-    // Cinema-specific filters - more strict for movies
-    const rejectTerms = [
-      'cam', 'camrip', 'screener', 'dvdscr', 'webrip',
-      'discount', 'bootleg', 'pirate', 'fake',
-      'behind the scenes', 'making of', 'deleted scenes',
-      'bloopers', 'outtakes', 'gag reel',
-      'fan edit', 'fan made', 'amateur',
-      'trailer', 'teaser', 'clip', 'scene',
-      'xxx', 'adult', 'porn', 'erotic'
-    ]
-    
-    return rejectTerms.some(term => titleLower.includes(term))
+  // Check if movie/show is in library and get its status
+  const getMovieLibraryStatus = (movieId: string): MediaStatus | null => {
+    const libraryItem = library.find(item => 
+      item.id === movieId || 
+      item.id === `movie-${movieId}` ||
+      item.id.replace('movie-', '') === movieId
+    )
+    return libraryItem ? libraryItem.status : null
   }
-
-  // Cinema-specific relevance scoring
-  const calculateMovieRelevance = (query: string, movie: SearchResult): number => {
-    const queryLower = query.toLowerCase().trim()
-    const titleLower = movie.title.toLowerCase().trim()
-    
-    let score = 0
-    
-    // Exact match
-    if (titleLower === queryLower) return 10
-    
-    // Starts with query
-    if (titleLower.startsWith(queryLower)) score += 8
-    
-    // Contains full query
-    if (titleLower.includes(queryLower)) score += 6
-    
-    // Word matches
-    const queryWords = queryLower.split(/\s+/)
-    const titleWords = titleLower.split(/\s+/)
-    
-    queryWords.forEach(qWord => {
-      if (titleWords.some(tWord => tWord.startsWith(qWord))) {
-        score += 3
-      }
-    })
-    
-    // Boost for recent movies
-    if (movie.year && movie.year >= 2015) score += 1
-    
-    // Boost for highly rated movies
-    if (movie.rating && movie.rating >= 7) score += 2
-    
-    // Boost for classic movies (before 2000 but high rated)
-    if (movie.year && movie.year < 2000 && movie.rating && movie.rating >= 8) {
-      score += 1.5
-    }
-    
-    return score
+  
+  // Handle adding to library with status
+  const handleAddToLibraryWithStatus = (item: SearchResult, status: MediaStatus) => {
+    onAddToLibrary(item, status)
+    setOpenDropdownId(null) // Close dropdown after adding
   }
 
   // Handle input changes with cinema-optimized debouncing
@@ -170,20 +153,33 @@ export default function MovieSearchModal({
     setQuery('')
     setSearchResults([])
     setIsSearching(false)
+    setOpenDropdownId(null)
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
     onClose()
   }
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdownId && !(event.target as Element).closest('.status-dropdown')) {
+        setOpenDropdownId(null)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openDropdownId])
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto" style={{ zIndex: 9999 }}>
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
         
-        <div className="relative w-full max-w-4xl max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="relative w-full max-w-4xl max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden z-[10000]" style={{ zIndex: 10000 }}>
           {/* Header with Cinema Theme */}
           <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4">
             <div className="flex items-center gap-4 mb-3">
@@ -291,7 +287,10 @@ export default function MovieSearchModal({
                       key={`movie-${movie.id}-${index}`}
                       className="flex items-center gap-4 p-4 hover:bg-blue-50 rounded-xl border border-gray-100 
                                hover:border-blue-200 transition-all cursor-pointer group"
-                      onClick={() => onOpenDetail(movie)}
+                      onClick={() => {
+                        onOpenDetail(movie)
+                        handleClose() // Close search modal when opening detail
+                      }}
                     >
                       {/* Movie Poster */}
                       <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
@@ -315,14 +314,29 @@ export default function MovieSearchModal({
                             <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
                               {movie.title}
                             </h3>
-                            
-                            {movie.description && (
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                                {movie.description}
-                              </p>
-                            )}
 
-                            <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center gap-3 mt-1 flex-wrap">
+                              {/* Type Badge */}
+                              {movie.metadata?.type && (
+                                <span className={`px-2 py-1 text-xs rounded-full border font-medium ${
+                                  movie.metadata.type.toLowerCase() === 'movie' 
+                                    ? 'bg-purple-100 text-purple-700 border-purple-200' 
+                                    : 'bg-green-100 text-green-700 border-green-200'
+                                }`}>
+                                  {movie.metadata.type.toLowerCase() === 'movie' ? (
+                                    <>
+                                      <Film size={10} className="inline mr-1" />
+                                      Movie
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Tv size={10} className="inline mr-1" />
+                                      TV Show
+                                    </>
+                                  )}
+                                </span>
+                              )}
+
                               {/* Year */}
                               {movie.year && (
                                 <div className="flex items-center gap-1 text-sm text-gray-500">
@@ -330,42 +344,79 @@ export default function MovieSearchModal({
                                   {movie.year}
                                 </div>
                               )}
-
-                              {/* Rating */}
-                              {movie.rating && (
-                                <div className="flex items-center gap-1 text-sm text-gray-600">
-                                  <Star size={12} className="text-yellow-400 fill-current" />
-                                  {movie.rating}/10
-                                </div>
-                              )}
-
-                              {/* External Link */}
-                              {movie.externalUrl && (
-                                <a
-                                  href={movie.externalUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
-                                >
-                                  <ExternalLink size={12} />
-                                  IMDB
-                                </a>
-                              )}
                             </div>
                           </div>
 
-                          {/* Add to Library Button */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onAddToLibrary(movie)
-                            }}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-                                     transition-colors text-sm font-medium flex-shrink-0"
-                          >
-                            Add to Library
-                          </button>
+                          {/* Add to Library Dropdown */}
+                          <div className="relative status-dropdown flex-shrink-0">
+                            {(() => {
+                              const currentStatus = getMovieLibraryStatus(movie.id)
+                              const currentStatusOption = currentStatus ? getStatusOption(currentStatus) : null
+                              const isInLibrary = currentStatus !== null
+
+                              return (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenDropdownId(openDropdownId === movie.id ? null : movie.id)
+                                  }}
+                                  className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${
+                                    isInLibrary 
+                                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                      : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                  }`}
+                                >
+                                  {isInLibrary ? (
+                                    <>
+                                      <span className="text-base">{currentStatusOption?.icon}</span>
+                                      {currentStatusOption?.label}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus size={16} />
+                                      Add to Library
+                                    </>
+                                  )}
+                                  <ChevronDown size={14} className={`transition-transform ${
+                                    openDropdownId === movie.id ? 'rotate-180' : ''
+                                  }`} />
+                                </button>
+                              )
+                            })()}
+                            
+                            {/* Dropdown Menu */}
+                            {openDropdownId === movie.id && (
+                              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                                <div className="py-2">
+                                  {statusOptions.map((option) => {
+                                    const currentStatus = getMovieLibraryStatus(movie.id)
+                                    const isCurrentStatus = currentStatus === option.value
+                                    
+                                    return (
+                                      <button
+                                        key={option.value}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleAddToLibraryWithStatus(movie, option.value)
+                                        }}
+                                        className={`w-full text-left px-4 py-2 transition-colors flex items-center gap-3 text-sm ${
+                                          isCurrentStatus 
+                                            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' 
+                                            : 'hover:bg-purple-50 text-gray-700'
+                                        }`}
+                                      >
+                                        <span className="text-lg">{option.icon}</span>
+                                        <span className={isCurrentStatus ? 'font-medium' : ''}>
+                                          {option.label}
+                                          {isCurrentStatus && <span className="text-xs ml-2">(Current)</span>}
+                                        </span>
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

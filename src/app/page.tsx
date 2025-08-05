@@ -1114,12 +1114,13 @@ export default function Home() {
       <MovieSearchModal
         isOpen={isMovieSearchOpen}
         onClose={() => setIsMovieSearchOpen(false)}
-        onAddToLibrary={handleAddToLibraryLegacy}
+        onAddToLibrary={handleAddToLibrary}
         onOpenDetail={handleOpenDetail}
         onBackToSelection={() => {
           setIsMovieSearchOpen(false)
           setIsMediaSelectionOpen(true)
         }}
+        library={library}
       />
 
       {/* Legacy Search Modal */}
