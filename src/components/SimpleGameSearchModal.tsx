@@ -74,14 +74,31 @@ export default function SimpleGameSearchModal({
       const queryLower = searchQuery.toLowerCase().trim()
       const queryWords = queryLower.split(' ').filter(w => w.length > 0)
       
-      // First, filter to only include games that contain at least one word from the query
+      // First, filter to only include games that contain key words from the query
       const filteredResults = gameResults.filter(game => {
         const titleLower = game.title.toLowerCase()
         
-        // For 2-word searches like "minami lane", require both words
-        // For longer searches, require at least 2/3 of the words
-        const minWordsRequired = queryWords.length <= 2 ? queryWords.length : Math.ceil(queryWords.length * 2 / 3)
+        // 🎯 ASSOUPLIR: Pour "assassin's creed", accepter si au moins 1 mot principal match
+        // Pour des recherches plus longues, require au moins la moitié des mots
+        let minWordsRequired
+        if (queryWords.length <= 2) {
+          minWordsRequired = 1 // Au moins 1 mot sur 2 pour des recherches courtes
+        } else {
+          minWordsRequired = Math.ceil(queryWords.length / 2) // Au moins la moitié pour les recherches longues
+        }
+        
         const matchedWords = queryWords.filter(word => titleLower.includes(word)).length
+        
+        // Log pour debug
+        if (titleLower.includes('assassin') || titleLower.includes('creed') || titleLower.includes('shadows')) {
+          console.log('🎯 [Filter Debug]', {
+            title: game.title,
+            queryWords,
+            matchedWords,
+            minWordsRequired,
+            passed: matchedWords >= minWordsRequired
+          })
+        }
         
         return matchedWords >= minWordsRequired
       })
