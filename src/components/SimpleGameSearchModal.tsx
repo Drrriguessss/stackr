@@ -83,38 +83,25 @@ export default function SimpleGameSearchModal({
           // For 2-word searches like "assassin's creed"
           const [word1, word2] = queryWords
           
-          // Special case: "assassin's creed" - require both words OR likely Ubisoft game
+          // Special case: "assassin's creed" - much more permissive
           if (word1.includes('assassin') && word2.includes('creed')) {
             const hasAssassin = titleLower.includes(word1) || titleLower.includes('assassin')
             const hasCreed = titleLower.includes(word2) || titleLower.includes('creed')
             
-            // Check if likely Ubisoft game using title patterns
-            const isLikelyUbisoft = titleLower.includes("assassin's creed") || 
-                                   (hasAssassin && hasCreed && (
-                                     titleLower.includes('origins') ||
-                                     titleLower.includes('odyssey') ||
-                                     titleLower.includes('valhalla') ||
-                                     titleLower.includes('unity') ||
-                                     titleLower.includes('syndicate') ||
-                                     titleLower.includes('mirage') ||
-                                     titleLower.includes('rogue') ||
-                                     titleLower.includes('black flag') ||
-                                     titleLower.includes('liberation') ||
-                                     titleLower.includes('revelations') ||
-                                     titleLower.includes('brotherhood') ||
-                                     titleLower.includes('rebellion')
-                                   ))
+            // Very permissive: accept if EITHER word matches (except known bad games)
+            const isBadGame = titleLower.includes("moon's creed") || 
+                             titleLower.includes("assassin's shadows") ||
+                             (titleLower.includes('assassins arena') && !titleLower.includes('creed'))
             
-            // Accept if: (both words present) OR (likely official AC game)
-            const qualifies = (hasAssassin && hasCreed) || isLikelyUbisoft
+            const qualifies = !isBadGame && (hasAssassin || hasCreed)
             
             // Debug logging
             if (titleLower.includes('assassin') || titleLower.includes('creed') || titleLower.includes('shadows')) {
-              console.log('🎯 [AC Filter Debug]', {
+              console.log('🎯 [AC Filter Debug - PERMISSIVE]', {
                 title: game.title,
                 hasAssassin,
                 hasCreed,
-                isLikelyUbisoft,
+                isBadGame,
                 qualifies
               })
             }
