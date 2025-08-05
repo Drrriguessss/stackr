@@ -152,10 +152,14 @@ class RAWGService {
 
     try {
       // 🎯 SPECIAL HANDLING: For franchise searches, use direct search to get ALL games
-      const isFranchiseSearch = query.toLowerCase().includes('assassin') || 
-                                query.toLowerCase().includes('creed') ||
-                                query.toLowerCase().includes('call of duty') ||
-                                query.toLowerCase().includes('elder scrolls')
+      // Only consider it a franchise search if it's JUST the franchise name (not specific titles)
+      const queryLower = query.toLowerCase()
+      const queryWords = queryLower.split(' ').filter(w => w.length > 0)
+      const isFranchiseSearch = (
+        (queryWords.length === 2 && queryWords.includes('assassin') && queryWords.includes('creed')) ||
+        (queryWords.length === 3 && queryWords.includes('call') && queryWords.includes('of') && queryWords.includes('duty')) ||
+        (queryWords.length === 2 && queryWords.includes('elder') && queryWords.includes('scrolls'))
+      )
 
       if (isFranchiseSearch) {
         console.log('🎮 FRANCHISE SEARCH DETECTED - Using direct search for maximum results')

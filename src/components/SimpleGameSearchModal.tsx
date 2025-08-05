@@ -32,9 +32,21 @@ export default function SimpleGameSearchModal({
     }
   }, [isOpen])
 
+  // Helper function to normalize search queries (fixes RAWG trailing space bug)
+  const normalizeSearchQuery = useCallback((query: string): string => {
+    if (!query || typeof query !== 'string') return ''
+    
+    return query
+      .trim()                     // Remove leading/trailing spaces
+      .replace(/\s+/g, ' ')      // Normalize multiple spaces to single space
+      .toLowerCase()             // Consistent casing
+  }, [])
+
   // Improved game search with exact match prioritization
   const performGameSearch = useCallback(async (searchQuery: string) => {
-    if (searchQuery.trim().length < 2) {
+    const normalizedQuery = normalizeSearchQuery(searchQuery)
+    
+    if (normalizedQuery.length < 2) {
       setSearchResults([])
       setIsSearching(false)
       return
@@ -45,16 +57,20 @@ export default function SimpleGameSearchModal({
     
     try {
       console.log('🎮 [SimpleGameSearch] === IMPROVED RAWG SEARCH ===')
-      console.log('🎮 [SimpleGameSearch] Query:', `"${searchQuery}"`)
+      console.log('🎮 [SimpleGameSearch] Original Query:', `"${searchQuery}"`)
+      console.log('🎮 [SimpleGameSearch] Normalized Query:', `"${normalizedQuery}"`)
       
       // Use direct RAWG service - increase limit for franchise searches
-      const isFranchiseSearch = searchQuery.toLowerCase().includes('assassin') || 
-                                searchQuery.toLowerCase().includes('creed') ||
-                                searchQuery.toLowerCase().includes('call of duty') ||
-                                searchQuery.toLowerCase().includes('elder scrolls')
+      // Only consider it a franchise search if it's JUST the franchise name (not specific titles)
+      const queryWords = normalizedQuery.split(' ').filter(w => w.length > 0)
+      const isFranchiseSearch = (
+        (queryWords.length === 2 && queryWords.includes('assassin') && queryWords.includes('creed')) ||
+        (queryWords.length === 3 && queryWords.includes('call') && queryWords.includes('of') && queryWords.includes('duty')) ||
+        (queryWords.length === 2 && queryWords.includes('elder') && queryWords.includes('scrolls'))
+      )
       
       const searchLimit = isFranchiseSearch ? 30 : 20
-      const rawgGames = await rawgService.searchGames(searchQuery, searchLimit)
+      const rawgGames = await rawgService.searchGames(normalizedQuery, searchLimit)
       
       // Convert to SearchResult format
       const gameResults = rawgGames
@@ -77,8 +93,7 @@ export default function SimpleGameSearchModal({
         }))
 
       // 🎯 IMPROVED: Filter and sort results by relevance
-      const queryLower = searchQuery.toLowerCase().trim()
-      const queryWords = queryLower.split(' ').filter(w => w.length > 0)
+      // (queryWords already defined above from normalizedQuery)
       
       // First, filter with intelligent word matching
       const filteredResults = gameResults.filter(game => {
@@ -139,12 +154,12 @@ export default function SimpleGameSearchModal({
         const titleB = b.title.toLowerCase()
         
         // 1. Exact match first
-        if (titleA === queryLower) return -1
-        if (titleB === queryLower) return 1
+        if (titleA === normalizedQuery) return -1
+        if (titleB === normalizedQuery) return 1
         
         // 2. Starts with query
-        if (titleA.startsWith(queryLower) && !titleB.startsWith(queryLower)) return -1
-        if (titleB.startsWith(queryLower) && !titleA.startsWith(queryLower)) return 1
+        if (titleA.startsWith(normalizedQuery) && !titleB.startsWith(normalizedQuery)) return -1
+        if (titleB.startsWith(normalizedQuery) && !titleA.startsWith(normalizedQuery)) return 1
         
         // 3. Count matching words
         const aWordsMatched = queryWords.filter(word => titleA.includes(word)).length
@@ -158,8 +173,8 @@ export default function SimpleGameSearchModal({
         // 4. For titles with same number of matched words, check consecutive matches
         if (aWordsMatched === queryWords.length && bWordsMatched === queryWords.length) {
           // Check if the query appears as a substring
-          const aHasSubstring = titleA.includes(queryLower)
-          const bHasSubstring = titleB.includes(queryLower)
+          const aHasSubstring = titleA.includes(normalizedQuery)
+          const bHasSubstring = titleB.includes(normalizedQuery)
           
           if (aHasSubstring && !bHasSubstring) return -1
           if (bHasSubstring && !aHasSubstring) return 1
@@ -203,7 +218,8 @@ export default function SimpleGameSearchModal({
       setSearchTime(Date.now() - startTime)
       
       console.log('🎮 [SimpleGameSearch] Results (sorted by relevance):', {
-        query: searchQuery,
+        originalQuery: searchQuery,
+        normalizedQuery: normalizedQuery,
         totalResults: sortedResults.length,
         responseTime: Date.now() - startTime,
         topGames: sortedResults.slice(0, 5).map(g => `"${g.title}" (${g.year || 'N/A'})`),
@@ -215,7 +231,7 @@ export default function SimpleGameSearchModal({
     } finally {
       setIsSearching(false)
     }
-  }, [])
+  }, [normalizeSearchQuery])
 
   // Handle input changes with debouncing
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -353,7 +369,10 @@ export default function SimpleGameSearchModal({
                       key={`game-${game.id}-${index}`}
                       className="flex items-center gap-4 p-4 hover:bg-green-50 rounded-xl border border-gray-100 
                                hover:border-green-200 transition-all cursor-pointer group"
-                      onClick={() => onOpenDetail(game)}
+                      onClick={() => {
+                        onOpenDetail(game)
+                        handleClose() // Close search modal when opening game detail
+                      }}
                     >
                       {/* Game Cover */}
                       <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
