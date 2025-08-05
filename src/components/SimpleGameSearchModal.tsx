@@ -25,10 +25,32 @@ export default function SimpleGameSearchModal({
   const inputRef = useRef<HTMLInputElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout>()
 
-  // Focus input when modal opens
+  // Focus input when modal opens and prevent body scroll
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus()
+    if (isOpen) {
+      // Prevent body scroll on mobile
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      
+      if (inputRef.current) {
+        // Small delay to ensure modal is rendered
+        setTimeout(() => {
+          inputRef.current?.focus()
+        }, 100)
+      }
+    } else {
+      // Restore body scroll
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
     }
   }, [isOpen])
 
@@ -53,8 +75,8 @@ export default function SimpleGameSearchModal({
       
       const rawgGames = await rawgService.searchGames(searchQuery, searchLimit)
       
-      // Convert to SearchResult format - no filtering, just convert
-      const gameResults = rawgGames
+      // Convert to SearchResult format
+      let gameResults = rawgGames
         .filter(game => game && game.name && game.background_image)
         .map(game => ({
           id: game.id.toString(),
@@ -72,6 +94,24 @@ export default function SimpleGameSearchModal({
             genres: game.genres?.map(g => g.name)
           }
         }))
+
+      // Special sorting for Assassin's Creed: newest first
+      if (isACSearch) {
+        gameResults = gameResults.sort((a, b) => {
+          const yearA = a.year || 0
+          const yearB = b.year || 0
+          
+          // Sort by year descending (newest first)
+          if (yearA !== yearB) {
+            return yearB - yearA
+          }
+          
+          // If same year, alphabetical
+          return a.title.localeCompare(b.title)
+        })
+        
+        console.log('🎮 [AC Search] Sorted by year:', gameResults.slice(0, 5).map(g => `${g.title} (${g.year})`).join(', '))
+      }
 
       setSearchResults(gameResults)
       setSearchTime(Date.now() - startTime)
@@ -123,11 +163,11 @@ export default function SimpleGameSearchModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto" style={{ zIndex: 9999 }}>
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
         
-        <div className="relative w-full max-w-4xl max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="relative w-full max-w-4xl max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden z-[10000]" style={{ zIndex: 10000 }}>
           {/* Header */}
           <div className="sticky top-0 z-10 bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4">
             <div className="flex items-center gap-4 mb-3">
