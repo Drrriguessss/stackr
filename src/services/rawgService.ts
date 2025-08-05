@@ -152,17 +152,19 @@ class RAWGService {
 
     try {
       const currentYear = new Date().getFullYear()
-      const nextYear = currentYear + 1
+      const futureYear = currentYear + 5 // Include games up to 5 years in the future
       
       const url = `${this.baseURL}/games?` + new URLSearchParams({
         key: this.apiKey,
         search: query,
         page_size: '20',
-        dates: `2000-01-01,${nextYear}-12-31`,
-        ordering: '-relevance'
+        dates: `2000-01-01,${futureYear}-12-31`,
+        ordering: '-released' // Sort by release date, newest first
       }).toString()
 
-      console.log('🎮 Enhanced URL with 2025 games:', url)
+      console.log('🎮 Enhanced URL with future games:', url)
+      console.log('🎮 Date range:', `2000-01-01 to ${futureYear}-12-31`)
+      console.log('🎮 Ordering:', 'by release date (newest first)')
 
       const response = await fetch(url)
       console.log('🎮 Response status:', response.status)
@@ -224,7 +226,7 @@ class RAWGService {
           key: this.apiKey,
           search: query,
           page_size: '10',
-          dates: '2024-01-01,2026-12-31',
+          dates: `2024-01-01,${new Date().getFullYear() + 5}-12-31`,
           ordering: '-released'
         }).toString()
 
@@ -319,8 +321,9 @@ class RAWGService {
   async getNewReleases(): Promise<RAWGGame[]> {
     try {
       const currentYear = new Date().getFullYear()
+      const futureYear = currentYear + 2 // Include upcoming releases
       const response = await fetch(
-        `${this.baseURL}/games?key=${this.apiKey}&ordering=-released&page_size=8&dates=${currentYear}-01-01,${currentYear + 1}-12-31`
+        `${this.baseURL}/games?key=${this.apiKey}&ordering=-released&page_size=8&dates=${currentYear}-01-01,${futureYear}-12-31`
       )
       
       if (!response.ok) return []
