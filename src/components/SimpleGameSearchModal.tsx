@@ -74,17 +74,61 @@ export default function SimpleGameSearchModal({
       const queryLower = searchQuery.toLowerCase().trim()
       const queryWords = queryLower.split(' ').filter(w => w.length > 0)
       
-      // First, filter to only include games that contain key words from the query
+      // First, filter with intelligent word matching
       const filteredResults = gameResults.filter(game => {
         const titleLower = game.title.toLowerCase()
         
-        // 🎯 ASSOUPLIR: Pour "assassin's creed", accepter si au moins 1 mot principal match
-        // Pour des recherches plus longues, require au moins la moitié des mots
+        // 🎯 SMART FILTERING: Better logic for franchise searches
+        if (queryWords.length === 2) {
+          // For 2-word searches like "assassin's creed"
+          const [word1, word2] = queryWords
+          
+          // Special case: "assassin's creed" - require both words OR likely Ubisoft game
+          if (word1.includes('assassin') && word2.includes('creed')) {
+            const hasAssassin = titleLower.includes(word1) || titleLower.includes('assassin')
+            const hasCreed = titleLower.includes(word2) || titleLower.includes('creed')
+            
+            // Check if likely Ubisoft game using title patterns
+            const isLikelyUbisoft = titleLower.includes("assassin's creed") || 
+                                   (hasAssassin && hasCreed && (
+                                     titleLower.includes('origins') ||
+                                     titleLower.includes('odyssey') ||
+                                     titleLower.includes('valhalla') ||
+                                     titleLower.includes('unity') ||
+                                     titleLower.includes('syndicate') ||
+                                     titleLower.includes('mirage') ||
+                                     titleLower.includes('rogue') ||
+                                     titleLower.includes('black flag') ||
+                                     titleLower.includes('liberation') ||
+                                     titleLower.includes('revelations') ||
+                                     titleLower.includes('brotherhood') ||
+                                     titleLower.includes('rebellion')
+                                   ))
+            
+            // Accept if: (both words present) OR (likely official AC game)
+            const qualifies = (hasAssassin && hasCreed) || isLikelyUbisoft
+            
+            // Debug logging
+            if (titleLower.includes('assassin') || titleLower.includes('creed') || titleLower.includes('shadows')) {
+              console.log('🎯 [AC Filter Debug]', {
+                title: game.title,
+                hasAssassin,
+                hasCreed,
+                isLikelyUbisoft,
+                qualifies
+              })
+            }
+            
+            return qualifies
+          }
+        }
+        
+        // Default filtering for other searches
         let minWordsRequired
         if (queryWords.length <= 2) {
-          minWordsRequired = 1 // Au moins 1 mot sur 2 pour des recherches courtes
+          minWordsRequired = 1 // At least 1 word for short searches
         } else {
-          minWordsRequired = Math.ceil(queryWords.length / 2) // Au moins la moitié pour les recherches longues
+          minWordsRequired = Math.ceil(queryWords.length / 2) // At least half for longer searches
         }
         
         const matchedWords = queryWords.filter(word => titleLower.includes(word)).length
@@ -349,6 +393,28 @@ export default function SimpleGameSearchModal({
                             </h3>
 
                             <div className="flex items-center gap-3 mt-1 flex-wrap">
+                              {/* DLC/Expansion Badge */}
+                              {(() => {
+                                const title = game.title.toLowerCase()
+                                const isDLC = title.includes('dlc') || 
+                                             title.includes('expansion') ||
+                                             title.includes('season pass') ||
+                                             (title.includes(': ') && (
+                                               title.includes('claws of') ||
+                                               title.includes('legacy of') ||
+                                               title.includes('the fate of') ||
+                                               title.includes('curse of') ||
+                                               title.includes('dawn of') ||
+                                               title.includes('wrath of')
+                                             ))
+                                
+                                return isDLC && (
+                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full border border-blue-200 font-medium">
+                                    DLC
+                                  </span>
+                                )
+                              })()}
+                              
                               {/* Genres - displayed as first sentence */}
                               {game.metadata?.genres && game.metadata.genres.length > 0 && (
                                 <div className="text-sm text-gray-600">

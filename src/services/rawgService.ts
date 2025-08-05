@@ -173,15 +173,24 @@ class RAWGService {
         console.log(`🎮 Found ${games2024.length} games from 2024`)
       }
       
-      // 3. Fill with relevant historical games
+      // 3. Fill with relevant historical games (increase limit for franchise searches)
       const remainingSlots = maxResults - results.length
       if (remainingSlots > 0) {
         console.log(`🎮 STEP 3: Searching historical games (${remainingSlots} slots remaining)...`)
+        
+        // For franchise searches like "assassin's creed", get more historical results
+        const isFranchiseSearch = query.toLowerCase().includes('assassin') || 
+                                  query.toLowerCase().includes('creed') ||
+                                  query.toLowerCase().includes('call of duty') ||
+                                  query.toLowerCase().includes('elder scrolls')
+        
+        const historicalLimit = isFranchiseSearch ? Math.max(remainingSlots, 15) : remainingSlots
+        
         const historicalGames = await this.fetchGamesByDateRange(
-          '2000-01-01', '2023-12-31', query, '-relevance', remainingSlots
+          '2000-01-01', '2023-12-31', query, '-relevance', historicalLimit
         )
         results.push(...historicalGames)
-        console.log(`🎮 Found ${historicalGames.length} historical games`)
+        console.log(`🎮 Found ${historicalGames.length} historical games (franchise search: ${isFranchiseSearch})`)
       }
 
       // Remove duplicates and sort
