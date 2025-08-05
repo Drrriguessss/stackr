@@ -71,7 +71,7 @@ export default function MovieSearchModal({
     }
   }, [isOpen])
 
-  // Simple movie search - direct OMDB service call
+  // Restore working movie search logic from SearchModal
   const performMovieSearch = useCallback(async (searchQuery: string) => {
     if (searchQuery.trim().length < 2) {
       setSearchResults([])
@@ -83,22 +83,58 @@ export default function MovieSearchModal({
     const startTime = Date.now()
     
     try {
-      console.log('🎬 [MovieSearch] Searching for:', `"${searchQuery}"`)
+      console.log('🎬 [MovieSearch] Starting movies/series search for:', `"${searchQuery}"`)
       
-      // Use OMDB service directly - let it handle franchises and sorting
-      const omdbMovies = await omdbService.searchMoviesAndSeries(searchQuery, 3) // Search multiple pages for better results
+      // Use the same logic as SearchModal that worked
+      const movies = await omdbService.searchMoviesAndSeries(searchQuery, 1)
+      console.log('🎬 [MovieSearch] OMDB returned', movies.length, 'movies/series')
       
-      // Convert to SearchResult format - minimal filtering
-      const movieResults = omdbMovies
-        .map(movie => omdbService.convertToAppFormat(movie))
-        .filter(movie => movie !== null && movie.title)
-        .slice(0, 30) // Show more results
+      if (!movies || movies.length === 0) {
+        setSearchResults([])
+        setSearchTime(Date.now() - startTime)
+        return
+      }
 
-      setSearchResults(movieResults)
+      // Get detailed information for top results (like SearchModal did)
+      const detailedMovies = await Promise.all(
+        movies.slice(0, 8).map(async movie => {
+          try {
+            const movieDetails = await omdbService.getMovieDetails(movie.imdbID)
+            
+            if (movieDetails) {
+              const converted = omdbService.convertToAppFormat(movieDetails)
+              console.log('🎬 [MovieSearch] Movie with details:', converted.title, '- Director:', converted.director)
+              return converted
+            } else {
+              const converted = omdbService.convertToAppFormat(movie)
+              return converted
+            }
+          } catch (error) {
+            console.warn('🎬 [MovieSearch] Failed details for:', movie.Title, error)
+            return omdbService.convertToAppFormat(movie)
+          }
+        })
+      )
+
+      // Filter out null results and ensure all have required fields
+      const validResults = detailedMovies
+        .filter(movie => movie !== null && movie.title)
+        .filter(movie => {
+          // Filter out low quality content (same logic as SearchModal)
+          const titleLower = movie.title.toLowerCase()
+          const badTerms = ['cam', 'camrip', 'screener', 'dvdscr', 'webrip', 'bootleg', 'pirate', 'fake']
+          return !badTerms.some(term => titleLower.includes(term))
+        })
+
+      setSearchResults(validResults)
       setSearchTime(Date.now() - startTime)
       
-      console.log('🎬 [MovieSearch] Found', movieResults.length, 'movies/shows')
-      console.log('🎬 [MovieSearch] Top 5:', movieResults.slice(0, 5).map(m => `${m.title} (${m.year})`).join(', '))
+      console.log('🎬 [MovieSearch] Final results:', {
+        query: searchQuery,
+        totalResults: validResults.length,
+        responseTime: Date.now() - startTime,
+        topMovies: validResults.slice(0, 5).map(m => `"${m.title}" (${m.year || 'N/A'})`),
+      })
       
     } catch (error) {
       console.error('🎬 [MovieSearch] Search failed:', error)
