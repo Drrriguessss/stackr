@@ -70,8 +70,35 @@ export default function SimpleGameSearchModal({
       
       // Use RAWG service directly with high limit for franchise searches
       const queryLower = searchQuery.toLowerCase().trim()
-      const isACSearch = queryLower.includes('assassin') && queryLower.includes('creed')
-      const searchLimit = isACSearch ? 40 : 20
+      
+      // Detect major franchise searches
+      const isFranchiseSearch = (
+        (queryLower.includes('assassin') && queryLower.includes('creed')) ||
+        (queryLower.includes('call of duty') || queryLower.includes('call') && queryLower.includes('duty')) ||
+        (queryLower.includes('spider') && queryLower.includes('man')) ||
+        (queryLower.includes('elder') && queryLower.includes('scrolls')) ||
+        (queryLower.includes('grand theft') || queryLower.includes('gta')) ||
+        (queryLower.includes('final fantasy')) ||
+        (queryLower.includes('mortal kombat')) ||
+        (queryLower.includes('street fighter')) ||
+        (queryLower.includes('resident evil')) ||
+        (queryLower.includes('tomb raider')) ||
+        (queryLower.includes('far cry')) ||
+        (queryLower.includes('watch dogs')) ||
+        (queryLower.includes('need for speed')) ||
+        (queryLower.includes('battlefield')) ||
+        (queryLower.includes('fifa')) ||
+        (queryLower.includes('the witcher')) ||
+        (queryLower.includes('fallout')) ||
+        (queryLower.includes('elder scrolls')) ||
+        (queryLower.includes('doom')) ||
+        (queryLower.includes('halo')) ||
+        (queryLower.includes('god of war')) ||
+        (queryLower.includes('uncharted')) ||
+        (queryLower.includes('the last of us'))
+      )
+      
+      const searchLimit = isFranchiseSearch ? 40 : 20
       
       const rawgGames = await rawgService.searchGames(searchQuery, searchLimit)
       
@@ -95,13 +122,68 @@ export default function SimpleGameSearchModal({
           }
         }))
 
-      // Special sorting for Assassin's Creed: newest first
-      if (isACSearch) {
+      // Special sorting for franchise searches: base game first, then newest first
+      if (isFranchiseSearch) {
         gameResults = gameResults.sort((a, b) => {
+          const titleA = a.title.toLowerCase()
+          const titleB = b.title.toLowerCase()
+          
+          // Helper function to check if a title is the "base" franchise game
+          const isBaseGame = (title: string, query: string) => {
+            const cleanQuery = query.replace(/['']/g, "'")
+            const cleanTitle = title.replace(/['']/g, "'")
+            
+            // Exact matches or very close matches
+            if (cleanTitle === cleanQuery) return true
+            
+            // Special cases for different franchises
+            if (queryLower.includes('call') && queryLower.includes('duty')) {
+              return title === 'call of duty' || title === "call of duty®" || 
+                     (title.includes('call of duty') && !title.includes(':') && 
+                      !title.includes('modern warfare') && !title.includes('black ops') && 
+                      !title.includes('advanced warfare') && !title.includes('infinite warfare') &&
+                      !title.includes('wwii') && !title.includes('vanguard'))
+            }
+            
+            if (queryLower.includes('spider')) {
+              return title === 'spider-man' || title === 'marvel\'s spider-man' ||
+                     (title.includes('spider-man') && !title.includes(':') && 
+                      !title.includes('miles morales') && !title.includes('web of'))
+            }
+            
+            if (queryLower.includes('assassin')) {
+              return title === "assassin's creed" || 
+                     (title.includes("assassin's creed") && !title.includes(':') &&
+                      !title.includes('origins') && !title.includes('odyssey') && 
+                      !title.includes('valhalla') && !title.includes('unity') &&
+                      !title.includes('syndicate') && !title.includes('mirage'))
+            }
+            
+            if (queryLower.includes('elder scrolls')) {
+              return title === 'the elder scrolls' || title.includes('elder scrolls online')
+            }
+            
+            if (queryLower.includes('grand theft') || queryLower.includes('gta')) {
+              return title === 'grand theft auto' || title.includes('gta online')
+            }
+            
+            // Generic franchise detection
+            return cleanTitle === cleanQuery || 
+                   (cleanTitle.includes(cleanQuery) && !cleanTitle.includes(':') && 
+                    cleanTitle.split(' ').length <= cleanQuery.split(' ').length + 1)
+          }
+          
+          const aIsBase = isBaseGame(titleA, queryLower)
+          const bIsBase = isBaseGame(titleB, queryLower)
+          
+          // Base games always come first
+          if (aIsBase && !bIsBase) return -1
+          if (bIsBase && !aIsBase) return 1
+          
+          // For non-base games, sort by year descending (newest first)
           const yearA = a.year || 0
           const yearB = b.year || 0
           
-          // Sort by year descending (newest first)
           if (yearA !== yearB) {
             return yearB - yearA
           }
@@ -110,7 +192,7 @@ export default function SimpleGameSearchModal({
           return a.title.localeCompare(b.title)
         })
         
-        console.log('🎮 [AC Search] Sorted by year:', gameResults.slice(0, 5).map(g => `${g.title} (${g.year})`).join(', '))
+        console.log('🎮 [Franchise Search] Sorted results:', gameResults.slice(0, 5).map(g => `${g.title} (${g.year})`).join(', '))
       }
 
       setSearchResults(gameResults)
