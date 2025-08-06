@@ -17,9 +17,7 @@ export default function GamesSection({
 }: GamesSectionProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<OptimalGamingResult[]>([])
-  const [trendingContent, setTrendingContent] = useState<OptimalGamingResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [isLoadingTrending, setIsLoadingTrending] = useState(true)
   
   // Advanced filter states
   const [filters, setFilters] = useState({
@@ -32,23 +30,7 @@ export default function GamesSection({
     showAdvancedFilters: false
   })
 
-  // Load trending content on mount
-  useEffect(() => {
-    loadTrendingContent()
-  }, [])
-
-  const loadTrendingContent = async () => {
-    setIsLoadingTrending(true)
-    try {
-      const trending = await optimalGamingAPI.getTrending()
-      setTrendingContent(trending)
-      console.log('🎮 [GamesSection] Loaded trending:', trending.length, 'games')
-    } catch (error) {
-      console.error('🎮 [GamesSection] Failed to load trending:', error)
-    } finally {
-      setIsLoadingTrending(false)
-    }
-  }
+  // Trending content removed to reduce API usage
 
   const handleSearch = async (query: string, currentFilters = filters) => {
     if (query.length < 2 && !currentFilters.showOnly2025) {
@@ -131,29 +113,10 @@ export default function GamesSection({
           </div>
         )}
 
-        {/* Advanced Score Badge (for debugging) */}
-        {(game.totalScore || game.relevanceScore) && (
-          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-            <Zap size={10} />
-            {Math.round(game.totalScore || game.relevanceScore || 0)}
-          </div>
-        )}
-
-        {/* 2025 Game Badge */}
+        {/* Only keep 2025 Game Badge if relevant */}
         {game.year === 2025 && (
           <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
             🆕 2025
-          </div>
-        )}
-
-        {/* Source Type Badge (recent vs relevant) */}
-        {game.sourceType && (
-          <div className={`absolute bottom-2 right-2 text-xs px-2 py-1 rounded-full font-medium ${
-            game.sourceType === 'recent' 
-              ? 'bg-green-100 text-green-700' 
-              : 'bg-blue-100 text-blue-700'
-          }`}>
-            {game.sourceType === 'recent' ? '🔥 Recent' : '⭐ Quality'}
           </div>
         )}
       </div>
@@ -179,91 +142,30 @@ export default function GamesSection({
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
-          {/* Developer */}
-          {game.developer && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-              {game.developer}
-            </span>
-          )}
-
+        {/* Year and Genre - Simple layout */}
+        <div className="flex items-center justify-between gap-2 text-xs text-gray-600 mb-2">
           {/* Year */}
           {game.year && (
             <div className="flex items-center gap-1">
               <Calendar size={10} />
-              {game.year}
+              <span>{game.year}</span>
             </div>
+          )}
+
+          {/* Genre */}
+          {game.genre && (
+            <span className="text-xs text-gray-500">
+              {game.genre}
+            </span>
           )}
         </div>
 
-        {/* Rating and Metacritic */}
-        <div className="flex items-center gap-3 mb-2">
-          {/* Community Rating */}
-          {game.rating && game.rating > 0 && (
-            <div className="flex items-center gap-1 text-xs text-amber-600">
-              <Star size={10} className="fill-current" />
-              <span>{game.rating}/5</span>
-            </div>
-          )}
-
-          {/* Metacritic Score */}
-          {game.metacritic && game.metacritic > 0 && (
-            <div className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-              game.metacritic >= 75 
-                ? 'bg-green-100 text-green-700'
-                : game.metacritic >= 50
-                  ? 'bg-yellow-100 text-yellow-700' 
-                  : 'bg-red-100 text-red-700'
-            }`}>
-              {game.metacritic}
-            </div>
-          )}
-        </div>
-
-        {/* Genre */}
-        {game.genre && (
-          <div className="text-xs text-gray-500 mb-2">
-            {game.genre}
-          </div>
-        )}
-
-        {/* Platforms */}
-        {game.platforms && game.platforms.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {game.platforms.slice(0, 3).map((platform, index) => (
-              <span 
-                key={index}
-                className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded"
-              >
-                {platform.platform.name}
-              </span>
-            ))}
-            {game.platforms.length > 3 && (
-              <span className="text-xs text-gray-400">
-                +{game.platforms.length - 3} more
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Debug Scores (development only) */}
-        {process.env.NODE_ENV === 'development' && game.totalScore && (
-          <div className="text-xs bg-gray-100 p-2 rounded mt-2 font-mono">
-            <div>Total: {Math.round(game.totalScore)}</div>
-            <div className="grid grid-cols-2 gap-1 text-xs">
-              <span>Title: {Math.round(game.titleScore || 0)}</span>
-              <span>Quality: {Math.round(game.qualityScore || 0)}</span>
-              <span>Recent: {Math.round(game.recencyScore || 0)}</span>
-              <span>Pop: {Math.round(game.popularityScore || 0)}</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
 
-  const displayContent = searchQuery.trim() ? searchResults : trendingContent
-  const isLoading = searchQuery.trim() ? isSearching : isLoadingTrending
+  const displayContent = searchResults
+  const isLoading = isSearching
 
   return (
     <div className="space-y-6">
@@ -414,7 +316,7 @@ export default function GamesSection({
                 ? `🆕 2025 Games (${displayContent.length})`
                 : searchQuery.trim() 
                   ? `Search Results (${searchResults.length})` 
-                  : 'Trending Games'
+                  : 'Search Games'
               }
             </h3>
             
@@ -463,19 +365,26 @@ export default function GamesSection({
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <Loader2 className="animate-spin mx-auto mb-4 text-green-500" size={32} />
-              <p className="text-gray-500">
-                {searchQuery.trim() ? 'Searching games...' : 'Loading trending games...'}
-              </p>
+              <p className="text-gray-500">Searching games...</p>
             </div>
           </div>
         )}
 
+        {/* Empty State - No Search Query */}
+        {!isLoading && !searchQuery.trim() && !filters.showOnly2025 && (
+          <div className="text-center py-12">
+            <Gamepad2 size={48} className="mx-auto mb-4 text-gray-300" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Search Games</h3>
+            <p className="text-gray-500">Start typing to search for games or use the 2025 filter</p>
+          </div>
+        )}
+
         {/* No Results */}
-        {!isLoading && displayContent.length === 0 && searchQuery.trim() && (
+        {!isLoading && displayContent.length === 0 && (searchQuery.trim() || filters.showOnly2025) && (
           <div className="text-center py-12">
             <Search size={48} className="mx-auto mb-4 text-gray-300" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No games found</h3>
-            <p className="text-gray-500">Try a different game title or genre</p>
+            <p className="text-gray-500">Try a different game title or adjust your filters</p>
           </div>
         )}
 
