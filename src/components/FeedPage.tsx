@@ -13,6 +13,7 @@ import {
   Gamepad2,
   Plus,
   TrendingUp,
+  Book,
   Calendar,
   User,
   Bell,
@@ -509,6 +510,7 @@ export default function FeedPage({
               <div className="flex items-center space-x-2">
                 <Plus className="text-blue-600" size={20} />
                 <h2 className="text-lg font-semibold text-gray-900">Recently Added to Your Library</h2>
+                <Book className="text-purple-600 ml-2" size={20} />
               </div>
             </div>
             <div className="p-4">
