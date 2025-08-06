@@ -1001,7 +1001,10 @@ export default function Home() {
 
           {/* Movies/TV V2 */}
           <button
-            onClick={() => setActiveCategory('moviesTV')}
+            onClick={() => {
+              console.log('Movies/TV V2 button clicked')
+              setIsMoviesTVV2Open(true)
+            }}
             className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-200 hover:border-blue-300 hover:shadow-md transition-all group"
           >
             <div className="flex flex-col items-center space-y-3">
