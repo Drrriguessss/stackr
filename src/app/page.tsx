@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search, Film } from 'lucide-react'
+import { Search, Film, Gamepad2 } from 'lucide-react'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
@@ -12,6 +12,7 @@ import SearchModal from '@/components/SearchModal'
 import SearchModalV2 from '@/components/SearchModalV2'
 // All search modals removed - using unified SearchModal only
 import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
+import GamesModal from '@/components/GamesModal'
 import MovieGoodModal from '@/components/MovieGoodModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
@@ -50,6 +51,7 @@ export default function Home() {
   // Simplified search - using only SearchModal
   const [isMoviesTVV2Open, setIsMoviesTVV2Open] = useState(false)
   const [isMovieGoodOpen, setIsMovieGoodOpen] = useState(false)
+  const [isGamesOpen, setIsGamesOpen] = useState(false)
   
   // Library state
   const [library, setLibrary] = useState<LibraryItem[]>([])
@@ -797,7 +799,7 @@ export default function Home() {
                     Open Search
                   </button>
                   
-                  <div className="text-center">
+                  <div className="text-center space-y-3">
                     <p className="text-xs text-gray-400 mb-2">or</p>
                     <button
                       onClick={() => setIsMoviesTVV2Open(true)}
@@ -805,6 +807,14 @@ export default function Home() {
                     >
                       <Film className="-ml-1 mr-2 h-4 w-4" />
                       Find a movie or a TV show
+                    </button>
+                    
+                    <button
+                      onClick={() => setIsGamesOpen(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                    >
+                      <Gamepad2 className="-ml-1 mr-2 h-4 w-4" />
+                      Find a game
                     </button>
                   </div>
                 </div>
@@ -1064,6 +1074,18 @@ export default function Home() {
         onOpenDetail={handleOpenDetail}
         onBackToSelection={() => {
           setIsMoviesTVV2Open(false)
+          setIsMediaSelectionOpen(true)
+        }}
+        library={library}
+      />
+
+      <GamesModal
+        isOpen={isGamesOpen}
+        onClose={() => setIsGamesOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenDetail={handleOpenDetail}
+        onBackToSelection={() => {
+          setIsGamesOpen(false)
           setIsMediaSelectionOpen(true)
         }}
         library={library}
