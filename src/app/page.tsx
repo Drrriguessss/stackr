@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search, Film, Gamepad2 } from 'lucide-react'
+import { Search, Film, Gamepad2, BookOpen } from 'lucide-react'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
@@ -13,6 +13,7 @@ import SearchModalV2 from '@/components/SearchModalV2'
 // All search modals removed - using unified SearchModal only
 import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
 import GamesModal from '@/components/GamesModal'
+import BooksModal from '@/components/BooksModal'
 import MovieGoodModal from '@/components/MovieGoodModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
@@ -52,6 +53,7 @@ export default function Home() {
   const [isMoviesTVV2Open, setIsMoviesTVV2Open] = useState(false)
   const [isMovieGoodOpen, setIsMovieGoodOpen] = useState(false)
   const [isGamesOpen, setIsGamesOpen] = useState(false)
+  const [isBooksOpen, setIsBooksOpen] = useState(false)
   
   // Library state
   const [library, setLibrary] = useState<LibraryItem[]>([])
@@ -816,6 +818,14 @@ export default function Home() {
                       <Gamepad2 className="-ml-1 mr-2 h-4 w-4" />
                       Find a game
                     </button>
+                    
+                    <button
+                      onClick={() => setIsBooksOpen(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700"
+                    >
+                      <BookOpen className="-ml-1 mr-2 h-4 w-4" />
+                      Find a book
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1086,6 +1096,18 @@ export default function Home() {
         onOpenDetail={handleOpenDetail}
         onBackToSelection={() => {
           setIsGamesOpen(false)
+          setIsMediaSelectionOpen(true)
+        }}
+        library={library}
+      />
+
+      <BooksModal
+        isOpen={isBooksOpen}
+        onClose={() => setIsBooksOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenDetail={handleOpenDetail}
+        onBackToSelection={() => {
+          setIsBooksOpen(false)
           setIsMediaSelectionOpen(true)
         }}
         library={library}
