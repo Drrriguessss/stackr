@@ -10,9 +10,11 @@ import BookDetailModalV3 from '@/components/BookDetailModalV3'
 import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
 import SearchModalV2 from '@/components/SearchModalV2'
-import MediaSelectionModal from '@/components/MediaSelectionModal'
+import MediaSelectionModalFixed from '@/components/MediaSelectionModalFixed'
 import SimpleGameSearchModal from '@/components/SimpleGameSearchModal'
 import MovieSearchModal from '@/components/MovieSearchModal'
+import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
+import MovieGoodModal from '@/components/MovieGoodModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
 import DiscoverPageV2 from '@/components/DiscoverPageV2'
@@ -51,6 +53,8 @@ export default function Home() {
   const [isMediaSelectionOpen, setIsMediaSelectionOpen] = useState(false)
   const [isGameSearchOpen, setIsGameSearchOpen] = useState(false)
   const [isMovieSearchOpen, setIsMovieSearchOpen] = useState(false)
+  const [isMoviesTVV2Open, setIsMoviesTVV2Open] = useState(false)
+  const [isMovieGoodOpen, setIsMovieGoodOpen] = useState(false)
   
   // Library state
   const [library, setLibrary] = useState<LibraryItem[]>([])
@@ -1091,7 +1095,7 @@ export default function Home() {
       />
 
       {/* New Search System */}
-      <MediaSelectionModal
+      <MediaSelectionModalFixed
         isOpen={isMediaSelectionOpen}
         onClose={() => setIsMediaSelectionOpen(false)}
         onSelectMedia={(category) => {
@@ -1099,7 +1103,9 @@ export default function Home() {
           if (category === 'games') {
             setIsGameSearchOpen(true)
           } else if (category === 'movies') {
-            setIsMovieSearchOpen(true)
+            setIsMoviesTVV2Open(true)
+          } else if (category === 'movieGood') {
+            setIsMovieGoodOpen(true)
           }
           // TODO: Add other categories
         }}
@@ -1123,6 +1129,27 @@ export default function Home() {
           setIsMediaSelectionOpen(true)
         }}
         library={library}
+      />
+
+      <MoviesTVModalV2
+        isOpen={isMoviesTVV2Open}
+        onClose={() => setIsMoviesTVV2Open(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenDetail={handleOpenDetail}
+        onBackToSelection={() => {
+          setIsMoviesTVV2Open(false)
+          setIsMediaSelectionOpen(true)
+        }}
+        library={library}
+      />
+
+      <MovieGoodModal
+        isOpen={isMovieGoodOpen}
+        onClose={() => setIsMovieGoodOpen(false)}
+        onBackToSelection={() => {
+          setIsMovieGoodOpen(false)
+          setIsMediaSelectionOpen(true)
+        }}
       />
 
       {/* Legacy Search Modal */}

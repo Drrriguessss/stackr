@@ -5,7 +5,7 @@
  */
 
 // Types de base pour les médias
-export type MediaCategory = 'games' | 'movies' | 'music' | 'books'
+export type MediaCategory = 'games' | 'movies' | 'music' | 'books' | 'movieGood'
 export type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
 
 // Interface pour les items de contenu (recherche, sections, etc.)

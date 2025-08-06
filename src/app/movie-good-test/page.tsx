@@ -3,11 +3,11 @@ import { useState } from 'react'
 import MoviesTVSectionV2 from '@/components/MoviesTVSectionV2'
 import type { MediaStatus, LibraryItem } from '@/types'
 
-export default function TestMoviesTVV2() {
+export default function MovieGoodTest() {
   const [library, setLibrary] = useState<LibraryItem[]>([])
 
   const handleAddToLibrary = (item: any, status: MediaStatus) => {
-    console.log('🎬 [Test] Adding to library:', item.title, status)
+    console.log('🎬 [Movie GOOD Test] Adding to library:', item.title, status)
     
     // Simulate adding to library
     const newItem: LibraryItem = {
@@ -26,7 +26,7 @@ export default function TestMoviesTVV2() {
   }
 
   const handleOpenDetail = (item: any) => {
-    console.log('🎬 [Test] Opening detail for:', item.title)
+    console.log('🎬 [Movie GOOD Test] Opening detail for:', item.title)
     alert(`Detail modal for: ${item.title}`)
   }
 
@@ -35,10 +35,13 @@ export default function TestMoviesTVV2() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            🎬 Movies/TV V2 Test Page
+            🎬 Movie GOOD - Separate Test Page
           </h1>
           <p className="text-gray-600">
-            Testing the new TMDB-powered Movies/TV section
+            This is the EXACT same interface as /test-movies-tv-v2 but on a separate page
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            URL: http://localhost:3004/movie-good-test
           </p>
         </div>
 

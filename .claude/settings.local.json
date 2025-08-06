@@ -53,7 +53,8 @@
       "Bash(npm install:*)",
       "Bash(psql:*)",
       "Bash(npx supabase:*)",
-      "Bash(del \"C:\\Users\\rgeoris\\Desktop\\stackr\\test-book-images.js\")"
+      "Bash(del \"C:\\Users\\rgeoris\\Desktop\\stackr\\test-book-images.js\")",
+      "Bash(del nul)"
     ],
     "deny": []
   }

@@ -82,6 +82,44 @@ export default function MediaSelectionModal({
           {/* Media Options Grid */}
           <div className="p-8">
             <div className="grid md:grid-cols-2 gap-6">
+              {/* Movie GOOD Button - Special */}
+              <button
+                onClick={() => onSelectMedia('movieGood')}
+                className="group relative overflow-hidden rounded-2xl border-2 border-green-200 hover:border-green-300 bg-gradient-to-br from-green-50 to-emerald-50 p-6 text-left transition-all duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
+              >
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-r from-green-400 to-emerald-600" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="p-3 rounded-2xl bg-gradient-to-r from-green-400 to-emerald-600 text-white shadow-lg">
+                      <Film size={32} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 group-hover:text-green-700 transition-colors">
+                        Movie GOOD
+                      </h3>
+                      <p className="text-green-600 font-medium">TMDB V2 • Test Interface</p>
+                    </div>
+                  </div>
+                  
+                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                    The working Movies/TV interface with TMDB, search, trending, and debug info
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full border border-green-200">
+                      ✅ Working Interface
+                    </span>
+                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full border border-green-200">
+                      🎬 TMDB Powered
+                    </span>
+                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full border border-green-200">
+                      🐛 Debug Info
+                    </span>
+                  </div>
+                </div>
+              </button>
+
               {mediaOptions.map((option) => {
                 const IconComponent = option.icon
                 return (
