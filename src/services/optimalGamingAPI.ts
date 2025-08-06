@@ -15,6 +15,9 @@ export interface OptimalGamingResult {
   platforms: { platform: { name: string } }[]
   developers: { name: string }[]
   genres: { name: string }[]
+  tags?: { name: string }[]
+  esrb_rating?: { name: string, slug: string }
+  added?: number // RAWG "added" count
   
   // Enhanced fields
   year?: number
@@ -29,8 +32,31 @@ export interface OptimalGamingResult {
   popularity?: number
   rating_count: number
   
+  // Advanced scoring fields
+  titleScore?: number
+  qualityScore?: number
+  recencyScore?: number
+  popularityScore?: number
+  sourceScore?: number
+  totalScore?: number
+  sourceType?: 'recent' | 'relevant'
+  
   // Raw data preservation
   rawg?: RAWGGame
+}
+
+export interface SearchOptions {
+  platforms?: string[]
+  includePC?: boolean
+  includeConsole?: boolean
+  includeMobile?: boolean
+  limit?: number
+  excludeNSFW?: boolean
+  prioritizeRecent?: boolean
+  sortBy?: 'relevance' | 'date' | 'rating' | 'mixed'
+  minYear?: number
+  boostRecentGames?: boolean
+  showOnly2025?: boolean
 }
 
 class OptimalGamingAPI {
@@ -39,61 +65,78 @@ class OptimalGamingAPI {
   }
 
   /**
-   * Optimal search with intelligent ranking and relevance scoring
+   * Enhanced search with advanced filtering and sorting options
    */
-  async search(query: string, options: {
-    platforms?: string[]
-    includePC?: boolean
-    includeConsole?: boolean
-    includeMobile?: boolean
-    limit?: number
-  } = {}): Promise<OptimalGamingResult[]> {
+  async search(query: string, options: SearchOptions = {}): Promise<OptimalGamingResult[]> {
     
     const {
       platforms = [],
       includePC = true,
       includeConsole = true,
       includeMobile = false,
-      limit = 12
+      limit = 12,
+      excludeNSFW = true,
+      prioritizeRecent = true,
+      sortBy = 'mixed',
+      minYear = 2000,
+      boostRecentGames = true,
+      showOnly2025 = false
     } = options
 
-    if (!query || query.trim().length < 2) return []
+    if (!query || query.trim().length < 2) {
+      if (showOnly2025) {
+        return await this.getLatest2025Games({ excludeNSFW, limit })
+      }
+      return []
+    }
 
     try {
-      console.log('🎮 [OptimalGaming] Starting optimized search for:', `"${query}"`)
+      console.log('🎮 [OptimalGaming] Enhanced search for:', `"${query}"`, 'Options:', options)
       
-      // Primary: RAWG search with recent games priority
-      const rawgResults = await rawgService.searchWithRecentGames(query, limit * 2)
-      
-      if (rawgResults.length === 0) {
-        console.log('🎮 [OptimalGaming] No RAWG results found')
-        return []
+      if (showOnly2025) {
+        // Special mode: 2025 games only, filtered by query
+        const latest2025 = await this.getLatest2025Games({ excludeNSFW, limit: limit * 2 })
+        const filtered2025 = latest2025.filter(game => 
+          game.name.toLowerCase().includes(query.toLowerCase())
+        )
+        return this.applySortingStrategy(filtered2025, query, { sortBy, prioritizeRecent, boostRecentGames })
+          .slice(0, limit)
       }
 
-      console.log('🎮 [OptimalGaming] RAWG returned:', rawgResults.length, 'games')
+      // 1. Hybrid search: recent + relevant games
+      const [recentResults, relevantResults] = await Promise.allSettled([
+        this.searchRecentGames(query, { excludeNSFW }),
+        this.searchRelevantGames(query, { excludeNSFW, minYear })
+      ])
 
-      // Convert to optimal format
-      const convertedResults = rawgResults.map(game => this.convertToOptimalFormat(game))
-      
-      // Apply intelligent ranking
-      const rankedResults = this.rankByRelevance(convertedResults, query)
-      
-      // Apply platform filtering if specified
-      let filteredResults = rankedResults
-      if (platforms.length > 0 || !includePC || !includeConsole || !includeMobile) {
-        filteredResults = this.applyPlatformFilter(rankedResults, {
-          platforms,
-          includePC,
-          includeConsole,
-          includeMobile
-        })
-      }
+      // 2. Combine and dedupe results intelligently
+      const combinedResults = this.combineAndDedupeResults(
+        recentResults.status === 'fulfilled' ? recentResults.value : [],
+        relevantResults.status === 'fulfilled' ? relevantResults.value : []
+      )
 
-      console.log('🎮 [OptimalGaming] Final results:', filteredResults.length)
-      return filteredResults.slice(0, limit)
+      // 3. Apply advanced filters
+      const filteredResults = this.applyAdvancedFilters(combinedResults, {
+        excludeNSFW,
+        minYear,
+        platforms,
+        includePC,
+        includeConsole,
+        includeMobile
+      })
+
+      // 4. Apply intelligent sorting strategy
+      const sortedResults = this.applySortingStrategy(filteredResults, query, {
+        sortBy,
+        prioritizeRecent,
+        boostRecentGames
+      })
+
+      console.log('🎮 [OptimalGaming] Final enhanced results:', sortedResults.length)
+      return sortedResults.slice(0, limit)
 
     } catch (error) {
-      console.error('🎮 [OptimalGaming] Search failed:', error)
+      console.error('🎮 [OptimalGaming] Enhanced search failed:', error)
       return []
     }
   }
@@ -101,7 +144,7 @@ class OptimalGamingAPI {
   /**
    * Convert RAWG game to optimal gaming format
    */
-  private convertToOptimalFormat(rawgGame: RAWGGame): OptimalGamingResult {
+  private convertToOptimalFormat(rawgGame: RAWGGame, sourceType?: 'recent' | 'relevant'): OptimalGamingResult {
     const year = rawgGame.released ? new Date(rawgGame.released).getFullYear() : undefined
     const primaryDeveloper = rawgGame.developers?.[0]?.name || 'Unknown Developer'
     const primaryGenre = rawgGame.genres?.[0]?.name || 'Gaming'
@@ -118,6 +161,9 @@ class OptimalGamingAPI {
       platforms: rawgGame.platforms || [],
       developers: rawgGame.developers || [],
       genres: rawgGame.genres || [],
+      tags: rawgGame.tags || [],
+      esrb_rating: rawgGame.esrb_rating,
+      added: (rawgGame as any).added, // RAWG field for popularity
       rating_count: rawgGame.rating_count || 0,
       
       // Enhanced compatibility fields
@@ -130,6 +176,7 @@ class OptimalGamingAPI {
       
       // Gaming-specific metadata
       popularity: this.calculatePopularity(rawgGame),
+      sourceType,
       
       // Preserve raw data
       rawg: rawgGame
@@ -297,6 +344,398 @@ class OptimalGamingAPI {
       platforms: platformFilters,
       limit: 12
     })
+  }
+
+  /**
+   * Search recent games (last 2 years) with NSFW filtering
+   */
+  private async searchRecentGames(query: string, options: { excludeNSFW: boolean }): Promise<OptimalGamingResult[]> {
+    try {
+      const currentYear = new Date().getFullYear()
+      const recentGames = await rawgService.searchWithRecentGames(query, 20)
+      
+      // Filter to only recent games (last 2 years)
+      const filtered = recentGames.filter(game => {
+        const gameYear = game.released ? new Date(game.released).getFullYear() : 0
+        return gameYear >= currentYear - 1
+      })
+
+      return filtered.map(game => this.convertToOptimalFormat(game, 'recent'))
+    } catch (error) {
+      console.error('🎮 Recent games search failed:', error)
+      return []
+    }
+  }
+
+  /**
+   * Search high-quality games with metacritic filtering
+   */
+  private async searchRelevantGames(query: string, options: { excludeNSFW: boolean, minYear: number }): Promise<OptimalGamingResult[]> {
+    try {
+      const relevantGames = await rawgService.searchGames(query, 30)
+      
+      // Filter for quality and year
+      const filtered = relevantGames.filter(game => {
+        const gameYear = game.released ? new Date(game.released).getFullYear() : 0
+        const hasGoodRating = (game.metacritic && game.metacritic >= 70) || game.rating >= 3.5
+        const hasReviews = game.rating_count > 50
+        
+        return gameYear >= options.minYear && (hasGoodRating || hasReviews)
+      })
+
+      return filtered.map(game => this.convertToOptimalFormat(game, 'relevant'))
+    } catch (error) {
+      console.error('🎮 Relevant games search failed:', error)
+      return []
+    }
+  }
+
+  /**
+   * Combine and dedupe results intelligently
+   */
+  private combineAndDedupeResults(recentResults: OptimalGamingResult[], relevantResults: OptimalGamingResult[]): OptimalGamingResult[] {
+    const seenIds = new Set<string>()
+    const combined: OptimalGamingResult[] = []
+
+    // First priority: recent games
+    recentResults.forEach(game => {
+      if (!seenIds.has(game.id)) {
+        seenIds.add(game.id)
+        combined.push(game)
+      }
+    })
+
+    // Second: relevant games not already included
+    relevantResults.forEach(game => {
+      if (!seenIds.has(game.id)) {
+        seenIds.add(game.id)
+        combined.push(game)
+      }
+    })
+
+    return combined
+  }
+
+  /**
+   * Apply advanced filters including NSFW detection
+   */
+  private applyAdvancedFilters(games: OptimalGamingResult[], options: {
+    excludeNSFW: boolean
+    minYear: number
+    platforms: string[]
+    includePC: boolean
+    includeConsole: boolean
+    includeMobile: boolean
+  }): OptimalGamingResult[] {
+    let filtered = games
+
+    // NSFW filtering
+    if (options.excludeNSFW) {
+      filtered = filtered.filter(game => !this.isNSFWContent(game))
+    }
+
+    // Year filtering
+    filtered = filtered.filter(game => {
+      if (!game.year) return true
+      return game.year >= options.minYear
+    })
+
+    // Quality filtering
+    filtered = filtered.filter(game => {
+      // Remove games with very few reviews and low ratings
+      if (game.rating_count < 10 && (game.added || 0) < 100) return false
+      if (game.rating < 2.0 && game.rating_count > 100) return false
+      return true
+    })
+
+    // Platform filtering
+    filtered = this.applyPlatformFilter(filtered, options)
+
+    return filtered
+  }
+
+  /**
+   * Detect NSFW content using multiple signals
+   */
+  private isNSFWContent(game: OptimalGamingResult): boolean {
+    const title = game.name ? game.name.toLowerCase() : ''
+    const tags = game.tags ? game.tags.map(tag => tag.name.toLowerCase()) : []
+    const genres = game.genres ? game.genres.map(genre => genre.name.toLowerCase()) : []
+
+    // 1. Explicit tags
+    const nsfwTags = [
+      'nsfw', 'adult', 'mature', 'sexual content', 'nudity',
+      'dating sim', 'visual novel', 'erotic', 'hentai',
+      'adult only', 'ao rating', 'pornographic'
+    ]
+
+    const hasNSFWTags = tags.some(tag => 
+      nsfwTags.some(nsfwTag => tag.includes(nsfwTag))
+    )
+
+    // 2. Suspicious genres
+    const suspiciousGenres = ['dating sim']
+    const hasSuspiciousGenre = genres.some(genre => 
+      suspiciousGenres.includes(genre)
+    )
+
+    // 3. Title keywords
+    const nsfwKeywords = [
+      'sex', 'xxx', 'adult', 'erotic', 'hentai',
+      'strip', 'porn', 'nude', 'hot'
+    ]
+
+    const hasNSFWTitle = nsfwKeywords.some(keyword => 
+      title.includes(keyword)
+    )
+
+    // 4. ESRB rating
+    const hasAdultRating = game.esrb_rating && 
+      ['adults-only-ao', 'rating-pending'].includes(game.esrb_rating.slug)
+
+    return hasNSFWTags || hasSuspiciousGenre || hasNSFWTitle || hasAdultRating
+  }
+
+  /**
+   * Apply intelligent sorting strategies
+   */
+  private applySortingStrategy(games: OptimalGamingResult[], query: string, options: {
+    sortBy: 'relevance' | 'date' | 'rating' | 'mixed'
+    prioritizeRecent: boolean
+    boostRecentGames: boolean
+  }): OptimalGamingResult[] {
+    // Calculate advanced scores for each game
+    const scoredGames = games.map(game => ({
+      ...game,
+      ...this.calculateAdvancedScores(game, query, options)
+    }))
+
+    // Apply sorting strategy
+    switch (options.sortBy) {
+      case 'date':
+        return this.sortByDateWithRelevance(scoredGames)
+      case 'rating':
+        return this.sortByRatingWithRecency(scoredGames)
+      case 'mixed':
+        return this.sortByMixedStrategy(scoredGames)
+      case 'relevance':
+      default:
+        return this.sortByRelevanceWithRecency(scoredGames)
+    }
+  }
+
+  /**
+   * Calculate advanced scoring for each game
+   */
+  private calculateAdvancedScores(game: OptimalGamingResult, originalQuery: string, options: {
+    prioritizeRecent: boolean
+    boostRecentGames: boolean
+  }) {
+    const currentYear = new Date().getFullYear()
+
+    // 1. Title relevance score
+    const titleScore = this.calculateTitleRelevance(game.name, originalQuery)
+
+    // 2. Quality score (Metacritic + RAWG rating)
+    const qualityScore = this.calculateQualityScore(game)
+
+    // 3. Recency score with 2025 boost
+    const recencyScore = this.calculateRecencyScore(game.year || 0, currentYear, options.boostRecentGames)
+
+    // 4. Popularity score
+    const popularityScore = this.calculatePopularityScore(game)
+
+    // 5. Source type score
+    const sourceScore = game.sourceType === 'recent' ? 15 : 0
+
+    const totalScore = titleScore + qualityScore + recencyScore + popularityScore + sourceScore
+
+    return {
+      titleScore,
+      qualityScore,
+      recencyScore,
+      popularityScore,
+      sourceScore,
+      totalScore
+    }
+  }
+
+  /**
+   * Calculate title relevance using fuzzy matching
+   */
+  private calculateTitleRelevance(title: string, query: string): number {
+    if (!title || !query) return 0
+    
+    const titleLower = title.toLowerCase()
+    const queryLower = query.toLowerCase()
+
+    if (titleLower === queryLower) return 100
+    if (titleLower.startsWith(queryLower)) return 80
+    if (titleLower.includes(queryLower)) return 60
+
+    // Word matching
+    const titleWords = titleLower.split(/\s+/)
+    const queryWords = queryLower.split(/\s+/)
+    let wordMatches = 0
+
+    queryWords.forEach(qWord => {
+      if (titleWords.some(tWord => tWord.includes(qWord) || qWord.includes(tWord))) {
+        wordMatches++
+      }
+    })
+
+    return (wordMatches / queryWords.length) * 40
+  }
+
+  /**
+   * Calculate quality score from ratings and reviews
+   */
+  private calculateQualityScore(game: OptimalGamingResult): number {
+    let score = 0
+
+    // Metacritic scoring
+    if (game.metacritic) {
+      if (game.metacritic >= 90) score += 30
+      else if (game.metacritic >= 80) score += 20
+      else if (game.metacritic >= 70) score += 10
+      else if (game.metacritic < 50) score -= 10
+    }
+
+    // RAWG rating
+    if (game.rating >= 4.5) score += 20
+    else if (game.rating >= 4.0) score += 15
+    else if (game.rating >= 3.5) score += 10
+    else if (game.rating < 3.0) score -= 10
+
+    return Math.max(0, score)
+  }
+
+  /**
+   * Calculate recency score with massive 2025 boost
+   */
+  private calculateRecencyScore(gameYear: number, currentYear: number, boostRecent: boolean): number {
+    if (!gameYear) return 0
+
+    let score = 0
+
+    if (boostRecent) {
+      // Massive boost for 2025 games
+      if (gameYear === currentYear) score += 50
+      else if (gameYear === currentYear - 1) score += 35
+      else if (gameYear >= currentYear - 2) score += 25
+      else if (gameYear >= currentYear - 5) score += 15
+      else if (gameYear >= currentYear - 10) score += 5
+      else if (gameYear < 1990) score -= 10 // Penalty for very old games
+    }
+
+    return score
+  }
+
+  /**
+   * Calculate popularity from multiple signals
+   */
+  private calculatePopularityScore(game: OptimalGamingResult): number {
+    let score = 0
+
+    // Based on RAWG "added" count
+    const added = game.added || 0
+    if (added > 100000) score += 25
+    else if (added > 50000) score += 20
+    else if (added > 10000) score += 15
+    else if (added > 1000) score += 10
+    else if (added < 100) score -= 5
+
+    // Rating count bonus
+    if (game.rating_count > 10000) score += 10
+    else if (game.rating_count > 1000) score += 5
+
+    return score
+  }
+
+  /**
+   * Sort by date with relevance tiebreaker
+   */
+  private sortByDateWithRelevance(games: OptimalGamingResult[]): OptimalGamingResult[] {
+    return games.sort((a, b) => {
+      const yearA = a.year || 0
+      const yearB = b.year || 0
+      
+      if (yearA !== yearB) {
+        return yearB - yearA // Newer first
+      }
+
+      return (b.totalScore || 0) - (a.totalScore || 0)
+    })
+  }
+
+  /**
+   * Sort by rating with recency bonus
+   */
+  private sortByRatingWithRecency(games: OptimalGamingResult[]): OptimalGamingResult[] {
+    return games.sort((a, b) => {
+      const scoreA = (a.qualityScore || 0) + ((a.recencyScore || 0) * 0.3)
+      const scoreB = (b.qualityScore || 0) + ((b.recencyScore || 0) * 0.3)
+      
+      return scoreB - scoreA
+    })
+  }
+
+  /**
+   * Balanced mixed strategy
+   */
+  private sortByMixedStrategy(games: OptimalGamingResult[]): OptimalGamingResult[] {
+    return games.sort((a, b) => {
+      // 40% relevance, 30% quality, 20% recency, 10% popularity
+      const scoreA = ((a.titleScore || 0) * 0.4) + ((a.qualityScore || 0) * 0.3) + 
+                     ((a.recencyScore || 0) * 0.2) + ((a.popularityScore || 0) * 0.1)
+      const scoreB = ((b.titleScore || 0) * 0.4) + ((b.qualityScore || 0) * 0.3) + 
+                     ((b.recencyScore || 0) * 0.2) + ((b.popularityScore || 0) * 0.1)
+      
+      return scoreB - scoreA
+    })
+  }
+
+  /**
+   * Sort by total relevance score
+   */
+  private sortByRelevanceWithRecency(games: OptimalGamingResult[]): OptimalGamingResult[] {
+    return games.sort((a, b) => {
+      return (b.totalScore || 0) - (a.totalScore || 0)
+    })
+  }
+
+  /**
+   * Get latest 2025 games specifically
+   */
+  async getLatest2025Games(options: { excludeNSFW: boolean, limit: number }): Promise<OptimalGamingResult[]> {
+    try {
+      // Use RAWG service to get recent games but filter for 2025 only
+      const allRecent = await rawgService.getNewReleases()
+      
+      const games2025 = allRecent.filter(game => {
+        const gameYear = game.released ? new Date(game.released).getFullYear() : 0
+        return gameYear === 2025
+      })
+
+      let converted = games2025.map(game => this.convertToOptimalFormat(game, 'recent'))
+
+      // Apply NSFW filtering if requested
+      if (options.excludeNSFW) {
+        converted = converted.filter(game => !this.isNSFWContent(game))
+      }
+
+      // Sort by release date (newest first)
+      converted.sort((a, b) => {
+        const dateA = new Date(a.released || '').getTime() || 0
+        const dateB = new Date(b.released || '').getTime() || 0
+        return dateB - dateA
+      })
+
+      return converted.slice(0, options.limit)
+    } catch (error) {
+      console.error('🎮 2025 games fetch failed:', error)
+      return []
+    }
   }
 
   /**
