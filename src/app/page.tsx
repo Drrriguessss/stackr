@@ -521,6 +521,7 @@ export default function Home() {
   }
 
   const handleOpenSearch = () => {
+    // Use the legacy SearchModal that works
     setIsSearchOpen(true)
   }
 
@@ -1097,31 +1098,17 @@ export default function Home() {
         onMusicSelect={setSelectedMusicId}
       />
 
-      {/* SIMPLIFIED SEARCH - DIRECT GAME SEARCH ONLY */}
-      {isMediaSelectionOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-8 rounded-xl max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4">Search Games</h2>
-            <p className="text-gray-600 mb-6">Click below to search for games</p>
-            <button
-              onClick={() => {
-                console.log('Opening game search directly');
-                setIsMediaSelectionOpen(false);
-                setIsGameSearchOpen(true);
-              }}
-              className="w-full py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
-            >
-              Search for Games
-            </button>
-            <button
-              onClick={() => setIsMediaSelectionOpen(false)}
-              className="w-full mt-3 py-2 text-gray-600 hover:text-gray-800"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      {/* LEGACY SEARCH MODAL - Simple search bar for all media */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenGameDetail={handleOpenGameDetail}
+        onOpenMovieDetail={handleOpenMovieDetail}
+        onOpenBookDetail={handleOpenBookDetail}
+        onOpenMusicDetail={handleOpenMusicDetail}
+        library={library}
+      />
 
       <SimpleGameSearchModal
         isOpen={isGameSearchOpen}
