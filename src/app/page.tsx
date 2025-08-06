@@ -8,6 +8,7 @@ import GameDetailDarkV2 from '@/components/GameDetailDarkV2'
 import MovieDetailModalV3 from '@/components/MovieDetailModalV3'
 import BookDetailModalV3 from '@/components/BookDetailModalV3'
 import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
+import BoardGameDetailModal from '@/components/BoardGameDetailModal'
 import SearchModal from '@/components/SearchModal'
 import SearchModalV2 from '@/components/SearchModalV2'
 // All search modals removed - using unified SearchModal only
@@ -48,6 +49,7 @@ export default function Home() {
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
+  const [selectedBoardGameId, setSelectedBoardGameId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [useUnifiedSearch, setUseUnifiedSearch] = useState(true) // Toggle between old and new search
   
@@ -517,6 +519,9 @@ export default function Home() {
         break
       case 'music':
         setSelectedMusicId(itemId)
+        break
+      case 'boardgames':
+        setSelectedBoardGameId(itemId)
         break
       default:
         console.warn('Unknown media category:', item.category)
@@ -1081,6 +1086,18 @@ export default function Home() {
         onDeleteItem={handleDeleteItem}
         library={library}
         onMusicSelect={setSelectedMusicId}
+      />
+
+      <BoardGameDetailModal
+        isOpen={!!selectedBoardGameId}
+        onClose={() => setSelectedBoardGameId(null)}
+        gameId={selectedBoardGameId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        onDeleteItem={handleDeleteItem}
+        library={library}
+        userReviews={[]}
+        bggReviews={[]}
+        onReviewSubmit={(reviewData) => console.log('Board game review:', reviewData)}
       />
 
       {/* LEGACY SEARCH MODAL - Simple search bar for all media */}
