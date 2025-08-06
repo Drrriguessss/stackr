@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { Film, Tv, Search, Loader2, Star, Calendar, Plus } from 'lucide-react'
-import { optimalMovieService, type OptimalMovieResult } from '@/services/optimalMovieService'
+import { optimalMovieAPI, type OptimalMovieResult } from '@/services/optimalMovieAPI'
 import type { MediaStatus, LibraryItem } from '@/types'
 
 interface MoviesTVSectionV2Props {
@@ -29,7 +29,7 @@ export default function MoviesTVSectionV2({
   const loadTrendingContent = async () => {
     setIsLoadingTrending(true)
     try {
-      const trending = await optimalMovieService.getTrending()
+      const trending = await optimalMovieAPI.getTrending()
       setTrendingContent(trending)
       console.log('🎬 [MoviesTVV2] Loaded trending:', trending.length, 'items')
     } catch (error) {
@@ -47,7 +47,7 @@ export default function MoviesTVSectionV2({
 
     setIsSearching(true)
     try {
-      const results = await optimalMovieService.search(query, 12)
+      const results = await optimalMovieAPI.search(query, 12)
       setSearchResults(results)
       console.log('🎬 [MoviesTVV2] Search results:', results.length, 'items')
     } catch (error) {

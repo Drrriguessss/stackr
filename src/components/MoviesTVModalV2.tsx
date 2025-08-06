@@ -36,8 +36,8 @@ export default function MoviesTVModalV2({
       rating: 0,
       progress: 0,
       notes: '',
-      added_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
     
     setLocalLibrary(prev => [...prev, newItem])

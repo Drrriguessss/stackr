@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search } from 'lucide-react'
+import { Search, Film } from 'lucide-react'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
@@ -788,7 +788,7 @@ export default function Home() {
                 <p className="mt-1 text-sm text-gray-500">
                   Click the button below to search across all media types
                 </p>
-                <div className="mt-6">
+                <div className="mt-6 space-y-3">
                   <button
                     onClick={() => setIsSearchOpen(true)}
                     className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
@@ -796,6 +796,17 @@ export default function Home() {
                     <Search className="-ml-1 mr-2 h-4 w-4" />
                     Open Search
                   </button>
+                  
+                  <div className="text-center">
+                    <p className="text-xs text-gray-400 mb-2">or</p>
+                    <button
+                      onClick={() => setIsMoviesTVV2Open(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Film className="-ml-1 mr-2 h-4 w-4" />
+                      Find a movie or a TV show
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
