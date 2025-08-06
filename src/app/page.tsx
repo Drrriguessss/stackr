@@ -17,7 +17,7 @@ import GamesModal from '@/components/GamesModal'
 import BooksModal from '@/components/BooksModal'
 import MusicModal from '@/components/MusicModal'
 import BoardGamesModal from '@/components/BoardGamesModal'
-import MovieGoodModal from '@/components/MovieGoodModal'
+// import MovieGoodModal from '@/components/MovieGoodModal' // OLD - not used
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
 import DiscoverPageV2 from '@/components/DiscoverPageV2'
@@ -27,7 +27,7 @@ import ProfilePage from '@/components/ProfilePage'
 import FriendsPage from '@/components/FriendsPage'
 import GroupsPage from '@/components/GroupsPage'
 import ListsPage from '@/components/ListsPage'
-import MoviesTVSectionV2 from '@/components/MoviesTVSectionV2'
+// import MoviesTVSectionV2 from '@/components/MoviesTVSectionV2' // Used in MoviesTVModalV2, not directly here
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 import { sampleContent } from '@/data/sampleContent'
@@ -47,6 +47,7 @@ export default function Home() {
   const [activeMainTab, setActiveMainTab] = useState('feed')
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
+  const [selectedMovieType, setSelectedMovieType] = useState<'movie' | 'tv'>('movie')
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [selectedBoardGameId, setSelectedBoardGameId] = useState<string | null>(null)
@@ -55,7 +56,7 @@ export default function Home() {
   
   // Simplified search - using only SearchModal
   const [isMoviesTVV2Open, setIsMoviesTVV2Open] = useState(false)
-  const [isMovieGoodOpen, setIsMovieGoodOpen] = useState(false)
+  // const [isMovieGoodOpen, setIsMovieGoodOpen] = useState(false) // OLD MovieGoodModal - not used
   const [isGamesOpen, setIsGamesOpen] = useState(false)
   const [isBooksOpen, setIsBooksOpen] = useState(false)
   const [isMusicOpen, setIsMusicOpen] = useState(false)
@@ -508,10 +509,15 @@ export default function Home() {
   // Unified handler for SearchModalV2
   const handleOpenDetail = (item: any) => {
     const itemId = normalizeId(item.id?.toString() || '1')
-    console.log('🎯 [handleOpenDetail] Item:', item.title, 'ID:', item.id, 'Normalized:', itemId, 'Category:', item.category)
+    console.log('🎯 [handleOpenDetail] Item:', item.title || item.name, 'ID:', item.id, 'Normalized:', itemId, 'Category:', item.category)
     
-    // Close search modal when opening detail
+    // Close all modals when opening detail
     setIsSearchOpen(false)
+    setIsMoviesTVV2Open(false)
+    setIsGamesOpen(false)
+    setIsBooksOpen(false)
+    setIsMusicOpen(false)
+    setIsBoardGamesOpen(false)
     
     switch (item.category) {
       case 'games':
@@ -519,8 +525,9 @@ export default function Home() {
         setSelectedGameId(itemId)
         break
       case 'movies':
-        console.log('🎬 Setting selectedMovieId:', itemId)
+        console.log('🎬 Setting selectedMovieId:', itemId, 'MediaType:', item.media_type)
         setSelectedMovieId(itemId)
+        setSelectedMovieType(item.media_type || 'movie')
         break
       case 'books':
         console.log('📚 Setting selectedBookId:', itemId)
@@ -1072,6 +1079,7 @@ export default function Home() {
         isOpen={!!selectedMovieId}
         onClose={() => setSelectedMovieId(null)}
         movieId={selectedMovieId || ''}
+        mediaType={selectedMovieType}
         onAddToLibrary={handleAddToLibrary}
         onDeleteItem={handleDeleteItem}
         library={library}
@@ -1185,7 +1193,7 @@ export default function Home() {
         library={library}
       />
 
-      <MovieGoodModal
+      {/* <MovieGoodModal
         isOpen={isMovieGoodOpen}
         onClose={() => setIsMovieGoodOpen(false)}
         onBackToSelection={() => {

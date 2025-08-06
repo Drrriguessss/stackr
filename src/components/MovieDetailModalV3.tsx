@@ -7,6 +7,7 @@ import { imageService } from '@/services/imageService'
 import { trailerService } from '@/services/trailerService'
 import { userReviewsService } from '@/services/userReviewsService'
 import { tmdbReviewsService, type ProcessedReview } from '@/services/tmdbReviewsService'
+import { optimalMovieAPI } from '@/services/optimalMovieAPI'
 import StackrLoadingSkeleton from './StackrLoadingSkeleton'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 
@@ -14,6 +15,7 @@ interface MovieDetailModalV3Props {
   isOpen: boolean
   onClose: () => void
   movieId: string
+  mediaType?: 'movie' | 'tv'
   onAddToLibrary: (item: any, status: MediaStatus) => void
   onDeleteItem?: (id: string) => void
   library: LibraryItem[]
@@ -41,6 +43,7 @@ export default function MovieDetailModalV3({
   isOpen,
   onClose,
   movieId,
+  mediaType = 'movie',
   onAddToLibrary,
   onDeleteItem,
   library,
@@ -145,6 +148,26 @@ export default function MovieDetailModalV3({
     
     try {
       let imdbId = movieId
+      
+      // Check if it's a TMDB ID (numeric) or IMDB ID (starts with 'tt')
+      if (!movieId.startsWith('tt') && !movieId.startsWith('movie-')) {
+        console.log('🔄 Converting TMDB ID to IMDB ID:', movieId, 'Type:', mediaType)
+        // Use the provided mediaType or try both
+        let convertedId = await optimalMovieAPI.getIMDbId(movieId, mediaType)
+        if (!convertedId && mediaType === 'movie') {
+          console.log('🔄 Not a movie, trying TV series...')
+          convertedId = await optimalMovieAPI.getIMDbId(movieId, 'tv')
+        }
+        
+        if (convertedId) {
+          imdbId = convertedId
+          console.log('✅ Converted to IMDB ID:', imdbId)
+        } else {
+          console.error('❌ Could not convert TMDB ID to IMDB ID')
+          throw new Error('Could not find IMDB ID for this movie/TV show')
+        }
+      }
+      
       if (movieId.startsWith('movie-')) {
         imdbId = movieId.replace('movie-', '')
       }
@@ -702,7 +725,7 @@ export default function MovieDetailModalV3({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/95 z-[10000] flex items-center justify-center">
       <div className="bg-[#0B0B0B] w-full h-full md:max-w-4xl md:h-[95vh] md:rounded-2xl overflow-hidden flex flex-col">
         {loading ? (
           <div className="flex items-center justify-center h-full">
@@ -1355,10 +1378,18 @@ export default function MovieDetailModalV3({
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full relative">
+            {/* Close button for error state */}
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
+            >
+              <X size={24} />
+            </button>
             <div className="text-center">
               <div className="text-5xl mb-4">🎬</div>
-              <p className="text-white">Movie not found</p>
+              <p className="text-white text-lg mb-2">Movie not found</p>
+              <p className="text-white/60 text-sm">Unable to load movie details</p>
             </div>
           </div>
         )}

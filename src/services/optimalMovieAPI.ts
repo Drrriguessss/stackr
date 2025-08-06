@@ -279,6 +279,23 @@ class OptimalMovieAPI {
       return []
     }
   }
+
+  async getIMDbId(tmdbId: string, mediaType: 'movie' | 'tv' = 'movie'): Promise<string | null> {
+    try {
+      const url = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}/external_ids?api_key=${this.tmdbApiKey}`
+      const response = await fetch(url)
+      if (!response.ok) {
+        console.error(`Failed to get external IDs for TMDB ID ${tmdbId}`)
+        return null
+      }
+      
+      const data = await response.json()
+      return data.imdb_id || null
+    } catch (error) {
+      console.error('Error fetching IMDb ID:', error)
+      return null
+    }
+  }
 }
 
 // Export singleton instance

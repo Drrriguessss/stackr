@@ -48,7 +48,7 @@ export default function MoviesTVModalV2({
 
   const handleOpenDetail = (item: any) => {
     console.log('🎬 [MoviesTVV2] Opening detail for:', item.title, 'Category:', item.category)
-    // Directly call the parent function to open the actual detail modal
+    // Directly call the parent function - modal closing is handled in page.tsx
     onOpenDetail(item)
   }
 

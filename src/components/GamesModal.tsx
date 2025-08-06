@@ -47,10 +47,16 @@ export default function GamesModal({
   }
 
   const handleOpenDetail = (item: any) => {
-    console.log('🎮 [GamesModal] Opening detail for:', item.name)
-    alert(`Detail modal for: ${item.name}`)
-    // Also call the parent function
-    onOpenDetail(item)
+    console.log('🎮 [GamesModal] Opening detail for:', item.name, 'ID:', item.id)
+    // Close this modal first before opening detail
+    onClose()
+    // Small delay to ensure smooth transition
+    setTimeout(() => {
+      onOpenDetail({
+        ...item,
+        category: 'games'
+      })
+    }, 100)
   }
 
   if (!isOpen) return null
