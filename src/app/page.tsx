@@ -10,7 +10,7 @@ import BookDetailModalV3 from '@/components/BookDetailModalV3'
 import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
 import SearchModalV2 from '@/components/SearchModalV2'
-import MediaSelectionModalFixed from '@/components/MediaSelectionModalFixed'
+// import MediaSelectionModalFixed from '@/components/MediaSelectionModalFixed' // REMOVED - Using inline simple modal
 import SimpleGameSearchModal from '@/components/SimpleGameSearchModal'
 import MovieSearchModal from '@/components/MovieSearchModal'
 import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
@@ -1097,22 +1097,31 @@ export default function Home() {
         onMusicSelect={setSelectedMusicId}
       />
 
-      {/* New Search System */}
-      <MediaSelectionModalFixed
-        isOpen={isMediaSelectionOpen}
-        onClose={() => setIsMediaSelectionOpen(false)}
-        onSelectMedia={(category) => {
-          setIsMediaSelectionOpen(false)
-          if (category === 'games') {
-            setIsGameSearchOpen(true)
-          } else if (category === 'movies') {
-            setIsMoviesTVV2Open(true)
-          } else if (category === 'movieGood') {
-            setIsMovieGoodOpen(true)
-          }
-          // TODO: Add other categories
-        }}
-      />
+      {/* SIMPLIFIED SEARCH - DIRECT GAME SEARCH ONLY */}
+      {isMediaSelectionOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white p-8 rounded-xl max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-4">Search Games</h2>
+            <p className="text-gray-600 mb-6">Click below to search for games</p>
+            <button
+              onClick={() => {
+                console.log('Opening game search directly');
+                setIsMediaSelectionOpen(false);
+                setIsGameSearchOpen(true);
+              }}
+              className="w-full py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+            >
+              Search for Games
+            </button>
+            <button
+              onClick={() => setIsMediaSelectionOpen(false)}
+              className="w-full mt-3 py-2 text-gray-600 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <SimpleGameSearchModal
         isOpen={isGameSearchOpen}
