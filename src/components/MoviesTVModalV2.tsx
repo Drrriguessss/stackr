@@ -47,9 +47,8 @@ export default function MoviesTVModalV2({
   }
 
   const handleOpenDetail = (item: any) => {
-    console.log('🎬 [MoviesTVV2] Opening detail for:', item.title)
-    alert(`Detail modal for: ${item.title}`)
-    // Also call the parent function
+    console.log('🎬 [MoviesTVV2] Opening detail for:', item.title, 'Category:', item.category)
+    // Directly call the parent function to open the actual detail modal
     onOpenDetail(item)
   }
 

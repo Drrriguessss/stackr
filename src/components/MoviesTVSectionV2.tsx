@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { Film, Tv, Search, Loader2, Star, Calendar, Plus } from 'lucide-react'
 import { optimalMovieAPI, type OptimalMovieResult } from '@/services/optimalMovieAPI'
+import { idsMatch } from '@/utils/idNormalizer'
 import type { MediaStatus, LibraryItem } from '@/types'
 
 interface MoviesTVSectionV2Props {
@@ -68,7 +69,7 @@ export default function MoviesTVSectionV2({
   }, [searchQuery])
 
   const isInLibrary = (itemId: string) => {
-    return library.some(item => item.id === itemId)
+    return library.some(item => idsMatch(item.id, itemId))
   }
 
   const renderMovieCard = (item: OptimalMovieResult) => (

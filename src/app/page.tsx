@@ -267,6 +267,11 @@ export default function Home() {
   //   }
   // }, [activeTab])
 
+  // Debug effect pour surveiller les changements d'état des modales
+  useEffect(() => {
+    console.log('🎬 [Debug] selectedMovieId changed:', selectedMovieId)
+  }, [selectedMovieId])
+
   // Utiliser les données de fallback immédiatement
   useEffect(() => {
     console.log('🔧 Utilisation du mode économie API - contenu statique')
@@ -503,28 +508,34 @@ export default function Home() {
   // Unified handler for SearchModalV2
   const handleOpenDetail = (item: any) => {
     const itemId = normalizeId(item.id?.toString() || '1')
+    console.log('🎯 [handleOpenDetail] Item:', item.title, 'ID:', item.id, 'Normalized:', itemId, 'Category:', item.category)
     
     // Close search modal when opening detail
     setIsSearchOpen(false)
     
     switch (item.category) {
       case 'games':
+        console.log('🎮 Setting selectedGameId:', itemId)
         setSelectedGameId(itemId)
         break
       case 'movies':
+        console.log('🎬 Setting selectedMovieId:', itemId)
         setSelectedMovieId(itemId)
         break
       case 'books':
+        console.log('📚 Setting selectedBookId:', itemId)
         setSelectedBookId(itemId)
         break
       case 'music':
+        console.log('🎵 Setting selectedMusicId:', itemId)
         setSelectedMusicId(itemId)
         break
       case 'boardgames':
+        console.log('🎲 Setting selectedBoardGameId:', itemId)
         setSelectedBoardGameId(itemId)
         break
       default:
-        console.warn('Unknown media category:', item.category)
+        console.warn('❌ Unknown media category:', item.category, 'Item:', item)
     }
   }
 
