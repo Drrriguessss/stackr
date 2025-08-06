@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search, Film, Gamepad2, BookOpen, Music } from 'lucide-react'
+import { Search, Film, Gamepad2, BookOpen, Music, Dice6 } from 'lucide-react'
 import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
@@ -15,6 +15,7 @@ import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
 import GamesModal from '@/components/GamesModal'
 import BooksModal from '@/components/BooksModal'
 import MusicModal from '@/components/MusicModal'
+import BoardGamesModal from '@/components/BoardGamesModal'
 import MovieGoodModal from '@/components/MovieGoodModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
@@ -56,6 +57,7 @@ export default function Home() {
   const [isGamesOpen, setIsGamesOpen] = useState(false)
   const [isBooksOpen, setIsBooksOpen] = useState(false)
   const [isMusicOpen, setIsMusicOpen] = useState(false)
+  const [isBoardGamesOpen, setIsBoardGamesOpen] = useState(false)
   
   // Library state
   const [library, setLibrary] = useState<LibraryItem[]>([])
@@ -836,6 +838,14 @@ export default function Home() {
                       <Music className="-ml-1 mr-2 h-4 w-4" />
                       Find music
                     </button>
+                    
+                    <button
+                      onClick={() => setIsBoardGamesOpen(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      <Dice6 className="-ml-1 mr-2 h-4 w-4" />
+                      Find board games
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1130,6 +1140,18 @@ export default function Home() {
         onOpenDetail={handleOpenDetail}
         onBackToSelection={() => {
           setIsMusicOpen(false)
+          setIsMediaSelectionOpen(true)
+        }}
+        library={library}
+      />
+
+      <BoardGamesModal
+        isOpen={isBoardGamesOpen}
+        onClose={() => setIsBoardGamesOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenDetail={handleOpenDetail}
+        onBackToSelection={() => {
+          setIsBoardGamesOpen(false)
           setIsMediaSelectionOpen(true)
         }}
         library={library}
