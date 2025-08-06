@@ -17,6 +17,9 @@ export interface OptimalMovieResult {
   adult?: boolean
   original_language?: string
   
+  // Compatibility field for components expecting 'image'
+  image?: string
+  
   // Enhanced data
   runtime?: number
   episode_run_time?: number[]
@@ -85,6 +88,7 @@ class OptimalMovieAPI {
 
   private normalizeTMDbResult(item: any): OptimalMovieResult {
     const isMovie = item.media_type === 'movie'
+    const posterUrl = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : undefined
     
     return {
       id: item.id.toString(),
@@ -93,7 +97,7 @@ class OptimalMovieAPI {
       overview: item.overview,
       release_date: item.release_date,
       first_air_date: item.first_air_date,
-      poster_path: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : undefined,
+      poster_path: posterUrl,
       backdrop_path: item.backdrop_path ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}` : undefined,
       vote_average: item.vote_average,
       vote_count: item.vote_count,
@@ -101,6 +105,8 @@ class OptimalMovieAPI {
       media_type: item.media_type,
       adult: item.adult,
       original_language: item.original_language,
+      // Map poster_path to image for compatibility
+      image: posterUrl,
     }
   }
 
@@ -127,12 +133,16 @@ class OptimalMovieAPI {
   }
 
   private normalizeOMDbResult(item: any): OptimalMovieResult {
+    const posterUrl = item.Poster !== 'N/A' ? item.Poster : undefined
+    
     return {
       id: item.imdbID,
       title: item.Title,
       release_date: item.Year,
-      poster_path: item.Poster !== 'N/A' ? item.Poster : undefined,
+      poster_path: posterUrl,
       media_type: item.Type === 'series' ? 'tv' : 'movie',
+      // Map poster_path to image for compatibility
+      image: posterUrl,
       omdb: item
     }
   }

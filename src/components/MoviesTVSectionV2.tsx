@@ -84,10 +84,18 @@ export default function MoviesTVSectionV2({
             src={item.image}
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              console.log('🖼️ Image failed to load:', item.image)
+              // Show fallback
+              e.currentTarget.style.display = 'none'
+            }}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            {item.type === 'movie' ? (
+        ) : null}
+        
+        {/* Fallback placeholder */}
+        {!item.image && (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+            {item.media_type === 'movie' ? (
               <Film size={48} className="text-gray-400" />
             ) : (
               <Tv size={48} className="text-gray-400" />
