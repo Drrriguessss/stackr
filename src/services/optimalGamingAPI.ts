@@ -103,16 +103,18 @@ class OptimalGamingAPI {
           .slice(0, limit)
       }
 
-      // 1. Hybrid search: recent + relevant games
-      const [recentResults, relevantResults] = await Promise.allSettled([
+      // 1. Hybrid search: recent + relevant games + franchise search for popular series
+      const [recentResults, relevantResults, franchiseResults] = await Promise.allSettled([
         this.searchRecentGames(query, { excludeNSFW }),
-        this.searchRelevantGames(query, { excludeNSFW, minYear })
+        this.searchRelevantGames(query, { excludeNSFW, minYear }),
+        this.searchFranchiseVariations(query, { excludeNSFW })
       ])
 
       // 2. Combine and dedupe results intelligently
       const combinedResults = this.combineAndDedupeResults(
         recentResults.status === 'fulfilled' ? recentResults.value : [],
-        relevantResults.status === 'fulfilled' ? relevantResults.value : []
+        relevantResults.status === 'fulfilled' ? relevantResults.value : [],
+        franchiseResults.status === 'fulfilled' ? franchiseResults.value : []
       )
 
       // 3. Apply advanced filters
@@ -354,11 +356,13 @@ class OptimalGamingAPI {
       const currentYear = new Date().getFullYear()
       const recentGames = await rawgService.searchWithRecentGames(query, 20)
       
-      // Filter to only recent games (last 2 years)
+      // Extended filter: include games from 2023 to 2026 (wider range for new/upcoming games)
       const filtered = recentGames.filter(game => {
         const gameYear = game.released ? new Date(game.released).getFullYear() : 0
-        return gameYear >= currentYear - 1
+        return gameYear >= 2023 && gameYear <= 2026
       })
+      
+      console.log(`🎮 [OptimalGaming] Recent search for "${query}": found ${filtered.length} games (2023-2026)`)
 
       return filtered.map(game => this.convertToOptimalFormat(game, 'recent'))
     } catch (error) {
@@ -374,14 +378,18 @@ class OptimalGamingAPI {
     try {
       const relevantGames = await rawgService.searchGames(query, 30)
       
-      // Filter for quality and year
+      // More permissive filter for quality and year (especially for franchise games)
       const filtered = relevantGames.filter(game => {
         const gameYear = game.released ? new Date(game.released).getFullYear() : 0
-        const hasGoodRating = (game.metacritic && game.metacritic >= 70) || game.rating >= 3.5
-        const hasReviews = game.rating_count > 50
+        const hasDecentRating = (game.metacritic && game.metacritic >= 60) || game.rating >= 3.0
+        const hasMinimalReviews = game.rating_count > 10 // Lower threshold
+        const isRecentOrUpcoming = gameYear >= 2020 // More recent games
         
-        return gameYear >= options.minYear && (hasGoodRating || hasReviews)
+        // Be more lenient for popular franchises or newer games
+        return gameYear >= options.minYear && (hasDecentRating || hasMinimalReviews || isRecentOrUpcoming)
       })
+      
+      console.log(`🎮 [OptimalGaming] Relevant search for "${query}": found ${filtered.length} quality games`)
 
       return filtered.map(game => this.convertToOptimalFormat(game, 'relevant'))
     } catch (error) {
@@ -393,7 +401,7 @@ class OptimalGamingAPI {
   /**
    * Combine and dedupe results intelligently
    */
-  private combineAndDedupeResults(recentResults: OptimalGamingResult[], relevantResults: OptimalGamingResult[]): OptimalGamingResult[] {
+  private combineAndDedupeResults(recentResults: OptimalGamingResult[], relevantResults: OptimalGamingResult[], franchiseResults: OptimalGamingResult[] = []): OptimalGamingResult[] {
     const seenIds = new Set<string>()
     const combined: OptimalGamingResult[] = []
 
@@ -413,7 +421,70 @@ class OptimalGamingAPI {
       }
     })
 
+    // Third: franchise variations not already included
+    franchiseResults.forEach(game => {
+      if (!seenIds.has(game.id)) {
+        seenIds.add(game.id)
+        combined.push(game)
+      }
+    })
+
     return combined
+  }
+
+  /**
+   * Search franchise variations for popular game series
+   */
+  private async searchFranchiseVariations(query: string, options: { excludeNSFW: boolean }): Promise<OptimalGamingResult[]> {
+    const lowerQuery = query.toLowerCase()
+    const franchiseVariations: Record<string, string[]> = {
+      'assassin': ['assassins creed', 'assassin creed', 'creed'],
+      'call of duty': ['call duty', 'cod', 'modern warfare', 'warzone'],
+      'grand theft': ['gta', 'grand theft auto'],
+      'elder scrolls': ['skyrim', 'elderscrolls', 'oblivion'],
+      'god of war': ['god war', 'kratos'],
+      'final fantasy': ['ff', 'final fantasy'],
+      'street fighter': ['street fighter', 'sf'],
+      'tomb raider': ['lara croft', 'tomb raider'],
+      'dead space': ['dead space'],
+      'resident evil': ['re', 'resident evil', 'biohazard']
+    }
+
+    // Find matching franchise patterns
+    const matchingVariations: string[] = []
+    for (const [key, variations] of Object.entries(franchiseVariations)) {
+      if (lowerQuery.includes(key) || variations.some(v => lowerQuery.includes(v.toLowerCase()))) {
+        matchingVariations.push(...variations, key)
+        break // Only match one franchise to avoid too many requests
+      }
+    }
+
+    if (matchingVariations.length === 0) {
+      return [] // No franchise detected
+    }
+
+    try {
+      // Search with each variation
+      const results: OptimalGamingResult[] = []
+      for (const variation of matchingVariations.slice(0, 3)) { // Limit to 3 variations
+        try {
+          const games = await rawgService.searchGames(variation, 10)
+          const converted = games.map(game => this.convertToOptimalFormat(game, 'relevant'))
+          results.push(...converted)
+          
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100))
+        } catch (error) {
+          console.warn(`🎮 Franchise search failed for "${variation}":`, error)
+        }
+      }
+
+      console.log(`🎮 [OptimalGaming] Franchise search for "${query}": found ${results.length} additional games`)
+      return results
+    } catch (error) {
+      console.error('🎮 Franchise search failed:', error)
+      return []
+    }
   }
 
   /**
