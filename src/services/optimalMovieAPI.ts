@@ -17,8 +17,13 @@ export interface OptimalMovieResult {
   adult?: boolean
   original_language?: string
   
-  // Compatibility field for components expecting 'image'
+  // Compatibility fields for components
   image?: string
+  rating?: number     // Rating out of 5 (converted from vote_average)
+  genre?: string      // Human-readable genre
+  year?: number       // Year extracted from dates
+  type?: 'movie' | 'tv'  // Simplified media type
+  category?: 'movies' // For library compatibility
   
   // Enhanced data
   runtime?: number
@@ -26,15 +31,53 @@ export interface OptimalMovieResult {
   number_of_seasons?: number
   number_of_episodes?: number
   status?: string
+  popularity?: number // TMDB popularity for sorting
   
   // Enriched data from multiple sources
   tvmaze?: any
   omdb?: any
+  metadata?: {
+    tmdb_id?: number
+    imdb_id?: string
+    popularity?: number
+  }
 }
 
 class OptimalMovieAPI {
   private tmdbApiKey: string
   private omdbApiKey: string
+  
+  // TMDB Genre mapping for better UX
+  private genreMap: Record<number, string> = {
+    28: 'Action',
+    12: 'Adventure', 
+    16: 'Animation',
+    35: 'Comedy',
+    80: 'Crime',
+    99: 'Documentary',
+    18: 'Drama',
+    10751: 'Family',
+    14: 'Fantasy',
+    36: 'History',
+    27: 'Horror',
+    10402: 'Music',
+    9648: 'Mystery',
+    10749: 'Romance',
+    878: 'Sci-Fi',
+    10770: 'TV Movie',
+    53: 'Thriller',
+    10752: 'War',
+    37: 'Western',
+    // TV Genres
+    10759: 'Action & Adventure',
+    10762: 'Kids',
+    10763: 'News',
+    10764: 'Reality',
+    10765: 'Sci-Fi & Fantasy',
+    10766: 'Soap',
+    10767: 'Talk',
+    10768: 'War & Politics'
+  }
   
   constructor() {
     // Using environment variables or fallbacks
@@ -51,7 +94,15 @@ class OptimalMovieAPI {
       
       if (tmdbResults.length > 0) {
         console.log('🎬 [OptimalMovieAPI] TMDb results found:', tmdbResults.length)
-        return await this.enrichWithAdditionalData(tmdbResults)
+        
+        // Sort by popularity (like the old service)
+        const sortedResults = tmdbResults.sort((a, b) => {
+          const popA = a.popularity || 0
+          const popB = b.popularity || 0
+          return popB - popA
+        })
+        
+        return await this.enrichWithAdditionalData(sortedResults.slice(0, limit))
       }
       
       // Fallback: OMDb for cases where TMDb fails
@@ -89,6 +140,18 @@ class OptimalMovieAPI {
   private normalizeTMDbResult(item: any): OptimalMovieResult {
     const isMovie = item.media_type === 'movie'
     const posterUrl = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : undefined
+    const releaseDate = isMovie ? item.release_date : item.first_air_date
+    
+    // Convert rating from /10 to /5 (like the old service)
+    const rating = item.vote_average ? Number((item.vote_average / 2).toFixed(1)) : undefined
+    
+    // Map genre IDs to human-readable names
+    const genreNames = item.genre_ids ? 
+      item.genre_ids.map((id: number) => this.genreMap[id]).filter(Boolean) : []
+    const genre = genreNames.length > 0 ? genreNames[0] : undefined
+    
+    // Extract year
+    const year = releaseDate ? new Date(releaseDate).getFullYear() : undefined
     
     return {
       id: item.id.toString(),
@@ -105,8 +168,21 @@ class OptimalMovieAPI {
       media_type: item.media_type,
       adult: item.adult,
       original_language: item.original_language,
-      // Map poster_path to image for compatibility
+      popularity: item.popularity,
+      
+      // Compatibility fields for components
       image: posterUrl,
+      rating: rating,
+      genre: genre,
+      year: year,
+      type: item.media_type,
+      category: 'movies',
+      
+      // Enhanced metadata
+      metadata: {
+        tmdb_id: item.id,
+        popularity: item.popularity
+      }
     }
   }
 
@@ -134,15 +210,36 @@ class OptimalMovieAPI {
 
   private normalizeOMDbResult(item: any): OptimalMovieResult {
     const posterUrl = item.Poster !== 'N/A' ? item.Poster : undefined
+    const isTV = item.Type === 'series'
+    const year = item.Year ? parseInt(item.Year) : undefined
+    
+    // Convert IMDb rating to /5 if available
+    const rating = item.imdbRating && item.imdbRating !== 'N/A' ? 
+      Number((parseFloat(item.imdbRating) / 2).toFixed(1)) : undefined
     
     return {
       id: item.imdbID,
       title: item.Title,
+      name: isTV ? item.Title : undefined,
+      overview: item.Plot !== 'N/A' ? item.Plot : undefined,
       release_date: item.Year,
       poster_path: posterUrl,
-      media_type: item.Type === 'series' ? 'tv' : 'movie',
-      // Map poster_path to image for compatibility
+      media_type: isTV ? 'tv' : 'movie',
+      
+      // Compatibility fields
       image: posterUrl,
+      rating: rating,
+      genre: item.Genre !== 'N/A' ? item.Genre.split(',')[0].trim() : undefined,
+      year: year,
+      type: isTV ? 'tv' : 'movie',
+      category: 'movies',
+      
+      // Enhanced metadata
+      metadata: {
+        imdb_id: item.imdbID,
+        popularity: 0 // OMDb doesn't have popularity scores
+      },
+      
       omdb: item
     }
   }
