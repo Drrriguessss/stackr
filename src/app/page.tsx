@@ -10,9 +10,7 @@ import BookDetailModalV3 from '@/components/BookDetailModalV3'
 import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
 import SearchModalV2 from '@/components/SearchModalV2'
-// import MediaSelectionModalFixed from '@/components/MediaSelectionModalFixed' // REMOVED - Using inline simple modal
-import SimpleGameSearchModal from '@/components/SimpleGameSearchModal'
-import MovieSearchModal from '@/components/MovieSearchModal'
+// All search modals removed - using unified SearchModal only
 import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
 import MovieGoodModal from '@/components/MovieGoodModal'
 import BottomNavigation from '@/components/BottomNavigation'
@@ -49,10 +47,7 @@ export default function Home() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [useUnifiedSearch, setUseUnifiedSearch] = useState(true) // Toggle between old and new search
   
-  // New search system states
-  const [isMediaSelectionOpen, setIsMediaSelectionOpen] = useState(false)
-  const [isGameSearchOpen, setIsGameSearchOpen] = useState(false)
-  const [isMovieSearchOpen, setIsMovieSearchOpen] = useState(false)
+  // Simplified search - using only SearchModal
   const [isMoviesTVV2Open, setIsMoviesTVV2Open] = useState(false)
   const [isMovieGoodOpen, setIsMovieGoodOpen] = useState(false)
   
@@ -778,7 +773,34 @@ export default function Home() {
       case 'discover':
         return renderDiscoverContent()
       case 'search':
-        return renderSearchContent()
+        return (
+          <div className="bg-white min-h-screen">
+            <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold text-gray-900">Search</h1>
+              </div>
+            </div>
+            
+            <div className="px-4 sm:px-6 py-6 pb-24">
+              <div className="text-center py-12">
+                <Search className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Unified Search</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Click the button below to search across all media types
+                </p>
+                <div className="mt-6">
+                  <button
+                    onClick={() => setIsSearchOpen(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Search className="-ml-1 mr-2 h-4 w-4" />
+                    Open Search
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
       case 'roadmap':
         return <RoadmapPage onBack={() => setActiveMainTab('feed')} />
       case 'profile':
@@ -840,7 +862,7 @@ export default function Home() {
             <div className="flex-1 max-w-2xl mx-auto">
               <div 
                 className="relative cursor-pointer"
-                onClick={() => setIsMediaSelectionOpen(true)}
+                onClick={() => setIsSearchOpen(true)}
               >
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <div className="w-full pl-4 pr-10 py-3 bg-white hover:bg-gray-50 rounded-lg text-gray-500 transition-colors text-sm border border-gray-200 shadow-sm">
@@ -952,95 +974,7 @@ export default function Home() {
     />
   )
 
-  const renderSearchContent = () => (
-    <div className="bg-white min-h-screen">
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Search</h1>
-        </div>
-      </div>
-      
-      <div className="px-4 sm:px-6 py-6 pb-24">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">What are you looking for?</h2>
-        
-        <div className="grid grid-cols-2 gap-4">
-          {/* Games */}
-          <button
-            onClick={() => setIsGameSearchOpen(true)}
-            className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 hover:border-green-300 hover:shadow-md transition-all group"
-          >
-            <div className="flex flex-col items-center space-y-3">
-              <div className="p-3 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4H6a2 2 0 00-2 2v11a2 2 0 002 2h13a2 2 0 002-2V6a2 2 0 00-2-2h-5m-4 0V2m0 2v2m0-2h4m-4 0H9m6 4h2m-2 0v2m0-2H9" />
-                </svg>
-              </div>
-              <div className="text-center">
-                <p className="font-semibold text-gray-900">Games</p>
-                <p className="text-sm text-gray-600 mt-1">Video games, PC, console</p>
-              </div>
-            </div>
-          </button>
-
-          {/* Movies */}
-          <button
-            onClick={() => setIsMovieSearchOpen(true)}
-            className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 hover:border-blue-300 hover:shadow-md transition-all group"
-          >
-            <div className="flex flex-col items-center space-y-3">
-              <div className="p-3 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4" />
-                </svg>
-              </div>
-              <div className="text-center">
-                <p className="font-semibold text-gray-900">Movies & TV</p>
-                <p className="text-sm text-gray-600 mt-1">Films, series, shows</p>
-              </div>
-            </div>
-          </button>
-
-          {/* Movies/TV V2 */}
-          <button
-            onClick={() => {
-              console.log('Movies/TV V2 button clicked')
-              setIsMoviesTVV2Open(true)
-            }}
-            className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-200 hover:border-blue-300 hover:shadow-md transition-all group"
-          >
-            <div className="flex flex-col items-center space-y-3">
-              <div className="p-3 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16l13-8L7 4z" />
-                </svg>
-              </div>
-              <div className="text-center">
-                <p className="font-semibold text-gray-900">Movies/TV V2</p>
-                <p className="text-sm text-gray-600 mt-1">TMDB powered</p>
-              </div>
-            </div>
-          </button>
-
-          {/* Music */}
-          <button
-            className="p-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl border border-orange-200 hover:border-orange-300 hover:shadow-md transition-all group"
-          >
-            <div className="flex flex-col items-center space-y-3">
-              <div className="p-3 bg-orange-100 rounded-full group-hover:bg-orange-200 transition-colors">
-                <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-              </div>
-              <div className="text-center">
-                <p className="font-semibold text-gray-900">Music</p>
-                <p className="text-sm text-gray-600 mt-1">Albums, artists, songs</p>
-              </div>
-            </div>
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+  // renderSearchContent removed - using inline JSX in switch statement
 
   return (
     <div className="min-h-screen bg-white">
@@ -1110,25 +1044,7 @@ export default function Home() {
         library={library}
       />
 
-      <SimpleGameSearchModal
-        isOpen={isGameSearchOpen}
-        onClose={() => setIsGameSearchOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenDetail={handleOpenDetail}
-        library={library}
-      />
-
-      <MovieSearchModal
-        isOpen={isMovieSearchOpen}
-        onClose={() => setIsMovieSearchOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenDetail={handleOpenDetail}
-        onBackToSelection={() => {
-          setIsMovieSearchOpen(false)
-          setIsMediaSelectionOpen(true)
-        }}
-        library={library}
-      />
+      {/* Old separate modals removed - using unified SearchModal only */}
 
       <MoviesTVModalV2
         isOpen={isMoviesTVV2Open}
