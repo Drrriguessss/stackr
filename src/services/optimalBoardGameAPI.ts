@@ -153,7 +153,18 @@ class OptimalBoardGameAPI {
       console.log('🎲 [OptimalBoardGame] BGG returned:', searchResults.length, 'games')
 
       // Get detailed information for top results
-      const gameIds = searchResults.slice(0, Math.min(limit * 2, 20)).map(game => game.id)
+      const gameIds = searchResults
+        .slice(0, Math.min(limit * 2, 20))
+        .map(game => game.id)
+        .filter(id => id && id.trim() !== '') // Filter out invalid IDs
+        
+      console.log('🎲 [OptimalBoardGame] Getting details for IDs:', gameIds.join(','))
+      
+      if (gameIds.length === 0) {
+        console.warn('🎲 [OptimalBoardGame] No valid game IDs found for detail lookup')
+        return []
+      }
+      
       const detailedGames = await this.getBGGGameDetails(gameIds)
 
       if (detailedGames.length === 0) {
@@ -298,6 +309,7 @@ class OptimalBoardGameAPI {
         stats: '1'
       })
 
+      console.log('🎲 [OptimalBoardGame] Fetching details for IDs:', gameIds.join(','))
       const response = await fetch(`${this.BGG_BASE_URL}/thing?${params}`)
       
       if (!response.ok) {
@@ -305,7 +317,41 @@ class OptimalBoardGameAPI {
       }
 
       const xmlText = await response.text()
+      console.log('🎲 [OptimalBoardGame] XML response length:', xmlText.length, 'chars')
+      
+      // Check if response is valid XML
+      if (!xmlText || xmlText.length < 50) {
+        console.warn('🎲 [OptimalBoardGame] Empty or very short XML response:', xmlText)
+        return []
+      }
+      
+      // BGG sometimes returns "202 Accepted" response with message
+      if (xmlText.includes('Your request for this collection has been accepted')) {
+        console.warn('🎲 [OptimalBoardGame] BGG returned 202 processing response, retrying in 2 seconds...')
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        
+        // Retry once
+        const retryResponse = await fetch(`${this.BGG_BASE_URL}/thing?${params}`)
+        if (retryResponse.ok) {
+          const retryXml = await retryResponse.text()
+          if (retryXml && retryXml.length >= 50 && !retryXml.includes('Your request for this collection has been accepted')) {
+            const retryResults = this.parseGameDetailsXML(retryXml)
+            console.log('🎲 [OptimalBoardGame] Retry successful, parsed', retryResults.length, 'games')
+            this.setCachedResult(cacheKey, retryResults)
+            return retryResults
+          }
+        }
+        console.warn('🎲 [OptimalBoardGame] Retry failed, returning empty results')
+        return []
+      }
+      
+      // Log a sample of the XML for debugging
+      if (xmlText.length > 100) {
+        console.log('🎲 [OptimalBoardGame] XML sample:', xmlText.substring(0, 500) + '...')
+      }
+      
       const results = this.parseGameDetailsXML(xmlText)
+      console.log('🎲 [OptimalBoardGame] Parsed', results.length, 'games from XML')
 
       this.setCachedResult(cacheKey, results)
       return results
@@ -395,18 +441,21 @@ class OptimalBoardGameAPI {
     const results: any[] = []
     
     try {
-      // Extract game items from XML
-      const itemRegex = /<item[^>]*id="([^"]*)"[^>]*type="([^"]*)"[^>]*>([\s\S]*?)<\/item>/g
+      // Extract game items from XML - BGG XML format has type and id attributes
+      const itemRegex = /<item\s+type="boardgame"\s+id="([^"]*)"[^>]*>([\s\S]*?)<\/item>/g
       let match
       
       while ((match = itemRegex.exec(xmlText)) !== null) {
-        const [, id, type, content] = match
+        const [, id, content] = match
         
-        if (type === 'boardgame') {
-          const game = this.parseGameContent(id, content)
-          if (game) results.push(game)
+        const game = this.parseGameContent(id, content)
+        if (game) {
+          console.log('🎲 [OptimalBoardGame] Parsed game:', game.name, 'ID:', id)
+          results.push(game)
         }
       }
+      
+      console.log('🎲 [OptimalBoardGame] Parsed games total:', results.length)
     } catch (error) {
       console.error('🎲 Game details XML parsing error:', error)
     }
@@ -419,12 +468,26 @@ class OptimalBoardGameAPI {
    */
   private parseGameContent(id: string, content: string): any {
     try {
-      // Extract basic info
+      // Extract basic info - handle both self-closing and content tags
       const primaryNameMatch = content.match(/<name[^>]*type="primary"[^>]*value="([^"]*)"/)
       const yearMatch = content.match(/<yearpublished[^>]*value="([^"]*)"/)
-      const descriptionMatch = content.match(/<description>([\s\S]*?)<\/description>/)
-      const imageMatch = content.match(/<image>([\s\S]*?)<\/image>/)
-      const thumbnailMatch = content.match(/<thumbnail>([\s\S]*?)<\/thumbnail>/)
+      
+      // Handle description with CDATA
+      const descriptionMatch = content.match(/<description[^>]*>([\s\S]*?)<\/description>/)
+      let description = ''
+      if (descriptionMatch) {
+        description = descriptionMatch[1]
+          .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .trim()
+      }
+      
+      // Handle image and thumbnail - they can be self-closing or have content
+      const imageMatch = content.match(/<image[^>]*>([\s\S]*?)<\/image>/)
+      const thumbnailMatch = content.match(/<thumbnail[^>]*>([\s\S]*?)<\/thumbnail>/)
       
       // Extract player and time info
       const minPlayersMatch = content.match(/<minplayers[^>]*value="([^"]*)"/)
@@ -434,28 +497,40 @@ class OptimalBoardGameAPI {
       const maxPlayTimeMatch = content.match(/<maxplaytime[^>]*value="([^"]*)"/)
       const minAgeMatch = content.match(/<minage[^>]*value="([^"]*)"/)
       
-      // Extract statistics
-      const statisticsMatch = content.match(/<statistics>([\s\S]*?)<\/statistics>/)
+      // Extract statistics - improved parsing
+      const statisticsMatch = content.match(/<statistics[^>]*>([\s\S]*?)<\/statistics>/)
       let stats = null
       
       if (statisticsMatch) {
         const statsContent = statisticsMatch[1]
-        const averageMatch = statsContent.match(/<average[^>]*value="([^"]*)"/)
-        const usersRatedMatch = statsContent.match(/<usersrated[^>]*value="([^"]*)"/)
-        const bayesAverageMatch = statsContent.match(/<bayesaverage[^>]*value="([^"]*)"/)
-        const averageWeightMatch = statsContent.match(/<averageweight[^>]*value="([^"]*)"/)
-        const ownedMatch = statsContent.match(/<owned[^>]*value="([^"]*)"/)
+        // Look inside the ratings section
+        const ratingsMatch = statsContent.match(/<ratings[^>]*>([\s\S]*?)<\/ratings>/)
         
-        // Extract ranks
-        const rankMatches = statsContent.match(/<rank[^>]*name="Board Game Rank"[^>]*value="([^"]*)"/)
-        
-        stats = {
-          average: averageMatch ? parseFloat(averageMatch[1]) : 0,
-          usersRated: usersRatedMatch ? parseInt(usersRatedMatch[1]) : 0,
-          bayesAverage: bayesAverageMatch ? parseFloat(bayesAverageMatch[1]) : 0,
-          averageWeight: averageWeightMatch ? parseFloat(averageWeightMatch[1]) : 0,
-          owned: ownedMatch ? parseInt(ownedMatch[1]) : 0,
-          rank: rankMatches && rankMatches[1] !== 'Not Ranked' ? parseInt(rankMatches[1]) : null
+        if (ratingsMatch) {
+          const ratingsContent = ratingsMatch[1]
+          const averageMatch = ratingsContent.match(/<average[^>]*value="([^"]*)"/)
+          const usersRatedMatch = ratingsContent.match(/<usersrated[^>]*value="([^"]*)"/)
+          const bayesAverageMatch = ratingsContent.match(/<bayesaverage[^>]*value="([^"]*)"/)
+          const averageWeightMatch = ratingsContent.match(/<averageweight[^>]*value="([^"]*)"/)
+          const ownedMatch = ratingsContent.match(/<owned[^>]*value="([^"]*)"/)
+          const tradingMatch = ratingsContent.match(/<trading[^>]*value="([^"]*)"/)
+          const wantingMatch = ratingsContent.match(/<wanting[^>]*value="([^"]*)"/)
+          const wishingMatch = ratingsContent.match(/<wishing[^>]*value="([^"]*)"/)
+          
+          // Extract Board Game Rank
+          const rankMatch = ratingsContent.match(/<rank[^>]*name="boardgame"[^>]*value="([^"]*)"/)
+          
+          stats = {
+            average: averageMatch ? parseFloat(averageMatch[1]) : 0,
+            usersRated: usersRatedMatch ? parseInt(usersRatedMatch[1]) : 0,
+            bayesAverage: bayesAverageMatch ? parseFloat(bayesAverageMatch[1]) : 0,
+            averageWeight: averageWeightMatch ? parseFloat(averageWeightMatch[1]) : 0,
+            owned: ownedMatch ? parseInt(ownedMatch[1]) : 0,
+            trading: tradingMatch ? parseInt(tradingMatch[1]) : 0,
+            wanting: wantingMatch ? parseInt(wantingMatch[1]) : 0,
+            wishing: wishingMatch ? parseInt(wishingMatch[1]) : 0,
+            rank: rankMatch && rankMatch[1] !== 'Not Ranked' ? parseInt(rankMatch[1]) : null
+          }
         }
       }
       
@@ -469,13 +544,26 @@ class OptimalBoardGameAPI {
         families: this.extractLinks(content, 'boardgamefamily')
       }
       
+      const name = primaryNameMatch ? primaryNameMatch[1] : ''
+      
+      if (!name) {
+        console.warn('🎲 [OptimalBoardGame] Game missing name, ID:', id)
+        return null
+      }
+      
+      console.log('🎲 [OptimalBoardGame] Successfully parsed:', name, {
+        stats: stats ? 'yes' : 'no',
+        rating: stats?.average || 'none',
+        categories: links.categories?.length || 0
+      })
+      
       return {
         id,
-        name: primaryNameMatch ? primaryNameMatch[1] : '',
+        name,
         yearPublished: yearMatch ? parseInt(yearMatch[1]) : null,
-        description: descriptionMatch ? descriptionMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/s, '$1') : '',
-        image: imageMatch ? imageMatch[1] : '',
-        thumbnail: thumbnailMatch ? thumbnailMatch[1] : '',
+        description,
+        image: imageMatch ? imageMatch[1].trim() : '',
+        thumbnail: thumbnailMatch ? thumbnailMatch[1].trim() : '',
         minPlayers: minPlayersMatch ? parseInt(minPlayersMatch[1]) : null,
         maxPlayers: maxPlayersMatch ? parseInt(maxPlayersMatch[1]) : null,
         playingTime: playingTimeMatch ? parseInt(playingTimeMatch[1]) : null,
@@ -486,7 +574,7 @@ class OptimalBoardGameAPI {
         ...links
       }
     } catch (error) {
-      console.error('🎲 Parse game content error:', error)
+      console.error('🎲 Parse game content error for ID', id, ':', error)
       return null
     }
   }
