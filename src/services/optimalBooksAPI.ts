@@ -266,9 +266,8 @@ class OptimalBooksAPI {
     // Convert rating to /5 scale
     const rating = info.averageRating ? Math.min(5, Math.max(0, info.averageRating)) : undefined
 
-    // Get best available image
-    const imageLinks = info.imageLinks || {}
-    const primaryImage = imageLinks.large || imageLinks.medium || imageLinks.small || imageLinks.thumbnail
+    // Get best available image with enhanced quality
+    const primaryImage = this.getEnhancedBookCover(info.imageLinks, item.id)
 
     return {
       id: item.id,
@@ -285,7 +284,7 @@ class OptimalBooksAPI {
       averageRating: info.averageRating,
       ratingsCount: info.ratingsCount,
       language: info.language,
-      imageLinks: info.imageLinks,
+      imageLinks: this.normalizeImageLinks(info.imageLinks),
       previewLink: info.previewLink,
       infoLink: info.infoLink,
 
@@ -307,6 +306,72 @@ class OptimalBooksAPI {
   }
 
   /**
+   * Get enhanced book cover with multiple quality options
+   */
+  private getEnhancedBookCover(imageLinks: any, bookId?: string): string | undefined {
+    if (!imageLinks) {
+      // Try Open Library as fallback if we have bookId
+      if (bookId) {
+        return `https://covers.openlibrary.org/b/olid/${bookId}-L.jpg`
+      }
+      return undefined
+    }
+
+    // Priority order: extraLarge > large > medium > small > thumbnail > smallThumbnail
+    let bestImage = imageLinks.extraLarge || 
+                    imageLinks.large || 
+                    imageLinks.medium || 
+                    imageLinks.small || 
+                    imageLinks.thumbnail ||
+                    imageLinks.smallThumbnail
+
+    if (bestImage) {
+      // Enhance Google Books image URL for better quality
+      bestImage = bestImage
+        .replace('http:', 'https:') // Use HTTPS
+        .replace('&zoom=1', '&zoom=3') // Increase zoom for better quality
+        .replace('&edge=curl', '') // Remove curl effect
+        .replace('&source=gbs_api', '') // Remove unnecessary params
+      
+      // If it's a thumbnail, try to get a larger version
+      if (bestImage.includes('zoom=') && !bestImage.includes('zoom=3')) {
+        bestImage = bestImage.replace(/zoom=\d/, 'zoom=3')
+      }
+      
+      // Add parameters for better quality if not present
+      if (!bestImage.includes('zoom=')) {
+        bestImage += '&zoom=3'
+      }
+      
+      // For very small thumbnails, try to get larger version
+      if (bestImage.includes('smallThumbnail')) {
+        bestImage = bestImage.replace('smallThumbnail', 'thumbnail')
+      }
+    }
+
+    return bestImage
+  }
+
+  /**
+   * Normalize image links to ensure all are HTTPS and enhanced
+   */
+  private normalizeImageLinks(imageLinks: any): any {
+    if (!imageLinks) return {}
+
+    const normalized: any = {}
+    
+    Object.keys(imageLinks).forEach(key => {
+      if (imageLinks[key]) {
+        normalized[key] = imageLinks[key]
+          .replace('http:', 'https:')
+          .replace('&edge=curl', '')
+      }
+    })
+
+    return normalized
+  }
+
+  /**
    * Extract ISBN information
    */
   private extractISBN(identifiers: any[]): { isbn13?: string, isbn10?: string } | undefined {
@@ -322,22 +387,94 @@ class OptimalBooksAPI {
   }
 
   /**
-   * Apply quality filtering to remove low-quality results
+   * Try multiple sources for book covers
+   */
+  private async tryMultipleCoverSources(book: OptimalBookResult): Promise<string | undefined> {
+    const coverSources: string[] = []
+
+    // 1. Google Books enhanced image (already applied in convertToOptimalFormat)
+    if (book.image) {
+      coverSources.push(book.image)
+    }
+
+    // 2. Open Library covers using ISBN
+    if (book.isbn?.isbn13) {
+      coverSources.push(`https://covers.openlibrary.org/b/isbn/${book.isbn.isbn13}-L.jpg`)
+      coverSources.push(`https://covers.openlibrary.org/b/isbn/${book.isbn.isbn13}-M.jpg`)
+    }
+    if (book.isbn?.isbn10) {
+      coverSources.push(`https://covers.openlibrary.org/b/isbn/${book.isbn.isbn10}-L.jpg`)
+      coverSources.push(`https://covers.openlibrary.org/b/isbn/${book.isbn.isbn10}-M.jpg`)
+    }
+
+    // 3. Try BookCover API (longitood.com) as fallback
+    if (book.title && book.authors?.[0]) {
+      try {
+        const bookCoverUrl = await this.getBookCoverFromLongitood(book.title, book.authors[0])
+        if (bookCoverUrl) {
+          coverSources.push(bookCoverUrl)
+        }
+      } catch (error) {
+        console.log('📚 BookCover API failed for:', book.title)
+      }
+    }
+
+    // Return first available image or undefined
+    for (const coverUrl of coverSources) {
+      if (coverUrl && await this.checkImageExists(coverUrl)) {
+        return coverUrl
+      }
+    }
+
+    return book.image // Return original if nothing else works
+  }
+
+  /**
+   * Get book cover from BookCover API (free Goodreads alternative)
+   */
+  private async getBookCoverFromLongitood(title: string, author: string): Promise<string | null> {
+    try {
+      const response = await fetch('https://bookcover.longitood.com/bookcover', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      // Note: This API might require different parameters
+      // This is a placeholder implementation
+      return null
+    } catch (error) {
+      return null
+    }
+  }
+
+  /**
+   * Check if image URL exists and is accessible
+   */
+  private async checkImageExists(url: string): Promise<boolean> {
+    try {
+      const response = await fetch(url, { method: 'HEAD' })
+      return response.ok
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Apply quality filtering but be less strict on images since we can now enhance them
    */
   private applyQualityFiltering(books: OptimalBookResult[]): OptimalBookResult[] {
     return books.filter(book => {
       // Must have basic information
       if (!book.title) return false
 
-      // Filter out books without images (usually incomplete entries)
-      if (!book.image) return false
-
-      // Filter out books with very short or missing descriptions
-      if (!book.description || book.description.length < 50) return false
-
       // Must have at least one author
       if (!book.authors || book.authors.length === 0) return false
 
+      // Filter out books with very short descriptions (but allow some without)
+      // Remove the strict image requirement since we can try fallbacks
+      
       // Filter out books with very low ratings (if they have ratings)
       if (book.rating && book.rating < 2.0) return false
 

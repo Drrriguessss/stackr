@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { BookOpen, Search, Loader2, Star, Calendar, Plus, Users, FileText, Award } from 'lucide-react'
 import { optimalBooksAPI, type OptimalBookResult } from '@/services/optimalBooksAPI'
 import type { MediaStatus, LibraryItem } from '@/types'
@@ -128,29 +128,12 @@ export default function BooksSection({
       onClick={() => onOpenDetail(book)}
     >
       {/* Book Cover */}
-      <div className="aspect-[2/3] bg-gray-100 rounded-t-xl overflow-hidden">
-        {book.image ? (
-          <img
-            src={book.image}
-            alt={book.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              console.log('🖼️ Book cover failed to load:', book.image)
-              e.currentTarget.style.display = 'none'
-            }}
-          />
-        ) : null}
-        
-        {/* Fallback placeholder */}
-        {!book.image && (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
-            <BookOpen size={48} className="text-gray-400" />
-          </div>
-        )}
+      <div className="aspect-[2/3] bg-gray-100 rounded-t-xl overflow-hidden relative">
+        <BookCoverImage book={book} />
 
         {/* Quality Score Badge */}
         {book.totalScore && book.totalScore > 50 && (
-          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 z-10">
             <Award size={10} />
             {Math.round(book.totalScore)}
           </div>
@@ -158,7 +141,7 @@ export default function BooksSection({
 
         {/* Bestseller Badge */}
         {book.ratingsCount && book.ratingsCount > 1000 && book.rating && book.rating >= 4.0 && (
-          <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+          <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded-full font-bold z-10">
             📚 Bestseller
           </div>
         )}
@@ -483,5 +466,90 @@ export default function BooksSection({
         )}
       </div>
     </div>
+  )
+}
+
+// Separate component for handling book cover images with multiple fallbacks
+function BookCoverImage({ book }: { book: OptimalBookResult }) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isError, setIsError] = useState(false)
+
+  // Build array of possible image sources
+  const imageSources = useMemo(() => {
+    const sources: string[] = []
+    
+    // 1. Primary Google Books image
+    if (book.image) {
+      sources.push(book.image)
+    }
+    
+    // 2. Other Google Books sizes
+    if (book.imageLinks) {
+      if (book.imageLinks.large && book.imageLinks.large !== book.image) {
+        sources.push(book.imageLinks.large)
+      }
+      if (book.imageLinks.medium && book.imageLinks.medium !== book.image) {
+        sources.push(book.imageLinks.medium)
+      }
+      if (book.imageLinks.small && book.imageLinks.small !== book.image) {
+        sources.push(book.imageLinks.small)
+      }
+    }
+    
+    // 3. Open Library covers using ISBN
+    if (book.isbn?.isbn13) {
+      sources.push(`https://covers.openlibrary.org/b/isbn/${book.isbn.isbn13}-L.jpg`)
+      sources.push(`https://covers.openlibrary.org/b/isbn/${book.isbn.isbn13}-M.jpg`)
+    }
+    if (book.isbn?.isbn10) {
+      sources.push(`https://covers.openlibrary.org/b/isbn/${book.isbn.isbn10}-L.jpg`)
+      sources.push(`https://covers.openlibrary.org/b/isbn/${book.isbn.isbn10}-M.jpg`)
+    }
+
+    return sources.filter(Boolean)
+  }, [book])
+
+  const handleImageError = () => {
+    console.log('🖼️ Book cover failed to load:', imageSources[currentImageIndex])
+    
+    // Try next image source
+    if (currentImageIndex < imageSources.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1)
+    } else {
+      // All images failed, show placeholder
+      setIsError(true)
+    }
+  }
+
+  const handleImageLoad = () => {
+    console.log('📚 Book cover loaded successfully:', imageSources[currentImageIndex])
+    setIsError(false)
+  }
+
+  if (isError || imageSources.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-100 to-orange-200">
+        <div className="text-center">
+          <BookOpen size={48} className="text-amber-500 mx-auto mb-2" />
+          <div className="text-xs text-amber-600 font-medium px-2">
+            {book.title.length > 20 ? book.title.substring(0, 20) + '...' : book.title}
+          </div>
+          <div className="text-xs text-amber-500 mt-1">
+            {book.authors?.[0] || 'Unknown Author'}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={imageSources[currentImageIndex]}
+      alt={book.title}
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      onError={handleImageError}
+      onLoad={handleImageLoad}
+      loading="lazy"
+    />
   )
 }
