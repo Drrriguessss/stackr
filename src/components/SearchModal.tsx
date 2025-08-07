@@ -681,7 +681,9 @@ export default function SearchModal({
       onOpenBookDetail(result.id.replace('book-', ''))
       onClose()
     } else if (result.category === 'music' && onOpenMusicDetail) {
-      onOpenMusicDetail(result.id.replace('music-', ''))
+      // Pass the full ID with prefix (album-123456 or track-123456)
+      console.log('🎵 [SearchModal] Opening music detail for:', result.title, 'ID:', result.id)
+      onOpenMusicDetail(result.id)
       onClose()
     } else {
       onAddToLibrary(result, 'want-to-play')

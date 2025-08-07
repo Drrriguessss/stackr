@@ -501,8 +501,9 @@ export default function Home() {
   }
 
   const handleOpenMusicDetail = (musicId: string) => {
-    const normalizedMusicId = normalizeId(musicId)
-    setSelectedMusicId(normalizedMusicId)
+    // Music IDs already come with prefix (album-123456 or track-123456)
+    console.log('🎵 [page.tsx] Opening music detail modal for ID:', musicId)
+    setSelectedMusicId(musicId)
   }
 
   // Unified handler for SearchModalV2
