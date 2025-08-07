@@ -148,9 +148,15 @@ export default function BooksSection({
       </div>
 
       {/* Book Info */}
-      <div className="p-4">
+      <div className="p-3">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 group-hover:text-amber-600 transition-colors">
+          <h3 className="font-semibold text-gray-900 text-sm leading-tight group-hover:text-amber-600 transition-colors" 
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
+              }}>
             {book.title}
           </h3>
           
@@ -170,17 +176,17 @@ export default function BooksSection({
 
         {/* Author */}
         {book.authors && book.authors.length > 0 && (
-          <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
+          <div className="flex items-center gap-1 text-xs text-gray-600 mb-1.5">
             <Users size={10} />
             <span>{book.authors.slice(0, 2).join(', ')}</span>
             {book.authors.length > 2 && <span>+{book.authors.length - 2} more</span>}
           </div>
         )}
 
-        <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
-          {/* Publisher & Year */}
+        {/* Publisher & Year */}
+        <div className="flex items-center gap-2 text-xs text-gray-600 mb-1.5 flex-wrap">
           {book.publisher && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
               {book.publisher}
             </span>
           )}
@@ -188,13 +194,13 @@ export default function BooksSection({
           {book.year && (
             <div className="flex items-center gap-1">
               <Calendar size={10} />
-              {book.year}
+              <span>{book.year}</span>
             </div>
           )}
         </div>
 
         {/* Rating and Reviews */}
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
           {book.rating && book.rating > 0 && (
             <div className="flex items-center gap-1 text-xs text-amber-600">
               <Star size={10} className="fill-current" />
@@ -210,25 +216,32 @@ export default function BooksSection({
           )}
         </div>
 
-        {/* Page Count */}
-        {book.pageCount && (
-          <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
-            <FileText size={10} />
-            <span>{book.pageCount} pages</span>
-          </div>
-        )}
+        {/* Page Count & Categories */}
+        <div className="space-y-1">
+          {book.pageCount && (
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <FileText size={10} />
+              <span>{book.pageCount} pages</span>
+            </div>
+          )}
 
-        {/* Categories */}
-        {book.categories && book.categories.length > 0 && (
-          <div className="text-xs text-gray-500 mb-2">
-            {book.categories.slice(0, 2).join(', ')}
-            {book.categories.length > 2 && '...'}
-          </div>
-        )}
+          {book.categories && book.categories.length > 0 && (
+            <div className="text-xs text-gray-500">
+              {book.categories.slice(0, 2).join(', ')}
+              {book.categories.length > 2 && '...'}
+            </div>
+          )}
+        </div>
 
         {/* Description Preview */}
         {book.description && (
-          <p className="text-xs text-gray-600 line-clamp-2 mt-2">
+          <p className="text-xs text-gray-600 mt-2 leading-relaxed"
+             style={{
+               display: '-webkit-box',
+               WebkitLineClamp: 2,
+               WebkitBoxOrient: 'vertical',
+               overflow: 'hidden'
+             }}>
             {book.description}
           </p>
         )}

@@ -56,47 +56,17 @@ export default function BooksModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-40 overflow-y-auto">
-      {/* Background overlay */}
-      <div className="fixed inset-0 bg-white" />
-      
-      {/* Content wrapper with proper spacing for bottom nav */}
+    <div className="fixed inset-0 z-10 bg-white overflow-y-auto">
+      {/* Content wrapper with proper spacing for bottom nav (80px) */}
       <div className="min-h-screen pb-20">
-        <div className="w-full bg-gray-50 overflow-hidden">
-          {/* Header */}
-          <div className="sticky top-0 z-10 bg-gradient-to-r from-amber-600 to-orange-600 text-white p-4">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={onBackToSelection}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                title="Back to media selection"
-              >
-                <ArrowLeft size={20} />
-              </button>
-
-              <div className="flex-1">
-                <h2 className="text-xl font-bold">📚 Book Discovery</h2>
-              </div>
-              
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                title="Close"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-4">
-            <div className="max-w-7xl mx-auto">
-              <BooksSection
-                onAddToLibrary={handleAddToLibrary}
-                onOpenDetail={handleOpenDetail}
-                library={localLibrary}
-              />
-            </div>
+        {/* Content */}
+        <div className="p-4 pt-6">
+          <div className="max-w-7xl mx-auto">
+            <BooksSection
+              onAddToLibrary={handleAddToLibrary}
+              onOpenDetail={handleOpenDetail}
+              library={localLibrary}
+            />
           </div>
         </div>
       </div>
