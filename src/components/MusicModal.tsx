@@ -47,24 +47,9 @@ export default function MusicModal({
   }
 
   const handleOpenDetail = (item: any) => {
-    console.log('🎵 [MusicModal] Opening detail for:', item.name)
+    console.log('🎵 [MusicModal] Opening detail modal for:', item.name, 'ID:', item.id)
     
-    // Format duration for display
-    const duration = item.duration ? `${Math.floor(item.duration / 60)}:${(item.duration % 60).toString().padStart(2, '0')}` : 'Unknown'
-    
-    alert(
-      `Music detail modal for: ${item.name}\n\n` +
-      `Artist: ${item.artist || 'Unknown'}\n` +
-      `Album: ${item.album || 'Unknown'}\n` +
-      `Duration: ${duration}\n` +
-      `Genre: ${item.genre || 'Unknown'}\n` +
-      `Year: ${item.year || 'Unknown'}\n` +
-      `Popularity: ${item.popularity ? item.popularity + '%' : 'Unknown'}\n` +
-      `${item.explicit ? '⚠️ Explicit Content' : '✅ Clean'}\n` +
-      `${item.preview_url ? '🎵 Preview Available' : '🔇 No Preview'}`
-    )
-    
-    // Also call the parent function
+    // Call the parent function directly to open the modal
     onOpenDetail(item)
   }
 
