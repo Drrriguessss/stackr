@@ -14,7 +14,6 @@ import SearchModalV2 from '@/components/SearchModalV2'
 // All search modals removed - using unified SearchModal only
 import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
 import GamesModal from '@/components/GamesModal'
-import BooksModal from '@/components/BooksModal'
 import MusicModal from '@/components/MusicModal'
 import BoardGamesModal from '@/components/BoardGamesModal'
 // import MovieGoodModal from '@/components/MovieGoodModal' // OLD - not used
@@ -27,6 +26,7 @@ import ProfilePage from '@/components/ProfilePage'
 import FriendsPage from '@/components/FriendsPage'
 import GroupsPage from '@/components/GroupsPage'
 import ListsPage from '@/components/ListsPage'
+import BooksSection from '@/components/BooksSection'
 // import MoviesTVSectionV2 from '@/components/MoviesTVSectionV2' // Used in MoviesTVModalV2, not directly here
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
@@ -58,7 +58,6 @@ export default function Home() {
   const [isMoviesTVV2Open, setIsMoviesTVV2Open] = useState(false)
   // const [isMovieGoodOpen, setIsMovieGoodOpen] = useState(false) // OLD MovieGoodModal - not used
   const [isGamesOpen, setIsGamesOpen] = useState(false)
-  const [isBooksOpen, setIsBooksOpen] = useState(false)
   const [isMusicOpen, setIsMusicOpen] = useState(false)
   const [isBoardGamesOpen, setIsBoardGamesOpen] = useState(false)
   
@@ -847,7 +846,7 @@ export default function Home() {
                     </button>
                     
                     <button
-                      onClick={() => setIsBooksOpen(true)}
+                      onClick={() => setActiveMainTab('book-search')}
                       className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700"
                     >
                       <BookOpen className="-ml-1 mr-2 h-4 w-4" />
@@ -872,6 +871,18 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )
+      case 'book-search':
+        return (
+          <div className="bg-white min-h-screen pb-20">
+            <div className="px-4 sm:px-6 py-6">
+              <BooksSection
+                onAddToLibrary={handleAddToLibrary}
+                onOpenDetail={handleOpenBookDetail}
+                library={library}
+              />
             </div>
           </div>
         )
@@ -1157,17 +1168,6 @@ export default function Home() {
         library={library}
       />
 
-      <BooksModal
-        isOpen={isBooksOpen}
-        onClose={() => setIsBooksOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenDetail={handleOpenDetail}
-        onBackToSelection={() => {
-          setIsBooksOpen(false)
-          setIsMediaSelectionOpen(true)
-        }}
-        library={library}
-      />
 
       <MusicModal
         isOpen={isMusicOpen}
