@@ -581,7 +581,12 @@ class OptimalGamingAPI {
       ...this.calculateAdvancedScores(game, query, options)
     }))
 
-    // Apply sorting strategy
+    // Apply sorting strategy - prioritize recent games when boost is enabled
+    if (options.boostRecentGames && options.prioritizeRecent) {
+      // Force date-first sorting when boosting recent games
+      return this.sortByDateWithRelevance(scoredGames)
+    }
+    
     switch (options.sortBy) {
       case 'date':
         return this.sortByDateWithRelevance(scoredGames)
@@ -756,13 +761,18 @@ class OptimalGamingAPI {
    */
   private sortByMixedStrategy(games: OptimalGamingResult[]): OptimalGamingResult[] {
     return games.sort((a, b) => {
-      // 40% relevance, 30% quality, 20% recency, 10% popularity
-      const scoreA = ((a.titleScore || 0) * 0.4) + ((a.qualityScore || 0) * 0.3) + 
-                     ((a.recencyScore || 0) * 0.2) + ((a.popularityScore || 0) * 0.1)
-      const scoreB = ((b.titleScore || 0) * 0.4) + ((b.qualityScore || 0) * 0.3) + 
-                     ((b.recencyScore || 0) * 0.2) + ((b.popularityScore || 0) * 0.1)
+      // Enhanced mixed strategy: prioritize recent games more heavily
+      // 30% relevance, 25% quality, 35% recency, 10% popularity (boosted recency)
+      const scoreA = ((a.titleScore || 0) * 0.3) + ((a.qualityScore || 0) * 0.25) + 
+                     ((a.recencyScore || 0) * 0.35) + ((a.popularityScore || 0) * 0.1)
+      const scoreB = ((b.titleScore || 0) * 0.3) + ((b.qualityScore || 0) * 0.25) + 
+                     ((b.recencyScore || 0) * 0.35) + ((b.popularityScore || 0) * 0.1)
       
-      return scoreB - scoreA
+      // Additional boost for 2025+ games
+      const yearBoostA = (a.year && a.year >= 2025) ? 20 : 0
+      const yearBoostB = (b.year && b.year >= 2025) ? 20 : 0
+      
+      return (scoreB + yearBoostB) - (scoreA + yearBoostA)
     })
   }
 

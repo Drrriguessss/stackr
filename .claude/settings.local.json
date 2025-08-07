@@ -54,7 +54,8 @@
       "Bash(psql:*)",
       "Bash(npx supabase:*)",
       "Bash(del \"C:\\Users\\rgeoris\\Desktop\\stackr\\test-book-images.js\")",
-      "Bash(del nul)"
+      "Bash(del nul)",
+      "Bash(del test-assassins-creed.js test-simple-search.js)"
     ],
     "deny": []
   }
