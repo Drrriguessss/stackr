@@ -515,7 +515,6 @@ export default function Home() {
     setIsSearchOpen(false)
     setIsMoviesTVV2Open(false)
     setIsGamesOpen(false)
-    setIsBooksOpen(false)
     setIsMusicOpen(false)
     setIsBoardGamesOpen(false)
     
@@ -534,8 +533,12 @@ export default function Home() {
         setSelectedBookId(itemId)
         break
       case 'music':
-        console.log('🎵 Setting selectedMusicId:', itemId)
-        setSelectedMusicId(itemId)
+        console.log('🎵 Setting selectedMusicId - raw ID:', item.id, 'itemId:', itemId)
+        // For music, we need to preserve the full ID format (album-123456 or track-123456)
+        const musicId = item.id.startsWith('album-') || item.id.startsWith('track-') ? 
+          item.id : `track-${item.id}`
+        console.log('🎵 Final musicId:', musicId)
+        setSelectedMusicId(musicId)
         break
       case 'boardgames':
         console.log('🎲 Setting selectedBoardGameId:', itemId)
