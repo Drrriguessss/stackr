@@ -768,28 +768,30 @@ export default function SearchModal({
           </button>
         </div>
 
-        {/* Filtres de catégorie */}
-        <div className="flex space-x-2 p-4 border-b border-gray-100 overflow-x-auto">
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'games', label: 'Games' },
-            { key: 'movies', label: 'Movies & TV' },
-            { key: 'music', label: 'Music' },
-            { key: 'books', label: 'Books' }
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveCategory(key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
-                activeCategory === key
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Filtres de catégorie - masqués pour la recherche de livres */}
+        {activeCategory !== 'books' && (
+          <div className="flex space-x-2 p-4 border-b border-gray-100 overflow-x-auto">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'games', label: 'Games' },
+              { key: 'movies', label: 'Movies & TV' },
+              { key: 'music', label: 'Music' },
+              { key: 'books', label: 'Books' }
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setActiveCategory(key)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                  activeCategory === key
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Résultats */}
         <div className="max-h-96 overflow-y-auto" ref={resultsRef}>

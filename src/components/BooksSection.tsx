@@ -31,23 +31,23 @@ export default function BooksSection({
     searchBy: 'all' as 'title' | 'author' | 'isbn' | 'all'
   })
 
-  // Load trending content on mount
-  useEffect(() => {
-    loadTrendingContent()
-  }, [])
+  // Load trending content on mount - DISABLED
+  // useEffect(() => {
+  //   loadTrendingContent()
+  // }, [])
 
-  const loadTrendingContent = async () => {
-    setIsLoadingTrending(true)
-    try {
-      const trending = await optimalBooksAPI.getTrending('fiction')
-      setTrendingContent(trending)
-      console.log('📚 [BooksSection] Loaded trending:', trending.length, 'books')
-    } catch (error) {
-      console.error('📚 [BooksSection] Failed to load trending:', error)
-    } finally {
-      setIsLoadingTrending(false)
-    }
-  }
+  // const loadTrendingContent = async () => {
+  //   setIsLoadingTrending(true)
+  //   try {
+  //     const trending = await optimalBooksAPI.getTrending('fiction')
+  //     setTrendingContent(trending)
+  //     console.log('📚 [BooksSection] Loaded trending:', trending.length, 'books')
+  //   } catch (error) {
+  //     console.error('📚 [BooksSection] Failed to load trending:', error)
+  //   } finally {
+  //     setIsLoadingTrending(false)
+  //   }
+  // }
 
   const handleSearch = async (query: string, currentFilters = filters) => {
     if (query.length < 2) {
@@ -249,8 +249,8 @@ export default function BooksSection({
     </div>
   )
 
-  const displayContent = searchQuery.trim() ? searchResults : trendingContent
-  const isLoading = searchQuery.trim() ? isSearching : isLoadingTrending
+  const displayContent = searchResults
+  const isLoading = isSearching
 
   return (
     <div className="space-y-6">
@@ -261,8 +261,7 @@ export default function BooksSection({
             <BookOpen size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Books</h2>
-            <p className="text-sm text-gray-600">Powered by Google Books • Comprehensive library search</p>
+            <h2 className="text-xl font-bold text-gray-900">Book Discovery</h2>
           </div>
         </div>
       </div>
@@ -276,7 +275,7 @@ export default function BooksSection({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search books... (e.g., Harry Potter, Stephen King, programming)"
+              placeholder="Search books..."
               className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition-all"
             />
             {isSearching && (
@@ -285,166 +284,28 @@ export default function BooksSection({
               </div>
             )}
           </div>
-          
-          {/* Quick Category Filters */}
-          <select
-            value={filters.category}
-            onChange={(e) => handleFilterChange('category', e.target.value)}
-            className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
-          >
-            <option value="all">All Categories</option>
-            <option value="fiction">Fiction</option>
-            <option value="non-fiction">Non-Fiction</option>
-            <option value="romance">Romance</option>
-            <option value="mystery">Mystery</option>
-            <option value="science">Science</option>
-            <option value="history">History</option>
-            <option value="biography">Biography</option>
-          </select>
-
-          <button
-            onClick={() => handleFilterChange('showAdvancedFilters', !filters.showAdvancedFilters)}
-            className={`px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              filters.showAdvancedFilters 
-                ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Advanced
-          </button>
         </div>
-
-        {/* Advanced Filters Panel */}
-        {filters.showAdvancedFilters && (
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {/* Search Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search by
-                </label>
-                <select 
-                  value={filters.searchBy} 
-                  onChange={(e) => handleFilterChange('searchBy', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                >
-                  <option value="all">🔍 Everything</option>
-                  <option value="title">📖 Title Only</option>
-                  <option value="author">👤 Author Only</option>
-                  <option value="isbn">🏷️ ISBN</option>
-                </select>
-              </div>
-
-              {/* Sort Order */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sort by
-                </label>
-                <select 
-                  value={filters.orderBy} 
-                  onChange={(e) => handleFilterChange('orderBy', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                >
-                  <option value="relevance">🎯 Relevance</option>
-                  <option value="newest">📅 Newest First</option>
-                  <option value="oldest">📜 Oldest First</option>
-                </select>
-              </div>
-
-              {/* Minimum Rating */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Min Rating
-                </label>
-                <select 
-                  value={filters.minRating} 
-                  onChange={(e) => handleFilterChange('minRating', parseFloat(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                >
-                  <option value={0}>Any Rating</option>
-                  <option value={3.0}>3+ Stars</option>
-                  <option value={3.5}>3.5+ Stars</option>
-                  <option value={4.0}>4+ Stars</option>
-                  <option value={4.5}>4.5+ Stars</option>
-                </select>
-              </div>
-
-              {/* Language */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Language
-                </label>
-                <select 
-                  value={filters.language} 
-                  onChange={(e) => handleFilterChange('language', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                >
-                  <option value="en">🇺🇸 English</option>
-                  <option value="fr">🇫🇷 French</option>
-                  <option value="es">🇪🇸 Spanish</option>
-                  <option value="de">🇩🇪 German</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Content Section */}
       <div>
         {/* Section Title */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              {searchQuery.trim() 
-                ? `Search Results (${searchResults.length})` 
-                : 'Trending Fiction'
-              }
-            </h3>
-            
-            {/* Active filters indicator */}
-            {searchQuery.trim() && (
-              <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                <span>Sort: {
-                  filters.orderBy === 'relevance' ? '🎯 Relevance' :
-                  filters.orderBy === 'newest' ? '📅 Newest' :
-                  '📜 Oldest'
-                }</span>
-                
-                {filters.category !== 'all' && (
-                  <span>• Category: {filters.category}</span>
-                )}
-                
-                {filters.minRating > 0 && (
-                  <span>• Min Rating: {filters.minRating}+</span>
-                )}
-              </div>
-            )}
+        {searchQuery.trim() && (
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Search Results ({searchResults.length})
+              </h3>
+            </div>
           </div>
-          
-          <div className="text-right">
-            {(searchQuery.trim()) && (
-              <span className="text-sm text-gray-500">
-                Powered by Google Books
-              </span>
-            )}
-            
-            {displayContent.length > 0 && (
-              <div className="text-xs text-gray-400 mt-1">
-                Enhanced with intelligent ranking
-              </div>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Loading State */}
         {isLoading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <Loader2 className="animate-spin mx-auto mb-4 text-amber-500" size={32} />
-              <p className="text-gray-500">
-                {searchQuery.trim() ? 'Searching books...' : 'Loading trending books...'}
-              </p>
+              <p className="text-gray-500">Searching books...</p>
             </div>
           </div>
         )}
@@ -458,10 +319,19 @@ export default function BooksSection({
           </div>
         )}
 
-        {/* Results Grid */}
-        {!isLoading && displayContent.length > 0 && (
+        {/* Results Grid - only show when searching */}
+        {!isLoading && searchQuery.trim() && displayContent.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {displayContent.map(renderBookCard)}
+          </div>
+        )}
+        
+        {/* Welcome message when not searching */}
+        {!searchQuery.trim() && !isLoading && (
+          <div className="text-center py-12">
+            <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Start your book discovery</h3>
+            <p className="text-gray-500">Enter a book title, author name, or keyword to search millions of books</p>
           </div>
         )}
       </div>
