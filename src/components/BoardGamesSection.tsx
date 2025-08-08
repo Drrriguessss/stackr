@@ -534,6 +534,7 @@ export default function BoardGamesSection({
               </div>
             </div>
           </div>
+        </div>
         )}
 
         {/* Content Section - directement dans le même conteneur */}
