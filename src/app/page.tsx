@@ -820,72 +820,122 @@ export default function Home() {
         return renderDiscoverContent()
       case 'search':
         return (
-          <div className="bg-white min-h-screen">
-            <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-              <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900">Search</h1>
+          <div className="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#0f0f1e] pb-24">
+            <div className="container mx-auto max-w-2xl px-4 sm:px-6 py-10">
+              {/* Title with gradient text */}
+              <h1 className="text-5xl sm:text-6xl font-light text-center mb-12 tracking-tight">
+                <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                  Search
+                </span>
+              </h1>
+              
+              {/* Search Input with glassmorphism */}
+              <div className="relative mb-12">
+                <input
+                  type="text"
+                  placeholder="What are you looking for?"
+                  className="w-full px-6 py-5 pr-16 text-lg bg-white/5 backdrop-blur-lg border-2 border-white/10 rounded-2xl text-white placeholder-white/30 transition-all duration-300 focus:outline-none focus:bg-white/10 focus:border-white/30 focus:shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+                  autoFocus
+                />
+                <Search className="absolute right-6 top-1/2 -translate-y-1/2 w-7 h-7 text-white/50 pointer-events-none" />
               </div>
-            </div>
-            
-            <div className="px-4 sm:px-6 py-6 pb-24">
-              <div className="text-center py-12">
-                <Search className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">Unified Search</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Click the button below to search across all media types
-                </p>
-                <div className="mt-6 space-y-3">
-                  <button
-                    onClick={() => setIsSearchOpen(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Search className="-ml-1 mr-2 h-4 w-4" />
-                    Open Search
-                  </button>
+
+              {/* Category Buttons */}
+              <div className="flex flex-col gap-5">
+                {/* Movies/TV Shows Button */}
+                <button
+                  onClick={() => setIsMoviesTVV2Open(true)}
+                  className="group relative flex items-center p-6 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                >
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
-                  <div className="text-center space-y-3">
-                    <p className="text-xs text-gray-400 mb-2">or</p>
-                    <button
-                      onClick={() => setIsMoviesTVV2Open(true)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-                    >
-                      <Film className="-ml-1 mr-2 h-4 w-4" />
-                      Find a movie or a TV show
-                    </button>
-                    
-                    <button
-                      onClick={() => setIsGamesOpen(true)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                    >
-                      <Gamepad2 className="-ml-1 mr-2 h-4 w-4" />
-                      Find a game
-                    </button>
-                    
-                    <button
-                      onClick={() => setActiveMainTab('book-search')}
-                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700"
-                    >
-                      <BookOpen className="-ml-1 mr-2 h-4 w-4" />
-                      Find a book
-                    </button>
-                    
-                    <button
-                      onClick={() => setIsMusicOpen(true)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-                    >
-                      <Music className="-ml-1 mr-2 h-4 w-4" />
-                      Find music
-                    </button>
-                    
-                    <button
-                      onClick={() => setActiveMainTab('boardgame-search')}
-                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      <Dice6 className="-ml-1 mr-2 h-4 w-4" />
-                      Find board games
-                    </button>
+                  {/* Icon with gradient background */}
+                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center mr-5 sm:mr-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <Film className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                   </div>
-                </div>
+                  
+                  {/* Text */}
+                  <span className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                    Movies/TV Shows
+                  </span>
+                </button>
+
+                {/* Games Button */}
+                <button
+                  onClick={() => setIsGamesOpen(true)}
+                  className="group relative flex items-center p-6 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                >
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                  
+                  {/* Icon with gradient background */}
+                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#f093fb] to-[#f5576c] flex items-center justify-center mr-5 sm:mr-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <Gamepad2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                  </div>
+                  
+                  {/* Text */}
+                  <span className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                    Games
+                  </span>
+                </button>
+
+                {/* Books Button */}
+                <button
+                  onClick={() => setActiveMainTab('book-search')}
+                  className="group relative flex items-center p-6 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                >
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                  
+                  {/* Icon with gradient background */}
+                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#4facfe] to-[#00f2fe] flex items-center justify-center mr-5 sm:mr-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                  </div>
+                  
+                  {/* Text */}
+                  <span className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                    Books
+                  </span>
+                </button>
+
+                {/* Music Button */}
+                <button
+                  onClick={() => setIsMusicOpen(true)}
+                  className="group relative flex items-center p-6 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                >
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                  
+                  {/* Icon with gradient background */}
+                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#43e97b] to-[#38f9d7] flex items-center justify-center mr-5 sm:mr-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <Music className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                  </div>
+                  
+                  {/* Text */}
+                  <span className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                    Music
+                  </span>
+                </button>
+
+                {/* Board Games Button */}
+                <button
+                  onClick={() => setActiveMainTab('boardgame-search')}
+                  className="group relative flex items-center p-6 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                >
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                  
+                  {/* Icon with gradient background */}
+                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#fa709a] to-[#fee140] flex items-center justify-center mr-5 sm:mr-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <Dice6 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                  </div>
+                  
+                  {/* Text */}
+                  <span className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                    Board Games
+                  </span>
+                </button>
               </div>
             </div>
           </div>
