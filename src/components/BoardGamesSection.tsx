@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect, useMemo } from 'react'
-import { Gamepad2, Search, Loader2, Star, Calendar, Plus, Users, Clock, Award, Trophy, Zap, BookOpen } from 'lucide-react'
+import { Gamepad2, Search, Loader2, Star, Calendar, Plus, Users, Clock, Award, Trophy, Zap, BookOpen, ArrowLeft } from 'lucide-react'
 import { optimalBoardGameAPI, type OptimalBoardGameResult } from '@/services/optimalBoardGameAPI'
 import type { MediaStatus, LibraryItem } from '@/types'
 
@@ -351,9 +351,18 @@ export default function BoardGamesSection({
 
   return (
     <div className="w-full min-h-screen bg-black">
-      {/* Header Section avec dégradé violet comme la modal */}
-      <div className="w-full bg-gradient-to-b from-indigo-600 via-purple-700 to-black relative">
-        {/* Texture overlay comme la modal */}
+      {/* Header Section avec le MÊME dégradé que la modal */}
+      <div className="w-full relative min-h-[300px] overflow-hidden">
+        {/* Même Purple Gradient Background que la modal */}
+        <div 
+          className="absolute inset-0"
+          style={{ 
+            background: 'linear-gradient(to bottom, rgba(99, 102, 241, 0.4), rgba(126, 58, 242, 0.3), rgba(107, 33, 168, 0.2), rgba(15, 14, 23, 0.7))',
+            zIndex: 1
+          }}
+        />
+        
+        {/* Même Texture Overlay que la modal */}
         <div 
           className="absolute inset-0 opacity-20 pointer-events-none"
           style={{
@@ -361,8 +370,20 @@ export default function BoardGamesSection({
             zIndex: 2
           }}
         />
-        
-        <div className="w-full px-6 py-8 relative z-10">
+
+        {/* Contenu avec même z-index que la modal */}
+        <div className="px-5 py-6 relative z-30">
+          {/* Flèche retour en haut à gauche */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => window.history.back()}
+              className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div className="w-10 h-10 opacity-0">{/* Spacer */}</div>
+          </div>
+
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-white mb-2">Find Board Games</h1>
             <p className="text-white/80 text-sm">Enter a game title, designer name, or keyword to search thousands of board games</p>
@@ -407,192 +428,192 @@ export default function BoardGamesSection({
             </button>
           </div>
         
-        {/* Advanced Filters Panel - dans le header violet */}
-        {filters.showAdvancedFilters && (
-          <div className="w-full px-6 pb-6 relative z-10">
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Player Count */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Player Count
-                </label>
-                <div className="flex gap-2">
-                  <select 
-                    value={filters.minPlayers} 
-                    onChange={(e) => handleFilterChange('minPlayers', parseInt(e.target.value))}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  >
-                    {[1,2,3,4,5,6,7,8].map(n => (
-                      <option key={n} value={n}>{n}+</option>
-                    ))}
-                  </select>
-                  <span className="self-center text-gray-500">to</span>
-                  <select 
-                    value={filters.maxPlayers} 
-                    onChange={(e) => handleFilterChange('maxPlayers', parseInt(e.target.value))}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  >
-                    {[2,3,4,5,6,7,8,10,12].map(n => (
-                      <option key={n} value={n}>{n}</option>
-                    ))}
-                  </select>
+          {/* Advanced Filters si ouvert */}
+          {filters.showAdvancedFilters && (
+            <div className="mt-4">
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Player Count */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Player Count
+                    </label>
+                    <div className="flex gap-2">
+                      <select 
+                        value={filters.minPlayers} 
+                        onChange={(e) => handleFilterChange('minPlayers', parseInt(e.target.value))}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      >
+                        {[1,2,3,4,5,6,7,8].map(n => (
+                          <option key={n} value={n}>{n}+</option>
+                        ))}
+                      </select>
+                      <span className="self-center text-gray-500">to</span>
+                      <select 
+                        value={filters.maxPlayers} 
+                        onChange={(e) => handleFilterChange('maxPlayers', parseInt(e.target.value))}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      >
+                        {[2,3,4,5,6,7,8,10,12].map(n => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Play Time */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Play Time (minutes)
+                    </label>
+                    <div className="flex gap-2">
+                      <select 
+                        value={filters.minPlayTime} 
+                        onChange={(e) => handleFilterChange('minPlayTime', parseInt(e.target.value))}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value={0}>Any</option>
+                        <option value={15}>15+</option>
+                        <option value={30}>30+</option>
+                        <option value={60}>60+</option>
+                        <option value={90}>90+</option>
+                        <option value={120}>120+</option>
+                      </select>
+                      <span className="self-center text-gray-500">to</span>
+                      <select 
+                        value={filters.maxPlayTime} 
+                        onChange={(e) => handleFilterChange('maxPlayTime', parseInt(e.target.value))}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value={300}>Any</option>
+                        <option value={30}>30</option>
+                        <option value={60}>60</option>
+                        <option value={90}>90</option>
+                        <option value={120}>120</option>
+                        <option value={180}>180</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Complexity */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Complexity
+                    </label>
+                    <select 
+                      value={filters.complexity} 
+                      onChange={(e) => handleFilterChange('complexity', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="all">All Levels</option>
+                      <option value="light">Light (1-2)</option>
+                      <option value="medium">Medium (2-4)</option>
+                      <option value="heavy">Heavy (4+)</option>
+                    </select>
+                  </div>
+
+                  {/* Minimum Rating */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Min Rating
+                    </label>
+                    <select 
+                      value={filters.minRating} 
+                      onChange={(e) => handleFilterChange('minRating', parseFloat(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value={0}>Any Rating</option>
+                      <option value={3.0}>3+ Stars</option>
+                      <option value={3.5}>3.5+ Stars</option>
+                      <option value={4.0}>4+ Stars</option>
+                      <option value={4.5}>4.5+ Stars</option>
+                    </select>
+                  </div>
+
+                  {/* Minimum Year */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Min Year
+                    </label>
+                    <select 
+                      value={filters.minYear} 
+                      onChange={(e) => handleFilterChange('minYear', parseInt(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value={1990}>Any Year</option>
+                      <option value={2020}>2020+</option>
+                      <option value={2015}>2015+</option>
+                      <option value={2010}>2010+</option>
+                      <option value={2000}>2000+</option>
+                    </select>
+                  </div>
+
+                  {/* Include Expansions */}
+                  <div className="flex items-center">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={filters.includeExpansions}
+                        onChange={(e) => handleFilterChange('includeExpansions', e.target.checked)}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-white">Include expansions</span>
+                    </label>
+                  </div>
                 </div>
-              </div>
-
-              {/* Play Time */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Play Time (minutes)
-                </label>
-                <div className="flex gap-2">
-                  <select 
-                    value={filters.minPlayTime} 
-                    onChange={(e) => handleFilterChange('minPlayTime', parseInt(e.target.value))}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value={0}>Any</option>
-                    <option value={15}>15+</option>
-                    <option value={30}>30+</option>
-                    <option value={60}>60+</option>
-                    <option value={90}>90+</option>
-                    <option value={120}>120+</option>
-                  </select>
-                  <span className="self-center text-gray-500">to</span>
-                  <select 
-                    value={filters.maxPlayTime} 
-                    onChange={(e) => handleFilterChange('maxPlayTime', parseInt(e.target.value))}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value={300}>Any</option>
-                    <option value={30}>30</option>
-                    <option value={60}>60</option>
-                    <option value={90}>90</option>
-                    <option value={120}>120</option>
-                    <option value={180}>180</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Complexity */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Complexity
-                </label>
-                <select 
-                  value={filters.complexity} 
-                  onChange={(e) => handleFilterChange('complexity', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="all">All Levels</option>
-                  <option value="light">Light (1-2)</option>
-                  <option value="medium">Medium (2-4)</option>
-                  <option value="heavy">Heavy (4+)</option>
-                </select>
-              </div>
-
-              {/* Minimum Rating */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Min Rating
-                </label>
-                <select 
-                  value={filters.minRating} 
-                  onChange={(e) => handleFilterChange('minRating', parseFloat(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value={0}>Any Rating</option>
-                  <option value={3.0}>3+ Stars</option>
-                  <option value={3.5}>3.5+ Stars</option>
-                  <option value={4.0}>4+ Stars</option>
-                  <option value={4.5}>4.5+ Stars</option>
-                </select>
-              </div>
-
-              {/* Minimum Year */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Min Year
-                </label>
-                <select 
-                  value={filters.minYear} 
-                  onChange={(e) => handleFilterChange('minYear', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value={1990}>Any Year</option>
-                  <option value={2020}>2020+</option>
-                  <option value={2015}>2015+</option>
-                  <option value={2010}>2010+</option>
-                  <option value={2000}>2000+</option>
-                </select>
-              </div>
-
-              {/* Include Expansions */}
-              <div className="flex items-center">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={filters.includeExpansions}
-                    onChange={(e) => handleFilterChange('includeExpansions', e.target.checked)}
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-white">Include expansions</span>
-                </label>
               </div>
             </div>
-          </div>
+          )}
         </div>
-        )}
       </div>
 
-      {/* Content Section - fond noir pur */}
-      <div className="w-full bg-black min-h-screen px-6 py-6">
-          {/* Trending Section */}
-          {!searchQuery.trim() && (
-            <div className="mb-8">
-              <h2 className="text-xl font-bold text-white mb-6">Trending Board Games</h2>
-              
-              {!isLoading && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {displayContent.map(renderBoardGameCard)}
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Search Results */}
-          {searchQuery.trim() && (
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                Search Results ({searchResults.length})
-              </h3>
-              
-              {!isLoading && displayContent.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {displayContent.map(renderBoardGameCard)}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Loading et No Results states */}
-          {isLoading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <Loader2 className="animate-spin mx-auto mb-4 text-purple-400" size={32} />
-                <p className="text-gray-400">Searching games...</p>
+      {/* Content Section - fond noir pur comme la modal */}
+      <div className="w-full bg-[#0f0e17] min-h-screen px-6 py-6">
+        {/* Trending Section */}
+        {!searchQuery.trim() && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-white mb-6">Trending Board Games</h2>
+            
+            {!isLoading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {displayContent.map(renderBoardGameCard)}
               </div>
+            )}
+          </div>
+        )}
+        
+        {/* Search Results */}
+        {searchQuery.trim() && (
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Search Results ({searchResults.length})
+            </h3>
+            
+            {!isLoading && displayContent.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {displayContent.map(renderBoardGameCard)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Loading et No Results states */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="animate-spin mx-auto mb-4 text-purple-400" size={32} />
+              <p className="text-gray-400">Searching games...</p>
             </div>
-          )}
-          
-          {!isLoading && displayContent.length === 0 && searchQuery.trim() && (
-            <div className="text-center py-12">
-              <Search size={48} className="mx-auto mb-4 text-gray-500" />
-              <h3 className="text-lg font-semibold text-white mb-2">No games found</h3>
-              <p className="text-gray-400">Try a different title, designer, or genre</p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+        
+        {!isLoading && displayContent.length === 0 && searchQuery.trim() && (
+          <div className="text-center py-12">
+            <Search size={48} className="mx-auto mb-4 text-gray-500" />
+            <h3 className="text-lg font-semibold text-white mb-2">No games found</h3>
+            <p className="text-gray-400">Try a different title, designer, or genre</p>
+          </div>
+        )}
       </div>
     </div>
   )
