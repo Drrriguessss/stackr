@@ -497,6 +497,12 @@ export default function Home() {
     setSelectedGameId(normalizedGameId)
   }
 
+  const handleOpenBoardGameDetail = (gameId: string) => {
+    const normalizedGameId = normalizeId(gameId)
+    setSelectedBoardGameId(normalizedGameId)
+    setActiveMainTab('boardgame-detail')
+  }
+
   const handleOpenMovieDetail = (movieId: string) => {
     const normalizedMovieId = normalizeId(movieId)
     setSelectedMovieId(normalizedMovieId)
@@ -1084,6 +1090,7 @@ export default function Home() {
       onUpdateItem={handleUpdateItem}
       onDeleteItem={handleDeleteItem}
       onOpenGameDetail={handleOpenGameDetail}
+      onOpenBoardGameDetail={handleOpenBoardGameDetail}
       onOpenMovieDetail={handleOpenMovieDetail}
       onOpenBookDetail={handleOpenBookDetail}
       onOpenMusicDetail={handleOpenMusicDetail}

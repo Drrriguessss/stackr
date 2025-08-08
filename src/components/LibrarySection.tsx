@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus, Download, Grid3X3, List } from 'lucide-react'
 
 // Types
-type MediaCategory = 'games' | 'movies' | 'music' | 'books'
+type MediaCategory = 'games' | 'movies' | 'music' | 'books' | 'boardgames'
 type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
 type SortOption = 'date_added' | 'date_updated' | 'title' | 'creator' | 'average_rating' | 'number_of_ratings' | 'release_year'
 
@@ -49,6 +49,7 @@ interface LibrarySectionProps {
   onUpdateItem?: (id: string, updates: Partial<LibraryItem>) => void
   onDeleteItem?: (id: string) => void
   onOpenGameDetail?: (gameId: string) => void
+  onOpenBoardGameDetail?: (gameId: string) => void
   onOpenMovieDetail?: (movieId: string) => void
   onOpenBookDetail?: (bookId: string) => void
   onOpenMusicDetail?: (musicId: string) => void
@@ -375,6 +376,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   onUpdateItem,
   onDeleteItem,
   onOpenGameDetail,
+  onOpenBoardGameDetail,
   onOpenMovieDetail,
   onOpenBookDetail,
   onOpenMusicDetail,
@@ -721,12 +723,17 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   // ✅ FONCTIONS DE NAVIGATION VERS LES FICHES PRODUITS
   const handleItemClick = (item: LibraryItem) => {
     // Nettoyer l'ID pour retirer les préfixes
-    const cleanId = item.id?.replace(/^(game-|movie-|music-|book-)/, '') || ''
+    const cleanId = item.id?.replace(/^(game-|movie-|music-|book-|boardgame-)/, '') || ''
     
     switch (item.category) {
       case 'games':
         if (onOpenGameDetail) {
           onOpenGameDetail(cleanId)
+        }
+        break
+      case 'boardgames':
+        if (onOpenBoardGameDetail) {
+          onOpenBoardGameDetail(cleanId)
         }
         break
       case 'movies':
