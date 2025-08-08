@@ -1026,7 +1026,7 @@ export default function BoardGameDetailPage({
               </div>
               
               {/* Play Details */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Play Date</label>
                   <input
@@ -1045,6 +1045,27 @@ export default function BoardGameDetailPage({
                     onChange={(e) => setGameSheetData(prev => ({ ...prev, location: e.target.value }))}
                     className="w-full bg-black/20 border border-purple-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-purple-400"
                   />
+                </div>
+              </div>
+              
+              {/* Friends Played With */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Friends Played With</label>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {selectedFriends.map((friend) => (
+                    <div key={friend.id} className="flex items-center justify-between p-2 bg-black/20 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs">
+                          {friend.name.charAt(0)}
+                        </div>
+                        <span className="text-white text-sm">{friend.name}</span>
+                      </div>
+                      <button onClick={() => toggleFriend(friend)} className="text-red-400 text-xs">Remove</button>
+                    </div>
+                  ))}
+                  {selectedFriends.length === 0 && (
+                    <p className="text-gray-500 text-sm">No friends selected</p>
+                  )}
                 </div>
               </div>
               
