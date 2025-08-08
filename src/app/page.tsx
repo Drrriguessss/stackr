@@ -820,43 +820,32 @@ export default function Home() {
         return renderDiscoverContent()
       case 'search':
         return (
-          <div className="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#0f0f1e] pb-24">
-            <div className="container mx-auto max-w-2xl px-4 sm:px-6 py-10">
-              {/* Title with gradient text */}
-              <h1 className="text-5xl sm:text-6xl font-light text-center mb-12 tracking-tight">
-                <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+          <div className="min-h-screen bg-gradient-to-b from-indigo-900 via-purple-900 to-purple-800 flex flex-col">
+            <div className="container mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-8 flex-1 flex flex-col">
+              {/* Title with gradient text - smaller on mobile */}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light text-center mb-6 sm:mb-8 tracking-tight">
+                <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                   Search
                 </span>
               </h1>
               
-              {/* Search Input with glassmorphism */}
-              <div className="relative mb-12">
-                <input
-                  type="text"
-                  placeholder="What are you looking for?"
-                  className="w-full px-6 py-5 pr-16 text-lg bg-white/5 backdrop-blur-lg border-2 border-white/10 rounded-2xl text-white placeholder-white/30 transition-all duration-300 focus:outline-none focus:bg-white/10 focus:border-white/30 focus:shadow-[0_0_30px_rgba(255,255,255,0.1)]"
-                  autoFocus
-                />
-                <Search className="absolute right-6 top-1/2 -translate-y-1/2 w-7 h-7 text-white/50 pointer-events-none" />
-              </div>
-
-              {/* Category Buttons */}
-              <div className="flex flex-col gap-5">
-                {/* Movies/TV Shows Button */}
+              {/* Category Buttons - optimized for mobile to fit all 5 without scrolling */}
+              <div className="flex flex-col gap-3 sm:gap-4 flex-1 justify-center">
+                {/* Movies/TV Shows Button - Changed to orange/red gradient */}
                 <button
                   onClick={() => setIsMoviesTVV2Open(true)}
-                  className="group relative flex items-center p-6 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                  className="group relative flex items-center p-3 sm:p-4 lg:p-5 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
                 >
                   {/* Shimmer effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
-                  {/* Icon with gradient background */}
-                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center mr-5 sm:mr-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                    <Film className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                  {/* Icon with orange/red gradient */}
+                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#ff6b6b] to-[#c92a2a] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <Film className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
-                  {/* Text */}
-                  <span className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                  {/* Text - smaller on mobile */}
+                  <span className="text-base sm:text-lg lg:text-xl font-light text-white tracking-tight">
                     Movies/TV Shows
                   </span>
                 </button>
@@ -864,18 +853,18 @@ export default function Home() {
                 {/* Games Button */}
                 <button
                   onClick={() => setIsGamesOpen(true)}
-                  className="group relative flex items-center p-6 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                  className="group relative flex items-center p-3 sm:p-4 lg:p-5 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
                 >
                   {/* Shimmer effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
                   {/* Icon with gradient background */}
-                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#f093fb] to-[#f5576c] flex items-center justify-center mr-5 sm:mr-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                    <Gamepad2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#f093fb] to-[#f5576c] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
-                  {/* Text */}
-                  <span className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                  {/* Text - smaller on mobile */}
+                  <span className="text-base sm:text-lg lg:text-xl font-light text-white tracking-tight">
                     Games
                   </span>
                 </button>
@@ -883,18 +872,18 @@ export default function Home() {
                 {/* Books Button */}
                 <button
                   onClick={() => setActiveMainTab('book-search')}
-                  className="group relative flex items-center p-6 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                  className="group relative flex items-center p-3 sm:p-4 lg:p-5 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
                 >
                   {/* Shimmer effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
                   {/* Icon with gradient background */}
-                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#4facfe] to-[#00f2fe] flex items-center justify-center mr-5 sm:mr-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                    <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#4facfe] to-[#00f2fe] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
-                  {/* Text */}
-                  <span className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                  {/* Text - smaller on mobile */}
+                  <span className="text-base sm:text-lg lg:text-xl font-light text-white tracking-tight">
                     Books
                   </span>
                 </button>
@@ -902,41 +891,44 @@ export default function Home() {
                 {/* Music Button */}
                 <button
                   onClick={() => setIsMusicOpen(true)}
-                  className="group relative flex items-center p-6 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                  className="group relative flex items-center p-3 sm:p-4 lg:p-5 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
                 >
                   {/* Shimmer effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
                   {/* Icon with gradient background */}
-                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#43e97b] to-[#38f9d7] flex items-center justify-center mr-5 sm:mr-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                    <Music className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#43e97b] to-[#38f9d7] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <Music className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
-                  {/* Text */}
-                  <span className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                  {/* Text - smaller on mobile */}
+                  <span className="text-base sm:text-lg lg:text-xl font-light text-white tracking-tight">
                     Music
                   </span>
                 </button>
 
-                {/* Board Games Button */}
+                {/* Board Games Button - Changed to purple/violet gradient */}
                 <button
                   onClick={() => setActiveMainTab('boardgame-search')}
-                  className="group relative flex items-center p-6 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                  className="group relative flex items-center p-3 sm:p-4 lg:p-5 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
                 >
                   {/* Shimmer effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
-                  {/* Icon with gradient background */}
-                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#fa709a] to-[#fee140] flex items-center justify-center mr-5 sm:mr-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                    <Dice6 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                  {/* Icon with purple/violet gradient */}
+                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <Dice6 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
-                  {/* Text */}
-                  <span className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                  {/* Text - smaller on mobile */}
+                  <span className="text-base sm:text-lg lg:text-xl font-light text-white tracking-tight">
                     Board Games
                   </span>
                 </button>
               </div>
+
+              {/* Spacer for bottom navigation */}
+              <div className="h-20 sm:hidden"></div>
             </div>
           </div>
         )
