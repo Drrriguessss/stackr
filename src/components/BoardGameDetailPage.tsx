@@ -4,6 +4,7 @@ import { ArrowLeft, Star, Send, ChevronDown, Share, ExternalLink, Award, Trophy,
 import { optimalBoardGameAPI, type OptimalBoardGameResult } from '@/services/optimalBoardGameAPI'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { userReviewsService } from '@/services/userReviewsService'
+import { socialService } from '@/services/socialService'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 
 interface BoardGameDetailPageProps {
@@ -56,6 +57,9 @@ export default function BoardGameDetailPage({
   const [friendsSearch, setFriendsSearch] = useState('')
   const [showGameSheet, setShowGameSheet] = useState(false)
   const [showFriendsWhoPlayedModal, setShowFriendsWhoPlayedModal] = useState(false)
+  const [showFriendsSelector, setShowFriendsSelector] = useState(false)
+  const [userFriends, setUserFriends] = useState<any[]>([])
+  const [loadingFriends, setLoadingFriends] = useState(false)
   const [currentUserReview, setCurrentUserReview] = useState<any>(null)
   const [gameSheetData, setGameSheetData] = useState({
     playDate: '',
@@ -485,6 +489,32 @@ export default function BoardGameDetailPage({
     })
   }
 
+  const loadUserFriends = async () => {
+    if (userFriends.length > 0) return // Already loaded
+    
+    setLoadingFriends(true)
+    try {
+      const friends = await socialService.getFriends()
+      setUserFriends(friends.map(friend => ({
+        id: friend.friend_id,
+        name: friend.display_name || friend.username || 'Friend',
+        avatar: friend.avatar_url
+      })))
+    } catch (error) {
+      console.error('Error loading friends:', error)
+    } finally {
+      setLoadingFriends(false)
+    }
+  }
+
+  const addFriendToGame = (friend: any) => {
+    const isAlreadySelected = selectedFriends.some(f => f.id === friend.id)
+    if (!isAlreadySelected) {
+      setSelectedFriends(prev => [...prev, friend])
+    }
+    setShowFriendsSelector(false)
+  }
+
   const handleStatusSelect = (status: MediaStatus) => {
     console.log('🎲 [BoardGame] handleStatusSelect called with status:', status)
     console.log('🎲 [BoardGame] gameDetail exists:', !!gameDetail)
@@ -726,7 +756,7 @@ export default function BoardGameDetailPage({
                       className="text-purple-400 hover:text-purple-300 text-sm transition-colors flex items-center space-x-1"
                     >
                       <FileText size={14} />
-                      <span>Customize this game sheet</span>
+                      <span>Customize this board game sheet</span>
                     </button>
                   </div>
                 </div>
@@ -1000,8 +1030,8 @@ export default function BoardGameDetailPage({
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-[#1A1A1A] rounded-2xl border border-purple-500/30 max-w-2xl w-full max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-purple-500/30">
-              <h3 className="text-xl font-semibold text-white mb-2">Game Sheet</h3>
-              <p className="text-gray-400 text-sm">Track your gaming experience</p>
+              <h3 className="text-xl font-semibold text-white mb-2">Board Game Sheet</h3>
+              <p className="text-gray-400 text-sm">Track your board gaming experience</p>
             </div>
             
             <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
@@ -1050,7 +1080,18 @@ export default function BoardGameDetailPage({
               
               {/* Friends Played With */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Friends Played With</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-300">Friends Played With</label>
+                  <button
+                    onClick={() => {
+                      loadUserFriends()
+                      setShowFriendsSelector(true)
+                    }}
+                    className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded transition-colors"
+                  >
+                    Add Friends
+                  </button>
+                </div>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {selectedFriends.map((friend) => (
                     <div key={friend.id} className="flex items-center justify-between p-2 bg-black/20 rounded-lg">
@@ -1067,6 +1108,56 @@ export default function BoardGameDetailPage({
                     <p className="text-gray-500 text-sm">No friends selected</p>
                   )}
                 </div>
+                
+                {/* Friends Selector Modal */}
+                {showFriendsSelector && (
+                  <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
+                    <div className="bg-[#1A1A1A] rounded-lg border border-purple-500/30 max-w-sm w-full max-h-96 overflow-hidden">
+                      <div className="p-4 border-b border-purple-500/30">
+                        <h4 className="text-lg font-semibold text-white">Select Friends</h4>
+                      </div>
+                      <div className="p-4 max-h-64 overflow-y-auto">
+                        {loadingFriends ? (
+                          <p className="text-gray-400 text-center">Loading friends...</p>
+                        ) : userFriends.length > 0 ? (
+                          <div className="space-y-2">
+                            {userFriends.map((friend) => {
+                              const isAlreadySelected = selectedFriends.some(f => f.id === friend.id)
+                              return (
+                                <button
+                                  key={friend.id}
+                                  onClick={() => addFriendToGame(friend)}
+                                  disabled={isAlreadySelected}
+                                  className={`w-full flex items-center space-x-3 p-2 rounded-lg text-left transition-colors ${
+                                    isAlreadySelected 
+                                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                                      : 'bg-black/20 hover:bg-black/40 text-white'
+                                  }`}
+                                >
+                                  <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm">
+                                    {friend.name.charAt(0)}
+                                  </div>
+                                  <span className="text-sm">{friend.name}</span>
+                                  {isAlreadySelected && <span className="text-xs ml-auto">✓ Added</span>}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-center">No friends found</p>
+                        )}
+                      </div>
+                      <div className="p-4 border-t border-purple-500/30">
+                        <button
+                          onClick={() => setShowFriendsSelector(false)}
+                          className="w-full py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Rating */}
@@ -1119,7 +1210,7 @@ export default function BoardGameDetailPage({
                 }}
                 className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200"
               >
-                Save Game Sheet
+                Save Board Game Sheet
               </button>
             </div>
           </div>
