@@ -137,79 +137,196 @@ export default function BoardGameDetailModal({
     try {
       console.log('🎲 Fetching board game details for ID:', gameId)
       
-      // For now, we'll use the search API to get game details
-      // In a real implementation, we'd have a dedicated getGameDetails method
-      const results = await optimalBoardGameAPI.search('', { limit: 1 })
+      // First, try to get the game details from the BoardGameGeek API
+      // We'll use the public API with proper error handling
+      const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${gameId}&type=boardgame&stats=1`)
       
-      // Find the specific game or create a mock detail
-      const mockDetail: BoardGameDetail = {
-        id: gameId,
-        source: 'bgg',
-        name: 'Wingspan',
-        description: 'Wingspan is a competitive, medium-weight, card-driven, engine-building board game from Stonemaier Games. It\'s designed by Elizabeth Hargrave and features over 170 birds. You are bird enthusiasts—researchers, bird watchers, ornithologists, and collectors—seeking to discover and attract the best birds to your network of wildlife preserves.',
-        image: 'https://cf.geekdo-images.com/yLZJCVLlIx4c7eJEWUNJ7w__original/img/Tbuekp-THutKGiv0Mxlpckt_2_8=/0x0/filters:format(jpeg)/pic4458123.jpg',
-        thumbnail: 'https://cf.geekdo-images.com/yLZJCVLlIx4c7eJEWUNJ7w__thumb/img/fWqzlSKOJmCuPJ3xp79ENYLwfsg=/fit-in/200x150/filters:strip_icc()/pic4458123.jpg',
-        yearPublished: 2019,
-        minPlayers: 1,
-        maxPlayers: 5,
-        playingTime: 70,
-        minPlayTime: 40,
-        maxPlayTime: 70,
-        minAge: 10,
-        rating: 4.1,
-        bggRating: 8.2,
-        ratingsCount: 45000,
-        usersRated: 45000,
-        bayesAverage: 8.0,
-        weight: 2.44,
-        rank: 8,
-        categories: [
-          { id: '1002', name: 'Card Game' },
-          { id: '1089', name: 'Animals' }
-        ],
-        mechanics: [
-          { id: '2041', name: 'Card Drafting' },
-          { id: '2004', name: 'Set Collection' },
-          { id: '2082', name: 'Worker Placement' }
-        ],
-        designers: [
-          { id: '115406', name: 'Elizabeth Hargrave' }
-        ],
-        artists: [
-          { id: '42166', name: 'Natalia Rojas' },
-          { id: '87794', name: 'Ana Maria Martinez Jaramillo' }
-        ],
-        publishers: [
-          { id: '23202', name: 'Stonemaier Games' }
-        ],
-        families: [],
-        title: 'Wingspan',
-        author: 'Elizabeth Hargrave',
-        category: 'boardgames',
-        type: 'boardgame',
-        overview: 'Wingspan is a competitive, medium-weight, card-driven, engine-building board game from Stonemaier Games.',
-        year: 2019,
-        genre: 'Card Game',
-        owned: 35000,
-        complexity: 'Medium-Light',
-        playerCountText: '1-5 players',
-        playTimeText: '40-70 minutes',
-        ageText: '10+',
-        bggUrl: 'https://boardgamegeek.com/boardgame/266192/wingspan'
+      if (!response.ok) {
+        throw new Error(`BGG API error: ${response.status}`)
       }
-
-      setGameDetail(mockDetail)
-      console.log('🎲 Board game detail loaded:', mockDetail)
+      
+      const xmlText = await response.text()
+      
+      // Check for BGG's "202 Accepted" response (means request is processing)
+      if (xmlText.includes('Your request for this collection has been accepted')) {
+        console.log('🎲 BGG returned 202 processing response, waiting 2 seconds and retrying...')
+        
+        // Wait 2 seconds and try again
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        const retryResponse = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${gameId}&type=boardgame&stats=1`)
+        
+        if (retryResponse.ok) {
+          const retryXml = await retryResponse.text()
+          if (!retryXml.includes('Your request for this collection has been accepted')) {
+            const gameData = parseGameXML(retryXml, gameId)
+            if (gameData) {
+              setGameDetail(gameData)
+              console.log('🎲 Board game detail loaded after retry:', gameData.name)
+            } else {
+              throw new Error('Failed to parse game data after retry')
+            }
+          } else {
+            throw new Error('BGG still processing request after retry')
+          }
+        } else {
+          throw new Error('Retry request failed')
+        }
+      } else {
+        // Parse the XML directly
+        const gameData = parseGameXML(xmlText, gameId)
+        if (gameData) {
+          setGameDetail(gameData)
+          console.log('🎲 Board game detail loaded:', gameData.name)
+        } else {
+          throw new Error('Failed to parse game data')
+        }
+      }
       
       // Reset les états de chargement
       setSimilarGamesLoaded(false)
       setDesignerGamesLoaded(false)
       
     } catch (error) {
-      console.error('Erreur lors du chargement des détails:', error)
+      console.error('🎲 Error loading board game details:', error)
       setGameDetail(null)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Helper function to parse BGG XML response
+  const parseGameXML = (xmlText: string, id: string): BoardGameDetail | null => {
+    try {
+      // Extract basic game information from XML
+      const primaryNameMatch = xmlText.match(/<name[^>]*type="primary"[^>]*value="([^"]*)"/)
+      const yearMatch = xmlText.match(/<yearpublished[^>]*value="([^"]*)"/)
+      const descriptionMatch = xmlText.match(/<description[^>]*>([\s\S]*?)<\/description>/)
+      const imageMatch = xmlText.match(/<image[^>]*>([\s\S]*?)<\/image>/)
+      const thumbnailMatch = xmlText.match(/<thumbnail[^>]*>([\s\S]*?)<\/thumbnail>/)
+      
+      // Player and time info
+      const minPlayersMatch = xmlText.match(/<minplayers[^>]*value="([^"]*)"/)
+      const maxPlayersMatch = xmlText.match(/<maxplayers[^>]*value="([^"]*)"/)
+      const playingTimeMatch = xmlText.match(/<playingtime[^>]*value="([^"]*)"/)
+      const minPlayTimeMatch = xmlText.match(/<minplaytime[^>]*value="([^"]*)"/)
+      const maxPlayTimeMatch = xmlText.match(/<maxplaytime[^>]*value="([^"]*)"/)
+      const minAgeMatch = xmlText.match(/<minage[^>]*value="([^"]*)"/)
+      
+      // Statistics
+      const averageMatch = xmlText.match(/<average[^>]*value="([^"]*)"/)
+      const usersRatedMatch = xmlText.match(/<usersrated[^>]*value="([^"]*)"/)
+      const rankMatch = xmlText.match(/<rank[^>]*name="boardgame"[^>]*value="([^"]*)"/)
+      const averageWeightMatch = xmlText.match(/<averageweight[^>]*value="([^"]*)"/)
+      
+      // Extract designers
+      const designerMatches = xmlText.match(/<link[^>]*type="boardgamedesigner"[^>]*id="([^"]*)"[^>]*value="([^"]*)"/g)
+      const designers = designerMatches?.map(match => {
+        const idMatch = match.match(/id="([^"]*)"/)
+        const nameMatch = match.match(/value="([^"]*)"/)
+        return { id: idMatch?.[1] || '', name: nameMatch?.[1] || '' }
+      }) || []
+      
+      // Extract categories
+      const categoryMatches = xmlText.match(/<link[^>]*type="boardgamecategory"[^>]*id="([^"]*)"[^>]*value="([^"]*)"/g)
+      const categories = categoryMatches?.map(match => {
+        const idMatch = match.match(/id="([^"]*)"/)
+        const nameMatch = match.match(/value="([^"]*)"/)
+        return { id: idMatch?.[1] || '', name: nameMatch?.[1] || '' }
+      }) || []
+      
+      const name = primaryNameMatch?.[1] || ''
+      if (!name) {
+        console.error('🎲 No primary name found in XML for game ID:', id)
+        return null
+      }
+      
+      const yearPublished = yearMatch ? parseInt(yearMatch[1]) : undefined
+      const minPlayers = minPlayersMatch ? parseInt(minPlayersMatch[1]) : undefined
+      const maxPlayers = maxPlayersMatch ? parseInt(maxPlayersMatch[1]) : undefined
+      const playingTime = playingTimeMatch ? parseInt(playingTimeMatch[1]) : undefined
+      const minPlayTime = minPlayTimeMatch ? parseInt(minPlayTimeMatch[1]) : undefined
+      const maxPlayTime = maxPlayTimeMatch ? parseInt(maxPlayTimeMatch[1]) : undefined
+      const minAge = minAgeMatch ? parseInt(minAgeMatch[1]) : undefined
+      const bggRating = averageMatch ? parseFloat(averageMatch[1]) : undefined
+      const rating = bggRating ? Math.min(5, Math.max(0, bggRating / 2)) : undefined
+      const usersRated = usersRatedMatch ? parseInt(usersRatedMatch[1]) : undefined
+      const rank = rankMatch && rankMatch[1] !== 'Not Ranked' ? parseInt(rankMatch[1]) : undefined
+      const weight = averageWeightMatch ? parseFloat(averageWeightMatch[1]) : undefined
+      
+      const complexity = weight 
+        ? weight <= 2.0 ? 'Light'
+          : weight <= 3.0 ? 'Medium-Light'
+          : weight <= 4.0 ? 'Medium'
+          : weight <= 4.5 ? 'Medium-Heavy'
+          : 'Heavy'
+        : undefined
+      
+      const playerCountText = minPlayers && maxPlayers
+        ? minPlayers === maxPlayers ? `${minPlayers} player${minPlayers !== 1 ? 's' : ''}`
+          : `${minPlayers}-${maxPlayers} players`
+        : undefined
+      
+      const playTimeText = playingTime 
+        ? `${playingTime} minutes`
+        : minPlayTime && maxPlayTime && minPlayTime !== maxPlayTime
+        ? `${minPlayTime}-${maxPlayTime} minutes`
+        : minPlayTime ? `${minPlayTime}+ minutes`
+        : undefined
+      
+      // Clean up description
+      let description = ''
+      if (descriptionMatch) {
+        description = descriptionMatch[1]
+          .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .trim()
+      }
+      
+      return {
+        id,
+        source: 'bgg',
+        name,
+        description,
+        image: imageMatch?.[1]?.trim() || '',
+        thumbnail: thumbnailMatch?.[1]?.trim() || '',
+        yearPublished,
+        minPlayers,
+        maxPlayers,
+        playingTime,
+        minPlayTime,
+        maxPlayTime,
+        minAge,
+        rating,
+        bggRating,
+        ratingsCount: usersRated,
+        usersRated,
+        weight,
+        rank,
+        categories,
+        designers,
+        mechanics: [], // Not parsing mechanics for simplicity
+        artists: [], // Not parsing artists for simplicity
+        publishers: [], // Not parsing publishers for simplicity
+        families: [],
+        title: name,
+        author: designers[0]?.name || 'Unknown Designer',
+        category: 'boardgames',
+        type: 'boardgame',
+        overview: description,
+        year: yearPublished,
+        genre: categories[0]?.name || 'Board Game',
+        complexity,
+        playerCountText,
+        playTimeText,
+        ageText: minAge ? `${minAge}+` : undefined,
+        bggUrl: `https://boardgamegeek.com/boardgame/${id}`
+      } as BoardGameDetail
+    } catch (error) {
+      console.error('🎲 Error parsing game XML:', error)
+      return null
     }
   }
 

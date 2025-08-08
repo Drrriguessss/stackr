@@ -8,17 +8,69 @@ interface BoardGamesSectionProps {
   onAddToLibrary: (item: any, status: MediaStatus) => void
   onOpenDetail: (item: any) => void
   library: LibraryItem[]
+  // Optional props for state preservation
+  searchQuery?: string
+  searchResults?: OptimalBoardGameResult[]
+  isSearching?: boolean
+  hasSearched?: boolean
+  onSearchStateChange?: (state: any) => void
 }
 
 export default function BoardGamesSection({
   onAddToLibrary,
   onOpenDetail,
-  library
+  library,
+  searchQuery: externalSearchQuery = '',
+  searchResults: externalSearchResults = [],
+  isSearching: externalIsSearching = false,
+  hasSearched: externalHasSearched = false,
+  onSearchStateChange
 }: BoardGamesSectionProps) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<OptimalBoardGameResult[]>([])
+  // Use external state if provided, otherwise fall back to local state
+  const [localSearchQuery, setLocalSearchQuery] = useState('')
+  const [localSearchResults, setLocalSearchResults] = useState<OptimalBoardGameResult[]>([])
+  const [localIsSearching, setLocalIsSearching] = useState(false)
+  const [localHasSearched, setLocalHasSearched] = useState(false)
+  
+  // Determine which state to use
+  const searchQuery = onSearchStateChange ? externalSearchQuery : localSearchQuery
+  const searchResults = onSearchStateChange ? externalSearchResults : localSearchResults
+  const isSearching = onSearchStateChange ? externalIsSearching : localIsSearching
+  const hasSearched = onSearchStateChange ? externalHasSearched : localHasSearched
+  
+  const setSearchQuery = (query: string) => {
+    if (onSearchStateChange) {
+      onSearchStateChange(prev => ({ ...prev, searchQuery: query }))
+    } else {
+      setLocalSearchQuery(query)
+    }
+  }
+  
+  const setSearchResults = (results: OptimalBoardGameResult[]) => {
+    if (onSearchStateChange) {
+      onSearchStateChange(prev => ({ ...prev, searchResults: results }))
+    } else {
+      setLocalSearchResults(results)
+    }
+  }
+  
+  const setIsSearching = (searching: boolean) => {
+    if (onSearchStateChange) {
+      onSearchStateChange(prev => ({ ...prev, isSearching: searching }))
+    } else {
+      setLocalIsSearching(searching)
+    }
+  }
+  
+  const setHasSearched = (searched: boolean) => {
+    if (onSearchStateChange) {
+      onSearchStateChange(prev => ({ ...prev, hasSearched: searched }))
+    } else {
+      setLocalHasSearched(searched)
+    }
+  }
+  
   const [trendingContent, setTrendingContent] = useState<OptimalBoardGameResult[]>([])
-  const [isSearching, setIsSearching] = useState(false)
   const [isLoadingTrending, setIsLoadingTrending] = useState(true)
   
   // Advanced filter states for board games
@@ -75,10 +127,12 @@ export default function BoardGamesSection({
       })
       
       setSearchResults(results)
+      setHasSearched(true)
       console.log('🎲 [BoardGamesSection] Enhanced search results:', results.length, 'games')
     } catch (error) {
       console.error('🎲 [BoardGamesSection] Search failed:', error)
       setSearchResults([])
+      setHasSearched(true)
     } finally {
       setIsSearching(false)
     }
@@ -291,7 +345,8 @@ export default function BoardGamesSection({
     </div>
   )
 
-  const displayContent = searchQuery.trim() ? searchResults : trendingContent
+  // Determine what content to display based on search state
+  const displayContent = hasSearched && searchQuery.trim() ? searchResults : trendingContent
   const isLoading = searchQuery.trim() ? isSearching : isLoadingTrending
 
   return (
@@ -495,8 +550,8 @@ export default function BoardGamesSection({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              {searchQuery.trim() 
-                ? `Search Results (${searchResults.length})` 
+              {hasSearched && searchQuery.trim()
+                ? `Search Results for "${searchQuery}" (${searchResults.length})` 
                 : 'Trending Board Games'
               }
             </h3>
@@ -560,7 +615,7 @@ export default function BoardGamesSection({
         )}
 
         {/* No Results */}
-        {!isLoading && displayContent.length === 0 && searchQuery.trim() && (
+        {!isLoading && displayContent.length === 0 && hasSearched && searchQuery.trim() && (
           <div className="text-center py-12">
             <Search size={48} className="mx-auto mb-4 text-gray-300" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No board games found</h3>

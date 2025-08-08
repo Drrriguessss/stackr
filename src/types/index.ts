@@ -5,7 +5,7 @@
  */
 
 // Types de base pour les médias
-export type MediaCategory = 'games' | 'movies' | 'music' | 'books' | 'movieGood'
+export type MediaCategory = 'games' | 'movies' | 'music' | 'books' | 'boardgames' | 'movieGood'
 export type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
 
 // Interface pour les items de contenu (recherche, sections, etc.)
@@ -154,6 +154,14 @@ export interface LibraryItem {
   userRating?: number    // Note utilisateur (1-5)
   progress?: number      // Progression en % (0-100)
   notes?: string         // Notes personnelles
+  
+  // Propriétés spécifiques aux board games
+  designer?: string      // Pour les board games
+  players?: string       // Ex: "2-4 players"
+  playTime?: string      // Ex: "30-60 minutes"
+  complexity?: string    // Ex: "Medium"
+  bggRating?: number     // Note BoardGameGeek
+  
   additionalInfo?: {     // ✅ Infos supplémentaires pour les jeux
     platform?: string
     gamePass?: boolean

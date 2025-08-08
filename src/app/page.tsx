@@ -8,14 +8,12 @@ import GameDetailDarkV2 from '@/components/GameDetailDarkV2'
 import MovieDetailModalV3 from '@/components/MovieDetailModalV3'
 import BookDetailModalV3 from '@/components/BookDetailModalV3'
 import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
-import BoardGameDetailModal from '@/components/BoardGameDetailModal'
 import SearchModal from '@/components/SearchModal'
 import SearchModalV2 from '@/components/SearchModalV2'
 // All search modals removed - using unified SearchModal only
 import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
 import GamesModal from '@/components/GamesModal'
 import MusicModal from '@/components/MusicModal'
-import BoardGamesModal from '@/components/BoardGamesModal'
 // import MovieGoodModal from '@/components/MovieGoodModal' // OLD - not used
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
@@ -27,6 +25,8 @@ import FriendsPage from '@/components/FriendsPage'
 import GroupsPage from '@/components/GroupsPage'
 import ListsPage from '@/components/ListsPage'
 import BooksSection from '@/components/BooksSection'
+import BoardGamesSection from '@/components/BoardGamesSection'
+import BoardGameDetailPage from '@/components/BoardGameDetailPage'
 // import MoviesTVSectionV2 from '@/components/MoviesTVSectionV2' // Used in MoviesTVModalV2, not directly here
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
@@ -52,6 +52,14 @@ export default function Home() {
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [selectedBoardGameId, setSelectedBoardGameId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  
+  // Board games search state preservation
+  const [boardGameSearchState, setBoardGameSearchState] = useState({
+    searchQuery: '',
+    searchResults: [] as any[],
+    isSearching: false,
+    hasSearched: false
+  })
   const [useUnifiedSearch, setUseUnifiedSearch] = useState(true) // Toggle between old and new search
   
   // Simplified search - using only SearchModal
@@ -59,7 +67,6 @@ export default function Home() {
   // const [isMovieGoodOpen, setIsMovieGoodOpen] = useState(false) // OLD MovieGoodModal - not used
   const [isGamesOpen, setIsGamesOpen] = useState(false)
   const [isMusicOpen, setIsMusicOpen] = useState(false)
-  const [isBoardGamesOpen, setIsBoardGamesOpen] = useState(false)
   
   // Library state
   const [library, setLibrary] = useState<LibraryItem[]>([])
@@ -516,7 +523,6 @@ export default function Home() {
     setIsMoviesTVV2Open(false)
     setIsGamesOpen(false)
     setIsMusicOpen(false)
-    setIsBoardGamesOpen(false)
     
     switch (item.category) {
       case 'games':
@@ -866,7 +872,7 @@ export default function Home() {
                     </button>
                     
                     <button
-                      onClick={() => setIsBoardGamesOpen(true)}
+                      onClick={() => setActiveMainTab('boardgame-search')}
                       className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
                     >
                       <Dice6 className="-ml-1 mr-2 h-4 w-4" />
@@ -890,6 +896,40 @@ export default function Home() {
             </div>
           </div>
         )
+      case 'boardgame-search':
+        return (
+          <div className="bg-white min-h-screen pb-20">
+            <div className="px-4 sm:px-6 py-6">
+              <BoardGamesSection
+                onAddToLibrary={handleAddToLibrary}
+                onOpenDetail={(game) => {
+                  setSelectedBoardGameId(game.id)
+                  setActiveMainTab('boardgame-detail')
+                }}
+                library={library}
+                // Pass preserved search state
+                searchQuery={boardGameSearchState.searchQuery}
+                searchResults={boardGameSearchState.searchResults}
+                isSearching={boardGameSearchState.isSearching}
+                hasSearched={boardGameSearchState.hasSearched}
+                onSearchStateChange={setBoardGameSearchState}
+              />
+            </div>
+          </div>
+        )
+      case 'boardgame-detail':
+        return selectedBoardGameId ? (
+          <BoardGameDetailPage
+            gameId={selectedBoardGameId}
+            onBack={() => setActiveMainTab('boardgame-search')}
+            onAddToLibrary={handleAddToLibrary}
+            onDeleteItem={handleDeleteItem}
+            library={library}
+            userReviews={[]}
+            bggReviews={[]}
+            onReviewSubmit={() => {}}
+          />
+        ) : null
       case 'roadmap':
         return <RoadmapPage onBack={() => setActiveMainTab('feed')} />
       case 'profile':
@@ -1122,17 +1162,6 @@ export default function Home() {
         onMusicSelect={setSelectedMusicId}
       />
 
-      <BoardGameDetailModal
-        isOpen={!!selectedBoardGameId}
-        onClose={() => setSelectedBoardGameId(null)}
-        gameId={selectedBoardGameId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem}
-        library={library}
-        userReviews={[]}
-        bggReviews={[]}
-        onReviewSubmit={(reviewData) => console.log('Board game review:', reviewData)}
-      />
 
       {/* LEGACY SEARCH MODAL - Simple search bar for all media */}
       <SearchModal
@@ -1185,17 +1214,6 @@ export default function Home() {
         library={library}
       />
 
-      <BoardGamesModal
-        isOpen={isBoardGamesOpen}
-        onClose={() => setIsBoardGamesOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenDetail={handleOpenDetail}
-        onBackToSelection={() => {
-          setIsBoardGamesOpen(false)
-          setIsMediaSelectionOpen(true)
-        }}
-        library={library}
-      />
 
       {/* <MovieGoodModal
         isOpen={isMovieGoodOpen}
