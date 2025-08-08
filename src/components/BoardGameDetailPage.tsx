@@ -988,14 +988,10 @@ export default function BoardGameDetailPage({
           onClose={() => setShowShareWithFriendsModal(false)}
           item={{
             id: gameId,
+            type: 'games' as const,
             title: gameDetail.name,
-            designer: gameDetail.designers?.[0]?.name || 'Unknown Designer',
-            year: gameDetail.yearPublished,
-            image: gameDetail.image,
-            category: 'boardgames',
-            genre: gameDetail.categories?.[0]?.name || 'Board Game'
+            image: gameDetail.image
           }}
-          itemType="boardgame"
         />
       )}
       
