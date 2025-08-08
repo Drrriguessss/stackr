@@ -429,17 +429,17 @@ export default function BoardGamesSection({
                       <select 
                         value={filters.minPlayers} 
                         onChange={(e) => handleFilterChange('minPlayers', parseInt(e.target.value))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 px-3 py-2 bg-white/90 text-gray-900 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-400"
                       >
                         {[1,2,3,4,5,6,7,8].map(n => (
                           <option key={n} value={n}>{n}+</option>
                         ))}
                       </select>
-                      <span className="self-center text-gray-500">to</span>
+                      <span className="self-center text-white/80 text-sm font-medium">to</span>
                       <select 
                         value={filters.maxPlayers} 
                         onChange={(e) => handleFilterChange('maxPlayers', parseInt(e.target.value))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 px-3 py-2 bg-white/90 text-gray-900 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-400"
                       >
                         {[2,3,4,5,6,7,8,10,12].map(n => (
                           <option key={n} value={n}>{n}</option>
@@ -457,7 +457,7 @@ export default function BoardGamesSection({
                       <select 
                         value={filters.minPlayTime} 
                         onChange={(e) => handleFilterChange('minPlayTime', parseInt(e.target.value))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 px-3 py-2 bg-white/90 text-gray-900 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-400"
                       >
                         <option value={0}>Any</option>
                         <option value={15}>15+</option>
@@ -466,11 +466,11 @@ export default function BoardGamesSection({
                         <option value={90}>90+</option>
                         <option value={120}>120+</option>
                       </select>
-                      <span className="self-center text-gray-500">to</span>
+                      <span className="self-center text-white/80 text-sm font-medium">to</span>
                       <select 
                         value={filters.maxPlayTime} 
                         onChange={(e) => handleFilterChange('maxPlayTime', parseInt(e.target.value))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 px-3 py-2 bg-white/90 text-gray-900 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-400"
                       >
                         <option value={300}>Any</option>
                         <option value={30}>30</option>
@@ -490,7 +490,7 @@ export default function BoardGamesSection({
                     <select 
                       value={filters.complexity} 
                       onChange={(e) => handleFilterChange('complexity', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-white/90 text-gray-900 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-400"
                     >
                       <option value="all">All Levels</option>
                       <option value="light">Light (1-2)</option>
@@ -507,7 +507,7 @@ export default function BoardGamesSection({
                     <select 
                       value={filters.minRating} 
                       onChange={(e) => handleFilterChange('minRating', parseFloat(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-white/90 text-gray-900 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-400"
                     >
                       <option value={0}>Any Rating</option>
                       <option value={3.0}>3+ Stars</option>
@@ -525,7 +525,7 @@ export default function BoardGamesSection({
                     <select 
                       value={filters.minYear} 
                       onChange={(e) => handleFilterChange('minYear', parseInt(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-white/90 text-gray-900 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-400"
                     >
                       <option value={1990}>Any Year</option>
                       <option value={2020}>2020+</option>
@@ -542,7 +542,7 @@ export default function BoardGamesSection({
                         type="checkbox"
                         checked={filters.includeExpansions}
                         onChange={(e) => handleFilterChange('includeExpansions', e.target.checked)}
-                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                        className="w-4 h-4 text-purple-600 bg-white border-white/40 rounded focus:ring-purple-500 focus:ring-offset-0"
                       />
                       <span className="text-sm text-white">Include expansions</span>
                     </label>
