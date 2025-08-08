@@ -176,6 +176,10 @@ export default function BoardGamesSection({
     }
   }
 
+  // Determine what content to display based on search state
+  const displayContent = hasSearched && searchQuery.trim() ? searchResults : trendingContent
+  const isLoading = searchQuery.trim() ? isSearching : isLoadingTrending
+
   const renderBoardGameCard = (game: OptimalBoardGameResult) => (
     <div
       key={game.id}
@@ -344,10 +348,6 @@ export default function BoardGamesSection({
       </div>
     </div>
   )
-
-  // Determine what content to display based on search state
-  const displayContent = hasSearched && searchQuery.trim() ? searchResults : trendingContent
-  const isLoading = searchQuery.trim() ? isSearching : isLoadingTrending
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-indigo-600 via-purple-700 via-purple-800 to-black">
