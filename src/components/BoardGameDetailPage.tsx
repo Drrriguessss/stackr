@@ -988,7 +988,7 @@ export default function BoardGameDetailPage({
           onClose={() => setShowShareWithFriendsModal(false)}
           item={{
             id: gameId,
-            type: 'games' as const,
+            type: 'boardgames' as const,
             title: gameDetail.name,
             image: gameDetail.image
           }}

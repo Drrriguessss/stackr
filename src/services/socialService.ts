@@ -417,7 +417,7 @@ class SocialService {
     toUserId: string,
     item: {
       id: string
-      type: 'games' | 'movies' | 'music' | 'books'
+      type: 'games' | 'movies' | 'music' | 'books' | 'boardgames'
       title: string
       image?: string
     },
