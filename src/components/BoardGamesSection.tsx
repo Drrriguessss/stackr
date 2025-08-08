@@ -373,19 +373,18 @@ export default function BoardGamesSection({
 
         {/* Contenu avec même z-index que la modal */}
         <div className="px-5 py-6 relative z-30">
-          {/* Flèche retour en haut à gauche */}
-          <div className="flex items-center justify-between mb-6">
+          {/* Header with arrow and title on same line */}
+          <div className="flex items-center gap-3 mb-6">
             <button
               onClick={() => window.history.back()}
               className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
             >
               <ArrowLeft size={20} />
             </button>
-            <div className="w-10 h-10 opacity-0">{/* Spacer */}</div>
+            <h1 className="text-2xl font-bold text-white">Find Board Games</h1>
           </div>
 
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-white mb-2">Find Board Games</h1>
+          <div className="mb-4">
             <p className="text-white/80 text-sm">Enter a game title, designer name, or keyword to search thousands of board games</p>
           </div>
           
@@ -406,20 +405,8 @@ export default function BoardGamesSection({
             )}
           </div>
           
-          {/* Filtres */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <select 
-              value={filters.sortBy}
-              onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-              className="px-4 py-3 bg-white/10 backdrop-blur-md border border-white/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/50 focus:border-white/50 outline-none transition-all hover:bg-white/20 shadow-lg"
-            >
-              <option value="relevance" className="text-gray-900">Relevance</option>
-              <option value="rating" className="text-gray-900">Rating</option>
-              <option value="rank" className="text-gray-900">BGG Rank</option>
-              <option value="year" className="text-gray-900">Year</option>
-              <option value="complexity" className="text-gray-900">Complexity</option>
-            </select>
-            
+          {/* Filtres - removed Relevance dropdown */}
+          <div className="flex justify-end">
             <button
               onClick={() => handleFilterChange('showAdvancedFilters', !filters.showAdvancedFilters)}
               className="px-4 py-3 bg-white/10 backdrop-blur-md border border-white/30 rounded-lg text-white text-sm hover:bg-white/20 transition-all shadow-lg focus:ring-2 focus:ring-white/50"

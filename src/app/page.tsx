@@ -840,6 +840,14 @@ export default function Home() {
               </div>
               
               <div className="container mx-auto max-w-2xl px-4 sm:px-6 pb-20 flex-1 flex flex-col">
+                {/* Description text */}
+                <div className="text-center mb-6">
+                  <p className="text-white/80 text-sm leading-relaxed">
+                    Keep track of your media consumption by adding them to your library.<br />
+                    Select a category to search for a specific title.
+                  </p>
+                </div>
+                
                 {/* Category Buttons - now above gradient */}
                 <div className="flex flex-col gap-2 sm:gap-3 flex-1 justify-start">
                 {/* Movies/TV Shows Button - Changed to orange/red gradient */}
