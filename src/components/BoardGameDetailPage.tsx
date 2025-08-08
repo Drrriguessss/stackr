@@ -508,11 +508,21 @@ export default function BoardGameDetailPage({
   }
 
   const addFriendToGame = (friend: any) => {
-    const isAlreadySelected = selectedFriends.some(f => f.id === friend.id)
+    const isAlreadySelected = gameSheetData.friendsPlayed.some(f => f.id === friend.id)
     if (!isAlreadySelected) {
-      setSelectedFriends(prev => [...prev, friend])
+      setGameSheetData(prev => ({ 
+        ...prev, 
+        friendsPlayed: [...prev.friendsPlayed, friend] 
+      }))
     }
     setShowFriendsSelector(false)
+  }
+
+  const handleFriendsConfirm = () => {
+    setShowFriendsModal(false)
+    setFriendsSearch('')
+    // Synchroniser avec game sheet
+    setGameSheetData(prev => ({ ...prev, friendsPlayed: selectedFriends }))
   }
 
   const handleStatusSelect = (status: MediaStatus) => {
@@ -997,11 +1007,7 @@ export default function BoardGameDetailPage({
                 Skip
               </button>
               <button
-                onClick={() => {
-                  setShowFriendsModal(false)
-                  setFriendsSearch('')
-                  // Could save selected friends here
-                }}
+                onClick={handleFriendsConfirm}
                 className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200"
               >
                 Done ({selectedFriends.length})
@@ -1093,7 +1099,7 @@ export default function BoardGameDetailPage({
                   </button>
                 </div>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {selectedFriends.map((friend) => (
+                  {gameSheetData.friendsPlayed.map((friend) => (
                     <div key={friend.id} className="flex items-center justify-between p-2 bg-black/20 rounded-lg">
                       <div className="flex items-center space-x-2">
                         <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs">
@@ -1101,10 +1107,18 @@ export default function BoardGameDetailPage({
                         </div>
                         <span className="text-white text-sm">{friend.name}</span>
                       </div>
-                      <button onClick={() => toggleFriend(friend)} className="text-red-400 text-xs">Remove</button>
+                      <button 
+                        onClick={() => setGameSheetData(prev => ({ 
+                          ...prev, 
+                          friendsPlayed: prev.friendsPlayed.filter(f => f.id !== friend.id) 
+                        }))} 
+                        className="text-red-400 text-xs"
+                      >
+                        Remove
+                      </button>
                     </div>
                   ))}
-                  {selectedFriends.length === 0 && (
+                  {gameSheetData.friendsPlayed.length === 0 && (
                     <p className="text-gray-500 text-sm">No friends selected</p>
                   )}
                 </div>
@@ -1122,7 +1136,7 @@ export default function BoardGameDetailPage({
                         ) : userFriends.length > 0 ? (
                           <div className="space-y-2">
                             {userFriends.map((friend) => {
-                              const isAlreadySelected = selectedFriends.some(f => f.id === friend.id)
+                              const isAlreadySelected = gameSheetData.friendsPlayed.some(f => f.id === friend.id)
                               return (
                                 <button
                                   key={friend.id}
