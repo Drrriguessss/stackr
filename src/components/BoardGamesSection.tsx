@@ -179,7 +179,7 @@ export default function BoardGamesSection({
   const renderBoardGameCard = (game: OptimalBoardGameResult) => (
     <div
       key={game.id}
-      className="bg-white rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-lg transition-all cursor-pointer group"
+      className="bg-gray-900 rounded-xl border border-gray-700 hover:border-purple-400 hover:shadow-lg transition-all cursor-pointer group"
       onClick={() => onOpenDetail(game)}
     >
       {/* Game Image */}
@@ -196,7 +196,7 @@ export default function BoardGamesSection({
 
         {/* Hot Game Badge */}
         {game.rank && game.rank <= 100 && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold z-10">
+          <div className="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full font-bold z-10">
             🔥 Hot
           </div>
         )}
@@ -212,7 +212,7 @@ export default function BoardGamesSection({
       {/* Game Info */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 group-hover:text-indigo-600 transition-colors">
+          <h3 className="font-semibold text-white text-sm line-clamp-2 group-hover:text-purple-400 transition-colors">
             {game.name}
           </h3>
           
@@ -232,15 +232,15 @@ export default function BoardGamesSection({
 
         {/* Designer */}
         {game.designers && game.designers.length > 0 && (
-          <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
+          <div className="flex items-center gap-1 text-xs text-gray-400 mb-2">
             <Users size={10} />
-            <span>{game.designers.slice(0, 2).map(d => d.name).join(', ')}</span>
+            <span className="text-gray-400">{game.designers.slice(0, 2).map(d => d.name).join(', ')}</span>
             {game.designers.length > 2 && <span>+{game.designers.length - 2} more</span>}
           </div>
         )}
 
         {/* Year and Publisher */}
-        <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+        <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
           {game.yearPublished && (
             <div className="flex items-center gap-1">
               <Calendar size={10} />
@@ -249,7 +249,7 @@ export default function BoardGamesSection({
           )}
 
           {game.publishers && game.publishers.length > 0 && (
-            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium truncate max-w-[120px]">
+            <span className="px-2 py-1 bg-purple-900/50 text-purple-300 rounded-full text-xs font-medium truncate max-w-[120px]">
               {game.publishers[0].name}
             </span>
           )}
@@ -258,14 +258,14 @@ export default function BoardGamesSection({
         {/* Player Count and Play Time */}
         <div className="flex items-center gap-3 mb-2">
           {game.playerCountText && (
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+            <div className="flex items-center gap-1 text-xs text-gray-400">
               <Users size={10} />
               <span>{game.playerCountText}</span>
             </div>
           )}
 
           {game.playTimeText && (
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+            <div className="flex items-center gap-1 text-xs text-gray-400">
               <Clock size={10} />
               <span>{game.playTimeText}</span>
             </div>
@@ -275,14 +275,14 @@ export default function BoardGamesSection({
         {/* Rating and Stats */}
         <div className="flex items-center gap-3 mb-2">
           {game.rating && game.rating > 0 && (
-            <div className="flex items-center gap-1 text-xs text-amber-600">
+            <div className="flex items-center gap-1 text-xs text-yellow-400">
               <Star size={10} className="fill-current" />
               <span>{game.rating.toFixed(1)}/5</span>
             </div>
           )}
 
           {game.bggRating && game.bggRating > 0 && (
-            <div className="flex items-center gap-1 text-xs text-blue-600">
+            <div className="flex items-center gap-1 text-xs text-purple-400">
               <Award size={10} />
               <span>{game.bggRating.toFixed(1)}/10</span>
             </div>
