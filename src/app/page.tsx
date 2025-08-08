@@ -820,27 +820,27 @@ export default function Home() {
         return renderDiscoverContent()
       case 'search':
         return (
-          <div className="min-h-screen bg-gradient-to-b from-indigo-900 via-purple-900 to-purple-800 flex flex-col">
-            <div className="container mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-8 flex-1 flex flex-col">
-              {/* Title with gradient text - smaller on mobile */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light text-center mb-6 sm:mb-8 tracking-tight">
+          <div className="min-h-screen bg-gradient-to-b from-indigo-900 via-gray-900 to-black flex flex-col">
+            <div className="container mx-auto max-w-2xl px-4 sm:px-6 pt-4 pb-20 sm:pt-6 sm:pb-8 flex-1 flex flex-col">
+              {/* Title with gradient text - much less margin */}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light text-center mb-2 sm:mb-4 tracking-tight">
                 <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                   Search
                 </span>
               </h1>
               
-              {/* Category Buttons - optimized for mobile to fit all 5 without scrolling */}
-              <div className="flex flex-col gap-3 sm:gap-4 flex-1 justify-center">
+              {/* Category Buttons - reduced gap and padding to fit all 5 */}
+              <div className="flex flex-col gap-2 sm:gap-3 flex-1 justify-start mt-2">
                 {/* Movies/TV Shows Button - Changed to orange/red gradient */}
                 <button
                   onClick={() => setIsMoviesTVV2Open(true)}
-                  className="group relative flex items-center p-3 sm:p-4 lg:p-5 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                  className="group relative flex items-center p-2.5 sm:p-3.5 lg:p-4 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
                 >
                   {/* Shimmer effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
                   {/* Icon with orange/red gradient */}
-                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#ff6b6b] to-[#c92a2a] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#ff6b6b] to-[#c92a2a] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                     <Film className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
@@ -853,13 +853,13 @@ export default function Home() {
                 {/* Games Button */}
                 <button
                   onClick={() => setIsGamesOpen(true)}
-                  className="group relative flex items-center p-3 sm:p-4 lg:p-5 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                  className="group relative flex items-center p-2.5 sm:p-3.5 lg:p-4 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
                 >
                   {/* Shimmer effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
                   {/* Icon with gradient background */}
-                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#f093fb] to-[#f5576c] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#f093fb] to-[#f5576c] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                     <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
@@ -872,13 +872,13 @@ export default function Home() {
                 {/* Books Button */}
                 <button
                   onClick={() => setActiveMainTab('book-search')}
-                  className="group relative flex items-center p-3 sm:p-4 lg:p-5 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                  className="group relative flex items-center p-2.5 sm:p-3.5 lg:p-4 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
                 >
                   {/* Shimmer effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
                   {/* Icon with gradient background */}
-                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#4facfe] to-[#00f2fe] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#4facfe] to-[#00f2fe] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                     <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
@@ -891,13 +891,13 @@ export default function Home() {
                 {/* Music Button */}
                 <button
                   onClick={() => setIsMusicOpen(true)}
-                  className="group relative flex items-center p-3 sm:p-4 lg:p-5 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                  className="group relative flex items-center p-2.5 sm:p-3.5 lg:p-4 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
                 >
                   {/* Shimmer effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
                   {/* Icon with gradient background */}
-                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#43e97b] to-[#38f9d7] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#43e97b] to-[#38f9d7] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                     <Music className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
@@ -910,13 +910,13 @@ export default function Home() {
                 {/* Board Games Button - Changed to purple/violet gradient */}
                 <button
                   onClick={() => setActiveMainTab('boardgame-search')}
-                  className="group relative flex items-center p-3 sm:p-4 lg:p-5 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                  className="group relative flex items-center p-2.5 sm:p-3.5 lg:p-4 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
                 >
                   {/* Shimmer effect */}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                   
                   {/* Icon with purple/violet gradient */}
-                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                     <Dice6 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
@@ -926,9 +926,6 @@ export default function Home() {
                   </span>
                 </button>
               </div>
-
-              {/* Spacer for bottom navigation */}
-              <div className="h-20 sm:hidden"></div>
             </div>
           </div>
         )
