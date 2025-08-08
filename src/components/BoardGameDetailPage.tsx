@@ -55,6 +55,7 @@ export default function BoardGameDetailPage({
   const [selectedFriends, setSelectedFriends] = useState<any[]>([])
   const [friendsSearch, setFriendsSearch] = useState('')
   const [showGameSheet, setShowGameSheet] = useState(false)
+  const [showFriendsWhoPlayedModal, setShowFriendsWhoPlayedModal] = useState(false)
   const [currentUserReview, setCurrentUserReview] = useState<any>(null)
   const [gameSheetData, setGameSheetData] = useState({
     playDate: '',
@@ -710,7 +711,10 @@ export default function BoardGameDetailPage({
                         )}
                       </div>
                     </div>
-                    <button className="text-gray-400 hover:text-purple-400 text-sm transition-colors">
+                    <button 
+                      onClick={() => setShowFriendsWhoPlayedModal(true)}
+                      className="text-gray-400 hover:text-purple-400 text-sm transition-colors"
+                    >
                       View all
                     </button>
                   </div>
@@ -1099,6 +1103,45 @@ export default function BoardGameDetailPage({
                 className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200"
               >
                 Save Game Sheet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Friends Who Played Modal */}
+      {showFriendsWhoPlayedModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-[#1A1A1A] rounded-2xl border border-purple-500/30 max-w-md w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-purple-500/30">
+              <h3 className="text-xl font-semibold text-white mb-2">Friends who played {gameDetail?.name}</h3>
+            </div>
+            <div className="p-6 max-h-96 overflow-y-auto space-y-4">
+              {friendsWhoPlayed.map((friend) => (
+                <div key={friend.id} className="bg-black/20 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-medium">
+                        {friend.name.charAt(0)}
+                      </div>
+                      <span className="text-white font-medium">{friend.name}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star key={star} size={12} className={star <= friend.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'} />
+                      ))}
+                      <span className="text-gray-400 text-sm ml-1">{friend.rating}/5</span>
+                    </div>
+                  </div>
+                  {friend.hasReview && friend.reviewText && (
+                    <p className="text-gray-300 text-sm">{friend.reviewText}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="p-6 border-t border-purple-500/30">
+              <button onClick={() => setShowFriendsWhoPlayedModal(false)} className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg">
+                Close
               </button>
             </div>
           </div>
