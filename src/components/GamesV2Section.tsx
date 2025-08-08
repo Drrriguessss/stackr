@@ -86,7 +86,7 @@ export default function GamesV2Section({
   const renderGameCard = (game: OptimalGamingV2Result) => (
     <div
       key={game.id}
-      className="bg-white rounded-xl border border-gray-100 hover:border-green-200 hover:shadow-lg transition-all cursor-pointer group"
+      className="bg-white rounded-xl border border-gray-100 hover:border-pink-200 hover:shadow-lg transition-all cursor-pointer group"
       onClick={() => onOpenDetail(game)}
     >
       {/* Game Image */}
@@ -99,8 +99,8 @@ export default function GamesV2Section({
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-100 to-emerald-200">
-            <Gamepad2 size={48} className="text-green-500" />
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-100 to-rose-200">
+            <Gamepad2 size={48} className="text-pink-500" />
           </div>
         )}
       </div>
@@ -108,7 +108,7 @@ export default function GamesV2Section({
       {/* Game Info */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 group-hover:text-green-600 transition-colors">
+          <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 group-hover:text-pink-600 transition-colors">
             {game.name}
           </h3>
           
@@ -118,7 +118,7 @@ export default function GamesV2Section({
                 e.stopPropagation()
                 onAddToLibrary(game, 'want-to-play')
               }}
-              className="flex-shrink-0 p-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              className="flex-shrink-0 p-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-lg transition-colors"
               title="Add to Library"
             >
               <Plus size={14} />
@@ -166,47 +166,62 @@ export default function GamesV2Section({
 
   return (
     <div className="w-full">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 rounded-t-xl">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Gamepad2 size={32} />
-            <div>
-              <h2 className="text-2xl font-bold">Games V2</h2>
-              <p className="text-green-100 text-sm">Optimized API - 1 request per search</p>
+      {/* Header with Pink Gradient matching Games button */}
+      <div 
+        className="text-white p-6 rounded-t-xl relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(240, 147, 251, 0.4), rgba(245, 87, 108, 0.3), rgba(219, 39, 119, 0.2), rgba(15, 14, 23, 0.7))'
+        }}
+      >
+        {/* Texture Overlay */}
+        <div 
+          className="absolute inset-0 opacity-20 pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3C/defs%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E")`,
+          }}
+        />
+        
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Gamepad2 size={32} />
+              <div>
+                <h2 className="text-2xl font-bold">Games V2</h2>
+                <p className="text-pink-100 text-sm">Optimized API - 1 request per search</p>
+              </div>
+            </div>
+            
+            {/* API Call Counter */}
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 px-3 py-1 rounded-lg text-sm">
+                API Calls: {apiCalls}
+              </div>
+              <button
+                onClick={clearCache}
+                className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                title="Clear Cache"
+              >
+                <RefreshCw size={16} />
+              </button>
             </div>
           </div>
-          
-          {/* API Call Counter */}
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 px-3 py-1 rounded-lg text-sm">
-              API Calls: {apiCalls}
-            </div>
-            <button
-              onClick={clearCache}
-              className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-              title="Clear Cache"
-            >
-              <RefreshCw size={16} />
-            </button>
-          </div>
-        </div>
 
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-green-600" size={20} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search games with V2 optimized API..."
-            className="w-full pl-12 pr-12 py-3 bg-white text-gray-900 rounded-lg focus:ring-2 focus:ring-white focus:outline-none"
-          />
-          {isSearching && (
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-              <Loader2 className="animate-spin text-green-600" size={20} />
-            </div>
-          )}
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-pink-600" size={20} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search games with V2 optimized API..."
+              className="w-full pl-12 pr-12 py-3 bg-white text-gray-900 rounded-lg focus:ring-2 focus:ring-white focus:outline-none"
+            />
+            {isSearching && (
+              <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                <Loader2 className="animate-spin text-pink-600" size={20} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -228,7 +243,7 @@ export default function GamesV2Section({
         {isLoading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <Loader2 className="animate-spin mx-auto mb-4 text-green-500" size={32} />
+              <Loader2 className="animate-spin mx-auto mb-4 text-pink-500" size={32} />
               <p className="text-gray-500">Loading games...</p>
             </div>
           </div>
@@ -251,12 +266,12 @@ export default function GamesV2Section({
         )}
 
         {/* Cache Info */}
-        <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-          <div className="flex items-center gap-2 text-blue-700">
+        <div className="mt-8 p-4 bg-pink-50 rounded-lg">
+          <div className="flex items-center gap-2 text-pink-700">
             <Zap size={16} />
             <span className="text-sm font-medium">Performance Info</span>
           </div>
-          <ul className="mt-2 text-xs text-blue-600 space-y-1">
+          <ul className="mt-2 text-xs text-pink-600 space-y-1">
             <li>• Each search uses only 1 RAWG API request</li>
             <li>• Results are cached for 15 minutes</li>
             <li>• Trending games cached separately</li>
