@@ -820,28 +820,28 @@ export default function Home() {
         return renderDiscoverContent()
       case 'search':
         return (
-          <div className="min-h-screen bg-black flex flex-col">
+          <div className="min-h-screen bg-black flex flex-col relative">
             {/* Header Section with exact gradient from BoardGameDetailPage */}
-            <div className="relative">
+            <div className="absolute inset-x-0 top-0 h-32 sm:h-40">
               {/* Same Purple Gradient Background as BoardGameDetailPage */}
               <div 
-                className="absolute inset-0 h-48"
+                className="absolute inset-0"
                 style={{ 
-                  background: 'linear-gradient(to bottom, rgba(99, 102, 241, 0.4), rgba(126, 58, 242, 0.3), rgba(107, 33, 168, 0.2), rgba(15, 14, 23, 0.7))',
-                  zIndex: 1
+                  background: 'linear-gradient(to bottom, rgba(99, 102, 241, 0.4), rgba(126, 58, 242, 0.3), rgba(107, 33, 168, 0.2), rgba(15, 14, 23, 0.7))'
                 }}
               />
-              
-              <div className="container mx-auto max-w-2xl px-4 sm:px-6 pt-6 pb-4 sm:pt-8 sm:pb-6 relative z-10">
-                {/* Title with same style as Find Board Games */}
-                <h1 className="text-3xl font-bold text-white text-center mb-2">Search</h1>
-              </div>
             </div>
             
-            <div className="container mx-auto max-w-2xl px-4 sm:px-6 pb-20 flex-1 flex flex-col">
+            {/* Main Content - above gradient with higher z-index */}
+            <div className="relative z-20 flex flex-col min-h-screen">
+              <div className="container mx-auto max-w-2xl px-4 sm:px-6 pt-6 pb-4 sm:pt-8 sm:pb-6">
+                {/* Title with same style as Find Board Games */}
+                <h1 className="text-3xl font-bold text-white text-center mb-4">Search</h1>
+              </div>
               
-              {/* Category Buttons - reduced gap and padding to fit all 5 */}
-              <div className="flex flex-col gap-2 sm:gap-3 flex-1 justify-start mt-2">
+              <div className="container mx-auto max-w-2xl px-4 sm:px-6 pb-20 flex-1 flex flex-col">
+                {/* Category Buttons - now above gradient */}
+                <div className="flex flex-col gap-2 sm:gap-3 flex-1 justify-start">
                 {/* Movies/TV Shows Button - Changed to orange/red gradient */}
                 <button
                   onClick={() => setIsMoviesTVV2Open(true)}
@@ -936,6 +936,7 @@ export default function Home() {
                     Board Games
                   </span>
                 </button>
+                </div>
               </div>
             </div>
           </div>
