@@ -13,6 +13,7 @@ import SearchModalV2 from '@/components/SearchModalV2'
 // All search modals removed - using unified SearchModal only
 import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
 import GamesModal from '@/components/GamesModal'
+import GamesV2Section from '@/components/GamesV2Section'
 import MusicModal from '@/components/MusicModal'
 // import MovieGoodModal from '@/components/MovieGoodModal' // OLD - not used
 import BottomNavigation from '@/components/BottomNavigation'
@@ -66,6 +67,7 @@ export default function Home() {
   const [isMoviesTVV2Open, setIsMoviesTVV2Open] = useState(false)
   // const [isMovieGoodOpen, setIsMovieGoodOpen] = useState(false) // OLD MovieGoodModal - not used
   const [isGamesOpen, setIsGamesOpen] = useState(false)
+  const [isGamesV2Open, setIsGamesV2Open] = useState(false)
   const [isMusicOpen, setIsMusicOpen] = useState(false)
   
   // Library state
@@ -888,6 +890,30 @@ export default function Home() {
                   </span>
                 </button>
 
+                {/* Games V2 Button - Optimized API */}
+                <button
+                  onClick={() => setIsGamesV2Open(true)}
+                  className="group relative flex items-center p-2.5 sm:p-3.5 lg:p-4 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
+                >
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                  
+                  {/* Icon with green gradient background */}
+                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#00f260] to-[#0575e6] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
+                  </div>
+                  
+                  {/* Text with V2 badge */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-base sm:text-lg lg:text-xl font-light text-white tracking-tight">
+                      Games V2
+                    </span>
+                    <span className="px-2 py-0.5 bg-green-500 text-white text-xs rounded-full font-bold">
+                      FAST
+                    </span>
+                  </div>
+                </button>
+
                 {/* Books Button */}
                 <button
                   onClick={() => setActiveMainTab('book-search')}
@@ -1264,6 +1290,29 @@ export default function Home() {
         }}
         library={library}
       />
+
+      {/* Games V2 Modal - Optimized API */}
+      {isGamesV2Open && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b z-10 p-4">
+              <button
+                onClick={() => setIsGamesV2Open(false)}
+                className="absolute right-4 top-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <GamesV2Section
+              onAddToLibrary={handleAddToLibrary}
+              onOpenDetail={handleOpenDetail}
+              library={library}
+            />
+          </div>
+        </div>
+      )}
 
 
       <MusicModal

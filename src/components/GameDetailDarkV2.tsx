@@ -73,6 +73,7 @@ export default function GameDetailDarkV2({
   const [loadingDeveloper, setLoadingDeveloper] = useState(false)
   const [similarGamesLoaded, setSimilarGamesLoaded] = useState(false)
   const [developerGamesLoaded, setDeveloperGamesLoaded] = useState(false)
+  const [showSimilarGames, setShowSimilarGames] = useState(false)
   const [showAllPlatforms, setShowAllPlatforms] = useState(false)
   const [showPublisher, setShowPublisher] = useState(false)
   const [gameTrailer, setGameTrailer] = useState<ValidatedTrailer | null>(null)
@@ -206,8 +207,8 @@ export default function GameDetailDarkV2({
       // Fetch real reviews
       fetchReviews(rawgId, data.name)
       
-      // Load similar games from RAWG using suggestions endpoint
-      loadSimilarGames(rawgId)
+      // Similar games will load on demand when user clicks
+      // loadSimilarGames(rawgId) - Disabled to save API calls
       
       // 🚀 LAZY LOADING: Ne plus charger automatiquement les recommandations développeur
       // Les utilisateurs pourront cliquer sur un bouton pour les charger
@@ -597,6 +598,17 @@ export default function GameDetailDarkV2({
       setUserReview('')
     } finally {
       setReviewsLoading(false)
+    }
+  }
+
+  /**
+   * Handle click to load similar games
+   */
+  const handleLoadSimilarGames = () => {
+    setShowSimilarGames(true)
+    if (!similarGamesLoaded && gameDetail) {
+      const rawgId = gameDetail.id.toString().replace('game-', '')
+      loadSimilarGames(rawgId)
     }
   }
 
@@ -1412,7 +1424,17 @@ export default function GameDetailDarkV2({
                   {/* Similar Games */}
                   <div>
                     <h3 className="text-white font-medium mb-4">Similar Games</h3>
-                    {loadingSimilar ? (
+                    {!showSimilarGames ? (
+                      <button
+                        onClick={handleLoadSimilarGames}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        Click to see similar games
+                      </button>
+                    ) : loadingSimilar ? (
                       <div className="flex space-x-3 pb-2">
                         {[...Array(6)].map((_, index) => (
                           <div key={index} className="flex-shrink-0 w-28">
