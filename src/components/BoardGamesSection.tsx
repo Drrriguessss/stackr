@@ -350,11 +350,19 @@ export default function BoardGamesSection({
   )
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-indigo-600 via-purple-700 via-purple-800 to-black">
-      {/* Tout le contenu dans une seule section */}
-      <div className="w-full">
-        {/* Header Section - sans conteneur séparé */}
-        <div className="w-full px-6 py-8">
+    <div className="w-full min-h-screen bg-black">
+      {/* Header Section avec dégradé violet comme la modal */}
+      <div className="w-full bg-gradient-to-b from-indigo-600 via-purple-700 to-black relative">
+        {/* Texture overlay comme la modal */}
+        <div 
+          className="absolute inset-0 opacity-20 pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3C/defs%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E")`,
+            zIndex: 2
+          }}
+        />
+        
+        <div className="w-full px-6 py-8 relative z-10">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-white mb-2">Find Board Games</h1>
             <p className="text-white/80 text-sm">Enter a game title, designer name, or keyword to search thousands of board games</p>
@@ -398,11 +406,10 @@ export default function BoardGamesSection({
               Advanced
             </button>
           </div>
-        </div>
-
-        {/* Advanced Filters Panel */}
+        
+        {/* Advanced Filters Panel - dans le header violet */}
         {filters.showAdvancedFilters && (
-          <div className="w-full px-6 mb-6">
+          <div className="w-full px-6 pb-6 relative z-10">
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Player Count */}
@@ -536,9 +543,10 @@ export default function BoardGamesSection({
           </div>
         </div>
         )}
+      </div>
 
-        {/* Content Section - directement dans le même conteneur */}
-        <div className="w-full px-6 py-6">
+      {/* Content Section - fond noir pur */}
+      <div className="w-full bg-black min-h-screen px-6 py-6">
           {/* Trending Section */}
           {!searchQuery.trim() && (
             <div className="mb-8">

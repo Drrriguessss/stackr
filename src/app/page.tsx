@@ -904,9 +904,8 @@ export default function Home() {
         )
       case 'boardgame-search':
         return (
-          <div className="bg-white min-h-screen pb-20">
-            <div className="px-4 sm:px-6 py-6">
-              <BoardGamesSection
+          <div className="min-h-screen pb-20">
+            <BoardGamesSection
                 onAddToLibrary={handleAddToLibrary}
                 onOpenDetail={(game) => {
                   setSelectedBoardGameId(game.id)
@@ -920,7 +919,6 @@ export default function Home() {
                 hasSearched={boardGameSearchState.hasSearched}
                 onSearchStateChange={setBoardGameSearchState}
               />
-            </div>
           </div>
         )
       case 'boardgame-detail':
