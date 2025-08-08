@@ -350,41 +350,37 @@ export default function BoardGamesSection({
   const isLoading = searchQuery.trim() ? isSearching : isLoadingTrending
 
   return (
-    <div className="bg-white min-h-screen">
-      {/* Header avec dégradé violet */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-4 sm:px-6 py-6 sm:py-8 mb-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-            <BookOpen size={28} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Find Board Games</h1>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-indigo-600 via-purple-700 to-black">
+      {/* Header Section */}
+      <div className="px-6 py-8">
+        <div className="mb-4">
+          <h1 className="text-3xl font-bold text-white mb-2">Find Board Games</h1>
+          <p className="text-white/80 text-sm">Enter a game title, designer name, or keyword to search thousands of board games</p>
         </div>
         
-        {/* Barre de recherche pleine largeur */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60" size={20} />
+        {/* Barre de recherche stylisée */}
+        <div className="relative mb-4">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search board games... (e.g., Wingspan, Gloomhaven, Catan)"
-            className="w-full pl-12 pr-12 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl focus:ring-2 focus:ring-white/50 focus:border-white/30 outline-none transition-all text-white placeholder-white/60"
+            placeholder="Search board games..."
+            className="w-full pl-12 pr-12 py-4 bg-white/90 backdrop-blur-sm border-2 border-white/20 rounded-xl focus:ring-2 focus:ring-white/50 focus:border-white/40 focus:bg-white outline-none transition-all text-gray-900 placeholder-gray-500 shadow-lg hover:shadow-xl hover:bg-white"
           />
           {isSearching && (
             <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-              <Loader2 className="animate-spin text-white/60" size={20} />
+              <Loader2 className="animate-spin text-gray-400" size={20} />
             </div>
           )}
         </div>
         
-        {/* Filtres en dessous */}
-        <div className="grid grid-cols-2 sm:flex gap-3 mt-4">
+        {/* Filtres glassmorphism */}
+        <div className="flex flex-col sm:flex-row gap-3">
           <select 
             value={filters.sortBy}
             onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-            className="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/50 outline-none"
+            className="px-4 py-3 bg-white/10 backdrop-blur-md border border-white/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/50 focus:border-white/50 outline-none transition-all hover:bg-white/20 shadow-lg"
           >
             <option value="relevance" className="text-gray-900">Relevance</option>
             <option value="rating" className="text-gray-900">Rating</option>
@@ -395,22 +391,22 @@ export default function BoardGamesSection({
           
           <button
             onClick={() => handleFilterChange('showAdvancedFilters', !filters.showAdvancedFilters)}
-            className="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm hover:bg-white/20 transition-colors"
+            className="px-4 py-3 bg-white/10 backdrop-blur-md border border-white/30 rounded-lg text-white text-sm hover:bg-white/20 transition-all shadow-lg focus:ring-2 focus:ring-white/50"
           >
             Advanced
           </button>
         </div>
       </div>
 
-      {/* Section de contenu */}
-      <div className="px-4 sm:px-6 py-6">
+      {/* Content Section avec fond noir */}
+      <div className="bg-black px-6 py-6 min-h-screen">
         {/* Advanced Filters Panel */}
         {filters.showAdvancedFilters && (
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
+          <div className="bg-gray-900 rounded-xl p-4 border border-gray-700 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Player Count */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Player Count
                 </label>
                 <div className="flex gap-2">
@@ -438,7 +434,7 @@ export default function BoardGamesSection({
 
               {/* Play Time */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Play Time (minutes)
                 </label>
                 <div className="flex gap-2">
@@ -472,7 +468,7 @@ export default function BoardGamesSection({
 
               {/* Complexity */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Complexity
                 </label>
                 <select 
@@ -489,7 +485,7 @@ export default function BoardGamesSection({
 
               {/* Minimum Rating */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Min Rating
                 </label>
                 <select 
@@ -507,7 +503,7 @@ export default function BoardGamesSection({
 
               {/* Minimum Year */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Min Year
                 </label>
                 <select 
@@ -532,7 +528,7 @@ export default function BoardGamesSection({
                     onChange={(e) => handleFilterChange('includeExpansions', e.target.checked)}
                     className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                   />
-                  <span className="text-sm text-gray-700">Include expansions</span>
+                  <span className="text-sm text-white">Include expansions</span>
                 </label>
               </div>
             </div>
@@ -542,98 +538,48 @@ export default function BoardGamesSection({
 
       {/* Content Section */}
       <div>
-        {/* Section Title */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Trending Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-white mb-6">Trending Board Games</h2>
+          
+          {!searchQuery.trim() && !isLoading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {displayContent.map(renderBoardGameCard)}
+            </div>
+          )}
+        </div>
+        
+        {/* Search Results */}
+        {searchQuery.trim() && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              {hasSearched && searchQuery.trim()
-                ? `Search Results for "${searchQuery}" (${searchResults.length})` 
-                : 'Trending Board Games'
-              }
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Search Results ({searchResults.length})
             </h3>
             
-            {/* Active filters indicator */}
-            {searchQuery.trim() && (
-              <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                <span>Sort: {
-                  filters.sortBy === 'relevance' ? '🎯 Relevance' :
-                  filters.sortBy === 'rating' ? '⭐ Rating' :
-                  filters.sortBy === 'rank' ? '🏆 Rank' :
-                  filters.sortBy === 'year' ? '📅 Year' :
-                  '🧩 Complexity'
-                }</span>
-                
-                {(filters.minPlayers > 1 || filters.maxPlayers < 8) && (
-                  <span>• Players: {filters.minPlayers}-{filters.maxPlayers}</span>
-                )}
-                
-                {filters.complexity !== 'all' && (
-                  <span>• {filters.complexity} complexity</span>
-                )}
-                
-                {filters.minRating > 0 && (
-                  <span>• {filters.minRating}+ rating</span>
-                )}
+            {!isLoading && displayContent.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {displayContent.map(renderBoardGameCard)}
               </div>
             )}
-          </div>
-          
-          <div className="text-right">
-            {(searchQuery.trim()) && (
-              <span className="text-sm text-gray-500">
-                Powered by BoardGameGeek
-              </span>
-            )}
-            
-            {displayContent.length > 0 && (
-              <div className="text-xs text-gray-400 mt-1">
-                Enhanced with intelligent ranking
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Welcome Message */}
-        {!searchQuery.trim() && !isLoading && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BookOpen size={24} className="text-white" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Start your board game discovery</h3>
-            <p className="text-gray-500">Enter a game title, designer name, or keyword to search thousands of board games</p>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <Loader2 className="animate-spin mx-auto mb-4 text-purple-500" size={32} />
-              <p className="text-gray-500">
-                {searchQuery.trim() ? 'Searching board games...' : 'Loading trending games...'}
-              </p>
-              {searchQuery.trim() && (
-                <p className="text-xs text-gray-400 mt-1">
-                  This may take a few seconds due to BGG rate limits
-                </p>
-              )}
-            </div>
           </div>
         )}
 
         {/* No Results */}
-        {!isLoading && displayContent.length === 0 && hasSearched && searchQuery.trim() && (
+        {!isLoading && displayContent.length === 0 && searchQuery.trim() && (
           <div className="text-center py-12">
-            <Search size={48} className="mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No board games found</h3>
-            <p className="text-gray-500">Try a different game title, designer, or category</p>
+            <Search size={48} className="mx-auto mb-4 text-gray-500" />
+            <h3 className="text-lg font-semibold text-white mb-2">No games found</h3>
+            <p className="text-gray-400">Try a different title, designer, or genre</p>
           </div>
         )}
-
-        {/* Results Grid */}
-        {!isLoading && displayContent.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {displayContent.map(renderBoardGameCard)}
+        
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="animate-spin mx-auto mb-4 text-purple-400" size={32} />
+              <p className="text-gray-400">Searching games...</p>
+            </div>
           </div>
         )}
       </div>
