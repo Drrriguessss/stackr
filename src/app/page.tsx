@@ -820,14 +820,25 @@ export default function Home() {
         return renderDiscoverContent()
       case 'search':
         return (
-          <div className="min-h-screen bg-gradient-to-b from-indigo-900 via-gray-900 to-black flex flex-col">
-            <div className="container mx-auto max-w-2xl px-4 sm:px-6 pt-4 pb-20 sm:pt-6 sm:pb-8 flex-1 flex flex-col">
-              {/* Title with gradient text - much less margin */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light text-center mb-2 sm:mb-4 tracking-tight">
-                <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  Search
-                </span>
-              </h1>
+          <div className="min-h-screen bg-black flex flex-col">
+            {/* Header Section with exact gradient from BoardGameDetailPage */}
+            <div className="relative">
+              {/* Same Purple Gradient Background as BoardGameDetailPage */}
+              <div 
+                className="absolute inset-0 h-48"
+                style={{ 
+                  background: 'linear-gradient(to bottom, rgba(99, 102, 241, 0.4), rgba(126, 58, 242, 0.3), rgba(107, 33, 168, 0.2), rgba(15, 14, 23, 0.7))',
+                  zIndex: 1
+                }}
+              />
+              
+              <div className="container mx-auto max-w-2xl px-4 sm:px-6 pt-6 pb-4 sm:pt-8 sm:pb-6 relative z-10">
+                {/* Title with same style as Find Board Games */}
+                <h1 className="text-3xl font-bold text-white text-center mb-2">Search</h1>
+              </div>
+            </div>
+            
+            <div className="container mx-auto max-w-2xl px-4 sm:px-6 pb-20 flex-1 flex flex-col">
               
               {/* Category Buttons - reduced gap and padding to fit all 5 */}
               <div className="flex flex-col gap-2 sm:gap-3 flex-1 justify-start mt-2">
