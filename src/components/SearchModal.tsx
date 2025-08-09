@@ -288,13 +288,13 @@ export default function SearchModal({
                 const isMovie = item.media_type === 'movie'
                 
                 // Try poster first, then backdrop as fallback for image
-                // Using w342 size for better quality in the dropdown (w92, w154, w185, w342, w500, w780, original)
+                // Using w500 size - same as optimalMovieAPI.ts line 142
                 let imageUrl: string | undefined
                 if (item.poster_path) {
-                  imageUrl = `https://image.tmdb.org/t/p/w342${item.poster_path}`
+                  imageUrl = `https://image.tmdb.org/t/p/w500${item.poster_path}`
                   console.log(`🖼️ [SearchModal] Using poster for ${item.title || item.name}:`, imageUrl)
                 } else if (item.backdrop_path) {
-                  imageUrl = `https://image.tmdb.org/t/p/w342${item.backdrop_path}`
+                  imageUrl = `https://image.tmdb.org/t/p/w500${item.backdrop_path}`
                   console.log(`🖼️ [SearchModal] Using backdrop for ${item.title || item.name}:`, imageUrl)
                 } else {
                   console.log(`⚠️ [SearchModal] No image available for ${item.title || item.name}`)
@@ -966,39 +966,35 @@ export default function SearchModal({
                     }`}
                     onClick={() => handleSelectResult(result)}
                   >
-                    {/* Image plus grande pour mobile */}
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200 shadow-sm relative">
+                    {/* Image - Using same approach as MoviesTVSectionV2.tsx line 75-99 */}
+                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200 shadow-sm">
                       {result.image ? (
-                        <>
-                          <img
-                            src={result.image}
-                            alt={result.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              console.error(`❌ [SearchModal] Image failed to load for ${result.title}:`, result.image)
-                              const imgElement = e.target as HTMLImageElement
-                              // Hide the broken image
-                              imgElement.style.display = 'none'
-                              // Show the fallback icon
-                              const fallbackElement = imgElement.nextElementSibling as HTMLElement
-                              if (fallbackElement) {
-                                fallbackElement.classList.remove('hidden')
-                              }
-                            }}
-                            onLoad={() => {
-                              console.log(`✅ [SearchModal] Image loaded successfully for ${result.title}`)
-                            }}
-                          />
-                          <div className="w-full h-full flex items-center justify-center text-xl hidden absolute inset-0 bg-gray-100">
-                            {categoryInfo.icon}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xl">
+                        <img
+                          src={result.image}
+                          alt={result.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log('🖼️ [SearchModal] Image failed to load:', result.image)
+                            // Hide the broken image - same as MoviesTVSectionV2.tsx line 91
+                            e.currentTarget.style.display = 'none'
+                            // Show the fallback by manipulating the next sibling
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                            if (fallback) {
+                              fallback.style.display = 'flex'
+                            }
+                          }}
+                        />
+                      ) : null}
+                      
+                      {/* Fallback placeholder - hidden initially if image exists, shown on error or if no image */}
+                      <div 
+                        className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300"
+                        style={{ display: result.image ? 'none' : 'flex' }}
+                      >
+                        <div className="text-xl">
                           {categoryInfo.icon}
                         </div>
-                      )}
+                      </div>
                     </div>
 
                     {/* Contenu avec titres complets */}
