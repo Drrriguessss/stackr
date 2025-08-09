@@ -284,7 +284,15 @@ export default function SearchModal({
               // Convert TMDb results to SearchResult format
               const convertedResults: SearchResult[] = filteredResults.map((item: any) => {
                 const isMovie = item.media_type === 'movie'
-                const posterUrl = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : undefined
+                
+                // Try poster first, then backdrop as fallback for image
+                let imageUrl: string | undefined
+                if (item.poster_path) {
+                  imageUrl = `https://image.tmdb.org/t/p/w500${item.poster_path}`
+                } else if (item.backdrop_path) {
+                  imageUrl = `https://image.tmdb.org/t/p/w500${item.backdrop_path}`
+                }
+                
                 const releaseDate = isMovie ? item.release_date : item.first_air_date
                 
                 // Convert rating from /10 to /5
@@ -293,6 +301,24 @@ export default function SearchModal({
                 // Extract year
                 const year = releaseDate ? new Date(releaseDate).getFullYear() : new Date().getFullYear()
                 
+                // Map genre IDs to names (basic mapping for common genres)
+                const genreMap: { [key: number]: string } = {
+                  28: 'Action', 35: 'Comedy', 18: 'Drama', 27: 'Horror',
+                  10749: 'Romance', 878: 'Sci-Fi', 53: 'Thriller', 16: 'Animation',
+                  12: 'Adventure', 14: 'Fantasy', 36: 'History', 10752: 'War',
+                  80: 'Crime', 99: 'Documentary', 10751: 'Family', 9648: 'Mystery'
+                }
+                
+                const genreName = item.genre_ids && item.genre_ids.length > 0 
+                  ? genreMap[item.genre_ids[0]] || 'Entertainment'
+                  : 'Entertainment'
+                
+                console.log(`🎬 [SearchModal] TMDb result: ${item.title || item.name}`, {
+                  poster_path: item.poster_path,
+                  backdrop_path: item.backdrop_path,
+                  imageUrl: imageUrl
+                })
+                
                 return {
                   id: `movie-${item.id}`,
                   title: isMovie ? item.title : item.name,
@@ -300,15 +326,17 @@ export default function SearchModal({
                   category: 'movies' as const,
                   year,
                   rating,
-                  image: posterUrl,
+                  image: imageUrl,
                   director: 'Director', // Will be enriched later if needed
                   author: 'Director',
-                  genre: 'Movie', // Could be enhanced with genre mapping
+                  genre: genreName,
                   isSeries: !isMovie,
                   // Additional TMDb data
                   overview: item.overview,
                   popularity: item.popularity || 0,
-                  vote_count: item.vote_count || 0
+                  vote_count: item.vote_count || 0,
+                  poster_path: item.poster_path,
+                  backdrop_path: item.backdrop_path
                 }
               })
               
@@ -926,21 +954,36 @@ export default function SearchModal({
                     onClick={() => handleSelectResult(result)}
                   >
                     {/* Image plus grande pour mobile */}
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200 shadow-sm">
+                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200 shadow-sm relative">
                       {result.image ? (
-                        <img
-                          src={result.image}
-                          alt={result.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden')
-                          }}
-                        />
-                      ) : null}
-                      <div className={`w-full h-full flex items-center justify-center text-xl ${result.image ? 'hidden' : ''}`}>
-                        {categoryInfo.icon}
-                      </div>
+                        <>
+                          <img
+                            src={result.image}
+                            alt={result.title}
+                            className="w-full h-full object-cover"
+                            crossOrigin="anonymous"
+                            loading="lazy"
+                            onError={(e) => {
+                              console.warn(`🖼️ [SearchModal] Image failed to load for ${result.title}:`, result.image)
+                              const imgElement = e.target as HTMLImageElement
+                              // Hide the broken image
+                              imgElement.style.display = 'none'
+                              // Show the fallback icon
+                              const fallbackElement = imgElement.nextElementSibling as HTMLElement
+                              if (fallbackElement) {
+                                fallbackElement.classList.remove('hidden')
+                              }
+                            }}
+                          />
+                          <div className="w-full h-full flex items-center justify-center text-xl hidden absolute inset-0 bg-gray-100">
+                            {categoryInfo.icon}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xl">
+                          {categoryInfo.icon}
+                        </div>
+                      )}
                     </div>
 
                     {/* Contenu avec titres complets */}
