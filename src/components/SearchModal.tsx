@@ -255,13 +255,83 @@ export default function SearchModal({
     }
   }
 
-  // 🎬 RECHERCHE FILMS/SÉRIES
+  // 🎬 RECHERCHE FILMS/SÉRIES - Updated to use optimalMovieAPI logic
   const searchMoviesAndSeries = async (query: string): Promise<SearchResult[]> => {
     console.log('🎬 [SearchModal] Starting movies/series search for:', query)
     
     try {
+      // Use the same hybrid approach as optimalMovieAPI.ts
+      
+      // Primary: TMDb search (same logic as optimalMovieAPI.ts line 118-137)
+      const tmdbApiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY
+      if (tmdbApiKey) {
+        try {
+          const tmdbUrl = `https://api.themoviedb.org/3/search/multi?api_key=${tmdbApiKey}&query=${encodeURIComponent(query)}&page=1`
+          
+          const response = await fetch(tmdbUrl)
+          if (response.ok) {
+            const data = await response.json()
+            const results = data.results || []
+            
+            // Filter out people and limit results (same as optimalMovieAPI)
+            const filteredResults = results
+              .filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv')
+              .slice(0, 8) // Limit to 8 results
+            
+            if (filteredResults.length > 0) {
+              console.log('🎬 [SearchModal] TMDb results found:', filteredResults.length)
+              
+              // Convert TMDb results to SearchResult format
+              const convertedResults: SearchResult[] = filteredResults.map((item: any) => {
+                const isMovie = item.media_type === 'movie'
+                const posterUrl = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : undefined
+                const releaseDate = isMovie ? item.release_date : item.first_air_date
+                
+                // Convert rating from /10 to /5
+                const rating = item.vote_average ? Number((item.vote_average / 2).toFixed(1)) : 0
+                
+                // Extract year
+                const year = releaseDate ? new Date(releaseDate).getFullYear() : new Date().getFullYear()
+                
+                return {
+                  id: `movie-${item.id}`,
+                  title: isMovie ? item.title : item.name,
+                  name: isMovie ? item.title : item.name,
+                  category: 'movies' as const,
+                  year,
+                  rating,
+                  image: posterUrl,
+                  director: 'Director', // Will be enriched later if needed
+                  author: 'Director',
+                  genre: 'Movie', // Could be enhanced with genre mapping
+                  isSeries: !isMovie,
+                  // Additional TMDb data
+                  overview: item.overview,
+                  popularity: item.popularity || 0,
+                  vote_count: item.vote_count || 0
+                }
+              })
+              
+              // Sort by popularity (same as optimalMovieAPI.ts line 99-103)
+              const sortedResults = convertedResults.sort((a, b) => {
+                const popA = a.popularity || 0
+                const popB = b.popularity || 0
+                return popB - popA
+              })
+              
+              console.log('✅ [SearchModal] TMDb conversion complete:', sortedResults.length, 'results')
+              return sortedResults
+            }
+          }
+        } catch (tmdbError) {
+          console.warn('🎬 [SearchModal] TMDb search failed, falling back to OMDb:', tmdbError)
+        }
+      }
+      
+      // Fallback: OMDb search (same as optimalMovieAPI.ts line 109-110)
+      console.log('🎬 [SearchModal] Falling back to OMDb')
       const movies = await omdbService.searchMoviesAndSeries(query, 1)
-      console.log('🎬 [SearchModal] OMDB returned', movies.length, 'movies/series')
+      console.log('🎬 [SearchModal] OMDb returned', movies.length, 'movies/series')
       
       if (!movies || movies.length === 0) {
         return []
@@ -287,7 +357,7 @@ export default function SearchModal({
         })
       )
 
-      console.log('✅ [SearchModal] Movies conversion complete:', detailedMovies.length, 'results')
+      console.log('✅ [SearchModal] OMDb conversion complete:', detailedMovies.length, 'results')
       return detailedMovies
 
     } catch (error) {
