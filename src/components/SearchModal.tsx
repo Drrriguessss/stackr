@@ -268,6 +268,8 @@ export default function SearchModal({
         try {
           const tmdbUrl = `https://api.themoviedb.org/3/search/multi?api_key=${tmdbApiKey}&query=${encodeURIComponent(query)}&page=1`
           
+          // Direct fetch without cache to ensure fresh image URLs
+          console.log('🎬 [SearchModal] Fetching fresh TMDb data (cache bypassed)')
           const response = await fetch(tmdbUrl)
           if (response.ok) {
             const data = await response.json()
@@ -286,11 +288,16 @@ export default function SearchModal({
                 const isMovie = item.media_type === 'movie'
                 
                 // Try poster first, then backdrop as fallback for image
+                // Using w342 size for better quality in the dropdown (w92, w154, w185, w342, w500, w780, original)
                 let imageUrl: string | undefined
                 if (item.poster_path) {
-                  imageUrl = `https://image.tmdb.org/t/p/w500${item.poster_path}`
+                  imageUrl = `https://image.tmdb.org/t/p/w342${item.poster_path}`
+                  console.log(`🖼️ [SearchModal] Using poster for ${item.title || item.name}:`, imageUrl)
                 } else if (item.backdrop_path) {
-                  imageUrl = `https://image.tmdb.org/t/p/w500${item.backdrop_path}`
+                  imageUrl = `https://image.tmdb.org/t/p/w342${item.backdrop_path}`
+                  console.log(`🖼️ [SearchModal] Using backdrop for ${item.title || item.name}:`, imageUrl)
+                } else {
+                  console.log(`⚠️ [SearchModal] No image available for ${item.title || item.name}`)
                 }
                 
                 const releaseDate = isMovie ? item.release_date : item.first_air_date
@@ -627,13 +634,16 @@ export default function SearchModal({
     }
 
     const cacheKey = `${activeCategory}-${query.toLowerCase()}`
-    if (searchCache.has(cacheKey)) {
+    // Skip cache for movies to ensure fresh TMDb image URLs
+    if (activeCategory !== 'movies' && activeCategory !== 'all' && searchCache.has(cacheKey)) {
       const cachedResults = searchCache.get(cacheKey)!
+      console.log('📦 [SearchModal] Using cached results for:', cacheKey)
       setResults(cachedResults)
       setSelectedIndex(-1)
       return
     }
 
+    console.log('🔍 [SearchModal] Performing fresh search for:', cacheKey)
     debouncedSearch(query, activeCategory)
   }, [query, activeCategory, debouncedSearch, searchCache])
 
@@ -656,8 +666,11 @@ export default function SearchModal({
       setFadeOutPopup(null)
       setSelectedStatus(null)
       setJustAddedItems(new Set())
+      // Clear search cache when closing modal to ensure fresh results next time
+      searchCache.clear()
+      console.log('🗑️ [SearchModal] Cleared search cache on close')
     }
-  }, [isOpen])
+  }, [isOpen, searchCache])
 
   // ✅ GESTION DES OPTIONS DE STATUT
   const getStatusOptions = (category: string): StatusOption[] => {
@@ -961,10 +974,9 @@ export default function SearchModal({
                             src={result.image}
                             alt={result.title}
                             className="w-full h-full object-cover"
-                            crossOrigin="anonymous"
                             loading="lazy"
                             onError={(e) => {
-                              console.warn(`🖼️ [SearchModal] Image failed to load for ${result.title}:`, result.image)
+                              console.error(`❌ [SearchModal] Image failed to load for ${result.title}:`, result.image)
                               const imgElement = e.target as HTMLImageElement
                               // Hide the broken image
                               imgElement.style.display = 'none'
@@ -973,6 +985,9 @@ export default function SearchModal({
                               if (fallbackElement) {
                                 fallbackElement.classList.remove('hidden')
                               }
+                            }}
+                            onLoad={() => {
+                              console.log(`✅ [SearchModal] Image loaded successfully for ${result.title}`)
                             }}
                           />
                           <div className="w-full h-full flex items-center justify-center text-xl hidden absolute inset-0 bg-gray-100">
