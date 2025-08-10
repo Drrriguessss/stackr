@@ -46,6 +46,7 @@ import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } fro
 export default function Home() {
   const [activeTab, setActiveTab] = useState<MediaCategory>('games')
   const [activeMainTab, setActiveMainTab] = useState('feed')
+  const [previousMainTab, setPreviousMainTab] = useState('feed') // Track previous tab for navigation
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
   const [selectedMovieType, setSelectedMovieType] = useState<'movie' | 'tv'>('movie')
@@ -502,6 +503,7 @@ export default function Home() {
   const handleOpenBoardGameDetail = (gameId: string) => {
     const normalizedGameId = normalizeId(gameId)
     setSelectedBoardGameId(normalizedGameId)
+    setPreviousMainTab(activeMainTab) // Store current tab before switching
     setActiveMainTab('boardgame-detail')
   }
 
@@ -990,6 +992,7 @@ export default function Home() {
                 onAddToLibrary={handleAddToLibrary}
                 onOpenDetail={(game) => {
                   setSelectedBoardGameId(game.id)
+                  setPreviousMainTab(activeMainTab) // Store current tab before switching
                   setActiveMainTab('boardgame-detail')
                 }}
                 library={library}
@@ -1006,7 +1009,7 @@ export default function Home() {
         return selectedBoardGameId ? (
           <BoardGameDetailPage
             gameId={selectedBoardGameId}
-            onBack={() => setActiveMainTab('boardgame-search')}
+            onBack={() => setActiveMainTab(previousMainTab)}
             onAddToLibrary={handleAddToLibrary}
             onDeleteItem={handleDeleteItem}
             library={library}
