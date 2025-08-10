@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus, Download, Grid3X3, List } from 'lucide-react'
+import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus, Download, Grid3X3, List, Gamepad2, Film, Music, BookOpen, Dice6 } from 'lucide-react'
 import type { MediaCategory, MediaStatus, LibraryItem } from '@/types'
 
 // Local types
@@ -561,8 +561,30 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       // Category filter
       if (activeCategory !== 'all' && item.category !== activeCategory) return false
       
-      // Status filter
-      if (activeStatus !== 'all' && item.status !== activeStatus) return false
+      // Status filter - harmonized across all categories
+      if (activeStatus !== 'all') {
+        const statusMatches = () => {
+          switch (activeStatus) {
+            case 'wishlist':
+              // All "want to" statuses
+              return ['want-to-play', 'want-to-watch', 'want-to-read', 'want-to-listen'].includes(item.status)
+            case 'in-progress':
+              // All "in progress" statuses
+              return ['playing', 'watching', 'reading', 'currently-playing'].includes(item.status)
+            case 'completed':
+              // All completion statuses
+              return ['completed', 'watched', 'read', 'listened', 'played'].includes(item.status)
+            case 'paused':
+              return item.status === 'paused'
+            case 'dropped':
+              return item.status === 'dropped'
+            default:
+              return item.status === activeStatus
+          }
+        }
+        
+        if (!statusMatches()) return false
+      }
       
       return true
     })
@@ -634,12 +656,18 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
 
   const getStatusLabel = (status: MediaStatus | string) => {
     switch (status) {
-      case 'want-to-play': return 'Wishlist'
-      case 'playing': return 'Playing'
-      case 'currently-playing': return 'In Progress'
+      // Harmonized status labels
+      case 'wishlist': return 'Wishlist'
+      case 'in-progress': return 'In Progress'
       case 'completed': return 'Completed'
       case 'paused': return 'Paused'
       case 'dropped': return 'Dropped'
+      case 'all': return 'All'
+      
+      // Legacy individual statuses (for display in items)
+      case 'want-to-play': return 'Wishlist'
+      case 'playing': return 'Playing'
+      case 'currently-playing': return 'In Progress'
       case 'played': return 'Played'
       case 'want-to-watch': return 'Want to watch'
       case 'watching': return 'Watching'
@@ -649,7 +677,6 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       case 'want-to-read': return 'Want to read'
       case 'reading': return 'Reading'
       case 'read': return 'Read'
-      case 'all': return 'All'
       default: return status
     }
   }
@@ -974,23 +1001,28 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
           {/* Filtres de catégories uniquement */}
           <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
             {[
-              { key: 'all', label: 'All' },
-              { key: 'games', label: 'Games' },
-              { key: 'movies', label: 'Movies' },
-              { key: 'music', label: 'Music' },
-              { key: 'books', label: 'Books' },
-              { key: 'boardgames', label: 'Board' }
-            ].map(({ key, label }) => (
+              { key: 'all', label: 'All', icon: null },
+              { key: 'games', label: 'Games', icon: Gamepad2 },
+              { key: 'movies', label: 'Movies', icon: Film },
+              { key: 'music', label: 'Music', icon: Music },
+              { key: 'books', label: 'Books', icon: BookOpen },
+              { key: 'boardgames', label: 'Boardgames', icon: Dice6 }
+            ].map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={() => setActiveCategory(key)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center ${
                   activeCategory === key
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
+                title={label}
               >
-                {label}
+                {key === 'all' ? (
+                  label
+                ) : (
+                  Icon && <Icon size={18} className={activeCategory === key ? 'text-white' : 'text-gray-600'} />
+                )}
               </button>
             ))}
           </div>
@@ -1016,8 +1048,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
                   {[
                     { key: 'all', label: 'All' },
-                    { key: 'want-to-play', label: 'Wishlist' },
-                    { key: 'currently-playing', label: 'In Progress' },
+                    { key: 'wishlist', label: 'Wishlist' },
+                    { key: 'in-progress', label: 'In Progress' },
                     { key: 'completed', label: 'Completed' },
                     { key: 'paused', label: 'Paused' },
                     { key: 'dropped', label: 'Dropped' }

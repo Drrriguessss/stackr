@@ -218,7 +218,7 @@ class UserReviewsService {
     }
   }
 
-  // Récupérer toutes les reviews publiques pour un média
+  // Récupérer toutes les reviews publiques pour un média (méthode principale)
   async getPublicReviewsForMedia(mediaId: string): Promise<UserReview[]> {
     try {
       console.log('📝 Fetching public reviews for media:', mediaId)
@@ -362,6 +362,16 @@ class UserReviewsService {
       console.error('Error fetching all user reviews:', error)
       return []
     }
+  }
+
+  // Alias pour getPublicReviewsForMedia (compatibilité avec GameDetailDarkV2)
+  async getPublicReviews(mediaCategory: MediaCategory, mediaId: string): Promise<UserReview[]> {
+    return this.getPublicReviewsForMedia(mediaId)
+  }
+
+  // Récupérer la review de l'utilisateur actuel pour un média
+  async getCurrentUserReview(mediaCategory: MediaCategory, mediaId: string): Promise<UserReview | null> {
+    return this.getUserReviewForMedia(mediaId)
   }
 
   // Changer le nom d'utilisateur

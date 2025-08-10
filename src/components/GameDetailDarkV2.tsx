@@ -1,12 +1,11 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { X, Star, Send, ChevronDown, ChevronRight, Play, Share } from 'lucide-react'
+import { X, Star, Send, ChevronDown, ChevronRight, Play, Share, Calendar, DollarSign, Tag, Users, Check, FileText, Image, Video, Info, MessageCircle } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { newTrailerService, type ValidatedTrailer } from '@/services/newTrailerService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
 import { realGameReviewsService, type RealGameReview } from '@/services/realGameReviewsService'
 import { fetchWithCache, apiCache } from '@/utils/apiCache'
-// igdbService ne contient plus getGameImages, nous utilisons directement l'API RAWG
 import { rawgService, type RAWGGame } from '@/services/rawgService'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 
@@ -43,7 +42,7 @@ interface GameDetail {
   parent_platforms: { platform: { name: string } }[]
 }
 
-type TabType = 'overview' | 'reviews' | 'moreinfo'
+type TabType = 'overview' | 'trailers'
 
 export default function GameDetailDarkV2({ 
   isOpen, 
@@ -87,80 +86,82 @@ export default function GameDetailDarkV2({
   const [gameImages, setGameImages] = useState<string[]>([])
   const [imagesLoading, setImagesLoading] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  
+  // New states for enhanced functionality
+  const [showFriendsModal, setShowFriendsModal] = useState(false)
+  const [selectedFriends, setSelectedFriends] = useState<any[]>([])
+  const [showGameSheet, setShowGameSheet] = useState(false)
+  const [showFriendsWhoPlayedModal, setShowFriendsWhoPlayedModal] = useState(false)
+  const [gameSheetData, setGameSheetData] = useState({
+    datePlayed: '',
+    platform: '',
+    accessMethod: '',
+    purchasePrice: '',
+    customTags: [] as string[],
+    friendsPlayed: [] as any[],
+    personalRating: 0,
+    personalReview: ''
+  })
 
   const scrollableRef = useRef<HTMLDivElement>(null)
   const libraryDropdownRef = useRef<HTMLDivElement>(null)
 
   const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || ''
 
-  // Mock data for similar games and developer games
-  const mockSimilarGames = [
-    { id: 1, name: "Super Meat Boy", image: "https://media.rawg.io/media/games/4cf/4cfc6b7f1850590a4634b08bfab308ab.jpg", rating: 4.5 },
-    { id: 2, name: "Celeste", image: "https://media.rawg.io/media/games/594/5949baae74fe9e399adbce0c44e28783.jpg", rating: 4.8 },
-    { id: 3, name: "Hollow Knight", image: "https://media.rawg.io/media/games/4cf/4cfc6b7f1850590a4634b08bfab308ab.jpg", rating: 4.7 },
-    { id: 4, name: "Dead Cells", image: "https://media.rawg.io/media/games/f99/f99f08148e85c969a0b8c9d5326c6b63.jpg", rating: 4.6 },
-    { id: 5, name: "Ori and the Blind Forest", image: "https://media.rawg.io/media/games/f8c/f8c6a262ead4c16b47e1219310210eb3.jpg", rating: 4.5 },
-    { id: 6, name: "Shovel Knight", image: "https://media.rawg.io/media/games/713/713269608dc8f2f40f5a670a14b2de94.jpg", rating: 4.4 },
-    { id: 7, name: "Katana ZERO", image: "https://media.rawg.io/media/games/375/375a7e2c93efd9e3d5e2d1c10f0ddc01.jpg", rating: 4.6 },
-    { id: 8, name: "Hades", image: "https://media.rawg.io/media/games/1f4/1f47a270b8f241e4676b14d39ec620f7.jpg", rating: 4.9 }
+  // Mock friends data
+  const mockFriends = [
+    { id: 1, name: 'Alex', avatar: '/api/placeholder/32/32' },
+    { id: 2, name: 'Sarah', avatar: '/api/placeholder/32/32' },
+    { id: 3, name: 'Mike', avatar: '/api/placeholder/32/32' },
+    { id: 4, name: 'Emma', avatar: '/api/placeholder/32/32' },
+    { id: 5, name: 'David', avatar: '/api/placeholder/32/32' },
+    { id: 6, name: 'Lisa', avatar: '/api/placeholder/32/32' },
+    { id: 7, name: 'Tom', avatar: '/api/placeholder/32/32' }
   ]
 
-  const mockDeveloperGames = [
-    { id: 1, name: "Worms Battlegrounds", image: "https://media.rawg.io/media/games/157/15742f2f67eacff546738e1ab5c19d20.jpg", rating: 3.8 },
-    { id: 2, name: "The Escapists", image: "https://media.rawg.io/media/games/9e5/9e5b91a6d02e66b8d450a977a59ae123.jpg", rating: 4.1 },
-    { id: 3, name: "Overcooked", image: "https://media.rawg.io/media/games/270/270b412b66688081497b3d70c100b208.jpg", rating: 4.3 },
-    { id: 4, name: "Yooka-Laylee", image: "https://media.rawg.io/media/games/966/966de4e9136a63dd13746f45b9326eb7.jpg", rating: 3.5 }
+  // Mock friends who played this game
+  const friendsWhoPlayed = [
+    { id: 2, name: 'Sarah', rating: 4, hasReview: true, reviewText: 'Amazing gameplay! The story was incredible.' },
+    { id: 4, name: 'Emma', rating: 5, hasReview: true, reviewText: 'Best game I\'ve played this year!' },
+    { id: 6, name: 'Lisa', rating: 3, hasReview: false, reviewText: null },
+    { id: 1, name: 'Alex', rating: 4, hasReview: true, reviewText: 'Great graphics and mechanics. Highly recommend!' }
   ]
 
+  const statusOptions: { key: MediaStatus, label: string }[] = [
+    { key: 'want-to-play', label: 'Want to play' },
+    { key: 'playing', label: 'Playing' },
+    { key: 'completed', label: 'Completed' },
+    { key: 'paused', label: 'Paused' },
+    { key: 'dropped', label: 'Dropped' }
+  ]
 
   useEffect(() => {
-    if (isOpen) {
-      setActiveTab('overview')
-      setShowFullOverview(false)
-      setShowAllPlatforms(false)
-      setShowPublisher(false)
-      setShowLibraryDropdown(false)
-      // Reset rating and review states when opening modal
-      // These will be set correctly when fetchReviews is called if user has existing review
-      setUserRating(0)
-      setUserReview('')
-      setShowReviewBox(false)
-      setCurrentUserReview(null)
-      setExpandedReviews(new Set())
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen])
-
-  // Ref pour éviter les appels API multiples
-  const hasLoadedRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    if (isOpen && gameId && hasLoadedRef.current !== gameId) {
-      hasLoadedRef.current = gameId
+    if (isOpen && gameId) {
       fetchGameDetail()
-    }
-    if (!isOpen) {
-      hasLoadedRef.current = null
+      fetchGameTrailer()
+      fetchGameImages()
+      fetchRealGameReviews()
+      fetchUserPublicReviews()
+      checkCurrentUserReview()
     }
   }, [isOpen, gameId])
 
   useEffect(() => {
-    const libraryItem = library.find(item => item.id === gameId)
+    const libraryItem = library.find(item => 
+      item.id === gameId || item.id === `game-${gameId}`
+    )
     if (libraryItem) {
       setSelectedStatus(libraryItem.status)
+      if (libraryItem.userRating) {
+        setUserRating(libraryItem.userRating)
+      }
+      if (libraryItem.notes) {
+        setUserReview(libraryItem.notes)
+      }
     } else {
       setSelectedStatus(null)
+      setUserRating(0)
+      setUserReview('')
     }
   }, [gameId, library])
 
@@ -171,1049 +172,334 @@ export default function GameDetailDarkV2({
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    if (showLibraryDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [])
+  }, [showLibraryDropdown])
 
   const fetchGameDetail = async () => {
-    if (!gameId) return
-    
     setLoading(true)
     try {
-      let rawgId = gameId
-      
-      if (gameId.startsWith('game-')) {
-        rawgId = gameId.replace('game-', '')
-      }
-      
-      // 🚀 OPTIMISATION: Utiliser le cache pour éviter les requêtes répétées
-      const gameUrl = `https://api.rawg.io/api/games/${rawgId}?key=${RAWG_API_KEY}`
-      const cacheKey = `game-detail-${rawgId}`
-      const data = await fetchWithCache(gameUrl, cacheKey)
-      
-      // Vérifier si l'API retourne une erreur de limite
-      if (data.error && data.error.includes('API limit')) {
-        console.error('🎮 [GameDetail] API limit reached, using fallback')
-        throw new Error('API_LIMIT_REACHED')
-      }
-      
-      setGameDetail(data)
-      
-      // Fetch images
-      loadGameImages(rawgId, data.name)
-      
-      // Fetch real reviews
-      fetchReviews(rawgId, data.name)
-      
-      // Similar games will load on demand when user clicks
-      // loadSimilarGames(rawgId) - Disabled to save API calls
-      
-      // 🚀 LAZY LOADING: Ne plus charger automatiquement les recommandations développeur
-      // Les utilisateurs pourront cliquer sur un bouton pour les charger
-      console.log('🎮 [GameDetail] Game details loaded. Developer recommendations available on demand.')
-      
-    } catch (error) {
-      console.error('Error loading game details:', error)
-      
-      // Fallback vers les données statiques
-      const { sampleContent } = require('@/data/sampleContent')
-      
-      // Essayer de trouver le jeu correspondant dans sampleContent
-      let fallbackGame = sampleContent.games.find((game: any) => 
-        game.id === gameId || game.id === `game-${rawgId}` || game.id === rawgId
+      const response = await fetchWithCache(
+        `https://api.rawg.io/api/games/${gameId}?key=${RAWG_API_KEY}`,
+        { 
+          method: 'GET',
+          next: { revalidate: 3600 }
+        },
+        `game-detail-${gameId}`
       )
       
-      // Si pas trouvé, utiliser le premier jeu comme fallback
-      if (!fallbackGame) {
-        fallbackGame = sampleContent.games[0]
-      }
+      if (!response.ok) throw new Error('Failed to fetch game details')
       
-      // Convertir en format GameDetail
-      setGameDetail({
-        id: parseInt(rawgId) || 1,
-        name: fallbackGame.title,
-        background_image: fallbackGame.image || "https://via.placeholder.com/640x360/1a1a1a/ffffff?text=Game+Image",
-        description_raw: `${fallbackGame.title} is an exciting ${fallbackGame.genre} game released in ${fallbackGame.year}. Experience amazing gameplay and immersive storytelling in this fantastic ${fallbackGame.genre} adventure.`,
-        rating: fallbackGame.rating || 4.0,
-        rating_count: 150 + Math.floor(Math.random() * 1000),
-        released: `${fallbackGame.year}-01-01`,
-        platforms: [{ platform: { name: "PC" } }, { platform: { name: "PlayStation" } }],
-        developers: [{ name: fallbackGame.author || "Unknown Developer" }],
-        publishers: [{ name: fallbackGame.author || "Unknown Publisher" }],
-        genres: [{ name: fallbackGame.genre || "Game" }],
-        tags: [],
-        website: "#",
-        stores: [
-          { store: { name: "Steam" }, url: "#" },
-          { store: { name: "PlayStation Store" }, url: "#" }
-        ],
-        screenshots: [
-          { image: fallbackGame.image || "https://via.placeholder.com/640x360" },
-          { image: fallbackGame.image || "https://via.placeholder.com/640x360" }
-        ],
-        metacritic: Math.floor(fallbackGame.rating * 20) || 75,
-        esrb_rating: { name: "Everyone" },
-        parent_platforms: []
-      })
-      
-      // For fallback demo data, also fetch similar games
-      await fetchRealSimilarGames([{name: fallbackGame.genre}], [], parseInt(rawgId) || 1)
-      await fetchRealDeveloperGames(fallbackGame.author || 'Unknown Developer', parseInt(rawgId) || 1)
-      // Fetch images for mock data too
-      loadGameImages(rawgId, fallbackGame.title)
-      // Fetch reviews for mock data too
-      fetchReviews(rawgId, fallbackGame.title)
+      const data = await response.json()
+      setGameDetail(data)
+      console.log('🎮 Game detail loaded:', data.name)
+    } catch (error) {
+      console.error('Error fetching game details:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchTrailer = async (gameId: string, gameName: string) => {
+  const fetchGameTrailer = async () => {
+    if (!gameDetail?.name) return
+    
     setTrailerLoading(true)
     try {
-      const trailer = await trailerService.getGameTrailer(gameId, gameName)
+      const trailer = await newTrailerService.getGameTrailer(gameDetail.name)
       setGameTrailer(trailer)
     } catch (error) {
-      console.error('Error fetching trailer:', error)
-      setGameTrailer(null)
+      console.error('Error fetching game trailer:', error)
     } finally {
       setTrailerLoading(false)
     }
   }
 
-  const loadGameImages = async (gameId: string, gameName: string) => {
-    console.log('🖼️ Loading RAWG screenshots for:', gameName, 'ID:', gameId)
-    
+  const fetchGameImages = async () => {
     setImagesLoading(true)
     try {
-      // Récupérer le trailer avec validation
-      const trailer = await newTrailerService.getGameTrailer(gameId, gameName)
-      setGameTrailer(trailer)
-      console.log('🎬 Trailer loaded:', {
-        provider: trailer.provider,
-        isEmbeddable: trailer.isEmbeddable,
-        videoId: trailer.videoId,
-        fallbackReason: trailer.fallbackReason
-      })
-      
-      // Récupérer les screenshots depuis RAWG directement
-      const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || '77fc098c19f74e3d9bd07989d15fa9b3'
-      const screenshotsResponse = await fetch(
+      const response = await fetch(
         `https://api.rawg.io/api/games/${gameId}/screenshots?key=${RAWG_API_KEY}`
       )
       
-      if (screenshotsResponse.ok) {
-        const screenshotsData = await screenshotsResponse.json()
-        console.log('🖼️ RAWG screenshots response:', screenshotsData?.results?.length || 0, 'screenshots')
-        
-        if (screenshotsData?.results && screenshotsData.results.length > 0) {
-          const imageUrls = screenshotsData.results.slice(0, 6).map((screenshot: any) => screenshot.image)
-          console.log('🖼️ ✅ Successfully loaded', imageUrls.length, 'real screenshots')
-          setGameImages(imageUrls)
-          setCurrentImageIndex(0)
-        } else {
-          console.log('🖼️ ⚠️ No screenshots found, using fallback')
-          // Fallback avec images directes
-          const fallbackImages = [
-            'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&h=450&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=450&fit=crop&q=80'
-          ]
-          setGameImages(fallbackImages)
-          setCurrentImageIndex(0)
-        }
-      } else {
-        console.log('🖼️ ❌ Screenshots API failed:', screenshotsResponse.status)
-        // Fallback en cas d'échec API
-        const fallbackImages = [
-          'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop&q=80'
-        ]
-        setGameImages(fallbackImages)
-        setCurrentImageIndex(0)
-      }
+      if (!response.ok) throw new Error('Failed to fetch game images')
       
+      const data = await response.json()
+      const images = data.results?.map((img: any) => img.image) || []
+      setGameImages(images)
     } catch (error) {
-      console.error('🖼️ Error loading images:', error)
-      // En cas d'erreur, toujours mettre des images
-      const errorFallback = [
-        'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop&q=80'
-      ]
-      setGameImages(errorFallback)
-      setCurrentImageIndex(0)
+      console.error('Error fetching game images:', error)
     } finally {
       setImagesLoading(false)
     }
   }
 
-  // FONCTION DE TEST DIRECT RAWG
-  const testRAWGDirectly = async (gameId: string, gameName: string) => {
-    const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || ''
-    console.log('🖼️ RAWG API Key available:', !!RAWG_API_KEY)
+  const fetchRealGameReviews = async () => {
+    if (!gameDetail?.name) return
     
-    const images: Array<{url: string, type: string, aspectRatio: number}> = []
-    
-    try {
-      // Nettoyer l'ID
-      let rawgId = gameId
-      if (gameId.startsWith('game-')) {
-        rawgId = gameId.replace('game-', '')
-      }
-      
-      console.log('🖼️ Testing with game ID:', rawgId)
-      
-      // Test 1: Screenshots endpoint
-      console.log('🖼️ Testing screenshots endpoint...')
-      const screenshotsUrl = `https://api.rawg.io/api/games/${rawgId}/screenshots?key=${RAWG_API_KEY}`
-      console.log('🖼️ Screenshots URL:', screenshotsUrl)
-      
-      const screenshotsResponse = await fetch(screenshotsUrl)
-      console.log('🖼️ Screenshots response status:', screenshotsResponse.status)
-      
-      if (screenshotsResponse.ok) {
-        const screenshotsData = await screenshotsResponse.json()
-        console.log('🖼️ Screenshots data:', screenshotsData)
-        
-        if (screenshotsData.results && screenshotsData.results.length > 0) {
-          console.log('🖼️ ✅ Found', screenshotsData.results.length, 'screenshots')
-          
-          screenshotsData.results.slice(0, 4).forEach((screenshot: any, index: number) => {
-            console.log(`🖼️ Screenshot ${index + 1}:`, screenshot.image)
-            images.push({
-              url: screenshot.image,
-              type: 'screenshot',
-              aspectRatio: 16/9
-            })
-          })
-        } else {
-          console.log('🖼️ ❌ No screenshots in results')
-        }
-      } else {
-        const errorText = await screenshotsResponse.text()
-        console.log('🖼️ ❌ Screenshots error:', screenshotsResponse.status, errorText)
-      }
-      
-      // Test 2: Game details pour background_image
-      console.log('🖼️ Testing game details endpoint...')
-      const gameUrl = `https://api.rawg.io/api/games/${rawgId}?key=${RAWG_API_KEY}`
-      console.log('🖼️ Game details URL:', gameUrl)
-      
-      const gameResponse = await fetch(gameUrl)
-      console.log('🖼️ Game response status:', gameResponse.status)
-      
-      if (gameResponse.ok) {
-        const gameData = await gameResponse.json()
-        console.log('🖼️ Game data received:', {
-          name: gameData.name,
-          background_image: gameData.background_image,
-          screenshots_count: gameData.screenshots?.length || 0
-        })
-        
-        if (gameData.background_image) {
-          console.log('🖼️ ✅ Found background image:', gameData.background_image)
-          images.unshift({
-            url: gameData.background_image,
-            type: 'background',
-            aspectRatio: 16/9
-          })
-        }
-        
-        // Essayer aussi les screenshots dans gameData
-        if (gameData.screenshots && gameData.screenshots.length > 0) {
-          console.log('🖼️ Found screenshots in game data:', gameData.screenshots.length)
-          gameData.screenshots.slice(0, 3).forEach((screenshot: any, index: number) => {
-            if (screenshot.image) {
-              console.log(`🖼️ Game data screenshot ${index + 1}:`, screenshot.image)
-              images.push({
-                url: screenshot.image,
-                type: 'screenshot',
-                aspectRatio: 16/9
-              })
-            }
-          })
-        }
-      } else {
-        const errorText = await gameResponse.text()
-        console.log('🖼️ ❌ Game details error:', gameResponse.status, errorText)
-      }
-      
-    } catch (error) {
-      console.error('🖼️ ❌ RAWG test error:', error)
-    }
-    
-    // Si aucune image RAWG, ajouter des images de test directes
-    if (images.length === 0) {
-      console.log('🖼️ No RAWG images, adding test images...')
-      
-      // Images de test garanties (gaming Unsplash)
-      const testImages = [
-        'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=450&fit=crop&q=80'
-      ]
-      
-      testImages.forEach((url, index) => {
-        console.log(`🖼️ Adding test image ${index + 1}:`, url)
-        images.push({
-          url,
-          type: 'artwork',
-          aspectRatio: 16/9
-        })
-      })
-    }
-    
-    console.log('🖼️ RAWG test final result:', images.length, 'images')
-    return images
-  }
-
-  // FONCTION DE TEST DIRECT IGDB API
-  const testIGDBDirectly = async (gameId: string, gameName: string) => {
-    console.log('🖼️ Testing IGDB API for:', gameName)
-    
-    const images: Array<{url: string, type: string, aspectRatio: number}> = []
-    
-    try {
-      // IGDB nécessite un token Twitch, mais on peut essayer une approche simple
-      // Note: IGDB API nécessite une authentification Twitch plus complexe
-      console.log('🖼️ IGDB requires Twitch authentication - skipping for now')
-      
-      // À la place, on va utiliser une API alternative plus simple
-      // ou rechercher des images par nom de jeu
-      
-    } catch (error) {
-      console.error('🖼️ ❌ IGDB test error:', error)
-    }
-    
-    // Si aucune image IGDB, ajouter des images de test garanties
-    if (images.length === 0) {
-      console.log('🖼️ IGDB not available, adding guaranteed fallback images...')
-      
-      // Images gaming différentes pour tester
-      const fallbackImages = [
-        'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1556065808-f644d4d28847?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=450&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=450&fit=crop&q=80'
-      ]
-      
-      fallbackImages.forEach((url, index) => {
-        console.log(`🖼️ Adding IGDB fallback image ${index + 1}:`, url)
-        images.push({
-          url,
-          type: 'screenshot',
-          aspectRatio: 16/9
-        })
-      })
-    }
-    
-    console.log('🖼️ IGDB test final result:', images.length, 'images')
-    return images
-  }
-
-  // FONCTION D'IMAGES GARANTIES (Option 3)
-  const testGuaranteedImages = async (gameId: string, gameName: string) => {
-    console.log('🖼️ Creating guaranteed images for:', gameName)
-    
-    const images: Array<{url: string, type: string, aspectRatio: number}> = []
-    
-    // Collection d'images gaming de haute qualité garanties depuis Unsplash
-    const guaranteedUrls = [
-      // Gaming setups et équipements
-      'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80&auto=format',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop&q=80&auto=format',
-      'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&h=450&fit=crop&q=80&auto=format',
-      
-      // Gaming art et scènes
-      'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=450&fit=crop&q=80&auto=format',
-      'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=800&h=450&fit=crop&q=80&auto=format',
-      'https://images.unsplash.com/photo-1556065808-f644d4d28847?w=800&h=450&fit=crop&q=80&auto=format',
-      
-      // Consoles et gaming
-      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=450&fit=crop&q=80&auto=format',
-      'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=450&fit=crop&q=80&auto=format'
-    ]
-    
-    guaranteedUrls.forEach((url, index) => {
-      console.log(`🖼️ Adding guaranteed image ${index + 1}:`, url)
-      images.push({
-        url,
-        type: 'screenshot',
-        aspectRatio: 16/9
-      })
-    })
-    
-    // Ajouter une image personnalisée avec le nom du jeu
-    const customImageUrl = `https://via.placeholder.com/800x450/1a202c/ffffff?text=${encodeURIComponent(gameName.substring(0, 20))}`
-    console.log('🖼️ Adding custom game image:', customImageUrl)
-    images.push({
-      url: customImageUrl,
-      type: 'background',
-      aspectRatio: 16/9
-    })
-    
-    console.log('🖼️ Guaranteed images final result:', images.length, 'images')
-    return images
-  }
-
-  const fetchReviews = async (gameId: string, gameName: string) => {
     setReviewsLoading(true)
     try {
-      console.log('📝 Fetching reviews for game:', gameName)
-      
-      // Fetch real game reviews from RAWG + Steam
-      const realReviews = await realGameReviewsService.getGameReviews(gameId, gameName)
-      setRealGameReviews(realReviews)
-      console.log('📝 Loaded', realReviews.length, 'real reviews for', gameName)
-      
-      // Fetch user public reviews
-      const publicReviews = await userReviewsService.getPublicReviewsForMedia(gameId)
-      setUserPublicReviews(publicReviews)
-      console.log('📝 Loaded', publicReviews.length, 'user public reviews')
-      
-      // Fetch current user's review (if any)
-      const userReview = await userReviewsService.getUserReviewForMedia(gameId)
-      setCurrentUserReview(userReview)
-      if (userReview) {
-        setUserRating(userReview.rating)
-        setUserReview(userReview.review_text || '')
-        console.log('📝 Found existing user review')
-      } else {
-        // Reset rating and review if no existing review for this game
-        setUserRating(0)
-        setUserReview('')
-        console.log('📝 No existing review - resetting rating and review')
-      }
+      const reviews = await realGameReviewsService.getGameReviews(gameDetail.name)
+      setRealGameReviews(reviews)
     } catch (error) {
-      console.error('📝 Error fetching reviews:', error)
-      setRealGameReviews([])
-      setUserPublicReviews([])
-      setCurrentUserReview(null)
-      // Reset rating and review on error as well
-      setUserRating(0)
-      setUserReview('')
+      console.error('Error fetching game reviews:', error)
     } finally {
       setReviewsLoading(false)
     }
   }
 
-  /**
-   * Handle click to load similar games
-   */
-  const handleLoadSimilarGames = () => {
-    setShowSimilarGames(true)
-    if (!similarGamesLoaded && gameDetail) {
-      const rawgId = gameDetail.id.toString().replace('game-', '')
-      loadSimilarGames(rawgId)
-    }
-  }
-
-  /**
-   * Load similar games using RAWG's suggestions endpoint
-   */
-  const loadSimilarGames = async (gameId: string) => {
-    setLoadingSimilar(true)
-    setSimilarGamesLoaded(false)
-    
+  const fetchUserPublicReviews = async () => {
     try {
-      console.log(`🎮 [Similar Games] Loading similar games for gameId: ${gameId}`)
-      
-      // Use the new RAWG service method
-      const similarGamesData = await rawgService.getSimilarGames(gameId, 8)
-      
-      if (similarGamesData.length > 0) {
-        // Convert RAWG games to app format for consistency
-        const convertedGames = similarGamesData.map(game => rawgService.convertToAppFormat(game))
-        setSimilarGames(convertedGames)
-        console.log(`🎮 [Similar Games] ✅ Loaded ${convertedGames.length} similar games`)
-      } else {
-        console.log(`🎮 [Similar Games] No similar games found, using fallback`)
-        setSimilarGames([])
-      }
-      
-      setSimilarGamesLoaded(true)
-      
+      const reviews = await userReviewsService.getPublicReviews('game', gameId)
+      setUserPublicReviews(reviews)
     } catch (error) {
-      console.error(`🎮 [Similar Games] Error loading similar games:`, error)
-      // Fallback to empty array - no mock data to avoid confusion
-      setSimilarGames([])
-      setSimilarGamesLoaded(true)
-    } finally {
-      setLoadingSimilar(false)
+      console.error('Error fetching user reviews:', error)
     }
   }
 
-  const fetchRealSimilarGames = async (genres: any[], tags: any[], excludeGameId: number) => {
-    setLoadingSimilar(true)
+  const checkCurrentUserReview = async () => {
     try {
-      console.log('🎮 Fetching real similar games for genres:', genres.map(g => g.name))
-      
-      // Construire la requête avec le genre principal
-      const mainGenre = genres[0].name.toLowerCase()
-      let searchParams = new URLSearchParams({
-        key: RAWG_API_KEY,
-        page_size: '12', // Réduit de 20 à 12
-        ordering: '-rating',
-        metacritic: '70,100'
-      })
-
-      if (mainGenre) {
-        searchParams.append('genres', mainGenre)
+      const review = await userReviewsService.getCurrentUserReview('game', gameId)
+      setCurrentUserReview(review)
+      if (review) {
+        setUserRating(review.rating)
+        setUserReview(review.reviewText)
+        setReviewPrivacy(review.isPublic ? 'public' : 'private')
       }
-
-      // 🚀 OPTIMISATION: Utiliser le cache
-      const similarUrl = `https://api.rawg.io/api/games?${searchParams}`
-      const cacheKey = `similar-${mainGenre}-${excludeGameId}`
-      const data = await fetchWithCache(similarUrl, cacheKey)
-      
-      // Filtrer et trier par pertinence
-      let filteredGames = (data.results || [])
-        .filter((game: any) => game.id !== excludeGameId)
-        .filter((game: any) => game.rating >= 3.5)
-        .slice(0, 8)
-
-      filteredGames = filteredGames.map((game: any) => ({
-        ...game,
-        relevanceScore: calculateRelevanceScore(game, genres, tags)
-      })).sort((a: any, b: any) => b.relevanceScore - a.relevanceScore)
-
-      setSimilarGames(filteredGames.slice(0, 8))
-      setSimilarGamesLoaded(true)
-      
     } catch (error) {
-      console.error('🎮 Error fetching real similar games:', error)
-      setSimilarGames(mockSimilarGames.filter(g => g.id !== excludeGameId))
-      setSimilarGamesLoaded(true)
-    } finally {
-      setLoadingSimilar(false)
+      console.error('Error checking current user review:', error)
     }
   }
 
-  const fetchRealDeveloperGames = async (developerName: string, excludeGameId: number) => {
-    setLoadingDeveloper(true)
-    try {
-      console.log('🎮 Fetching real developer games for:', developerName)
-      
-      // D'abord, essayer de trouver le développeur par son nom exact
-      const devSearchParams = new URLSearchParams({
-        key: RAWG_API_KEY,
-        search: developerName,
-        page_size: '1'
-      })
-
-      const devResponse = await fetch(`https://api.rawg.io/api/developers?${devSearchParams}`)
-      
-      if (devResponse.ok) {
-        const devData = await devResponse.json()
-        console.log('🎮 Developer search response:', devData)
-        
-        if (devData.results && devData.results.length > 0) {
-          const developer = devData.results[0]
-          console.log('🎮 Found developer:', developer)
-          
-          // Utiliser l'ID du développeur pour chercher ses jeux
-          const gamesParams = new URLSearchParams({
-            key: RAWG_API_KEY,
-            developers: developer.id.toString(),
-            page_size: '20',
-            ordering: '-rating'
-          })
-          
-          const gamesResponse = await fetch(`https://api.rawg.io/api/games?${gamesParams}`)
-          
-          if (gamesResponse.ok) {
-            const gamesData = await gamesResponse.json()
-            console.log('🎮 Games by developer response:', gamesData)
-            
-            const developerGames = (gamesData.results || [])
-              .filter((game: any) => game.id !== excludeGameId)
-              .slice(0, 6)
-
-            console.log('🎮 Final developer games:', developerGames)
-            setDeveloperGames(developerGames)
-            setDeveloperGamesLoaded(true)
-            return
-          }
-        }
-      }
-      
-      // Fallback : recherche générale avec filtre manuel
-      console.log('🎮 Fallback: searching by developer name in general search')
-      const fallbackParams = new URLSearchParams({
-        key: RAWG_API_KEY,
-        search: `"${developerName}"`, // Recherche avec guillemets pour plus de précision
-        page_size: '20',
-        ordering: '-rating'
-      })
-
-      const fallbackResponse = await fetch(`https://api.rawg.io/api/games?${fallbackParams}`)
-      
-      if (fallbackResponse.ok) {
-        const fallbackData = await fallbackResponse.json()
-        console.log('🎮 Fallback search response:', fallbackData)
-        
-        // Filtrer manuellement les jeux du développeur
-        const developerGames = (fallbackData.results || [])
-          .filter((game: any) => game.id !== excludeGameId)
-          .filter((game: any) => {
-            if (!game.developers || game.developers.length === 0) return false
-            return game.developers.some((dev: any) => {
-              const devNameLower = dev.name.toLowerCase()
-              const targetDevLower = developerName.toLowerCase()
-              return devNameLower.includes(targetDevLower) || 
-                     targetDevLower.includes(devNameLower) ||
-                     devNameLower === targetDevLower
-            })
-          })
-          .slice(0, 6)
-
-        console.log('🎮 Filtered fallback developer games:', developerGames)
-        setDeveloperGames(developerGames)
-        setDeveloperGamesLoaded(true)
-      }
-      
-    } catch (error) {
-      console.error('🎮 Error fetching real developer games:', error)
-      // Fallback to mock data
-      setDeveloperGames(mockDeveloperGames.filter(g => g.id !== excludeGameId))
-      setDeveloperGamesLoaded(true)
-    } finally {
-      setLoadingDeveloper(false)
-    }
-  }
-
-  const calculateRelevanceScore = (game: any, targetGenres: any[], targetTags: any[]) => {
-    let score = 0
-    
-    // Score de base sur le rating
-    score += game.rating * 10
-    
-    // Bonus pour les genres correspondants
-    if (game.genres) {
-      const matchingGenres = game.genres.filter((genre: any) => 
-        targetGenres.some(targetGenre => 
-          targetGenre.name.toLowerCase() === genre.name.toLowerCase()
-        )
-      )
-      score += matchingGenres.length * 20
-    }
-    
-    // Bonus pour les tags correspondants
-    if (game.tags && targetTags) {
-      const matchingTags = game.tags.filter((tag: any) => 
-        targetTags.some((targetTag: any) => 
-          targetTag.name.toLowerCase() === tag.name.toLowerCase()
-        )
-      )
-      score += matchingTags.length * 5
-    }
-    
-    // Bonus pour les jeux populaires
-    if (game.rating_count > 1000) {
-      score += 10
-    }
-    
-    return score
-  }
-
-  const handleStatusSelect = (status: MediaStatus | 'remove') => {
+  const handleStatusSelect = async (status: MediaStatus) => {
     if (!gameDetail) return
-    
-    if (status === 'remove') {
-      if (onDeleteItem) {
-        onDeleteItem(gameId)
+
+    // If selecting "Playing" or "Completed", show friends modal
+    if (status === 'playing' || status === 'completed') {
+      setSelectedStatus(status)
+      setShowFriendsModal(true)
+      
+      // If "Completed", also prepare to show rating/review
+      if (status === 'completed') {
+        setShowReviewBox(true)
       }
-      setSelectedStatus(null)
     } else {
-      const gameItem = {
-        id: gameId,
+      // For other statuses, just add to library
+      const gameData = {
+        id: `game-${gameDetail.id}`,
         title: gameDetail.name,
-        image: gameDetail.background_image,
         category: 'games' as const,
-        year: gameDetail.released ? new Date(gameDetail.released).getFullYear() : 2024,
-        rating: gameDetail.rating
+        image: gameDetail.background_image,
+        year: new Date(gameDetail.released).getFullYear(),
+        rating: gameDetail.rating,
+        developer: gameDetail.developers?.[0]?.name || 'Unknown',
+        genre: gameDetail.genres?.[0]?.name || 'Unknown'
       }
       
-      onAddToLibrary(gameItem, status)
+      onAddToLibrary(gameData, status)
       setSelectedStatus(status)
     }
+    
     setShowLibraryDropdown(false)
   }
 
-  const getStatusLabel = (status: MediaStatus | null) => {
-    if (!status) return 'Add to Library'
-    switch (status) {
-      case 'want-to-play': return 'Want to Play'
-      case 'currently-playing': return 'Playing'
-      case 'completed': return 'Completed'
-      default: return status
+  const handleFriendsSelected = () => {
+    if (!gameDetail) return
+    
+    // Add to library with selected friends
+    const gameData = {
+      id: `game-${gameDetail.id}`,
+      title: gameDetail.name,
+      category: 'games' as const,
+      image: gameDetail.background_image,
+      year: new Date(gameDetail.released).getFullYear(),
+      rating: gameDetail.rating,
+      developer: gameDetail.developers?.[0]?.name || 'Unknown',
+      genre: gameDetail.genres?.[0]?.name || 'Unknown',
+      friendsPlayed: selectedFriends
+    }
+    
+    onAddToLibrary(gameData, selectedStatus!)
+    setShowFriendsModal(false)
+    
+    // If completed, show rating/review modal
+    if (selectedStatus === 'completed') {
+      setShowReviewBox(true)
     }
   }
 
-  const getStatusColor = (status: MediaStatus | null) => {
-    if (!status) return 'bg-gray-800'
-    switch (status) {
-      case 'want-to-play': return 'bg-orange-600'
-      case 'currently-playing': return 'bg-green-600'
-      case 'completed': return 'bg-blue-600'
-      default: return 'bg-gray-800'
+  const handleReviewSubmit = async () => {
+    if (!gameDetail) return
+
+    const reviewData = {
+      gameId: `game-${gameDetail.id}`,
+      gameName: gameDetail.name,
+      rating: userRating,
+      reviewText: userReview,
+      isPublic: reviewPrivacy === 'public',
+      platform: 'game'
     }
-  }
 
-  const toggleReviewExpansion = (reviewId: string) => {
-    setExpandedReviews(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(reviewId)) {
-        newSet.delete(reviewId)
-      } else {
-        newSet.add(reviewId)
-      }
-      return newSet
-    })
-  }
-
-  const handleSubmitReview = async () => {
-    if (userRating > 0 && gameDetail) {
-      // Sauvegarder dans notre nouveau système
-      const savedReview = await userReviewsService.submitReview({
-        mediaId: gameId,
-        mediaTitle: gameDetail.name,
-        mediaCategory: 'games',
-        rating: userRating,
-        reviewText: userReview.trim(),
-        isPublic: reviewPrivacy === 'public'
-      })
+    try {
+      await userReviewsService.submitReview(reviewData)
+      onReviewSubmit(reviewData)
       
-      if (savedReview) {
-        console.log('✅ Review saved successfully')
-        
-        // Si publique, actualiser la liste des reviews publiques
-        if (reviewPrivacy === 'public') {
-          const updatedPublicReviews = await userReviewsService.getPublicReviewsForMedia(gameId)
-          setUserPublicReviews(updatedPublicReviews)
-        }
-        
-        // Mettre à jour l'état de la review actuelle
-        setCurrentUserReview(savedReview)
+      // Update library item with rating and review
+      const gameData = {
+        id: `game-${gameDetail.id}`,
+        userRating: userRating,
+        notes: userReview
       }
       
-      // Appeler aussi l'ancien système si nécessaire
-      onReviewSubmit({
-        rating: userRating,
-        review: userReview.trim(),
-        privacy: reviewPrivacy
-      })
+      // This should trigger an update, not an add
+      // You might need to implement an onUpdateItem prop
       
       setShowReviewBox(false)
-      // Ne pas réinitialiser rating et review car l'utilisateur a maintenant une review existante
+      fetchUserPublicReviews() // Refresh public reviews
+    } catch (error) {
+      console.error('Error submitting review:', error)
     }
+  }
+
+  const handleRemoveFromLibrary = () => {
+    if (onDeleteItem && gameDetail) {
+      onDeleteItem(`game-${gameDetail.id}`)
+      setSelectedStatus(null)
+      setShowLibraryDropdown(false)
+    }
+  }
+
+  const handleSaveGameSheet = () => {
+    // Save custom game sheet data
+    console.log('Saving game sheet:', gameSheetData)
+    
+    // Update library item with custom data
+    if (gameDetail) {
+      const updateData = {
+        datePlayed: gameSheetData.datePlayed,
+        platform: gameSheetData.platform,
+        accessMethod: gameSheetData.accessMethod,
+        purchasePrice: gameSheetData.purchasePrice,
+        customTags: gameSheetData.customTags,
+        friendsPlayed: gameSheetData.friendsPlayed,
+        userRating: gameSheetData.personalRating || userRating,
+        notes: gameSheetData.personalReview || userReview
+      }
+      
+      // Update the review if it changed
+      if (gameSheetData.personalRating !== userRating || gameSheetData.personalReview !== userReview) {
+        setUserRating(gameSheetData.personalRating)
+        setUserReview(gameSheetData.personalReview)
+        handleReviewSubmit()
+      }
+    }
+    
+    setShowGameSheet(false)
   }
 
   if (!isOpen) return null
 
   return (
-    <div 
-      className="fixed inset-0 bg-black/95 z-[10000] flex items-center justify-center"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose()
-        }
-      }}
-    >
-      <div 
-        className="bg-[#0B0B0B] w-full h-full md:max-w-2xl md:h-[95vh] md:rounded-2xl overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-          </div>
-        ) : gameDetail ? (
-          <>
-            {/* Header */}
-            <div className="relative px-4 pt-6 pb-4">
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-800 transition-colors"
-              >
-                <X size={20} />
-              </button>
-              
-              <div className="flex items-start justify-between pr-12">
-                <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-white mb-2">{gameDetail.name}</h1>
-                  
-                  {/* Metadata */}
-                  <div className="flex items-center space-x-2 text-[#B0B0B0] text-sm">
-                    <span>{gameDetail.released ? new Date(gameDetail.released).getFullYear() : 'TBA'}</span>
-                    <span>•</span>
-                    <span>{gameDetail.genres?.[0]?.name || 'Unknown'}</span>
-                    <span>•</span>
-                    <span>{gameDetail.platforms?.map(p => p.platform.name).slice(0, 2).join(', ') || 'PC'}</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="relative w-full max-w-5xl h-[90vh] bg-gray-900 rounded-2xl overflow-hidden">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-50 p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
+        >
+          <X size={20} className="text-white" />
+        </button>
+
+        {/* Scrollable content */}
+        <div ref={scrollableRef} className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : gameDetail ? (
+            <>
+              {/* 1. Large header image */}
+              <div className="relative w-full h-96">
+                <img
+                  src={gameDetail.background_image}
+                  alt={gameDetail.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent" />
+              </div>
+
+              {/* 2. Colored section with main info */}
+              <div className="relative bg-gradient-to-br from-blue-900/50 to-purple-900/50 backdrop-blur-lg p-6">
+                <div className="flex gap-6">
+                  {/* Mini thumbnail */}
+                  <div className="w-24 h-32 rounded-lg overflow-hidden border-2 border-white/20 flex-shrink-0">
+                    <img
+                      src={gameDetail.background_image}
+                      alt={gameDetail.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  {/* Title and info */}
+                  <div className="flex-1">
+                    <h1 className="text-4xl font-bold text-white mb-2">{gameDetail.name}</h1>
+                    <p className="text-xl text-white/80 mb-1">
+                      {gameDetail.developers?.map(dev => dev.name).join(', ') || 'Unknown Developer'}
+                    </p>
+                    <p className="text-sm text-white/60">
+                      {new Date(gameDetail.released).getFullYear()} • {gameDetail.genres?.map(g => g.name).join(', ')} • {gameDetail.platforms?.slice(0, 3).map(p => p.platform.name).join(', ')}
+                    </p>
                   </div>
                 </div>
-
-                {/* Share Button */}
-                <button 
-                  onClick={() => setShowShareWithFriendsModal(true)}
-                  className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-                >
-                  <Send size={18} />
-                </button>
               </div>
-            </div>
 
-            {/* Navigation Tabs - Pill Style */}
-            <div className="px-4 py-3 border-b border-gray-800">
-              <div className="flex space-x-2">
-                {[
-                  { key: 'overview' as const, label: 'Overview' },
-                  { key: 'reviews' as const, label: 'Reviews' },
-                  { key: 'moreinfo' as const, label: 'My Game Card' }
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 ease-in-out ${
-                      activeTab === tab.key
-                        ? 'bg-[#1DB954] text-white font-bold shadow-lg border border-[#1DB954]'
-                        : 'bg-transparent text-[#B0B0B0] border border-gray-600 hover:bg-gray-800 hover:text-white hover:border-gray-500'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Content */}
-            <div ref={scrollableRef} className="flex-1 overflow-y-auto">
-              {activeTab === 'overview' && (
-                <div className="p-4 space-y-6">
-                  {/* Media Section - Trailer and Images Side by Side */}
-                  <div className="space-y-4">
-                    {imagesLoading ? (
-                      <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-center text-white">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                            <p className="text-sm">Loading media...</p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {/* Media Gallery - Trailer + Images Combined */}
-                        <div className="space-y-3">
-                          <h4 className="text-white font-medium text-sm">Media Gallery</h4>
-                          
-                          {/* Combined Media Carousel */}
-                          <div className="relative">
-                            {/* Main Media Display */}
-                            <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                              {currentImageIndex === 0 && gameTrailer ? (
-                                // Show trailer as first item
-                                gameTrailer.isEmbeddable && gameTrailer.embedUrl ? (
-                                  // Embedded trailer
-                                  <div className="relative w-full h-full">
-                                    <iframe
-                                      src={gameTrailer.embedUrl}
-                                      title={gameTrailer.title || `${gameDetail.name} trailer`}
-                                      className="w-full h-full"
-                                      allowFullScreen
-                                      onError={(e) => {
-                                        console.error('🎬 Iframe embedding failed:', e)
-                                        const iframe = e.target as HTMLIFrameElement
-                                        iframe.style.display = 'none'
-                                        const fallback = iframe.parentElement?.querySelector('.trailer-fallback') as HTMLElement
-                                        if (fallback) fallback.style.display = 'flex'
-                                      }}
-                                    />
-                                    {/* Fallback for iframe errors */}
-                                    <div className="trailer-fallback absolute inset-0 bg-gray-800 flex-col items-center justify-center text-white hidden">
-                                      <Play size={48} className="mx-auto mb-3 opacity-60" />
-                                      <p className="text-sm font-medium mb-1">Trailer Preview Unavailable</p>
-                                      <a 
-                                        href={gameTrailer.url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-medium transition-colors"
-                                      >
-                                        Watch Trailer
-                                      </a>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  // Non-embeddable trailer with game background
-                                  <div className="relative w-full h-full overflow-hidden">
-                                    <img
-                                      src={gameDetail.background_image || 'https://via.placeholder.com/800x450/1a1a1a/ffffff?text=Game+Image'}
-                                      alt={`${gameDetail.name} background`}
-                                      className="absolute inset-0 w-full h-full object-cover"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement
-                                        target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80'
-                                      }}
-                                    />
-                                    <div className="absolute inset-0 bg-black/60"></div>
-                                    <div className="relative w-full h-full flex flex-col items-center justify-center text-white">
-                                      <Play size={48} className="mx-auto mb-3 opacity-90" />
-                                      <p className="text-lg font-medium mb-1">{gameDetail.name}</p>
-                                      <a 
-                                        href={gameTrailer.url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="bg-red-600/90 hover:bg-red-700/90 backdrop-blur-sm px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 shadow-lg"
-                                      >
-                                        <Play size={16} />
-                                        <span>Watch Trailer on YouTube</span>
-                                      </a>
-                                    </div>
-                                  </div>
-                                )
-                              ) : (
-                                // Show game images
-                                gameImages.length > 0 ? (
-                                  <img
-                                    src={gameImages[gameTrailer ? currentImageIndex - 1 : currentImageIndex]}
-                                    alt={`${gameDetail.name} screenshot ${currentImageIndex + 1}`}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement
-                                      target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=450&fit=crop&q=80'
-                                    }}
-                                  />
-                                ) : (
-                                  // Fallback when no images
-                                  <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                                    <div className="text-center text-white">
-                                      <div className="w-12 h-12 mx-auto mb-2 opacity-50">📷</div>
-                                      <p className="text-sm opacity-75">No media available</p>
-                                    </div>
-                                  </div>
-                                )
-                              )}
-                              
-                              {/* Navigation arrows */}
-                              {(gameTrailer ? gameImages.length + 1 : gameImages.length) > 1 && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      const totalItems = gameTrailer ? gameImages.length + 1 : gameImages.length
-                                      setCurrentImageIndex(prev => prev > 0 ? prev - 1 : totalItems - 1)
-                                    }}
-                                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
-                                  >
-                                    <ChevronRight size={20} className="rotate-180" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const totalItems = gameTrailer ? gameImages.length + 1 : gameImages.length
-                                      setCurrentImageIndex(prev => prev < totalItems - 1 ? prev + 1 : 0)
-                                    }}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
-                                  >
-                                    <ChevronRight size={20} />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                            
-                            {/* Thumbnail Navigation */}
-                            {(gameTrailer || gameImages.length > 0) && (
-                              <div className="flex space-x-2 overflow-x-auto pb-2 mt-3">
-                                {/* Trailer thumbnail */}
-                                {gameTrailer && (
-                                  <button
-                                    onClick={() => setCurrentImageIndex(0)}
-                                    className={`flex-shrink-0 w-20 h-12 rounded overflow-hidden border-2 transition-colors relative ${
-                                      currentImageIndex === 0 ? 'border-white' : 'border-transparent'
-                                    }`}
-                                  >
-                                    <img
-                                      src={gameDetail.background_image || 'https://via.placeholder.com/80x48/333/fff?text=Trailer'}
-                                      alt="Trailer thumbnail"
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement
-                                        target.src = 'https://via.placeholder.com/80x48/333/fff?text=Trailer'
-                                      }}
-                                    />
-                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                      <Play size={12} className="text-white" />
-                                    </div>
-                                  </button>
-                                )}
-                                
-                                {/* Image thumbnails */}
-                                {gameImages.map((image, index) => (
-                                  <button
-                                    key={index}
-                                    onClick={() => setCurrentImageIndex(gameTrailer ? index + 1 : index)}
-                                    className={`flex-shrink-0 w-20 h-12 rounded overflow-hidden border-2 transition-colors ${
-                                      (gameTrailer ? index + 1 : index) === currentImageIndex ? 'border-white' : 'border-transparent'
-                                    }`}
-                                  >
-                                    <img
-                                      src={image}
-                                      alt={`Thumbnail ${index + 1}`}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement
-                                        target.src = 'https://via.placeholder.com/80x48/333/fff?text=No+Image'
-                                      }}
-                                    />
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Add to Library Button */}
+              {/* 3. Add to Library button with dropdown */}
+              <div className="px-6 py-4 bg-gray-900/95 border-b border-gray-800">
+                <div className="flex gap-3">
                   <div className="relative" ref={libraryDropdownRef}>
                     <button
                       onClick={() => setShowLibraryDropdown(!showLibraryDropdown)}
-                      className="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                      className={`px-6 py-3 rounded-full font-medium transition-all flex items-center gap-2 ${
+                        selectedStatus 
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
                     >
-                      <span>{selectedStatus ? getStatusLabel(selectedStatus) : 'Add to Library'}</span>
-                      <ChevronDown size={16} className={`transition-transform ${showLibraryDropdown ? 'rotate-180' : ''}`} />
+                      {selectedStatus ? (
+                        <>
+                          <Check size={16} />
+                          {statusOptions.find(s => s.key === selectedStatus)?.label || 'In Library'}
+                        </>
+                      ) : (
+                        'Add to Library'
+                      )}
+                      <ChevronDown size={16} />
                     </button>
-                    
-                    {/* Dropdown Options */}
+
                     {showLibraryDropdown && (
-                      <div className="absolute top-full left-0 mt-2 bg-[#1A1A1A] rounded-lg shadow-xl z-10 py-2 min-w-48 border border-gray-800">
-                        <button
-                          onClick={() => handleStatusSelect('want-to-play')}
-                          className="w-full text-left px-4 py-2 text-white hover:bg-gray-800 transition-colors text-sm"
-                        >
-                          Want to Play
-                        </button>
-                        <button
-                          onClick={() => handleStatusSelect('currently-playing')}
-                          className="w-full text-left px-4 py-2 text-white hover:bg-gray-800 transition-colors text-sm"
-                        >
-                          Playing
-                        </button>
-                        <button
-                          onClick={() => handleStatusSelect('completed')}
-                          className="w-full text-left px-4 py-2 text-white hover:bg-gray-800 transition-colors text-sm"
-                        >
-                          Completed
-                        </button>
+                      <div className="absolute top-full left-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden z-50">
+                        {statusOptions.map(option => (
+                          <button
+                            key={option.key}
+                            onClick={() => handleStatusSelect(option.key)}
+                            className="w-full px-4 py-2 text-left text-white hover:bg-gray-700 transition-colors flex items-center justify-between"
+                          >
+                            {option.label}
+                            {selectedStatus === option.key && <Check size={14} />}
+                          </button>
+                        ))}
                         {selectedStatus && (
                           <>
-                            <div className="border-t border-gray-700 my-1"></div>
+                            <div className="border-t border-gray-700" />
                             <button
-                              onClick={() => handleStatusSelect('remove')}
-                              className="w-full text-left px-4 py-2 text-red-400 hover:bg-gray-800 transition-colors text-sm"
+                              onClick={handleRemoveFromLibrary}
+                              className="w-full px-4 py-2 text-left text-red-400 hover:bg-gray-700 transition-colors"
                             >
                               Remove from Library
                             </button>
@@ -1223,674 +509,541 @@ export default function GameDetailDarkV2({
                     )}
                   </div>
 
-                  {/* Rate this game - Only show if Playing or Completed */}
-                  {(selectedStatus === 'currently-playing' || selectedStatus === 'completed') && (
-                    <div>
-                      <h3 className="text-white font-medium mb-3">Rate this game</h3>
-                      <div className="flex items-center space-x-2">
-                        {[1, 2, 3, 4, 5].map((rating) => (
-                          <button
-                            key={rating}
-                            onClick={() => {
-                              setUserRating(rating)
-                              setShowReviewBox(true)
-                            }}
-                            onMouseEnter={() => setHoverRating(rating)}
-                            onMouseLeave={() => setHoverRating(0)}
-                            className="p-1"
-                          >
-                            <Star
-                              size={24}
-                              className={`transition-colors ${
-                                (hoverRating || userRating) >= rating
-                                  ? 'text-yellow-400 fill-current'
-                                  : 'text-gray-600'
-                              }`}
-                            />
-                          </button>
+                  {/* 4. Share button */}
+                  <button
+                    onClick={() => setShowShareWithFriendsModal(true)}
+                    className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-full font-medium transition-colors flex items-center gap-2"
+                  >
+                    <Share size={16} />
+                    Share
+                  </button>
+
+                  {/* 5. Customize game sheet link */}
+                  <button
+                    onClick={() => setShowGameSheet(true)}
+                    className="px-6 py-3 text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2"
+                  >
+                    <FileText size={16} />
+                    Customize this game sheet
+                  </button>
+                </div>
+              </div>
+
+              {/* 6. Friends who played section */}
+              <div className="px-6 py-4 bg-gray-900/95 border-b border-gray-800">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-white">Friends who played</h3>
+                  <button
+                    onClick={() => setShowFriendsWhoPlayedModal(true)}
+                    className="text-blue-400 hover:text-blue-300 text-sm"
+                  >
+                    View all
+                  </button>
+                </div>
+                <div className="flex gap-3">
+                  {friendsWhoPlayed.slice(0, 4).map(friend => (
+                    <div key={friend.id} className="text-center">
+                      <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center mb-1">
+                        <span className="text-white text-sm">{friend.name[0]}</span>
+                      </div>
+                      <p className="text-xs text-gray-400">{friend.name}</p>
+                      <div className="flex justify-center mt-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            size={10}
+                            className={i < friend.rating ? 'text-yellow-500 fill-current' : 'text-gray-600'}
+                          />
                         ))}
-                        {userRating > 0 && (
-                          <span className="text-white ml-2 font-medium">{userRating}/5</span>
-                        )}
                       </div>
-                    
-                    {showReviewBox && (
-                      <div className="mt-4 p-4 bg-[#1A1A1A] rounded-lg border border-gray-800">
-                        <h4 className="text-white font-medium mb-3">Share your thoughts about this game</h4>
-                        <div className="flex space-x-2 mb-3">
-                          <button
-                            onClick={() => setReviewPrivacy('private')}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                              reviewPrivacy === 'private'
-                                ? 'bg-gray-700 text-white'
-                                : 'bg-transparent text-gray-400 border border-gray-700'
-                            }`}
-                          >
-                            Private Note
-                          </button>
-                          <button
-                            onClick={() => setReviewPrivacy('public')}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                              reviewPrivacy === 'public'
-                                ? 'bg-gray-700 text-white'
-                                : 'bg-transparent text-gray-400 border border-gray-700'
-                            }`}
-                          >
-                            Share publicly
-                          </button>
-                        </div>
-                        <textarea
-                          value={userReview}
-                          onChange={(e) => setUserReview(e.target.value)}
-                          placeholder="Optional: Add your thoughts..."
-                          className="w-full h-20 px-3 py-2 bg-[#0B0B0B] text-white text-sm rounded-lg resize-none border border-gray-800 focus:outline-none focus:border-gray-600"
-                        />
-                        <div className="flex justify-end space-x-2 mt-3">
-                          <button 
-                            onClick={() => {
-                              setShowReviewBox(false)
-                              setUserReview('')
-                            }}
-                            className="px-4 py-2 text-gray-400 text-sm font-medium hover:text-white transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button 
-                            onClick={handleSubmitReview}
-                            className="px-4 py-2 bg-white text-black text-sm font-medium rounded-full hover:bg-gray-200 transition-colors"
-                          >
-                            Submit
-                          </button>
-                        </div>
-                      </div>
-                    )}
                     </div>
+                  ))}
+                  {friendsWhoPlayed.length === 0 && (
+                    <p className="text-gray-500 text-sm">No friends have played this game yet</p>
                   )}
+                </div>
+              </div>
 
-                  {/* Review Scores */}
-                  <div className="flex space-x-4">
-                    {/* Metacritic Score */}
-                    {gameDetail.metacritic && (
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                          gameDetail.metacritic >= 80 ? 'bg-green-700' :
-                          gameDetail.metacritic >= 70 ? 'bg-yellow-600' :
-                          gameDetail.metacritic >= 60 ? 'bg-orange-600' : 'bg-red-600'
-                        }`}>
-                          <span className="text-white font-bold text-lg">{gameDetail.metacritic}</span>
-                        </div>
-                        <span className="text-[#B0B0B0] text-sm">Metacritic</span>
-                      </div>
-                    )}
-                    
-                    {/* OpenCritic Score - Calculated from user rating */}
-                    {gameDetail.rating && gameDetail.rating_count >= 10 && (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-12 h-12 bg-blue-700 rounded-lg flex items-center justify-center">
-                          <span className="text-white font-bold text-lg">{Math.round(gameDetail.rating * 20)}</span>
-                        </div>
-                        <span className="text-[#B0B0B0] text-sm">User Score</span>
-                      </div>
-                    )}
-                    
-                    {/* Show placeholder if no scores available */}
-                    {!gameDetail.metacritic && (!gameDetail.rating || gameDetail.rating_count < 10) && (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center">
-                          <span className="text-gray-400 font-bold text-sm">N/A</span>
-                        </div>
-                        <span className="text-[#B0B0B0] text-sm">No Scores</span>
-                      </div>
-                    )}
-                  </div>
+              {/* 7. Tab navigation */}
+              <div className="px-6 py-4 bg-gray-900/95">
+                <div className="flex gap-2 mb-6">
+                  <button
+                    onClick={() => setActiveTab('overview')}
+                    className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                      activeTab === 'overview'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('trailers')}
+                    className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                      activeTab === 'trailers'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    Trailers/Photos
+                  </button>
+                </div>
 
-                  {/* Where to Play */}
-                  <div>
-                    <h3 className="text-white font-medium mb-3">Where to Play</h3>
-                    <button
-                      onClick={() => setShowAllPlatforms(!showAllPlatforms)}
-                      className="w-full text-left"
-                    >
-                      <div className="flex items-center justify-between p-3 bg-[#1A1A1A] rounded-lg hover:bg-gray-800 transition-colors">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-white">Steam • Official</span>
-                        </div>
-                        <ChevronRight className={`text-gray-400 transition-transform ${showAllPlatforms ? 'rotate-90' : ''}`} size={20} />
-                      </div>
-                    </button>
-                    
-                    {showAllPlatforms && (
-                      <div className="mt-2 space-y-2">
-                        {gameDetail.stores?.map((store, index) => (
-                          <a
-                            key={index}
-                            href={store.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block p-3 bg-[#1A1A1A] rounded-lg hover:bg-gray-800 transition-colors"
-                          >
-                            <span className="text-white">{store.store.name}</span>
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Developer/Publisher */}
-                  <div>
-                    <button
-                      onClick={() => setShowPublisher(!showPublisher)}
-                      className="w-full text-left flex items-center justify-between text-[#B0B0B0]"
-                    >
-                      <span>Developer: {gameDetail.developers?.[0]?.name || 'Unknown'}</span>
-                      <ChevronRight className={`transition-transform ${showPublisher ? 'rotate-90' : ''}`} size={16} />
-                    </button>
-                    
-                    {showPublisher && (
-                      <div className="mt-2 text-[#B0B0B0]">
-                        Publisher: {gameDetail.publishers?.[0]?.name || 'Unknown'}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Release Date */}
-                  <div className="text-[#B0B0B0] text-sm">
-                    Released: {gameDetail.released ? new Date(gameDetail.released).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    }) : 'TBA'}
-                  </div>
-
-                  {/* Overview */}
-                  <div>
-                    <h3 className="text-white font-medium mb-3">Overview</h3>
-                    <div className="text-[#B0B0B0] leading-relaxed">
-                      <p className={`${!showFullOverview ? 'line-clamp-3' : ''}`}>
-                        {gameDetail.description_raw || 'No description available.'}
+                {/* Tab content */}
+                {activeTab === 'overview' ? (
+                  <div className="space-y-6">
+                    {/* Description */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-2">Description</h3>
+                      <p className="text-gray-300 leading-relaxed">
+                        {showFullOverview 
+                          ? gameDetail.description_raw 
+                          : `${gameDetail.description_raw?.slice(0, 200)}...`}
                       </p>
-                      {gameDetail.description_raw && gameDetail.description_raw.length > 150 && (
+                      {gameDetail.description_raw && gameDetail.description_raw.length > 200 && (
                         <button
                           onClick={() => setShowFullOverview(!showFullOverview)}
-                          className="text-white text-sm mt-2 flex items-center space-x-1 hover:underline"
+                          className="text-blue-400 hover:text-blue-300 text-sm mt-2"
                         >
-                          <span>{showFullOverview ? 'Less' : 'More'}</span>
-                          <ChevronRight className={`transition-transform ${showFullOverview ? 'rotate-90' : ''}`} size={16} />
+                          {showFullOverview ? 'Show less' : 'Show more'}
                         </button>
                       )}
                     </div>
-                  </div>
 
-                  {/* Similar Games */}
-                  <div>
-                    <h3 className="text-white font-medium mb-4">Similar Games</h3>
-                    {!showSimilarGames ? (
-                      <button
-                        onClick={handleLoadSimilarGames}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                        Click to see similar games
-                      </button>
-                    ) : loadingSimilar ? (
-                      <div className="flex space-x-3 pb-2">
-                        {[...Array(6)].map((_, index) => (
-                          <div key={index} className="flex-shrink-0 w-28">
-                            <div className="w-full h-36 bg-gray-700 rounded-lg mb-2 animate-pulse"></div>
-                            <div className="h-4 bg-gray-700 rounded animate-pulse"></div>
-                          </div>
-                        ))}
+                    {/* Game details */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {gameDetail.metacritic && (
+                        <div>
+                          <p className="text-gray-500 text-sm">Metacritic Score</p>
+                          <p className="text-white font-semibold">{gameDetail.metacritic}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-gray-500 text-sm">Developer</p>
+                        <p className="text-white">{gameDetail.developers?.map(d => d.name).join(', ') || 'Unknown'}</p>
                       </div>
-                    ) : similarGames.length > 0 ? (
-                      <div className="flex space-x-3 overflow-x-auto pb-2 snap-x">
-                        {similarGames.map((game) => (
-                          <div 
-                            key={game.id} 
-                            className="flex-shrink-0 w-28 snap-start cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              // Navigate to the similar game
-                              window.location.href = `#game-${game.id.toString().replace('game-', '')}`
-                              onClose()
-                            }}
-                          >
-                            <img
-                              src={game.background_image || game.image || 'https://via.placeholder.com/112x144/333/fff?text=No+Image'}
-                              alt={game.name || game.title}
-                              className="w-full h-36 object-cover rounded-lg mb-2"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement
-                                target.src = 'https://via.placeholder.com/112x144/333/fff?text=No+Image'
-                              }}
-                            />
-                            <p className="text-white text-sm truncate" title={game.name || game.title}>
-                              {game.name || game.title}
-                            </p>
-                          </div>
-                        ))}
+                      <div>
+                        <p className="text-gray-500 text-sm">Publishers</p>
+                        <p className="text-white">{gameDetail.publishers?.map(p => p.name).join(', ') || 'Unknown'}</p>
                       </div>
-                    ) : similarGamesLoaded ? (
-                      <div className="text-[#B0B0B0] text-sm py-4">
-                        No similar games found for this title.
+                      <div>
+                        <p className="text-gray-500 text-sm">Release Date</p>
+                        <p className="text-white">{new Date(gameDetail.released).toLocaleDateString()}</p>
                       </div>
-                    ) : null}
-                  </div>
+                      {gameDetail.esrb_rating && (
+                        <div>
+                          <p className="text-gray-500 text-sm">ESRB Rating</p>
+                          <p className="text-white">{gameDetail.esrb_rating.name}</p>
+                        </div>
+                      )}
+                    </div>
 
-                  {/* More from this developer */}
-                  {gameDetail.developers?.[0] && (
+                    {/* Reviews placeholder */}
                     <div>
-                      <h3 className="text-white font-medium mb-4">
-                        More from {gameDetail.developers[0].name}
-                      </h3>
-                      {developerGames.length > 0 ? (
-                        <div className="flex space-x-3 overflow-x-auto pb-2 snap-x">
-                          {developerGames.map((game) => (
-                            <div 
-                              key={game.id} 
-                              className="flex-shrink-0 w-28 snap-start cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={() => {
-                                // Ouvrir le détail de ce jeu
-                                window.location.href = `#game-${game.id}`
-                                onClose()
-                              }}
-                            >
-                              <img
-                                src={game.background_image || game.image || 'https://via.placeholder.com/112x144/333/fff?text=No+Image'}
-                                alt={game.name}
-                                className="w-full h-36 object-cover rounded-lg mb-2"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement
-                                  target.src = 'https://via.placeholder.com/112x144/333/fff?text=No+Image'
-                                }}
-                              />
-                              <p className="text-white text-sm truncate" title={game.name}>{game.name}</p>
+                      <h3 className="text-lg font-semibold text-white mb-3">Reviews</h3>
+                      <div className="space-y-3">
+                        {realGameReviews.slice(0, 3).map((review, index) => (
+                          <div key={index} className="bg-gray-800 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-white font-medium">{review.username}</p>
+                              <div className="flex">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    size={14}
+                                    className={i < review.rating ? 'text-yellow-500 fill-current' : 'text-gray-600'}
+                                  />
+                                ))}
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-[#B0B0B0] text-sm">
-                          No other games found from this developer
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ESRB Rating at bottom */}
-                  <div className="mt-8 pt-4 border-t border-gray-800">
-                    <div className="flex justify-center">
-                      <div className="bg-[#1A1A1A] border border-gray-700 rounded-lg px-4 py-2">
-                        <span className="text-[#B0B0B0] text-sm">
-                          {gameDetail.esrb_rating?.name ? `Rated ${gameDetail.esrb_rating.name}` : 'Not Rated'}
-                        </span>
+                            <p className="text-gray-300 text-sm">{review.reviewText}</p>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {activeTab === 'reviews' && (
-                <div className="p-4 space-y-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-white font-medium">Reviews for {gameDetail.name}</h3>
-                    <span className="text-[#B0B0B0] text-sm">
-                      {realGameReviews.length + userPublicReviews.length} reviews
-                    </span>
-                  </div>
-                  
-                  {/* Current user's review if exists */}
-                  {currentUserReview && (
-                    <div className="bg-[#1DB954]/10 border border-[#1DB954]/30 rounded-lg p-4 mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[#1DB954] text-sm font-medium">Your Review</span>
-                        <span className="text-[#B0B0B0] text-xs">
-                          {currentUserReview.is_public ? '🌍 Public' : '🔒 Private'}
-                        </span>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Trailer */}
+                    {gameTrailer && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-3">Trailer</h3>
+                        <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${gameTrailer.videoId}`}
+                            className="w-full h-full"
+                            allowFullScreen
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              size={12}
-                              className={`${
-                                star <= currentUserReview.rating
-                                  ? 'text-yellow-400 fill-current'
-                                  : 'text-gray-600'
-                              }`}
+                    )}
+
+                    {/* Screenshots */}
+                    {gameImages.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-3">Screenshots</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                          {gameImages.slice(0, 6).map((image, index) => (
+                            <img
+                              key={index}
+                              src={image}
+                              alt={`Screenshot ${index + 1}`}
+                              className="rounded-lg w-full h-40 object-cover"
                             />
                           ))}
                         </div>
-                        <span className="text-[#B0B0B0] text-xs">{currentUserReview.created_at.split('T')[0]}</span>
                       </div>
-                      {currentUserReview.review_text && (
-                        <p className="text-[#B0B0B0] text-sm">{currentUserReview.review_text}</p>
-                      )}
-                    </div>
-                  )}
-                  
-                  {reviewsLoading ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <div key={i} className="animate-pulse">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <div className="w-8 h-8 bg-gray-700 rounded-full"></div>
-                            <div className="flex-1">
-                              <div className="h-4 bg-gray-700 rounded w-32 mb-1"></div>
-                              <div className="h-3 bg-gray-700 rounded w-20"></div>
-                            </div>
-                          </div>
-                          <div className="h-20 bg-gray-700 rounded mb-2"></div>
-                          <div className="flex items-center space-x-4">
-                            <div className="h-3 bg-gray-700 rounded w-24"></div>
-                            <div className="h-3 bg-gray-700 rounded w-16"></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : realGameReviews.length > 0 || userPublicReviews.length > 0 ? (
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {/* RAWG + Steam Reviews Section */}
-                      {realGameReviews.length > 0 && (
-                        <>
-                          <div className="flex items-center space-x-2 mb-3">
-                            <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-red-500 rounded flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">R</span>
-                            </div>
-                            <h4 className="text-white font-medium text-sm">Game Reviews</h4>
-                            <span className="text-[#B0B0B0] text-xs">({realGameReviews.length} reviews from RAWG & Steam)</span>
-                          </div>
-                          
-                          {realGameReviews.map((review, index) => {
-                            const reviewId = `${review.source}-${index}`
-                            const isExpanded = expandedReviews.has(reviewId)
-                            const { truncated, hasMore } = realGameReviewsService.truncateToSentences(review.text, 3)
-                            
-                            return (
-                              <div key={reviewId} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center space-x-3">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                      review.source === 'rawg' ? 'bg-gradient-to-br from-orange-500 to-red-500' :
-                                      review.source === 'steam' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
-                                      'bg-gradient-to-br from-yellow-500 to-orange-500'
-                                    }`}>
-                                      <span className="text-white text-sm font-medium">
-                                        {review.author.charAt(0).toUpperCase()}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <div className="flex items-center space-x-2">
-                                        <span className="text-white font-medium text-sm">{review.author}</span>
-                                        {review.verified && (
-                                          <span className={`text-xs ${
-                                            review.source === 'rawg' ? 'text-orange-400' :
-                                            review.source === 'steam' ? 'text-blue-400' :
-                                            'text-yellow-400'
-                                          }`}>✓ Verified</span>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center space-x-2">
-                                        <div className="flex">
-                                          {[1, 2, 3, 4, 5].map((star) => (
-                                            <Star
-                                              key={star}
-                                              size={12}
-                                              className={`${
-                                                star <= Math.round(review.rating)
-                                                  ? 'text-yellow-400 fill-current'
-                                                  : 'text-gray-600'
-                                              }`}
-                                            />
-                                          ))}
-                                        </div>
-                                        <span className="text-[#B0B0B0] text-xs">{review.date}</span>
-                                        <span className="text-[#B0B0B0] text-xs">• {review.platform}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                    review.source === 'rawg' ? 'bg-orange-900/50 text-orange-200' :
-                                    review.source === 'steam' ? 'bg-blue-900/50 text-blue-200' :
-                                    'bg-yellow-900/50 text-yellow-200'
-                                  }`}>
-                                    {review.source === 'rawg' ? 'RAWG' :
-                                     review.source === 'steam' ? 'Steam' :
-                                     'Metacritic'}
-                                  </span>
-                                </div>
-                                
-                                {/* Review Text with Truncation */}
-                                <div className="mb-3">
-                                  <p className="text-[#B0B0B0] text-sm leading-relaxed">
-                                    {isExpanded ? review.text : truncated}
-                                  </p>
-                                  
-                                  {/* Show More/Less Button */}
-                                  {hasMore && (
-                                    <button
-                                      onClick={() => toggleReviewExpansion(reviewId)}
-                                      className="text-blue-400 hover:text-blue-300 text-xs mt-2 flex items-center space-x-1 transition-colors"
-                                    >
-                                      <span>{isExpanded ? 'Show less' : 'Show more'}</span>
-                                      <ChevronRight 
-                                        size={12} 
-                                        className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} 
-                                      />
-                                    </button>
-                                  )}
-                                </div>
-                                
-                                <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                  <span>⭐ {review.rating.toFixed(1)}/5.0</span>
-                                  <span>👍 {review.helpful_votes} helpful</span>
-                                  <span>🎮 {review.platform}</span>
-                                  <span>📅 {review.date}</span>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </>
-                      )}
-
-                      {/* Stackr User Reviews Section */}
-                      {userPublicReviews.length > 0 && (
-                        <>
-                          <div className="flex items-center space-x-2 mb-3 mt-6">
-                            <div className="w-5 h-5 bg-purple-600 rounded flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">S</span>
-                            </div>
-                            <h4 className="text-white font-medium text-sm">Stackr Community</h4>
-                            <span className="text-[#B0B0B0] text-xs">({userPublicReviews.length} reviews)</span>
-                          </div>
-                          
-                          {userPublicReviews.map((review) => (
-                            <div key={review.id} className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                                    <span className="text-white text-sm font-medium">
-                                      {(review.username || 'U').charAt(0).toUpperCase()}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <div className="flex items-center space-x-2">
-                                      <span className="text-white font-medium text-sm">{review.username || 'Anonymous User'}</span>
-                                      <span className="text-purple-400 text-xs">✓ Stackr User</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <div className="flex">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                          <Star
-                                            key={star}
-                                            size={12}
-                                            className={`${
-                                              star <= review.rating
-                                                ? 'text-yellow-400 fill-current'
-                                                : 'text-gray-600'
-                                            }`}
-                                          />
-                                        ))}
-                                      </div>
-                                      <span className="text-[#B0B0B0] text-xs">{review.created_at.split('T')[0]}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <span className="px-2 py-1 bg-purple-900/50 text-purple-200 rounded text-xs font-medium">
-                                  Community
-                                </span>
-                              </div>
-                              {review.review_text && (
-                                <p className="text-[#B0B0B0] text-sm leading-relaxed mb-3">
-                                  {review.review_text}
-                                </p>
-                              )}
-                              <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                <button 
-                                  className="hover:text-white transition-colors"
-                                  onClick={() => userReviewsService.markReviewAsHelpful(review.id, true)}
-                                >
-                                  👍 {review.helpful_count || 0} helpful
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-2xl">📝</span>
-                      </div>
-                      <p className="text-white font-medium mb-2">No reviews found for {gameDetail.name}</p>
-                      <p className="text-[#B0B0B0] text-sm">Check browser console for RAWG API attempts</p>
-                      <p className="text-[#B0B0B0] text-xs mt-2">Make sure RAWG API key is configured in environment</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'moreinfo' && (
-                <div className="p-4 space-y-6">
-                  <div className="text-center mb-6">
-                    <h3 className="text-white font-medium text-lg mb-2">My Game Card</h3>
-                    <p className="text-[#B0B0B0] text-sm">Track your personal gaming experience</p>
+                    )}
                   </div>
-
-                  {/* Personal Gaming Info Form */}
-                  <div className="space-y-4">
-                    {/* Date Played */}
-                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                      <label className="block text-white font-medium mb-2 text-sm">Date Played</label>
-                      <input 
-                        type="date" 
-                        className="w-full bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors"
-                        placeholder="When did you play this?"
-                      />
-                    </div>
-
-                    {/* Platform Used */}
-                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                      <label className="block text-white font-medium mb-2 text-sm">Platform Used</label>
-                      <select className="w-full bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors">
-                        <option value="">Select platform...</option>
-                        <option value="pc">PC (Steam)</option>
-                        <option value="ps5">PlayStation 5</option>
-                        <option value="ps4">PlayStation 4</option>
-                        <option value="xbox-series">Xbox Series X/S</option>
-                        <option value="xbox-one">Xbox One</option>
-                        <option value="nintendo-switch">Nintendo Switch</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-
-                    {/* Access Method */}
-                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                      <label className="block text-white font-medium mb-2 text-sm">How did you access it?</label>
-                      <select className="w-full bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors">
-                        <option value="">Select access method...</option>
-                        <option value="purchased-full">Purchased (Full Price)</option>
-                        <option value="purchased-sale">Purchased (On Sale)</option>
-                        <option value="game-pass">Xbox Game Pass</option>
-                        <option value="ps-plus">PlayStation Plus</option>
-                        <option value="epic-free">Epic Games (Free)</option>
-                        <option value="beta">Beta Access</option>
-                        <option value="demo">Demo</option>
-                        <option value="borrowed">Borrowed/Shared</option>
-                      </select>
-                    </div>
-
-                    {/* Purchase Price */}
-                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                      <label className="block text-white font-medium mb-2 text-sm">Purchase Price (Optional)</label>
-                      <div className="flex space-x-2">
-                        <span className="bg-[#0B0B0B] text-[#B0B0B0] text-sm rounded-lg p-3 border border-gray-700 flex items-center">$</span>
-                        <input 
-                          type="number" 
-                          step="0.01"
-                          className="flex-1 bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Custom Tags */}
-                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                      <label className="block text-white font-medium mb-2 text-sm">Custom Tags</label>
-                      <input 
-                        type="text" 
-                        className="w-full bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors"
-                        placeholder="Add tags (e.g., multiplayer, story-rich, challenging...)"
-                      />
-                      <p className="text-[#B0B0B0] text-xs mt-2">Separate tags with commas</p>
-                    </div>
-
-                    {/* Personal Notes */}
-                    <div className="bg-[#1A1A1A] rounded-lg p-4 border border-gray-800">
-                      <label className="block text-white font-medium mb-2 text-sm">Personal Notes</label>
-                      <textarea 
-                        rows={4}
-                        className="w-full bg-[#0B0B0B] text-white text-sm rounded-lg p-3 border border-gray-700 focus:outline-none focus:border-[#1DB954] transition-colors resize-none"
-                        placeholder="Your thoughts, memories, or notes about this game..."
-                      />
-                    </div>
-
-                    {/* Save Button */}
-                    <div className="pt-4">
-                      <button className="w-full bg-[#1DB954] hover:bg-[#1ed760] text-white font-medium py-3 px-4 rounded-lg transition-colors">
-                        Save Game Card
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-full text-center">
-            <div>
-              <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🎮</span>
+                )}
               </div>
-              <p className="text-white font-medium mb-2">Game not found</p>
-              <p className="text-[#B0B0B0] text-sm">Unable to load game details.</p>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-400">Game not found</p>
+            </div>
+          )}
+        </div>
+
+        {/* Modals */}
+        {/* Friends selection modal */}
+        {showFriendsModal && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
+              <h3 className="text-xl font-semibold text-white mb-4">Who did you play with?</h3>
+              <div className="space-y-2 mb-4">
+                {mockFriends.map(friend => (
+                  <label key={friend.id} className="flex items-center gap-3 p-2 hover:bg-gray-700 rounded-lg cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedFriends.some(f => f.id === friend.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedFriends([...selectedFriends, friend])
+                        } else {
+                          setSelectedFriends(selectedFriends.filter(f => f.id !== friend.id))
+                        }
+                      }}
+                      className="rounded text-blue-600"
+                    />
+                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
+                      <span className="text-white text-sm">{friend.name[0]}</span>
+                    </div>
+                    <span className="text-white">{friend.name}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowFriendsModal(false)
+                    handleFriendsSelected()
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={handleFriendsSelected}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                >
+                  Continue
+                </button>
+              </div>
             </div>
           </div>
         )}
-      </div>
 
-      {/* ShareWithFriendsModal */}
-      <ShareWithFriendsModal
-        isOpen={showShareWithFriendsModal}
-        onClose={() => setShowShareWithFriendsModal(false)}
-        item={{
-          id: gameDetail?.id?.toString() || '',
-          type: 'games',
-          title: gameDetail?.name || '',
-          image: gameDetail?.background_image || ''
-        }}
-      />
+        {/* Rating and review modal */}
+        {showReviewBox && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
+              <h3 className="text-xl font-semibold text-white mb-4">Rate and Review</h3>
+              
+              {/* Rating stars */}
+              <div className="flex justify-center gap-2 mb-4">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setUserRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    className="transition-transform hover:scale-110"
+                  >
+                    <Star
+                      size={32}
+                      className={
+                        star <= (hoverRating || userRating)
+                          ? 'text-yellow-500 fill-current'
+                          : 'text-gray-600'
+                      }
+                    />
+                  </button>
+                ))}
+              </div>
+
+              {/* Review text */}
+              <textarea
+                value={userReview}
+                onChange={(e) => setUserReview(e.target.value)}
+                placeholder="Write your review (optional)"
+                className="w-full h-32 px-3 py-2 bg-gray-700 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+              />
+
+              {/* Privacy toggle */}
+              <div className="flex items-center gap-3 mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="privacy"
+                    value="private"
+                    checked={reviewPrivacy === 'private'}
+                    onChange={(e) => setReviewPrivacy(e.target.value as 'private' | 'public')}
+                    className="text-blue-600"
+                  />
+                  <span className="text-white">Private</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="privacy"
+                    value="public"
+                    checked={reviewPrivacy === 'public'}
+                    onChange={(e) => setReviewPrivacy(e.target.value as 'private' | 'public')}
+                    className="text-blue-600"
+                  />
+                  <span className="text-white">Public</span>
+                </label>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowReviewBox(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReviewSubmit}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Customize game sheet modal */}
+        {showGameSheet && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-gray-800 rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <h3 className="text-xl font-semibold text-white mb-4">Customize Game Sheet</h3>
+              
+              <div className="space-y-4">
+                {/* Date played */}
+                <div>
+                  <label className="text-gray-400 text-sm">Date Played</label>
+                  <input
+                    type="date"
+                    value={gameSheetData.datePlayed}
+                    onChange={(e) => setGameSheetData({...gameSheetData, datePlayed: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Platform */}
+                <div>
+                  <label className="text-gray-400 text-sm">Platform</label>
+                  <select
+                    value={gameSheetData.platform}
+                    onChange={(e) => setGameSheetData({...gameSheetData, platform: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select platform</option>
+                    <option value="PC">PC</option>
+                    <option value="PlayStation 5">PlayStation 5</option>
+                    <option value="Xbox Series X">Xbox Series X</option>
+                    <option value="Nintendo Switch">Nintendo Switch</option>
+                    <option value="Steam Deck">Steam Deck</option>
+                  </select>
+                </div>
+
+                {/* Access method */}
+                <div>
+                  <label className="text-gray-400 text-sm">How did you access it?</label>
+                  <select
+                    value={gameSheetData.accessMethod}
+                    onChange={(e) => setGameSheetData({...gameSheetData, accessMethod: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select method</option>
+                    <option value="Purchased">Purchased</option>
+                    <option value="Game Pass">Game Pass</option>
+                    <option value="PS Plus">PlayStation Plus</option>
+                    <option value="Free to Play">Free to Play</option>
+                    <option value="Borrowed">Borrowed</option>
+                    <option value="Gift">Gift</option>
+                  </select>
+                </div>
+
+                {/* Purchase price */}
+                <div>
+                  <label className="text-gray-400 text-sm">Purchase Price</label>
+                  <input
+                    type="text"
+                    value={gameSheetData.purchasePrice}
+                    onChange={(e) => setGameSheetData({...gameSheetData, purchasePrice: e.target.value})}
+                    placeholder="e.g., $59.99"
+                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Custom tags */}
+                <div>
+                  <label className="text-gray-400 text-sm">Custom Tags</label>
+                  <input
+                    type="text"
+                    placeholder="Enter tags separated by commas"
+                    onChange={(e) => setGameSheetData({...gameSheetData, customTags: e.target.value.split(',')})}
+                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Friends played with */}
+                <div>
+                  <label className="text-gray-400 text-sm">Friends you played with</label>
+                  <div className="space-y-2">
+                    {mockFriends.map(friend => (
+                      <label key={friend.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={gameSheetData.friendsPlayed.some(f => f.id === friend.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setGameSheetData({
+                                ...gameSheetData,
+                                friendsPlayed: [...gameSheetData.friendsPlayed, friend]
+                              })
+                            } else {
+                              setGameSheetData({
+                                ...gameSheetData,
+                                friendsPlayed: gameSheetData.friendsPlayed.filter(f => f.id !== friend.id)
+                              })
+                            }
+                          }}
+                          className="rounded text-blue-600"
+                        />
+                        <span className="text-white">{friend.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rating and review */}
+                <div>
+                  <label className="text-gray-400 text-sm">Rating</label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => setGameSheetData({...gameSheetData, personalRating: star})}
+                        className="transition-transform hover:scale-110"
+                      >
+                        <Star
+                          size={24}
+                          className={
+                            star <= gameSheetData.personalRating
+                              ? 'text-yellow-500 fill-current'
+                              : 'text-gray-600'
+                          }
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-gray-400 text-sm">Review</label>
+                  <textarea
+                    value={gameSheetData.personalReview}
+                    onChange={(e) => setGameSheetData({...gameSheetData, personalReview: e.target.value})}
+                    placeholder="Write your review"
+                    className="w-full h-24 px-3 py-2 bg-gray-700 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowGameSheet(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveGameSheet}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                >
+                  Save Game Card
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Friends who played modal */}
+        {showFriendsWhoPlayedModal && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
+              <h3 className="text-xl font-semibold text-white mb-4">Friends Who Played</h3>
+              <div className="space-y-3">
+                {friendsWhoPlayed.map(friend => (
+                  <div key={friend.id} className="bg-gray-700 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
+                          <span className="text-white text-sm">{friend.name[0]}</span>
+                        </div>
+                        <span className="text-white font-medium">{friend.name}</span>
+                      </div>
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            size={14}
+                            className={i < friend.rating ? 'text-yellow-500 fill-current' : 'text-gray-600'}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {friend.hasReview && (
+                      <p className="text-gray-300 text-sm">{friend.reviewText}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setShowFriendsWhoPlayedModal(false)}
+                className="w-full mt-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Share with friends modal */}
+        {showShareWithFriendsModal && (
+          <ShareWithFriendsModal
+            isOpen={showShareWithFriendsModal}
+            onClose={() => setShowShareWithFriendsModal(false)}
+            itemTitle={gameDetail?.name || ''}
+            itemType="game"
+            itemImage={gameDetail?.background_image || ''}
+          />
+        )}
+      </div>
     </div>
   )
 }
