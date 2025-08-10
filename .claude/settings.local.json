@@ -55,7 +55,11 @@
       "Bash(npx supabase:*)",
       "Bash(del \"C:\\Users\\rgeoris\\Desktop\\stackr\\test-book-images.js\")",
       "Bash(del nul)",
-      "Bash(del test-assassins-creed.js test-simple-search.js)"
+      "Bash(del test-assassins-creed.js test-simple-search.js)",
+      "Bash(move GamesModal.tsx OLD_GamesModal.tsx)",
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\UnifiedSearchBar.tsx\")",
+      "WebFetch(domain:react.dev)",
+      "Bash(del test-music-fix.js)"
     ],
     "deny": []
   }

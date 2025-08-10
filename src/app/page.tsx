@@ -9,12 +9,11 @@ import MovieDetailModalV3 from '@/components/MovieDetailModalV3'
 import BookDetailModalV3 from '@/components/BookDetailModalV3'
 import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
-import SearchModalV2 from '@/components/SearchModalV2'
+import SearchModalV2 from '@/components/OLD_SearchModalV2'
+import UnifiedSearchBar from '@/components/UnifiedSearchBar'
 // All search modals removed - using unified SearchModal only
 import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
-import GamesModal from '@/components/GamesModal'
 import GamesV2Section from '@/components/GamesV2Section'
-import GamesV3Section from '@/components/GamesV3Section'
 import MusicModal from '@/components/MusicModal'
 // import MovieGoodModal from '@/components/MovieGoodModal' // OLD - not used
 import BottomNavigation from '@/components/BottomNavigation'
@@ -67,9 +66,7 @@ export default function Home() {
   // Simplified search - using only SearchModal
   const [isMoviesTVV2Open, setIsMoviesTVV2Open] = useState(false)
   // const [isMovieGoodOpen, setIsMovieGoodOpen] = useState(false) // OLD MovieGoodModal - not used
-  const [isGamesOpen, setIsGamesOpen] = useState(false)
   const [isGamesV2Open, setIsGamesV2Open] = useState(false)
-  const [isGamesV3Open, setIsGamesV3Open] = useState(false)
   const [isMusicOpen, setIsMusicOpen] = useState(false)
   
   // Library state
@@ -220,7 +217,7 @@ export default function Home() {
         schema: 'public',
         table: 'library_items'
       }, (payload) => {
-        console.log('📡 Real-time database change detected:', payload.eventType, payload.new?.title || payload.old?.title)
+        console.log('📡 Real-time database change detected:', payload.eventType, (payload.new as any)?.title || (payload.old as any)?.title)
         refreshLibrary()
       })
       .subscribe()
@@ -294,7 +291,7 @@ export default function Home() {
     setMovieContent({
       popular: sampleContent.movies.slice(0, 4),
       topRated: sampleContent.movies.slice(4, 8),
-      newReleases: sampleContent.movies.slice(0, 4)
+      recent: sampleContent.movies.slice(0, 4)
     })
     setBookContent({
       fiction: sampleContent.books.slice(0, 4),
@@ -531,7 +528,6 @@ export default function Home() {
     // Close all modals when opening detail
     setIsSearchOpen(false)
     setIsMoviesTVV2Open(false)
-    setIsGamesOpen(false)
     setIsMusicOpen(false)
     
     switch (item.category) {
@@ -778,6 +774,11 @@ export default function Home() {
         { title: 'Top rated of all time', items: topRatedItems },
         { title: "Editor's Choice", items: editorPicksItems }
       ],
+      movies: [
+        { title: 'Popular classics', items: popularItems },
+        { title: 'Top rated of all time', items: topRatedItems },
+        { title: 'Recent favorites', items: editorPicksItems }
+      ],
       music: [
         { title: 'Popular this week', items: popularItems },
         { title: 'Top albums', items: topRatedItems },
@@ -787,6 +788,16 @@ export default function Home() {
         { title: 'Popular this week', items: popularItems },
         { title: 'Bestsellers', items: topRatedItems },
         { title: 'Must reads', items: editorPicksItems }
+      ],
+      boardgames: [
+        { title: 'Popular board games', items: popularItems },
+        { title: 'Top rated games', items: topRatedItems },
+        { title: 'Editor picks', items: editorPicksItems }
+      ],
+      movieGood: [
+        { title: 'Popular movies', items: popularItems },
+        { title: 'Top rated films', items: topRatedItems },
+        { title: 'Must watch', items: editorPicksItems }
       ]
     }
 
@@ -799,6 +810,8 @@ export default function Home() {
       case 'movies': return sampleContent.movies
       case 'music': return sampleContent.music
       case 'books': return sampleContent.books
+      case 'boardgames': return sampleContent.games // Use games as fallback for board games
+      case 'movieGood': return sampleContent.movies // Use movies as fallback for movieGood
       default: return sampleContent.games
     }
   }
@@ -839,21 +852,29 @@ export default function Home() {
             {/* Main Content - above gradient with higher z-index */}
             <div className="relative z-20 flex flex-col min-h-screen">
               <div className="container mx-auto max-w-2xl px-4 sm:px-6 pt-6 pb-4 sm:pt-8 sm:pb-6">
-                {/* Title with same style as Find Board Games */}
-                <h1 className="text-3xl font-bold text-white text-center mb-4">Search</h1>
               </div>
               
               <div className="container mx-auto max-w-2xl px-4 sm:px-6 pb-20 flex-1 flex flex-col">
-                {/* Description text */}
-                <div className="text-center mb-6">
-                  <p className="text-white/80 text-sm leading-relaxed">
-                    Keep track of your media consumption by adding them to your library.<br />
-                    Select a category to search for a specific title.
-                  </p>
+                {/* Search Header */}
+                <div className="text-left mb-6">
+                  <h1 className="text-2xl font-bold text-white">Search</h1>
                 </div>
                 
-                {/* Category Buttons - now above gradient */}
-                <div className="flex flex-col gap-2 sm:gap-3 flex-1 justify-start">
+                {/* NEW: Unified Search Bar */}
+                <div className="mb-8">
+                  <UnifiedSearchBar
+                    onAddToLibrary={handleAddToLibrary}
+                    onOpenGameDetail={handleOpenGameDetail}
+                    onOpenMovieDetail={handleOpenMovieDetail}
+                    onOpenBookDetail={handleOpenBookDetail}
+                    onOpenMusicDetail={handleOpenMusicDetail}
+                    onOpenBoardGameDetail={handleOpenBoardGameDetail}
+                    library={library}
+                  />
+                </div>
+                
+                {/* Category Buttons - HIDDEN but code intact for future reactivation */}
+                <div className="hidden flex-col gap-2 sm:gap-3 flex-1 justify-start">
                 {/* Movies/TV Shows Button - Changed to orange/red gradient */}
                 <button
                   onClick={() => setIsMoviesTVV2Open(true)}
@@ -873,26 +894,7 @@ export default function Home() {
                   </span>
                 </button>
 
-                {/* Games Button */}
-                <button
-                  onClick={() => setIsGamesOpen(true)}
-                  className="group relative flex items-center p-2.5 sm:p-3.5 lg:p-4 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
-                >
-                  {/* Shimmer effect */}
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-                  
-                  {/* Icon with gradient background */}
-                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#f093fb] to-[#f5576c] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                    <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
-                  </div>
-                  
-                  {/* Text - smaller on mobile */}
-                  <span className="text-base sm:text-lg lg:text-xl font-light text-white tracking-tight">
-                    Games
-                  </span>
-                </button>
-
-                {/* Games V2 Button - Optimized API */}
+                {/* Games V2 Button - Optimized API (Main Games Button) */}
                 <button
                   onClick={() => setIsGamesV2Open(true)}
                   className="group relative flex items-center p-2.5 sm:p-3.5 lg:p-4 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
@@ -905,39 +907,10 @@ export default function Home() {
                     <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
                   
-                  {/* Text with V2 badge */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-base sm:text-lg lg:text-xl font-light text-white tracking-tight">
-                      Games V2
-                    </span>
-                    <span className="px-2 py-0.5 bg-green-500 text-white text-xs rounded-full font-bold">
-                      FAST
-                    </span>
-                  </div>
-                </button>
-
-                {/* Games V3 Button - Advanced Search */}
-                <button
-                  onClick={() => setIsGamesV3Open(true)}
-                  className="group relative flex items-center p-2.5 sm:p-3.5 lg:p-4 bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:translate-x-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden"
-                >
-                  {/* Shimmer effect */}
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-                  
-                  {/* Icon with purple/magenta gradient background */}
-                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#e60076] to-[#aa0055] flex items-center justify-center mr-3 sm:mr-4 lg:mr-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                    <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
-                  </div>
-                  
-                  {/* Text with V3 badge */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-base sm:text-lg lg:text-xl font-light text-white tracking-tight">
-                      Games V3
-                    </span>
-                    <span className="px-2 py-0.5 bg-purple-500 text-white text-xs rounded-full font-bold">
-                      ADV
-                    </span>
-                  </div>
+                  {/* Text - now just "Games" since it's the main button */}
+                  <span className="text-base sm:text-lg lg:text-xl font-light text-white tracking-tight">
+                    Games
+                  </span>
                 </button>
 
                 {/* Books Button */}
@@ -1170,7 +1143,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="space-y-6 sm:space-y-8">
-              {sections.map((section, index) => (
+              {sections.map((section: { title: string; items: ContentItem[] }, index: number) => (
                 <ContentSection
                   key={`${activeTab}-${index}`}
                   title={section.title}
@@ -1300,22 +1273,11 @@ export default function Home() {
         onOpenDetail={handleOpenDetail}
         onBackToSelection={() => {
           setIsMoviesTVV2Open(false)
-          setIsMediaSelectionOpen(true)
+          setActiveMainTab('search')
         }}
         library={library}
       />
 
-      <GamesModal
-        isOpen={isGamesOpen}
-        onClose={() => setIsGamesOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenDetail={handleOpenDetail}
-        onBackToSelection={() => {
-          setIsGamesOpen(false)
-          setIsMediaSelectionOpen(true)
-        }}
-        library={library}
-      />
 
       {/* Games V2 Modal - Optimized API */}
       {isGamesV2Open && (
@@ -1340,29 +1302,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Games V3 Modal - Advanced Search */}
-      {isGamesV3Open && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-xl max-w-7xl w-full max-h-[95vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-700 z-10 p-4">
-              <button
-                onClick={() => setIsGamesV3Open(false)}
-                className="absolute right-4 top-4 p-2 hover:bg-gray-700 rounded-lg transition-colors text-white"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <GamesV3Section
-              onAddToLibrary={handleAddToLibrary}
-              onOpenDetail={handleOpenDetail}
-              library={library}
-            />
-          </div>
-        </div>
-      )}
-
 
       <MusicModal
         isOpen={isMusicOpen}
@@ -1371,7 +1310,7 @@ export default function Home() {
         onOpenDetail={handleOpenDetail}
         onBackToSelection={() => {
           setIsMusicOpen(false)
-          setIsMediaSelectionOpen(true)
+          setActiveMainTab('search')
         }}
         library={library}
       />

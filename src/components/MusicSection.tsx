@@ -174,9 +174,20 @@ export default function MusicSection({
         {/* Album and Year */}
         <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
           {track.album && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium truncate max-w-[120px]">
-              {track.album}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium truncate max-w-[120px]">
+                {track.album}
+              </span>
+              {track.albumType && (
+                <span className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${
+                  track.albumType === 'album' ? 'bg-green-100 text-green-700' :
+                  track.albumType === 'single' ? 'bg-orange-100 text-orange-700' :
+                  'bg-purple-100 text-purple-700'
+                }`}>
+                  {track.albumType}
+                </span>
+              )}
+            </div>
           )}
 
           {track.year && (

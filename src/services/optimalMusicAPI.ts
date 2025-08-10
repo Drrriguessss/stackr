@@ -154,6 +154,7 @@ class OptimalMusicAPI {
 
   /**
    * Search iTunes API (primary source - free and reliable)
+   * SIMPLIFIED VERSION - moins de filtrage, plus de résultats
    */
   private async searchItunes(query: string, options: any): Promise<any[]> {
     const cacheKey = `itunes_${query}_${JSON.stringify(options)}`
@@ -161,17 +162,27 @@ class OptimalMusicAPI {
     if (cached) return cached
 
     try {
+      // 🔧 CORRECTION: Recherche mixte albums ET chansons comme l'ancien service
       const params = new URLSearchParams({
         term: query,
         media: 'music',
-        entity: options.type === 'artist' ? 'allArtist' : 'song',
-        limit: Math.min(options.limit || 50, 200).toString(),
+        entity: 'song,album', // 🔧 Rechercher les deux types comme l'ancien service
+        limit: Math.min(options.limit * 2 || 100, 200).toString(), // 🔧 Plus de résultats
         country: 'US',
         explicit: options.includeExplicit ? 'Yes' : 'No'
       })
 
       const response = await fetch(
-        `https://itunes.apple.com/search?${params}`
+        `https://itunes.apple.com/search?${params}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; Music Search)'
+          },
+          mode: 'cors',
+          signal: AbortSignal.timeout(10000)
+        }
       )
 
       if (!response.ok) {
@@ -179,8 +190,22 @@ class OptimalMusicAPI {
       }
 
       const data = await response.json()
-      const results = data.results || []
+      let results = data.results || []
 
+      // 🔧 CORRECTION: Accepter plus de types de résultats
+      results = results.filter((item: any) => {
+        // Accepter les albums
+        if (item.wrapperType === 'collection' && item.collectionType === 'Album') {
+          return item.collectionName && item.artistName
+        }
+        // Accepter les chansons
+        if (item.wrapperType === 'track' && item.kind === 'song') {
+          return item.trackName && item.artistName
+        }
+        return false
+      })
+
+      console.log(`🎵 [iTunes] Found ${results.length} valid results for "${query}"`)
       this.setCachedResult(cacheKey, results)
       return results
 
@@ -278,30 +303,44 @@ class OptimalMusicAPI {
 
   /**
    * Convert iTunes result to optimal format
+   * SIMPLIFIED VERSION - comme l'ancien service
    */
   private convertToOptimalFormat(item: any): OptimalMusicResult {
     const releaseYear = item.releaseDate ? new Date(item.releaseDate).getFullYear() : undefined
     const duration = item.trackTimeMillis ? Math.round(item.trackTimeMillis / 1000) : undefined
 
+    // 🔧 Déterminer si c'est un track ou un album
+    const isTrack = item.wrapperType === 'track' && item.kind === 'song'
+    const isAlbum = item.wrapperType === 'collection' && item.collectionType === 'Album'
+
+    // 🔧 ID et nom corrects selon le type
+    let finalId: string
+    let finalName: string
+    
+    if (isTrack) {
+      finalId = item.trackId?.toString() || `track_${Date.now()}`
+      finalName = item.trackName || 'Unknown Track'
+    } else {
+      finalId = item.collectionId?.toString() || `album_${Date.now()}`
+      finalName = item.collectionName || 'Unknown Album'
+    }
+
     // Convert iTunes genres to more standard format
     const primaryGenre = item.primaryGenreName || 'Music'
     const genres = [primaryGenre]
-    if (item.genre && item.genre !== primaryGenre) {
-      genres.push(item.genre)
-    }
 
     // Calculate popularity based on available data
     const popularity = this.calculatePopularityScore(item)
 
     // Get best available artwork
-    const primaryImage = this.getEnhancedArtwork(item.artworkUrl100)
+    const primaryImage = this.getEnhancedArtwork(item.artworkUrl100 || item.artworkUrl60)
 
     return {
-      id: item.trackId?.toString() || `itunes_${Date.now()}_${Math.random()}`,
+      id: finalId,
       source: 'itunes',
-      name: item.trackName || item.collectionName || 'Unknown Track',
+      name: finalName,
       artist: item.artistName || 'Unknown Artist',
-      album: item.collectionName,
+      album: item.collectionName || (isTrack ? item.collectionName : finalName),
       albumArtist: item.artistName,
       trackNumber: item.trackNumber,
       duration: duration,
@@ -312,7 +351,7 @@ class OptimalMusicAPI {
       popularity: popularity,
       preview_url: item.previewUrl,
       external_urls: {
-        apple_music: item.trackViewUrl
+        apple_music: item.trackViewUrl || item.collectionViewUrl
       },
       image: primaryImage,
       images: primaryImage ? [{
@@ -324,17 +363,19 @@ class OptimalMusicAPI {
       // Album information
       albumId: item.collectionId?.toString(),
       artistId: item.artistId?.toString(),
-      albumType: this.determineAlbumType(item),
-      totalTracks: item.trackCount,
+      albumType: isTrack ? 'single' : this.determineAlbumType(item),
+      totalTracks: item.trackCount || 1,
       explicit: item.explicitness === 'explicit',
 
       // Compatibility fields
-      title: item.trackName,
+      title: finalName,
       author: item.artistName,
       category: 'music',
       type: 'music',
-      overview: `${item.trackName} by ${item.artistName}`,
-      description: `Track from the album "${item.collectionName}" (${releaseYear})`,
+      overview: `${finalName} by ${item.artistName}`,
+      description: isTrack ? 
+        `Song from "${item.collectionName}" (${releaseYear})` :
+        `Album by ${item.artistName} (${releaseYear})`,
 
       // Enhanced metadata
       label: item.copyright,
@@ -411,21 +452,18 @@ class OptimalMusicAPI {
 
   /**
    * Apply quality filtering
+   * SIMPLIFIED VERSION - moins restrictif
    */
   private applyQualityFiltering(tracks: OptimalMusicResult[], options: MusicSearchOptions): OptimalMusicResult[] {
     return tracks.filter(track => {
-      // Must have basic information
+      // 🔧 Seuls les critères essentiels - plus permissif
       if (!track.name || !track.artist) return false
 
       // Filter explicit content if requested
       if (!options.includeExplicit && track.explicit) return false
 
-      // Year filtering
-      if (options.minYear && track.year && track.year < options.minYear) return false
-      if (options.maxYear && track.year && track.year > options.maxYear) return false
-
-      // Genre filtering
-      if (options.genre && track.genre && 
+      // 🔧 Genre filtering plus permissif - seulement si spécifiquement demandé
+      if (options.genre && options.genre !== 'all' && track.genre && 
           !track.genre.toLowerCase().includes(options.genre.toLowerCase()) &&
           !track.genres?.some(g => g.toLowerCase().includes(options.genre!.toLowerCase()))) {
         return false

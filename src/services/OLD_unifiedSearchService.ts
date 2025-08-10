@@ -172,7 +172,7 @@ class UnifiedRankingAlgorithm {
     }
     
     let score = 0
-    let debugInfo = []
+    let debugInfo: string[] = []
     
     // 1. ⭐ PRIORITÉ ABSOLUE : Commence par la requête
     if (titleLower.startsWith(queryLower)) {
@@ -557,7 +557,7 @@ export class UnifiedSearchService {
     })
     
     // 2. ✅ TRI CHRONOLOGIQUE DÉCROISSANT (plus récent en premier)
-    allResults.sort((a, b) => {
+    allResults.sort((a: EnhancedSearchResult, b: EnhancedSearchResult) => {
       // D'abord par année (décroissant)
       const yearA = a.year || 0
       const yearB = b.year || 0

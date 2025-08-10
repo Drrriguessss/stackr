@@ -635,7 +635,7 @@ class RAWGService {
         
         // Use the most specific genre
         if (gameDetails.genres && gameDetails.genres.length > 0) {
-          const genreQuery = gameDetails.genres.slice(0, 2).map(g => g.slug).join(',')
+          const genreQuery = gameDetails.genres.slice(0, 2).map((g: any) => g.slug).join(',')
           searchParams.push(`genres=${genreQuery}`)
         }
         
@@ -719,7 +719,7 @@ class RAWGService {
           
           return { ...game, similarityScore: score }
         })
-        .sort((a, b) => b.similarityScore - a.similarityScore)
+        .sort((a: any, b: any) => b.similarityScore - a.similarityScore)
         .slice(0, limit)
       
       console.log(`🎮 [Similar Games] Found ${scoredGames.length} similar games after intelligent filtering`)

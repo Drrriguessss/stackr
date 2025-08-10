@@ -1,46 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Search, ChevronDown, Star, Edit3, Calendar, TrendingUp, Hash, User, Clock, X, Plus, Download, Grid3X3, List } from 'lucide-react'
+import type { MediaCategory, MediaStatus, LibraryItem } from '@/types'
 
-// Types
-type MediaCategory = 'games' | 'movies' | 'music' | 'books' | 'boardgames'
-type MediaStatus = 'want-to-play' | 'currently-playing' | 'completed' | 'paused' | 'dropped'
+// Local types
 type SortOption = 'date_added' | 'date_updated' | 'title' | 'creator' | 'average_rating' | 'number_of_ratings' | 'release_year'
-
-interface LibraryItem {
-  id: string
-  title: string
-  year: number
-  rating?: number
-  genre?: string
-  category: MediaCategory
-  image?: string
-  author?: string
-  artist?: string
-  director?: string
-  developer?: string
-  status: MediaStatus
-  addedAt: string
-  dateStarted?: string
-  dateCompleted?: string
-  userRating?: number
-  progress?: number
-  notes?: string
-  numberOfRatings?: number
-  dateUpdated?: string
-  // ✅ NOUVELLES PROPRIÉTÉS POUR LES DONNÉES COMPLÈTES API
-  developers?: Array<{ name: string }>
-  publishers?: Array<{ name: string }>
-  genres?: Array<{ name: string }>
-  background_image?: string
-  released?: string
-  additionalInfo?: {
-    platform?: string
-    gamePass?: boolean
-    freeToPlay?: boolean
-    purchasePrice?: string
-    [key: string]: any
-  }
-}
 
 // Props interface for LibrarySection
 interface LibrarySectionProps {

@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, X, Star, Calendar, ExternalLink, Loader2, Zap, Clock, TrendingUp } from 'lucide-react'
-import { unifiedSearchService, type UnifiedSearchResult, type SearchOptions } from '@/services/unifiedSearchService'
+import { unifiedSearchService, type UnifiedSearchResult, type SearchOptions } from '@/services/OLD_unifiedSearchService'
 import type { SearchResult, MediaCategory } from '@/types'
 
 interface SearchModalV2Props {

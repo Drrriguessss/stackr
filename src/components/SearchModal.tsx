@@ -1021,8 +1021,21 @@ export default function SearchModal({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3 text-xs text-gray-500">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium border ${categoryInfo.color} flex-shrink-0`}>
-                            {result.category === 'movies' ? (result.isSeries ? 'TV' : 'Film') : result.category}
+                            {result.category === 'movies' ? (result.isSeries ? 'TV' : 'Film') : 
+                             result.category === 'music' ? (result as any).type || 'music' : 
+                             result.category}
                           </span>
+                          
+                          {/* Additional type information for music */}
+                          {result.category === 'music' && (result as any).type && (
+                            <span className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${
+                              (result as any).type === 'album' ? 'bg-green-100 text-green-700' :
+                              (result as any).type === 'single' ? 'bg-orange-100 text-orange-700' :
+                              'bg-purple-100 text-purple-700'
+                            }`}>
+                              {(result as any).type}
+                            </span>
+                          )}
                           
                           <span className={isRecent ? 'font-semibold text-green-600' : result.year >= 2020 ? 'font-medium text-blue-600' : ''}>
                             {result.year}

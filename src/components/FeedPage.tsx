@@ -614,14 +614,22 @@ export default function FeedPage({
                                   console.log('📚 [Recently Recommended - Fixed] Image failed for:', activity.item_title, activity.item_image)
                                   const target = e.target as HTMLImageElement
                                   target.style.display = 'none'
-                                  target.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gray-200">${getCategoryIcon(activity.item_type)}</div>`
+                                  // Don't try to render React components as HTML strings
+                                  const fallback = target.nextElementSibling as HTMLElement
+                                  if (fallback) {
+                                    fallback.style.display = 'flex'
+                                  }
                                 }}
                               />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                                {getCategoryIcon(activity.item_type)}
-                              </div>
-                            )}
+                            ) : null}
+                            
+                            {/* Fallback icon - hidden initially if image exists, shown on error or if no image */}
+                            <div 
+                              className="w-full h-full flex items-center justify-center bg-gray-200"
+                              style={{ display: activity.item_image ? 'none' : 'flex' }}
+                            >
+                              {getCategoryIcon(activity.item_type)}
+                            </div>
                           </div>
                           
                           {/* Friend Avatar Badge */}
