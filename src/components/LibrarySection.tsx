@@ -978,7 +978,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
               { key: 'games', label: 'Games' },
               { key: 'movies', label: 'Movies' },
               { key: 'music', label: 'Music' },
-              { key: 'books', label: 'Books' }
+              { key: 'books', label: 'Books' },
+              { key: 'boardgames', label: 'Board' }
             ].map(({ key, label }) => (
               <button
                 key={key}
