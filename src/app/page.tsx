@@ -496,6 +496,7 @@ export default function Home() {
   const handleOpenGameDetail = (gameId: string) => {
     const normalizedGameId = normalizeId(gameId)
     setSelectedGameId(normalizedGameId)
+    setActiveMainTab('game-detail')
   }
 
   const handleOpenBoardGameDetail = (gameId: string) => {
@@ -534,6 +535,7 @@ export default function Home() {
       case 'games':
         console.log('🎮 Setting selectedGameId:', itemId)
         setSelectedGameId(itemId)
+        setActiveMainTab('game-detail')
         break
       case 'movies':
         console.log('🎬 Setting selectedMovieId:', itemId, 'MediaType:', item.media_type)
@@ -823,7 +825,7 @@ export default function Home() {
         return (
           <FeedPage 
             library={library}
-            onOpenGameDetail={(gameId) => setSelectedGameId(gameId)}
+            onOpenGameDetail={handleOpenGameDetail}
             onOpenMovieDetail={(movieId) => setSelectedMovieId(movieId)}
             onOpenBookDetail={(bookId) => setSelectedBookId(bookId)}
             onOpenMusicDetail={(musicId) => setSelectedMusicId(musicId)}
@@ -1013,6 +1015,19 @@ export default function Home() {
             onReviewSubmit={() => {}}
           />
         ) : null
+      case 'game-detail':
+        return selectedGameId ? (
+          <GameDetailDarkV2
+            gameId={selectedGameId}
+            onBack={() => setActiveMainTab('feed')}
+            onAddToLibrary={handleAddToLibrary}
+            onDeleteItem={handleDeleteItem}
+            library={library}
+            userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
+            googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
+            onReviewSubmit={handleReviewSubmit}
+          />
+        ) : null
       case 'roadmap':
         return <RoadmapPage onBack={() => setActiveMainTab('feed')} />
       case 'profile':
@@ -1053,7 +1068,7 @@ export default function Home() {
         return (
           <FeedPage 
             library={library}
-            onOpenGameDetail={(gameId) => setSelectedGameId(gameId)}
+            onOpenGameDetail={handleOpenGameDetail}
             onOpenMovieDetail={(movieId) => setSelectedMovieId(movieId)}
             onOpenBookDetail={(bookId) => setSelectedBookId(bookId)}
             onOpenMusicDetail={(musicId) => setSelectedMusicId(musicId)}
@@ -1201,18 +1216,6 @@ export default function Home() {
         onTabChange={setActiveMainTab} 
       />
 
-      {/* Game Detail Modal */}
-      <GameDetailDarkV2
-        isOpen={!!selectedGameId}
-        onClose={() => setSelectedGameId(null)}
-        gameId={selectedGameId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem}
-        library={library}
-        userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
-        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
 
       <MovieDetailModalV3
         isOpen={!!selectedMovieId}

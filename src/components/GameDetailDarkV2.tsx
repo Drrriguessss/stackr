@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { X, Star, Send, ChevronDown, Share, FileText } from 'lucide-react'
+import { ArrowLeft, Star, Send, ChevronDown, Share, FileText } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { newTrailerService, type ValidatedTrailer } from '@/services/newTrailerService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
@@ -10,9 +10,8 @@ import { rawgService, type RAWGGame } from '@/services/rawgService'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 
 interface GameDetailDarkV2Props {
-  isOpen: boolean
-  onClose: () => void
   gameId: string
+  onBack: () => void
   onAddToLibrary: (item: any, status: MediaStatus) => void
   onDeleteItem?: (id: string) => void
   library: LibraryItem[]
@@ -45,9 +44,8 @@ interface GameDetail {
 type TabType = 'overview' | 'trailers'
 
 export default function GameDetailDarkV2({ 
-  isOpen,
-  onClose,
-  gameId, 
+  gameId,
+  onBack, 
   onAddToLibrary, 
   onDeleteItem,
   library, 
@@ -115,12 +113,12 @@ export default function GameDetailDarkV2({
   ]
 
   useEffect(() => {
-    if (isOpen && gameId) {
+    if (gameId) {
       fetchGameDetail()
       fetchGameImages()
       loadUserRatingAndReview()
     }
-  }, [isOpen, gameId])
+  }, [gameId])
 
   useEffect(() => {
     const libraryItem = library.find(item => 
@@ -287,8 +285,6 @@ export default function GameDetailDarkV2({
     return statusLabels[status] || 'Add to Library'
   }
 
-  if (!isOpen) return null
-
   return (
     <div className="bg-[#0f0e17] min-h-screen pb-20 font-system">
           {loading ? (
@@ -308,6 +304,16 @@ export default function GameDetailDarkV2({
                     target.src = 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop&q=80'
                   }}
                 />
+                
+                {/* Navigation Header */}
+                <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-5" style={{ zIndex: 20 }}>
+                  <button
+                    onClick={onBack}
+                    className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
+                  >
+                    <ArrowLeft size={20} />
+                  </button>
+                </div>
               </div>
 
               {/* Bottom Section: Game Info with Purple Gradient */}
