@@ -186,18 +186,13 @@ export default function GameDetailDarkV2({
   const fetchGameDetail = async () => {
     setLoading(true)
     try {
-      const response = await fetchWithCache(
+      const data = await fetchWithCache(
         `https://api.rawg.io/api/games/${gameId}?key=${RAWG_API_KEY}`,
-        { 
-          method: 'GET',
-          next: { revalidate: 3600 }
-        },
         `game-detail-${gameId}`
       )
       
-      if (!response.ok) throw new Error('Failed to fetch game details')
+      if (!data || data.error) throw new Error('Failed to fetch game details')
       
-      const data = await response.json()
       setGameDetail(data)
       console.log('🎮 Game detail loaded:', data.name)
     } catch (error) {

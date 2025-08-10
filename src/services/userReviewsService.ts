@@ -225,15 +225,7 @@ class UserReviewsService {
       
       const { data: reviews, error } = await supabase
         .from('user_reviews')
-        .select(`
-          *,
-          user_profiles!user_reviews_user_id_fkey(
-            id,
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('media_id', mediaId)
         .eq('is_public', true)
         .order('helpful_count', { ascending: false })
@@ -247,11 +239,11 @@ class UserReviewsService {
 
       console.log('✅ Found', reviews?.length || 0, 'public reviews')
       
-      // Process reviews to include user profile data
+      // Process reviews - use existing username since we don't have user_profiles relation
       const processedReviews = (reviews || []).map(review => ({
         ...review,
-        username: review.user_profiles?.display_name || review.user_profiles?.username || review.username,
-        avatar_url: review.user_profiles?.avatar_url
+        username: review.username || 'Anonymous',
+        avatar_url: review.avatar_url || null
       }))
       
       return processedReviews as UserReview[]
