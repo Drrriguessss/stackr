@@ -8,6 +8,7 @@ import { trailerService } from '@/services/trailerService'
 import { userReviewsService } from '@/services/userReviewsService'
 import { tmdbReviewsService, type ProcessedReview } from '@/services/tmdbReviewsService'
 import { optimalMovieAPI } from '@/services/optimalMovieAPI'
+import { movieCache } from '@/services/movieCache'
 import StackrLoadingSkeleton from './StackrLoadingSkeleton'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 
@@ -142,110 +143,238 @@ export default function MovieDetailModalV3({
   const fetchMovieDetail = async () => {
     if (!movieId) return
     
+    console.log('🚀 [MovieDetail] Starting optimized loading for:', movieId)
     setLoading(true)
-    setImages([])
-    setTrailer(null)
     
     try {
-      let imdbId = movieId
-      
-      // Check if it's a TMDB ID (numeric) or IMDB ID (starts with 'tt')
-      if (!movieId.startsWith('tt') && !movieId.startsWith('movie-')) {
-        console.log('🔄 Converting TMDB ID to IMDB ID:', movieId, 'Type:', mediaType)
-        // Use the provided mediaType or try both
-        let convertedId = await optimalMovieAPI.getIMDbId(movieId, mediaType)
-        if (!convertedId && mediaType === 'movie') {
-          console.log('🔄 Not a movie, trying TV series...')
-          convertedId = await optimalMovieAPI.getIMDbId(movieId, 'tv')
-        }
+      // Vérifier le cache d'abord
+      const cachedData = movieCache.get(movieId)
+      if (cachedData?.movieDetail) {
+        console.log('⚡ [MovieDetail] Using cached movie data')
+        setMovieDetail(cachedData.movieDetail)
         
-        if (convertedId) {
-          imdbId = convertedId
-          console.log('✅ Converted to IMDB ID:', imdbId)
-        } else {
-          console.error('❌ Could not convert TMDB ID to IMDB ID')
-          throw new Error('Could not find IMDB ID for this movie/TV show')
+        // Restaurer les données mises en cache
+        if (cachedData.media) {
+          setImages(cachedData.media.images)
+          setTrailer(cachedData.media.trailer)
         }
+        if (cachedData.directorMovies) setDirectorMovies(cachedData.directorMovies)
+        if (cachedData.reviews) setMovieReviews(cachedData.reviews)
+        if (cachedData.userReviews) setUserPublicReviews(cachedData.userReviews)
+        
+        setLoading(false)
+        return
       }
+
+      // Phase 1: Obtenir l'ID IMDB si nécessaire
+      let imdbId = await resolveImdbId(movieId)
       
-      if (movieId.startsWith('movie-')) {
-        imdbId = movieId.replace('movie-', '')
-      }
+      // Phase 2: Charger les données de base en premier pour affichage rapide
+      console.log('📥 [MovieDetail] Loading basic movie data...')
+      const movieData = await omdbService.getMovieDetails(imdbId)
+      setMovieDetail(movieData as MovieDetail)
+      setLoading(false) // ✅ Débloquer l'UI immédiatement
       
-      const data = await omdbService.getMovieDetails(imdbId)
-      setMovieDetail(data as MovieDetail)
+      // Mettre en cache les données de base
+      movieCache.set(movieId, { movieDetail: movieData }, 'MOVIE_DETAIL')
       
-      // Load images and trailer
-      if (data) {
-        await loadMedia(imdbId, data.Title)
-        await loadDirectorMovies(data.Director)
-        await loadMovieReviews(data.Title, data.Year)
-        await loadUserReviews(imdbId)
+      // Phase 3: Charger toutes les données supplémentaires EN PARALLÈLE
+      if (movieData) {
+        console.log('🔄 [MovieDetail] Loading enhanced data in parallel...')
+        await loadEnhancedDataParallel(imdbId, movieData.Title, movieData.Director, movieData.Year)
       }
     } catch (error) {
-      console.error('Error loading movie:', error)
-    } finally {
+      console.error('❌ [MovieDetail] Error loading movie:', error)
       setLoading(false)
     }
   }
 
-  const loadMedia = async (movieId: string, movieTitle: string) => {
-    try {
-      // Get trailer
-      const trailerData = await trailerService.getMovieTrailer(movieId, movieTitle)
-      if (trailerData) {
-        setTrailer(trailerData)
+  // Fonction utilitaire pour résoudre l'ID IMDB
+  const resolveImdbId = async (movieId: string): Promise<string> => {
+    let imdbId = movieId
+    
+    // Check if it's a TMDB ID (numeric) or IMDB ID (starts with 'tt')
+    if (!movieId.startsWith('tt') && !movieId.startsWith('movie-')) {
+      console.log('🔄 Converting TMDB ID to IMDB ID:', movieId, 'Type:', mediaType)
+      
+      let convertedId = await optimalMovieAPI.getIMDbId(movieId, mediaType)
+      if (!convertedId && mediaType === 'movie') {
+        console.log('🔄 Not a movie, trying TV series...')
+        convertedId = await optimalMovieAPI.getIMDbId(movieId, 'tv')
       }
       
-      // Get images from TMDB
-      const gallery = await imageService.getMovieGallery(movieId, movieTitle, trailerData)
+      if (convertedId) {
+        imdbId = convertedId
+        console.log('✅ Converted to IMDB ID:', imdbId)
+      } else {
+        console.error('❌ Could not convert TMDB ID to IMDB ID')
+        throw new Error('Could not find IMDB ID for this movie/TV show')
+      }
+    }
+    
+    if (movieId.startsWith('movie-')) {
+      imdbId = movieId.replace('movie-', '')
+    }
+    
+    return imdbId
+  }
+
+  // Chargement parallèle des données supplémentaires
+  const loadEnhancedDataParallel = async (imdbId: string, title: string, director: string, year: string) => {
+    const startTime = Date.now()
+    
+    // Vérifier le cache pour chaque type de données
+    const cachedData = movieCache.get(movieId)
+    const promises = []
+    
+    // Charger médias si pas en cache
+    if (!cachedData?.media) {
+      promises.push(
+        loadMediaOptimized(imdbId, title).then(media => {
+          movieCache.set(movieId, { media }, 'MEDIA')
+          return { type: 'media', data: media }
+        })
+      )
+    }
+    
+    // Charger films du réalisateur si pas en cache
+    if (!cachedData?.directorMovies && director && director !== 'N/A') {
+      promises.push(
+        loadDirectorMoviesOptimized(director, movieId).then(movies => {
+          movieCache.set(movieId, { directorMovies: movies }, 'DIRECTOR_MOVIES')
+          return { type: 'directorMovies', data: movies }
+        })
+      )
+    }
+    
+    // Charger reviews TMDB si pas en cache
+    if (!cachedData?.reviews) {
+      promises.push(
+        loadMovieReviewsOptimized(title, year).then(reviews => {
+          movieCache.set(movieId, { reviews }, 'REVIEWS')
+          return { type: 'reviews', data: reviews }
+        })
+      )
+    }
+    
+    // Charger reviews utilisateurs si pas en cache
+    if (!cachedData?.userReviews) {
+      promises.push(
+        loadUserReviewsOptimized(imdbId).then(userReviews => {
+          movieCache.set(movieId, { userReviews }, 'USER_REVIEWS')
+          return { type: 'userReviews', data: userReviews }
+        })
+      )
+    }
+    
+    // Exécuter tous les chargements en parallèle
+    if (promises.length > 0) {
+      const results = await Promise.allSettled(promises)
       
-      // Extract valid image URLs
+      // Traiter les résultats
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          const { type, data } = result.value
+          switch (type) {
+            case 'media':
+              setImages(data.images)
+              setTrailer(data.trailer)
+              break
+            case 'directorMovies':
+              setDirectorMovies(data)
+              break
+            case 'reviews':
+              setMovieReviews(data)
+              break
+            case 'userReviews':
+              setUserPublicReviews(data)
+              break
+          }
+        } else {
+          console.error(`❌ [MovieDetail] Failed to load enhanced data:`, result.reason)
+        }
+      })
+      
+      const loadTime = Date.now() - startTime
+      console.log(`⚡ [MovieDetail] Enhanced data loaded in ${loadTime}ms (${promises.length} parallel requests)`)
+    } else {
+      console.log('⚡ [MovieDetail] All enhanced data was cached, no additional loading needed')
+    }
+  }
+
+  // Versions optimisées des fonctions de chargement
+  const loadMediaOptimized = async (movieId: string, movieTitle: string) => {
+    try {
+      const [trailerData, gallery] = await Promise.all([
+        trailerService.getMovieTrailer(movieId, movieTitle),
+        imageService.getMovieGallery(movieId, movieTitle, null)
+      ])
+      
       const validImages = gallery.images
         .filter(img => img.url && img.url.startsWith('http'))
         .map(img => img.url)
       
-      setImages(validImages)
+      return { images: validImages, trailer: trailerData }
     } catch (error) {
       console.error('Error loading media:', error)
+      return { images: [], trailer: null }
     }
+  }
+
+  const loadDirectorMoviesOptimized = async (director: string, currentMovieId: string) => {
+    if (!director || director === 'N/A') return []
+    
+    try {
+      const searchResults = await omdbService.searchMoviesByDirector(director, currentMovieId)
+      return searchResults.map(movie => omdbService.convertToAppFormat(movie))
+    } catch (error) {
+      console.error('Error loading director movies:', error)
+      return []
+    }
+  }
+
+  const loadMovieReviewsOptimized = async (movieTitle: string, year?: string) => {
+    try {
+      return await tmdbReviewsService.getMovieReviews(movieTitle, year)
+    } catch (error) {
+      console.error('Error loading reviews:', error)
+      return []
+    }
+  }
+
+  const loadUserReviewsOptimized = async (movieId: string) => {
+    try {
+      const publicReviews = await userReviewsService.getPublicReviews('movies', movieId)
+      return publicReviews || []
+    } catch (error) {
+      console.error('Error loading user reviews:', error)
+      return []
+    }
+  }
+
+  // Anciennes fonctions conservées pour compatibilité avec le reste du code
+  const loadMedia = async (movieId: string, movieTitle: string) => {
+    const media = await loadMediaOptimized(movieId, movieTitle)
+    setImages(media.images)
+    setTrailer(media.trailer)
   }
 
   const loadDirectorMovies = async (director: string) => {
-    if (!director || director === 'N/A') return
-    
-    try {
-      console.log('🎬 Loading movies for director:', director)
-      const searchResults = await omdbService.searchMoviesByDirector(director, movieId)
-      const directorFilms = searchResults.map(movie => omdbService.convertToAppFormat(movie))
-      
-      console.log('🎬 Found director films:', directorFilms.length)
-      setDirectorMovies(directorFilms)
-    } catch (error) {
-      console.error('Error loading director movies:', error)
-    }
+    const movies = await loadDirectorMoviesOptimized(director, movieId)
+    setDirectorMovies(movies)
   }
 
   const loadMovieReviews = async (movieTitle: string, year?: string) => {
-    try {
-      console.log('📝 Loading TMDB reviews for:', movieTitle)
-      const tmdbReviews = await tmdbReviewsService.getMovieReviews(movieTitle, year)
-      setMovieReviews(tmdbReviews)
-      console.log('📝 Loaded', tmdbReviews.length, 'TMDB reviews')
-    } catch (error) {
-      console.error('Error loading reviews:', error)
-      setMovieReviews([])
-    }
+    const reviews = await loadMovieReviewsOptimized(movieTitle, year)
+    setMovieReviews(reviews)
   }
 
   const loadUserReviews = async (movieId: string) => {
+    const userReviews = await loadUserReviewsOptimized(movieId)
+    setUserPublicReviews(userReviews)
+    
+    // Charger la review de l'utilisateur actuel (si elle existe)
     try {
-      // Charger les reviews publiques de tous les utilisateurs
-      const publicReviews = await userReviewsService.getPublicReviewsForMedia(movieId)
-      setUserPublicReviews(publicReviews)
-      console.log('📝 Loaded', publicReviews.length, 'user public reviews')
-      
-      // Charger la review de l'utilisateur actuel (si elle existe)
       const userReview = await userReviewsService.getUserReviewForMedia(movieId)
       setCurrentUserReview(userReview)
       
@@ -253,9 +382,7 @@ export default function MovieDetailModalV3({
         setUserRating(userReview.rating)
         setUserReview(userReview.review_text || '')
         setReviewPrivacy(userReview.is_public ? 'public' : 'private')
-        console.log('📝 Found existing user review')
       } else {
-        // Reset si pas de review existante
         setUserRating(0)
         setUserReview('')
         setReviewPrivacy('private')
