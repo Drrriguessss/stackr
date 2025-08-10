@@ -589,19 +589,14 @@ export default function BoardGameDetailPage({
                 }}
               />
               
-              {/* Navigation Header - Above everything */}
-              <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-5" style={{ zIndex: 20 }}>
+              {/* Navigation Header - X button top right */}
+              <div className="absolute top-0 left-0 right-0 flex items-center justify-end p-5" style={{ zIndex: 20 }}>
                 <button
                   onClick={onBack}
                   className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
                 >
                   <X size={20} />
                 </button>
-                
-                {/* Removed URL bar as requested */}
-                <div className="w-10 h-10 opacity-0">
-                  {/* Spacer */}
-                </div>
               </div>
             </div>
 
