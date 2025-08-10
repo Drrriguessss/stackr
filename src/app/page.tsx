@@ -1206,18 +1206,19 @@ export default function Home() {
         onTabChange={setActiveMainTab} 
       />
 
-      {/* Detail Modals */}
-      <GameDetailDarkV2
-        isOpen={!!selectedGameId}
-        onClose={() => setSelectedGameId(null)}
-        gameId={selectedGameId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem}
-        library={library}
-        userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
-        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
-        onReviewSubmit={handleReviewSubmit}
-      />
+      {/* Game Detail Page */}
+      {selectedGameId && (
+        <GameDetailDarkV2
+          gameId={selectedGameId}
+          onBack={() => setSelectedGameId(null)}
+          onAddToLibrary={handleAddToLibrary}
+          onDeleteItem={handleDeleteItem}
+          library={library}
+          userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
+          googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
+          onReviewSubmit={handleReviewSubmit}
+        />
+      )}
 
       <MovieDetailModalV3
         isOpen={!!selectedMovieId}
