@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, X, Star, Send, ChevronDown, Share, FileText } from 'lucide-react'
+import { X, Star, Send, ChevronDown, Share, FileText } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { newTrailerService, type ValidatedTrailer } from '@/services/newTrailerService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
@@ -66,8 +66,6 @@ export default function GameDetailDarkV2({
   const [userReview, setUserReview] = useState('')
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
   const [showFullOverview, setShowFullOverview] = useState(false)
-  const [gameTrailer, setGameTrailer] = useState<ValidatedTrailer | null>(null)
-  const [trailerLoading, setTrailerLoading] = useState(false)
   const [showLibraryDropdown, setShowLibraryDropdown] = useState(false)
   const [gameImages, setGameImages] = useState<string[]>([])
   const [imagesLoading, setImagesLoading] = useState(false)
@@ -199,6 +197,19 @@ export default function GameDetailDarkV2({
     }
   }
 
+  const loadUserRatingAndReview = async () => {
+    try {
+      const existingReview = await userReviewsService.getCurrentUserReview('games', gameId)
+      if (existingReview) {
+        setUserRating(existingReview.rating)
+        setUserReview(existingReview.reviewText)
+        setReviewPrivacy(existingReview.isPublic ? 'public' : 'private')
+      }
+    } catch (error) {
+      console.error('Error loading user review:', error)
+    }
+  }
+
   const handleStatusSelect = async (status: MediaStatus) => {
     if (!gameDetail) return
 
@@ -257,19 +268,6 @@ export default function GameDetailDarkV2({
     }
   }
 
-  const loadUserRatingAndReview = async () => {
-    try {
-      const existingReview = await userReviewsService.getCurrentUserReview('games', gameId)
-      if (existingReview) {
-        setUserRating(existingReview.rating)
-        setUserReview(existingReview.reviewText)
-        setReviewPrivacy(existingReview.isPublic ? 'public' : 'private')
-      }
-    } catch (error) {
-      console.error('Error loading user review:', error)
-    }
-  }
-
   const getStatusLabel = (status: MediaStatus): string => {
     const statusLabels: Record<MediaStatus, string> = {
       'want-to-play': 'Want to play',
@@ -292,60 +290,50 @@ export default function GameDetailDarkV2({
   if (!isOpen) return null
 
   return (
-    <div className="bg-[#0f0e17] min-h-screen pb-20 font-system">
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-        </div>
-      ) : gameDetail ? (
-        <div>
-          {/* Hero Section - EXACTEMENT comme BoardGame */}
-          <div className="relative min-h-[400px] overflow-visible">
-            {/* Top Section: Pure Image (160px height) */}
-            <div className="relative h-[160px] overflow-hidden">
-              <img
-                src={gameDetail.background_image || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop&q=80'}
-                alt={`${gameDetail.name} background`}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.src = 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop&q=80'
-                }}
-              />
-              
-              {/* Navigation Header - CHANGER le bouton X en bouton retour */}
-              <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-5" style={{ zIndex: 20 }}>
-                <button
-                  onClick={onClose}
-                  className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-              </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="relative w-full max-w-5xl h-[90vh] bg-gray-900 rounded-2xl overflow-hidden">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-50 p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
+        >
+          <X size={20} className="text-white" />
+        </button>
+
+        {/* Scrollable content with BoardGame-inspired design */}
+        <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
             </div>
+          ) : gameDetail ? (
+            <>
+              {/* 1. Large header image - 160px height */}
+              <div className="relative h-[160px] overflow-hidden">
+                <img
+                  src={gameDetail.background_image || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop&q=80'}
+                  alt={`${gameDetail.name} background`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.src = 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop&q=80'
+                  }}
+                />
+              </div>
 
-            {/* Bottom Section: Game Info with Purple Gradient - EXACTEMENT comme BoardGame */}
-            <div className="relative min-h-[240px] overflow-visible">
-              {/* Purple Gradient Background for Info Section */}
-              <div 
-                className="absolute inset-0"
-                style={{ 
-                  background: 'linear-gradient(to bottom, rgba(99, 102, 241, 0.4), rgba(126, 58, 242, 0.3), rgba(107, 33, 168, 0.2), rgba(15, 14, 23, 0.7))',
-                  zIndex: 1
-                }}
-              />
-              
-              {/* Texture Overlay */}
-              <div 
-                className="absolute inset-0 opacity-20 pointer-events-none"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3C/defs%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E")`,
-                  zIndex: 2
-                }}
-              />
-
-              {/* Game Info Container */}
-              <div className="px-5 py-6 relative z-30" style={{ overflow: 'visible' }}>
+              {/* Bottom Section: Game Info with Purple Gradient */}
+              <div className="relative min-h-[240px] overflow-visible">
+                {/* Purple Gradient Background */}
+                <div 
+                  className="absolute inset-0"
+                  style={{ 
+                    background: 'linear-gradient(to bottom, rgba(99, 102, 241, 0.4), rgba(126, 58, 242, 0.3), rgba(107, 33, 168, 0.2), rgba(15, 14, 23, 0.7))',
+                    zIndex: 1
+                  }}
+                />
+                
+                {/* Game Info Container */}
+                <div className="px-5 py-6 relative z-30">
                   {/* Game Thumbnail + Game Title Section */}
                   <div className="flex gap-4 items-start mb-4">
                     {/* Game Thumbnail */}
@@ -464,11 +452,10 @@ export default function GameDetailDarkV2({
                     </button>
                   </div>
                 </div>
-            </div>
-          </div>
+              </div>
 
-          {/* Main Content - EXACTEMENT comme BoardGame */}
-          <div className="px-6 py-4 relative" style={{ zIndex: 1 }}>
+              {/* Main Content Section - Under the colored section */}
+              <div className="px-6 py-4 relative z-1">
                 {/* Tab Navigation */}
                 <div className="flex space-x-2 mb-6">
                   {(['overview', 'trailers'] as const).map((tab) => (
@@ -510,6 +497,7 @@ export default function GameDetailDarkV2({
                         )}
                       </div>
                     )}
+
                     {/* Description */}
                     {gameDetail.description_raw && (
                       <div>
@@ -669,18 +657,10 @@ export default function GameDetailDarkV2({
               </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-white mb-2">Game not found</h2>
-            <p className="text-gray-400">Unable to load game details</p>
-          </div>
-        </div>
-      )}
-      
-      {/* Review Modal */}
-      {showReviewBox && (
+        )}
+
+        {/* Review Modal */}
+        {showReviewBox && (
           <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
               <h3 className="text-xl font-semibold text-white mb-4">Rate and Review</h3>

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Star, Send, ChevronDown, Share, ExternalLink, Award, Trophy, Dice6, Check, FileText } from 'lucide-react'
+import { X, Star, Send, ChevronDown, Share, ExternalLink, Award, Trophy, Dice6, Check, FileText } from 'lucide-react'
 import { optimalBoardGameAPI, type OptimalBoardGameResult } from '@/services/optimalBoardGameAPI'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { userReviewsService } from '@/services/userReviewsService'
@@ -595,7 +595,7 @@ export default function BoardGameDetailPage({
                   onClick={onBack}
                   className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
                 >
-                  <ArrowLeft size={20} />
+                  <X size={20} />
                 </button>
                 
                 {/* Removed URL bar as requested */}

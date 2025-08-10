@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { Search, Loader2, Star, Check, Plus, Film, Gamepad2, BookOpen, Music, Dice6, ChevronDown } from 'lucide-react'
+import { Search, Loader2, Star, Check, Plus, Film, Gamepad2, BookOpen, Music, Dice6, ChevronDown, X, Mic, ChevronRight } from 'lucide-react'
 import { optimalMovieAPI, type OptimalMovieResult } from '@/services/optimalMovieAPI'
 import { optimalGamingAPIV2, type OptimalGamingV2Result } from '@/services/optimalGamingAPIV2'
 import { optimalBooksAPI, type OptimalBookResult } from '@/services/optimalBooksAPI'
@@ -21,6 +21,17 @@ interface UnifiedSearchBarProps {
 type FilterType = 'movies' | 'games' | 'books' | 'music' | 'boardgames'
 type SearchResult = OptimalMovieResult | OptimalGamingV2Result | OptimalBookResult | OptimalMusicResult | OptimalBoardGameResult
 
+// Interface pour les recherches récentes
+interface RecentSearch {
+  id: string
+  title: string
+  category: string
+  type?: string
+  image?: string
+  timestamp: number
+  result: SearchResult
+}
+
 export default function UnifiedSearchBar({
   onAddToLibrary,
   onOpenGameDetail,
@@ -40,6 +51,69 @@ export default function UnifiedSearchBar({
   const [dropdownPosition, setDropdownPosition] = useState<'above' | 'below'>('below')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+
+  // États pour les recherches récentes - nouveauté Apple Music
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([])
+
+  // Charger les recherches récentes au montage
+  useEffect(() => {
+    const loadRecentSearches = () => {
+      const stored = localStorage.getItem('stackr_unified_recent_searches')
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          setRecentSearches(parsed.slice(0, 10))
+        } catch (e) {
+          console.error('Failed to load recent searches:', e)
+        }
+      }
+    }
+    loadRecentSearches()
+  }, [])
+
+  // Sauvegarder une recherche récente
+  const saveToRecentSearches = (result: SearchResult) => {
+    const recent: RecentSearch = {
+      id: getResultInfo(result).id,
+      title: getResultInfo(result).title,
+      category: selectedFilter,
+      type: getResultInfo(result).subtitle,
+      image: getResultInfo(result).image,
+      timestamp: Date.now(),
+      result
+    }
+
+    setRecentSearches(prev => {
+      const filtered = prev.filter(item => item.id !== recent.id)
+      const updated = [recent, ...filtered].slice(0, 10)
+      localStorage.setItem('stackr_unified_recent_searches', JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  // Effacer les recherches récentes
+  const clearRecentSearches = () => {
+    setRecentSearches([])
+    localStorage.removeItem('stackr_unified_recent_searches')
+  }
+
+  // Générer des suggestions basées sur la saisie
+  useEffect(() => {
+    if (query.length > 0) {
+      const suggestions = [
+        `${query} movies`,
+        `${query} games`, 
+        `${query} albums`,
+        `${query} books`,
+        `${query} soundtrack`
+      ].filter(s => s.toLowerCase() !== query.toLowerCase())
+      
+      setSearchSuggestions(suggestions.slice(0, 5))
+    } else {
+      setSearchSuggestions([])
+    }
+  }, [query])
 
   // Status options for each media type
   const statusOptions = {
@@ -72,36 +146,11 @@ export default function UnifiedSearchBar({
   }
 
   const filterOptions = [
-    { 
-      key: 'movies' as const, 
-      label: 'Movies/TV', 
-      icon: Film,
-      gradient: 'from-[#ff6b6b] to-[#c92a2a]' 
-    },
-    { 
-      key: 'games' as const, 
-      label: 'Games', 
-      icon: Gamepad2,
-      gradient: 'from-[#00f260] to-[#0575e6]' 
-    },
-    { 
-      key: 'books' as const, 
-      label: 'Books', 
-      icon: BookOpen,
-      gradient: 'from-[#4facfe] to-[#00f2fe]' 
-    },
-    { 
-      key: 'music' as const, 
-      label: 'Music', 
-      icon: Music,
-      gradient: 'from-[#43e97b] to-[#38f9d7]' 
-    },
-    { 
-      key: 'boardgames' as const, 
-      label: 'Boardgames', 
-      icon: Dice6,
-      gradient: 'from-[#667eea] to-[#764ba2]' 
-    }
+    { key: 'movies' as const, label: 'Movies/\nTV', icon: Film },
+    { key: 'games' as const, label: 'Games', icon: Gamepad2 },
+    { key: 'books' as const, label: 'Books', icon: BookOpen },
+    { key: 'music' as const, label: 'Music', icon: Music },
+    { key: 'boardgames' as const, label: 'Board\nGames', icon: Dice6 }
   ]
 
   // Search functions using the EXACT same logic as existing buttons
@@ -262,6 +311,9 @@ export default function UnifiedSearchBar({
     // Close the dropdown
     setShowDropdownForItem(null)
     
+    // Save to recent searches
+    saveToRecentSearches(result)
+    
     // Add to library with the selected status (this will trigger library refresh)
     onAddToLibrary(result, status)
   }
@@ -284,6 +336,8 @@ export default function UnifiedSearchBar({
 
   // Handle result click
   const handleResultClick = (result: SearchResult) => {
+    saveToRecentSearches(result)
+    
     switch (selectedFilter) {
       case 'games':
         if (onOpenGameDetail && 'id' in result) {
@@ -311,6 +365,17 @@ export default function UnifiedSearchBar({
         }
         break
     }
+  }
+
+  // Handle recent search click
+  const handleRecentSearchClick = (item: RecentSearch) => {
+    setSelectedFilter(item.category as FilterType)
+    handleResultClick(item.result)
+  }
+
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion: string) => {
+    setQuery(suggestion)
   }
 
   // Get display info for different result types
@@ -392,237 +457,304 @@ export default function UnifiedSearchBar({
   }
 
   return (
-    <div className="w-full space-y-4" onClick={(e) => e.stopPropagation()}>
-      {/* Search Input */}
-      <div className="relative">
-        <div className="flex items-center bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-          <Search className="text-gray-400 ml-4 mr-3 flex-shrink-0" size={20} />
+    <div className="w-full space-y-4 text-white" onClick={(e) => e.stopPropagation()}>
+      {/* Barre de recherche Apple Music Style */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="relative">
           <input
             type="text"
-            placeholder={`Search ${selectedFilter}...`}
+            placeholder="Artists, Songs, Movies and More..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => {
-              if (results.length > 0 && query.trim()) {
-                setShowResults(true)
-              }
-            }}
-            className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none py-4 text-base"
+            className="w-full h-12 bg-gray-800 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-12 pr-20 text-base focus:outline-none focus:ring-2 focus:ring-gray-600"
           />
-          {loading && <Loader2 className="animate-spin text-gray-400 mr-4" size={16} />}
+          
+          {/* Icône loupe */}
+          <Search 
+            size={20} 
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" 
+          />
+          
+          {/* Icône micro */}
+          <Mic 
+            size={18} 
+            className="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-300" 
+          />
+          
+          {/* Bouton X */}
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2"
+            >
+              <X size={18} className="text-gray-400 hover:text-gray-300" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Category Selection Label */}
-      <div className="text-center mb-3">
-        <p className="text-white/70 text-sm font-medium">Select a category</p>
+      {/* Filtres style Apple Music avec animation de coulissement */}
+      <div className="px-4 py-1">
+        <div className="relative flex bg-gray-900 rounded-lg p-1">
+          {/* Indicateur de sélection qui glisse */}
+          <div 
+            className="absolute top-1 bottom-1 bg-white rounded-md shadow-sm transition-all duration-300 ease-out"
+            style={{
+              left: `${(filterOptions.findIndex(f => f.key === selectedFilter) * 100) / filterOptions.length}%`,
+              width: `${100 / filterOptions.length}%`,
+              marginLeft: '2px',
+              marginRight: '2px',
+              width: `calc(${100 / filterOptions.length}% - 4px)`
+            }}
+          />
+          
+          {filterOptions.map((filter, index) => (
+            <button
+              key={filter.key}
+              onClick={() => setSelectedFilter(filter.key)}
+              className={`relative flex-1 py-2.5 px-3 text-xs font-medium transition-all duration-200 leading-tight z-10 ${
+                selectedFilter === filter.key
+                  ? 'text-black'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <span className="whitespace-pre-line text-center">
+                {filter.label}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Filter Buttons - Matching Large Cards Design */}
-      <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
-        {filterOptions.map(({ key, label, icon: IconComponent, gradient }) => (
-          <button
-            key={key}
-            onClick={() => setSelectedFilter(key)}
-            className={`group relative flex items-center px-3 py-2 rounded-xl transition-all duration-300 border-2 ${
-              selectedFilter === key
-                ? 'scale-105 shadow-lg border-white/80 bg-white/10'
-                : 'hover:scale-105 hover:shadow-md hover:-translate-y-0.5 border-transparent hover:border-white/30'
-            }`}
-          >
-            {/* Icon with gradient background matching large cards */}
-            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center mr-2 transition-transform duration-300 ${
-              selectedFilter === key ? 'scale-110' : 'group-hover:scale-110'
-            }`}>
-              <IconComponent className="w-4 h-4 text-white" />
-            </div>
-            
-            {/* Text - responsive */}
-            <span className="text-sm font-medium text-white hidden sm:inline">
-              {label}
-            </span>
-            <span className="text-xs font-medium text-white sm:hidden">
-              {key === 'movies' ? 'Movies' : key.charAt(0).toUpperCase() + key.slice(1)}
-            </span>
-          </button>
-        ))}
-      </div>
+      {/* Recently Searched - visible par défaut */}
+      {!query && !showResults && recentSearches.length > 0 && (
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-white text-xl font-semibold">Recently Searched</h2>
+            <button 
+              onClick={clearRecentSearches}
+              className="text-red-500 text-sm font-medium hover:text-red-400"
+            >
+              Clear
+            </button>
+          </div>
+          
+          <div className="space-y-0">
+            {recentSearches.map((item, index) => (
+              <div 
+                key={index}
+                onClick={() => handleRecentSearchClick(item)}
+                className="flex items-center space-x-4 py-3 hover:bg-gray-800/30 rounded-lg cursor-pointer transition-colors"
+              >
+                {/* Image */}
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
+                  {item.image ? (
+                    <img 
+                      src={item.image} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-500">
+                      <span className="text-white text-lg font-bold">
+                        {item.title.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Texte */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium text-base truncate">{item.title}</p>
+                  <p className="text-gray-400 text-sm truncate">
+                    {item.category.charAt(0).toUpperCase() + item.category.slice(1)} • {item.type || 'Result'}
+                  </p>
+                </div>
+                
+                {/* Flèche */}
+                <ChevronRight size={20} className="text-gray-500" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Suggestions pendant la saisie */}
+      {query && searchSuggestions.length > 0 && !loading && results.length === 0 && (
+        <div className="px-4">
+          <div className="space-y-0">
+            {searchSuggestions.map((suggestion, index) => (
+              <button
+                key={index}
+                onClick={() => handleSuggestionClick(suggestion)}
+                className="w-full flex items-center space-x-3 py-3 hover:bg-gray-800/30 rounded-lg transition-colors"
+              >
+                <Search size={16} className="text-gray-500 ml-2" />
+                <span className="text-white text-left flex-1 text-base">{suggestion}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ligne sous les filtres - visible seulement avec des résultats */}
+      {showResults && results.length > 0 && (
+        <div className="px-4">
+          <div className="h-px bg-white/10 mt-3 mb-4"></div>
+        </div>
+      )}
 
       {/* Search Results */}
       {showResults && (
         <div className="relative">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
-            {/* Loading state */}
-            {loading && (
-              <div className="flex items-center justify-center py-8">
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Loader2 className="animate-spin" size={20} />
-                  <span>Searching {selectedFilter}...</span>
-                </div>
+          {/* Loading state */}
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center space-x-2 text-gray-400">
+                <Loader2 className="animate-spin" size={20} />
+                <span>Searching...</span>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* No results */}
-            {!loading && query.length >= 2 && results.length === 0 && (
-              <div className="text-center py-8 text-gray-600">
-                <Search className="mx-auto mb-2" size={24} />
-                <p>No {selectedFilter} found for "<span className="text-gray-900 font-medium">{query}</span>"</p>
-              </div>
-            )}
+          {/* No results */}
+          {!loading && query.length >= 2 && results.length === 0 && !searchSuggestions.length && (
+            <div className="text-center py-8 text-gray-400">
+              <Search className="mx-auto mb-2" size={24} />
+              <p>No results found for "<span className="text-white font-medium">{query}</span>"</p>
+              <p className="text-sm mt-1">Try different keywords or check spelling</p>
+            </div>
+          )}
 
-            {/* Results list */}
-            {!loading && results.length > 0 && (
-              <div className="max-h-96 overflow-y-auto">
-                <div className="p-4 space-y-3">
-                  {results.map((result) => {
-                    const info = getResultInfo(result)
-                    const inLibrary = isInLibrary(info.id)
-                    
-                    return (
-                      <div
-                        key={info.id}
-                        className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 transition-all"
-                        onClick={() => handleResultClick(result)}
-                      >
-                        {/* Image */}
-                        <div className="w-14 h-14 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
-                          {info.image ? (
-                            <img
-                              src={info.image}
-                              alt={info.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                                const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                                if (fallback) fallback.style.display = 'flex'
-                              }}
-                            />
-                          ) : null}
-                          
-                          <div 
-                            className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300"
-                            style={{ display: info.image ? 'none' : 'flex' }}
-                          >
-                            <div className="text-lg">
-                              {(() => {
-                                const IconComponent = filterOptions.find(f => f.key === selectedFilter)?.icon
-                                return IconComponent ? <IconComponent size={16} className="text-gray-600" /> : null
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-start justify-between">
-                            <div className="min-w-0 flex-1">
-                              <h3 className="text-gray-900 font-semibold text-sm leading-tight line-clamp-1">
-                                {info.title}
-                                {getLibraryItemStatus(info.id) && (
-                                  <span className="ml-2 text-green-600 font-medium text-xs">
-                                    - {statusOptions[selectedFilter].find(s => s.key === getLibraryItemStatus(info.id))?.label}
-                                  </span>
-                                )}
-                              </h3>
-                              
-                              {info.subtitle && (
-                                <p className="text-gray-600 text-xs leading-tight mt-0.5">
-                                  {info.subtitle}
-                                </p>
-                              )}
-                              
-                              <div className="flex items-center space-x-2 mt-1">
-                                <span className="px-1.5 py-0.5 rounded-full text-xs font-medium border bg-gray-100 text-gray-700">
-                                  {selectedFilter}
-                                </span>
-                                
-                                {info.year && (
-                                  <span className="text-xs text-gray-500">{info.year}</span>
-                                )}
-                                
-                                {info.rating > 0 && (
-                                  <div className="flex items-center text-xs text-gray-500">
-                                    <Star size={10} className="text-yellow-500 mr-0.5" />
-                                    <span>{info.rating.toFixed(1)}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Action Button */}
-                            <div className="ml-3 flex-shrink-0 relative">
-                              {inLibrary || getLibraryItemStatus(info.id) ? (
-                                <div className="flex items-center space-x-1 bg-green-50 border border-green-200 text-green-700 px-2 py-1 rounded text-xs font-medium">
-                                  <Check size={12} />
-                                  <span>{inLibrary ? 'In Library' : 'Added'}</span>
-                                  {getLibraryItemStatus(info.id) && (
-                                    <span className="ml-1 text-green-600 font-medium">
-                                      - {statusOptions[selectedFilter].find(s => s.key === getLibraryItemStatus(info.id))?.label}
-                                    </span>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="relative" ref={showDropdownForItem === info.id ? dropdownRef : undefined}>
-                                  <button
-                                    ref={showDropdownForItem === info.id ? buttonRef : undefined}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleDropdownToggle(info.id, e.currentTarget)
-                                    }}
-                                    className="bg-blue-600/90 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium transition-all flex items-center space-x-1"
-                                  >
-                                    <Plus size={12} />
-                                    <span>Add</span>
-                                    <ChevronDown size={10} className="ml-1" />
-                                  </button>
-
-                                  {/* Status Dropdown Menu */}
-                                  {showDropdownForItem === info.id && (
-                                    <div 
-                                      className={`absolute right-0 bg-white border border-gray-200 rounded-lg shadow-xl py-1 min-w-[140px] ${
-                                        dropdownPosition === 'above' 
-                                          ? 'bottom-full mb-1' 
-                                          : 'top-full mt-1'
-                                      }`}
-                                      style={{
-                                        zIndex: 99999, // Très élevé pour passer au-dessus de tout
-                                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-                                      }}
-                                    >
-                                      {statusOptions[selectedFilter].map((status) => (
-                                        <button
-                                          key={status.key}
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleStatusSelect(info.id, status.key, result)
-                                          }}
-                                          className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors first:rounded-t-lg last:rounded-b-lg"
-                                        >
-                                          {status.label}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
+          {/* Results list */}
+          {!loading && results.length > 0 && (
+            <div className="px-4">
+              {results.map((result, index) => {
+                const info = getResultInfo(result)
+                const inLibrary = isInLibrary(info.id)
+                const currentStatus = getLibraryItemStatus(info.id)
+                
+                return (
+                  <div key={info.id}>
+                    {/* Contenu du résultat */}
+                    <div 
+                      className="flex items-center space-x-4 py-4 cursor-pointer hover:bg-gray-800/20 rounded-lg transition-colors"
+                      onClick={() => handleResultClick(result)}
+                    >
+                      {/* Image */}
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
+                        {info.image ? (
+                          <img 
+                            src={info.image} 
+                            alt={info.title} 
+                            className="w-full h-full object-cover" 
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                              if (fallback) fallback.style.display = 'flex'
+                            }}
+                          />
+                        ) : null}
+                        
+                        <div 
+                          className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-800"
+                          style={{ display: info.image ? 'none' : 'flex' }}
+                        >
+                          {(() => {
+                            const IconComponent = filterOptions.find(f => f.key === selectedFilter)?.icon
+                            return IconComponent ? <IconComponent size={16} className="text-gray-400" /> : null
+                          })()}
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+                      
+                      {/* Texte */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-medium text-base truncate">{info.title}</h3>
+                        <p className="text-gray-400 text-sm truncate">
+                          {info.subtitle} • {info.year}
+                          {info.rating > 0 && (
+                            <>
+                              {' • ⭐ '}
+                              <span>{info.rating.toFixed(1)}</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      
+                      {/* NOUVEAU : Bouton Add à droite avec dropdown */}
+                      <div className="relative" onClick={(e) => e.stopPropagation()}>
+                        {/* Afficher le statut si déjà ajouté, sinon bouton Add */}
+                        {currentStatus ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDropdownToggle(info.id, e.currentTarget)
+                            }}
+                            className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-full flex items-center space-x-1 transition-colors hover:bg-purple-700"
+                          >
+                            <span>{statusOptions[selectedFilter].find(s => s.key === currentStatus)?.label || 'Added'}</span>
+                            <ChevronDown size={12} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDropdownToggle(info.id, e.currentTarget)
+                            }}
+                            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium rounded-full flex items-center space-x-1 transition-colors"
+                          >
+                            <Plus size={12} />
+                            <span>Add</span>
+                          </button>
+                        )}
+                        
+                        {/* Dropdown menu */}
+                        {showDropdownForItem === info.id && (
+                          <div 
+                            className={`absolute right-0 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-32 ${
+                              dropdownPosition === 'above' 
+                                ? 'bottom-full mb-1' 
+                                : 'top-full mt-1'
+                            }`}
+                            style={{
+                              zIndex: 99999,
+                              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+                            }}
+                          >
+                            {statusOptions[selectedFilter].map((option) => (
+                              <button
+                                key={option.key}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleStatusSelect(info.id, option.key, result)
+                                }}
+                                className="w-full text-left px-3 py-2 text-white text-xs hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                              >
+                                {option.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Ligne séparatrice - pas après le dernier élément */}
+                    {index < results.length - 1 && (
+                      <div className="h-px bg-white/10"></div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
-            {/* Footer */}
-            {results.length > 0 && (
-              <div className="px-4 py-2 border-t border-gray-100 text-xs text-gray-500 flex items-center justify-between">
-                <span>Click to view details</span>
-                <span>{results.length} result{results.length !== 1 ? 's' : ''}</span>
-              </div>
-            )}
-          </div>
+          {/* Footer */}
+          {results.length > 0 && (
+            <div className="px-4 py-4 text-xs text-gray-500 flex items-center justify-between">
+              <span>Click to view details</span>
+              <span>{results.length} result{results.length !== 1 ? 's' : ''}</span>
+            </div>
+          )}
         </div>
       )}
     </div>

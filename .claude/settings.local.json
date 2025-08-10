@@ -59,7 +59,10 @@
       "Bash(move GamesModal.tsx OLD_GamesModal.tsx)",
       "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\UnifiedSearchBar.tsx\")",
       "WebFetch(domain:react.dev)",
-      "Bash(del test-music-fix.js)"
+      "Bash(del test-music-fix.js)",
+      "Bash(move GameDetailDarkV2.tsx GameDetailDarkV2_OLD.tsx)",
+      "Bash(move GameDetailDarkV2_NEW.tsx GameDetailDarkV2.tsx)",
+      "Bash(move:*)"
     ],
     "deny": []
   }

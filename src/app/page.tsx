@@ -855,12 +855,7 @@ export default function Home() {
               </div>
               
               <div className="container mx-auto max-w-2xl px-4 sm:px-6 pb-20 flex-1 flex flex-col">
-                {/* Search Header */}
-                <div className="text-left mb-6">
-                  <h1 className="text-2xl font-bold text-white">Search</h1>
-                </div>
-                
-                {/* NEW: Unified Search Bar */}
+                {/* NEW: Unified Search Bar - Apple Music Style (no title) */}
                 <div className="mb-8">
                   <UnifiedSearchBar
                     onAddToLibrary={handleAddToLibrary}
@@ -1206,19 +1201,18 @@ export default function Home() {
         onTabChange={setActiveMainTab} 
       />
 
-      {/* Game Detail Page */}
-      {selectedGameId && (
-        <GameDetailDarkV2
-          gameId={selectedGameId}
-          onBack={() => setSelectedGameId(null)}
-          onAddToLibrary={handleAddToLibrary}
-          onDeleteItem={handleDeleteItem}
-          library={library}
-          userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
-          googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
-          onReviewSubmit={handleReviewSubmit}
-        />
-      )}
+      {/* Game Detail Modal */}
+      <GameDetailDarkV2
+        isOpen={!!selectedGameId}
+        onClose={() => setSelectedGameId(null)}
+        gameId={selectedGameId || ''}
+        onAddToLibrary={handleAddToLibrary}
+        onDeleteItem={handleDeleteItem}
+        library={library}
+        userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
+        googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}
+        onReviewSubmit={handleReviewSubmit}
+      />
 
       <MovieDetailModalV3
         isOpen={!!selectedMovieId}
