@@ -210,6 +210,21 @@ export default function UnifiedSearchBar({
     return () => document.removeEventListener('click', handleClickOutside)
   }, [query])
 
+  // Sync selected status with library changes
+  useEffect(() => {
+    // Update selectedStatus with items from library to maintain consistency
+    const libraryStatusMap: {[itemId: string]: MediaStatus} = {}
+    library.forEach(item => {
+      libraryStatusMap[item.id] = item.status
+    })
+    
+    // Merge library status with current selected status, prioritizing library
+    setSelectedStatus(prev => ({
+      ...prev,
+      ...libraryStatusMap
+    }))
+  }, [library])
+
   // Calculate optimal dropdown position
   const calculateDropdownPosition = (buttonElement: HTMLElement): 'above' | 'below' => {
     const rect = buttonElement.getBoundingClientRect()
@@ -241,8 +256,13 @@ export default function UnifiedSearchBar({
 
   // Handle status selection
   const handleStatusSelect = (itemId: string, status: MediaStatus, result: SearchResult) => {
+    // Immediately update the selected status to show in UI
     setSelectedStatus(prev => ({ ...prev, [itemId]: status }))
+    
+    // Close the dropdown
     setShowDropdownForItem(null)
+    
+    // Add to library with the selected status (this will trigger library refresh)
     onAddToLibrary(result, status)
   }
 
@@ -254,6 +274,12 @@ export default function UnifiedSearchBar({
   // Check if item is in library
   const isInLibrary = (itemId: string) => {
     return library.some(item => item.id === itemId)
+  }
+
+  // Get the current status from library or selected status
+  const getLibraryItemStatus = (itemId: string): MediaStatus | null => {
+    const libraryItem = library.find(item => item.id === itemId)
+    return libraryItem?.status || getCurrentStatus(itemId)
   }
 
   // Handle result click
@@ -492,6 +518,11 @@ export default function UnifiedSearchBar({
                             <div className="min-w-0 flex-1">
                               <h3 className="text-gray-900 font-semibold text-sm leading-tight line-clamp-1">
                                 {info.title}
+                                {getLibraryItemStatus(info.id) && (
+                                  <span className="ml-2 text-green-600 font-medium text-xs">
+                                    - {statusOptions[selectedFilter].find(s => s.key === getLibraryItemStatus(info.id))?.label}
+                                  </span>
+                                )}
                               </h3>
                               
                               {info.subtitle && (
@@ -520,13 +551,13 @@ export default function UnifiedSearchBar({
 
                             {/* Action Button */}
                             <div className="ml-3 flex-shrink-0 relative">
-                              {inLibrary ? (
+                              {inLibrary || getLibraryItemStatus(info.id) ? (
                                 <div className="flex items-center space-x-1 bg-green-50 border border-green-200 text-green-700 px-2 py-1 rounded text-xs font-medium">
                                   <Check size={12} />
-                                  <span>In Library</span>
-                                  {getCurrentStatus(info.id) && (
+                                  <span>{inLibrary ? 'In Library' : 'Added'}</span>
+                                  {getLibraryItemStatus(info.id) && (
                                     <span className="ml-1 text-green-600 font-medium">
-                                      - {statusOptions[selectedFilter].find(s => s.key === getCurrentStatus(info.id))?.label}
+                                      - {statusOptions[selectedFilter].find(s => s.key === getLibraryItemStatus(info.id))?.label}
                                     </span>
                                   )}
                                 </div>
