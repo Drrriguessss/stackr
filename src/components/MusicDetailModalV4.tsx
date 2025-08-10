@@ -115,6 +115,20 @@ export default function MusicDetailModalV4({
     }
   }, [isOpen, musicId])
 
+  // Synchronize selectedStatus with library when modal opens or library changes
+  useEffect(() => {
+    if (isOpen && musicId && library.length > 0) {
+      const libraryItem = library.find(item => item.id === musicId)
+      if (libraryItem) {
+        console.log('🎵 [MusicDetailModal] Found in library with status:', libraryItem.status)
+        setSelectedStatus(libraryItem.status)
+      } else {
+        console.log('🎵 [MusicDetailModal] Not found in library, resetting status')
+        setSelectedStatus(null)
+      }
+    }
+  }, [isOpen, musicId, library])
+
   const fetchMusicDetail = async () => {
     if (!musicId) return
     
