@@ -239,8 +239,12 @@ const getCreatorForItem = (
       creator = item.author || 'Unknown Author'
       break
 
+    case 'boardgames':
+      creator = item.designer || item.developer || 'Unknown Designer'
+      break
+
     default:
-      creator = item.author || item.artist || item.director || item.developer || 'Unknown Creator'
+      creator = item.author || item.artist || item.director || item.developer || item.designer || 'Unknown Creator'
       break
   }
 
@@ -612,6 +616,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       case 'movies': return '🎬'
       case 'music': return '🎵'
       case 'books': return '📚'
+      case 'boardgames': return '🎲'
       default: return '📚'
     }
   }
@@ -622,6 +627,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       case 'movies': return 'Movies'
       case 'music': return 'Music'
       case 'books': return 'Books'
+      case 'boardgames': return 'Boardgames'
       default: return category
     }
   }
@@ -629,10 +635,20 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   const getStatusLabel = (status: MediaStatus | string) => {
     switch (status) {
       case 'want-to-play': return 'Wishlist'
+      case 'playing': return 'Playing'
       case 'currently-playing': return 'In Progress'
       case 'completed': return 'Completed'
       case 'paused': return 'Paused'
       case 'dropped': return 'Dropped'
+      case 'played': return 'Played'
+      case 'want-to-watch': return 'Want to watch'
+      case 'watching': return 'Watching'
+      case 'watched': return 'Watched'
+      case 'want-to-listen': return 'Want to listen'
+      case 'listened': return 'Listened'
+      case 'want-to-read': return 'Want to read'
+      case 'reading': return 'Reading'
+      case 'read': return 'Read'
       case 'all': return 'All'
       default: return status
     }
@@ -641,10 +657,20 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   const getStatusColor = (status: MediaStatus) => {
     switch (status) {
       case 'want-to-play': return 'bg-orange-100 text-orange-700'
+      case 'playing': return 'bg-green-100 text-green-700'
       case 'currently-playing': return 'bg-green-100 text-green-700'
       case 'completed': return 'bg-blue-100 text-blue-700'
       case 'paused': return 'bg-yellow-100 text-yellow-700'
       case 'dropped': return 'bg-red-100 text-red-700'
+      case 'played': return 'bg-purple-100 text-purple-700'
+      case 'want-to-watch': return 'bg-orange-100 text-orange-700'
+      case 'watching': return 'bg-green-100 text-green-700'
+      case 'watched': return 'bg-blue-100 text-blue-700'
+      case 'want-to-listen': return 'bg-orange-100 text-orange-700'
+      case 'listened': return 'bg-blue-100 text-blue-700'
+      case 'want-to-read': return 'bg-orange-100 text-orange-700'
+      case 'reading': return 'bg-green-100 text-green-700'
+      case 'read': return 'bg-blue-100 text-blue-700'
       default: return 'bg-gray-100 text-gray-700'
     }
   }
