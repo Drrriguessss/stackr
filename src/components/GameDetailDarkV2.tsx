@@ -814,7 +814,6 @@ export default function GameDetailDarkV2({
             }}
           />
         )}
-      </div>
     </div>
   )
 }
