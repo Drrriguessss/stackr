@@ -508,8 +508,12 @@ export default function Home() {
   }
 
   const handleOpenMovieDetail = (movieId: string) => {
+    console.log('🎬 [DEBUG] handleOpenMovieDetail called with:', movieId)
     const normalizedMovieId = normalizeId(movieId)
+    console.log('🎬 [DEBUG] Normalized movie ID:', normalizedMovieId)
     setSelectedMovieId(normalizedMovieId)
+    setSelectedGameId(null) // Clear game selection to ensure mutual exclusivity
+    setActiveMainTab('movie-detail') // Switch to movie detail view
   }
 
   const handleOpenBookDetail = (bookId: string) => {
@@ -1031,6 +1035,19 @@ export default function Home() {
             onReviewSubmit={handleReviewSubmit}
           />
         ) : null
+      case 'movie-detail':
+        return selectedMovieId ? (
+          <MovieDetailModalV3
+            isOpen={true}
+            onClose={() => setActiveMainTab('feed')}
+            movieId={selectedMovieId}
+            mediaType={selectedMovieType}
+            onAddToLibrary={handleAddToLibrary}
+            onDeleteItem={handleDeleteItem}
+            library={library}
+            onMovieSelect={(movieId) => setSelectedMovieId(movieId)}
+          />
+        ) : null
       case 'roadmap':
         return <RoadmapPage onBack={() => setActiveMainTab('feed')} />
       case 'profile':
@@ -1220,16 +1237,6 @@ export default function Home() {
       />
 
 
-      <MovieDetailModalV3
-        isOpen={!!selectedMovieId}
-        onClose={() => setSelectedMovieId(null)}
-        movieId={selectedMovieId || ''}
-        mediaType={selectedMovieType}
-        onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem}
-        library={library}
-        onMovieSelect={(movieId) => setSelectedMovieId(movieId)}
-      />
 
       <BookDetailModalV3
         isOpen={!!selectedBookId}

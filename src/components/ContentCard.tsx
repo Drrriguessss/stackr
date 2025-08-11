@@ -52,13 +52,24 @@ export default function ContentCard({
   }
 
   const handleCardClick = () => {
+    console.log('🔍 [ContentCard] Card clicked:', { 
+      category, 
+      itemId: item.id, 
+      itemTitle: item.title,
+      onOpenMovieDetail: !!onOpenMovieDetail 
+    })
+    
     if (category === 'games' && onOpenGameDetail) {
+      console.log('🎮 Opening game detail for:', item.id)
       onOpenGameDetail(item.id)
     } else if (category === 'movies' && onOpenMovieDetail) {
+      console.log('🎬 Opening movie detail for:', item.id)
       onOpenMovieDetail(item.id)
     } else if (category === 'books' && onOpenBookDetail) {
+      console.log('📚 Opening book detail for:', item.id)
       onOpenBookDetail(item.id)
     } else if (category === 'music' && onOpenMusicDetail) {
+      console.log('🎵 Opening music detail for:', item.id)
       onOpenMusicDetail(item.id)
     }
   }
