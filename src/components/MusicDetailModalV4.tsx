@@ -256,7 +256,18 @@ export default function MusicDetailModalV4({
 
   // Audio preview functions
   const handlePreviewToggle = useCallback(() => {
-    if (!musicDetail?.previewUrl) return
+    // For albums, try to use the first track's preview if album doesn't have one
+    let previewUrl = musicDetail?.previewUrl
+    
+    if (!previewUrl && isAlbum && albumTracks.length > 0) {
+      // Try to find the first track with a preview
+      const trackWithPreview = albumTracks.find(track => track.previewUrl)
+      if (trackWithPreview) {
+        previewUrl = trackWithPreview.previewUrl
+      }
+    }
+    
+    if (!previewUrl) return
 
     if (isPreviewPlaying) {
       audioRef?.pause()
@@ -265,14 +276,14 @@ export default function MusicDetailModalV4({
       if (audioRef) {
         audioRef.play()
       } else {
-        const audio = new Audio(musicDetail.previewUrl)
+        const audio = new Audio(previewUrl)
         audio.addEventListener('ended', () => setIsPreviewPlaying(false))
         audio.play()
         setAudioRef(audio)
       }
       setIsPreviewPlaying(true)
     }
-  }, [musicDetail?.previewUrl, isPreviewPlaying, audioRef])
+  }, [musicDetail?.previewUrl, isPreviewPlaying, audioRef, isAlbum, albumTracks])
 
   // Go to album function
   const handleGoToAlbum = useCallback(() => {
@@ -423,14 +434,14 @@ export default function MusicDetailModalV4({
                 alt={musicDetail?.title}
                 className="w-full h-full object-cover"
               />
-              {/* Listen Icon - Bottom Right for Singles Only */}
-              {isSingle && musicDetail?.previewUrl && (
+              {/* Listen Icon - Bottom Right for Singles and Albums with preview */}
+              {(musicDetail?.previewUrl || (isAlbum && albumTracks.some(t => t.previewUrl))) && (
                 <button
                   onClick={handlePreviewToggle}
-                  className="absolute bottom-2 right-2 w-8 h-8 bg-gray-800/90 rounded-full flex items-center justify-center transition-all duration-200 hover:bg-gray-700/90 backdrop-blur-sm"
+                  className="absolute bottom-2 right-2 w-8 h-8 bg-gray-800/90 rounded-full flex items-center justify-center transition-all duration-200 hover:bg-gray-700/90 backdrop-blur-sm md:w-10 md:h-10"
                   title="Listen to 30-second preview"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white" className="md:w-[14px] md:h-[14px]">
                     {isPreviewPlaying ? (
                       // Pause icon
                       <>
