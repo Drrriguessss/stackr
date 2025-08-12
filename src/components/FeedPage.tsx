@@ -337,7 +337,7 @@ export default function FeedPage({
   }
 
   const handleItemClick = (item: any, category: string) => {
-    const itemId = item.id?.toString() || '1'
+    const itemId = item.id || '1'
     
     switch (category) {
       case 'games':
@@ -356,7 +356,7 @@ export default function FeedPage({
   }
 
   const handleSharedItemClick = (sharedItem: any) => {
-    const itemId = sharedItem.item_id?.toString() || '1'
+    const itemId = sharedItem.item_id || '1'
     
     switch (sharedItem.item_type) {
       case 'games':

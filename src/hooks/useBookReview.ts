@@ -35,12 +35,13 @@ export function useBookReview(bookId: string): UseBookReviewReturn {
     try {
       // Sauvegarder la review si rating ou review fourni
       if (userRating > 0 || userReview.trim()) {
-        await userReviewsService.addReview({
-          itemId: bookDetail.id,
-          category: 'books',
+        await userReviewsService.submitReview({
+          mediaId: bookDetail.id,
+          mediaTitle: bookDetail.title,
+          mediaCategory: 'books',
           rating: userRating,
-          review: userReview,
-          privacy: reviewPrivacy
+          reviewText: userReview,
+          isPublic: reviewPrivacy === 'public'
         })
       }
 
@@ -61,8 +62,9 @@ export function useBookReview(bookId: string): UseBookReviewReturn {
         onAddToLibrary(bookData, selectedStatus)
       }
 
-      // Fermer la modal de review
+      // Fermer la modal de review et réinitialiser les valeurs
       setShowReviewBox(false)
+      // Pour l'inline rating, on ne réinitialise pas les valeurs car elles seront utilisées pour afficher la review
 
     } catch (error) {
       console.error('Error submitting review:', error)

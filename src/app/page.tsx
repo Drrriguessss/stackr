@@ -536,7 +536,39 @@ export default function Home() {
   const handleOpenMusicDetail = (musicId: string) => {
     // Music IDs already come with prefix (album-123456 or track-123456)
     console.log('🎵 [page.tsx] Opening music detail modal for ID:', musicId)
+    
+    // Clear other selections and set music modal
+    setSelectedGameId(null)
+    setSelectedMovieId(null)
+    setSelectedBookId(null)
+    setSelectedBoardGameId(null)
+    
     setSelectedMusicId(musicId)
+    setActiveMainTab('music-detail')
+  }
+
+  const handleCloseMusicDetail = () => {
+    console.log('🎵 [page.tsx] Closing music detail modal')
+    setSelectedMusicId(null)
+    setActiveMainTab('feed')
+  }
+
+  const handleCloseBookDetail = () => {
+    console.log('📚 [page.tsx] Closing book detail modal')
+    setSelectedBookId(null)
+    setActiveMainTab('feed')
+  }
+
+  const handleCloseMovieDetail = () => {
+    console.log('🎬 [page.tsx] Closing movie detail modal')
+    setSelectedMovieId(null)
+    setActiveMainTab('feed')
+  }
+
+  const handleCloseGameDetail = () => {
+    console.log('🎮 [page.tsx] Closing game detail modal')
+    setSelectedGameId(null)
+    setActiveMainTab('feed')
   }
 
   // Unified handler for SearchModalV2
@@ -1038,7 +1070,7 @@ export default function Home() {
         return selectedGameId ? (
           <GameDetailDarkV2
             gameId={selectedGameId}
-            onBack={() => setActiveMainTab('feed')}
+            onBack={handleCloseGameDetail}
             onAddToLibrary={handleAddToLibrary}
             onDeleteItem={handleDeleteItem}
             library={library}
@@ -1051,7 +1083,7 @@ export default function Home() {
         return selectedMovieId ? (
           <MovieDetailModalV3
             isOpen={true}
-            onClose={() => setActiveMainTab('feed')}
+            onClose={handleCloseMovieDetail}
             movieId={selectedMovieId}
             mediaType={selectedMovieType}
             onAddToLibrary={handleAddToLibrary}
@@ -1064,12 +1096,24 @@ export default function Home() {
         return selectedBookId ? (
           <BookDetailModalV3
             isOpen={true}
-            onClose={() => setActiveMainTab('feed')}
+            onClose={handleCloseBookDetail}
             bookId={selectedBookId}
             onAddToLibrary={handleAddToLibrary}
             onDeleteItem={handleDeleteItem}
             library={library}
             onBookSelect={(bookId) => setSelectedBookId(bookId)}
+          />
+        ) : null
+      case 'music-detail':
+        return selectedMusicId ? (
+          <MusicDetailModalV4
+            isOpen={true}
+            onClose={handleCloseMusicDetail}
+            musicId={selectedMusicId}
+            onAddToLibrary={handleAddToLibrary}
+            onDeleteItem={handleDeleteItem}
+            library={library}
+            onMusicSelect={(musicId) => setSelectedMusicId(musicId)}
           />
         ) : null
       case 'roadmap':

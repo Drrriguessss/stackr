@@ -356,7 +356,7 @@ export default function UnifiedSearchBar({
         break
       case 'music':
         if (onOpenMusicDetail && 'id' in result) {
-          onOpenMusicDetail(result.id.toString())
+          onOpenMusicDetail(result.id)
         }
         break
       case 'boardgames':

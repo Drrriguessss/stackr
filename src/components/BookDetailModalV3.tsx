@@ -90,9 +90,10 @@ const BOOK_STATUSES = [
 
 // Fonction utilitaire pour générer des reviews basées sur les données Google Books
 function generateReviewsFromGoogleBooks(averageRating: number, ratingsCount: number, bookTitle: string): ApiReview[] {
-  if (ratingsCount === 0) return []
+  // Toujours générer des reviews, même si ratingsCount est 0
+  const actualRatingsCount = ratingsCount > 0 ? ratingsCount : 150
   
-  const numReviews = Math.min(5, Math.max(3, Math.floor(Math.sqrt(ratingsCount))))
+  const numReviews = Math.min(5, Math.max(3, Math.floor(Math.sqrt(actualRatingsCount))))
   const reviews: ApiReview[] = []
   
   const reviewTexts = {
@@ -137,6 +138,27 @@ export default function BookDetailModalV3({
   const { bookDetail, loading, error, images, authorBooks, otherEditions } = useBookDetail(bookId)
   const reviewState = useBookReview(bookId)
   
+  // Charger la review existante au chargement
+  useEffect(() => {
+    const loadExistingReview = async () => {
+      if (bookDetail?.id) {
+        try {
+          const { userReviewsService } = await import('@/services/userReviewsService')
+          const existingReview = await userReviewsService.getUserReviewForMedia(bookDetail.id)
+          if (existingReview) {
+            reviewState.setUserRating(existingReview.rating)
+            reviewState.setUserReview(existingReview.review_text || '')
+            reviewState.setReviewPrivacy(existingReview.is_public ? 'public' : 'private')
+          }
+        } catch (error) {
+          console.error('Error loading existing review:', error)
+        }
+      }
+    }
+    
+    loadExistingReview()
+  }, [bookDetail?.id, reviewState])
+  
   // États locaux simplifiés
   const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
@@ -144,9 +166,8 @@ export default function BookDetailModalV3({
   
   // États pour les modales
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
-  const [showFriendsModal, setShowFriendsModal] = useState(false)
-  const [selectedFriends, setSelectedFriends] = useState<number[]>([])
   const [showFriendsWhoRead, setShowFriendsWhoRead] = useState(false)
+  const [showInlineRating, setShowInlineRating] = useState(false)
   const [showBookSheet, setShowBookSheet] = useState(false)
   const [bookSheetData, setBookSheetData] = useState<BookSheetData>({
     dateRead: '',
@@ -361,24 +382,25 @@ export default function BookDetailModalV3({
       return
     }
 
+    // Ajouter directement à la library pour TOUS les status
+    const bookData = {
+      id: bookDetail.id,
+      title: bookDetail.title,
+      category: 'books' as const,
+      image: bookDetail.imageLinks?.thumbnail,
+      year: bookDetail.publishedDate ? new Date(bookDetail.publishedDate).getFullYear() : undefined,
+      rating: bookDetail.averageRating || 0,
+      authors: bookDetail.authors,
+      genre: bookDetail.categories?.join(', '),
+      pages: bookDetail.pageCount
+    }
+    
+    onAddToLibrary(bookData, status)
+    setSelectedStatus(status)
+    
+    // Afficher la section inline de rating pour les status appropriés
     if (['currently-reading', 'read', 'did-not-finish'].includes(status)) {
-      setSelectedStatus(status)
-      setShowFriendsModal(true)
-    } else {
-      const bookData = {
-        id: bookDetail.id,
-        title: bookDetail.title,
-        category: 'books' as const,
-        image: bookDetail.imageLinks?.thumbnail,
-        year: bookDetail.publishedDate ? new Date(bookDetail.publishedDate).getFullYear() : undefined,
-        rating: bookDetail.averageRating || 0,
-        authors: bookDetail.authors,
-        genre: bookDetail.categories?.join(', '),
-        pages: bookDetail.pageCount
-      }
-      
-      onAddToLibrary(bookData, status)
-      setSelectedStatus(status)
+      setShowInlineRating(true)
     }
     
     setShowStatusDropdown(false)
@@ -520,10 +542,16 @@ export default function BookDetailModalV3({
       
       let reviews: ApiReview[] = []
       
-      // Utiliser les vraies données Google Books si disponibles
-      if (bookDetail?.averageRating && bookDetail?.ratingsCount > 0) {
-        reviews = generateReviewsFromGoogleBooks(bookDetail.averageRating, bookDetail.ratingsCount, bookTitle)
-        console.log(`📚 Generated ${reviews.length} reviews from Google Books data`)
+      // Générer des reviews pour tous les livres
+      if (bookDetail) {
+        // Si on a des vraies données Google Books, les utiliser
+        if (bookDetail.averageRating && bookDetail.ratingsCount > 0) {
+          reviews = generateReviewsFromGoogleBooks(bookDetail.averageRating, bookDetail.ratingsCount, bookTitle)
+        } else {
+          // Sinon, générer des reviews avec une note moyenne de 3.8
+          reviews = generateReviewsFromGoogleBooks(3.8, 150, bookTitle)
+        }
+        console.log(`📚 Generated ${reviews.length} reviews for ${bookTitle}`)
       }
       
       setApiReviews(reviews)
@@ -761,6 +789,86 @@ export default function BookDetailModalV3({
           {/* Contenu principal - Single page sans tabs */}
           <div className="px-6 py-4 relative z-1">
             <div className="space-y-8">
+              {/* Rate this book section - SEULEMENT si showInlineRating = true */}
+              {showInlineRating && (
+                <div className="mb-6 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] rounded-lg p-4 border border-gray-700/50">
+                  <h3 className="text-white font-semibold text-base mb-4">Rate this book</h3>
+                  
+                  {/* Rating stars */}
+                  <div className="flex items-center space-x-1 mb-4">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        size={24}
+                        className={`cursor-pointer transition-colors ${
+                          star <= (reviewState.hoverRating || reviewState.userRating) 
+                            ? 'text-purple-500 fill-current' 
+                            : 'text-gray-600 hover:text-purple-400'
+                        }`}
+                        onClick={() => reviewState.setUserRating(star)}
+                        onMouseEnter={() => reviewState.setHoverRating(star)}
+                        onMouseLeave={() => reviewState.setHoverRating(0)}
+                      />
+                    ))}
+                    {reviewState.userRating > 0 && (
+                      <span className="text-white ml-2 text-sm">{reviewState.userRating}/5 stars</span>
+                    )}
+                  </div>
+
+                  {/* Review textarea - SEULEMENT si rating > 0 */}
+                  {reviewState.userRating > 0 && (
+                    <div className="space-y-3">
+                      <textarea
+                        value={reviewState.userReview}
+                        onChange={(e) => reviewState.setUserReview(e.target.value)}
+                        placeholder="Write your review... (optional)"
+                        className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 h-20 text-sm"
+                      />
+                      
+                      {/* Privacy buttons */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-gray-400 text-sm">Review privacy:</span>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => reviewState.setReviewPrivacy('private')}
+                              className={`px-3 py-1 rounded text-xs transition-colors ${
+                                reviewState.reviewPrivacy === 'private'
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                              }`}
+                            >
+                              Private
+                            </button>
+                            <button
+                              onClick={() => reviewState.setReviewPrivacy('public')}
+                              className={`px-3 py-1 rounded text-xs transition-colors ${
+                                reviewState.reviewPrivacy === 'public'
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                              }`}
+                            >
+                              Public
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Save button - SEULEMENT si review privacy est sélectionné */}
+                        <button
+                          onClick={async () => {
+                            await reviewState.submitReview(bookDetail, selectedStatus, onAddToLibrary)
+                            setShowInlineRating(false) // Fermer la section après sauvegarde
+                          }}
+                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Your Review - Style Instagram */}
               {reviewState.userRating > 0 && (
                 <div className="mb-6 md:mb-8 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] rounded-lg p-4 md:p-6 border border-gray-700/50">
@@ -771,7 +879,7 @@ export default function BookDetailModalV3({
                       <span className="text-gray-400 text-xs">({reviewState.reviewPrivacy})</span>
                     </div>
                     <button
-                      onClick={() => reviewState.setShowReviewBox(true)}
+                      onClick={() => setShowInlineRating(true)}
                       className="text-white text-xs font-medium hover:text-gray-300 transition-colors"
                     >
                       Edit
@@ -1192,7 +1300,7 @@ export default function BookDetailModalV3({
       </Suspense>
 
       {/* Modal de review */}
-      {reviewState.showReviewBox && (
+      {false && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-semibold text-white mb-4">Rate and Review</h3>
@@ -1272,7 +1380,7 @@ export default function BookDetailModalV3({
       )}
 
       {/* Friends Modal */}
-      {showFriendsModal && (
+      {false && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-semibold text-white mb-4">Who are you reading with?</h3>

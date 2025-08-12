@@ -759,7 +759,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
         break
       case 'music':
         if (onOpenMusicDetail) {
-          onOpenMusicDetail(cleanId)
+          onOpenMusicDetail(item.id || '')
         }
         break
       case 'books':

@@ -276,23 +276,64 @@ export class MusicServiceV2 {
    */
   
   /**
+   * 🎵 RÉCUPÉRER DÉTAILS GÉNÉRIQUES - Router function for MusicDetailModalV4
+   */
+  async getMusicDetails(musicId: string): Promise<MusicDetailData | null> {
+    console.log('🎵 [V2] Getting music details for ID:', musicId)
+    
+    if (musicId.startsWith('album-')) {
+      return this.getAlbumDetails(musicId)
+    } else if (musicId.startsWith('track-')) {
+      return this.getTrackDetails(musicId)
+    } else if (/^\d+$/.test(musicId)) {
+      // Handle legacy IDs without prefix - try as track first, then album
+      console.log('🎵 [V2] Legacy ID format detected, trying as track first:', musicId)
+      try {
+        const trackResult = await this.getTrackDetails(`track-${musicId}`)
+        if (trackResult) return trackResult
+      } catch (error) {
+        console.log('🎵 [V2] Not a track, trying as album:', musicId)
+      }
+      
+      try {
+        const albumResult = await this.getAlbumDetails(`album-${musicId}`)
+        if (albumResult) return albumResult
+      } catch (error) {
+        console.log('🎵 [V2] Not an album either:', musicId)
+      }
+      
+      console.error('🎵 [V2] Could not resolve legacy ID:', musicId)
+      return null
+    } else {
+      console.error('🎵 [V2] Invalid music ID format:', musicId)
+      return null
+    }
+  }
+
+  /**
    * 🎬 RECHERCHE DE VIDÉO YOUTUBE ROBUSTE
    * Utilise le nouveau système de validation basé sur les trailers
    */
-  private async findTrackVideo(artist: string, track: string): Promise<string | undefined> {
-    console.log(`🎬 [V2] Recherche vidéo robuste pour: "${track}" by ${artist}`)
+  private async findTrackVideo(artist: string, trackName: string): Promise<string | undefined> {
+    console.log(`🎬 [V2] Recherche vidéo robuste pour: "${trackName}" by ${artist}`)
     
     try {
+      // Safe check for undefined values
+      if (!artist || !trackName) {
+        console.log(`🎬 [V2] ❌ Artist ou track name manquant:`, { artist, trackName })
+        return undefined
+      }
+      
       // Utiliser le nouveau service de vidéos musicales
       const { musicVideoService } = await import('./musicVideoService')
-      const video = await musicVideoService.getMusicVideo(artist, track)
+      const video = await musicVideoService.getMusicVideo(artist, trackName)
       
       if (video && video.isEmbeddable) {
         console.log(`🎬 [V2] ✅ Vidéo validée trouvée: ${video.videoId}`)
         return video.videoId
       }
       
-      console.log(`🎬 [V2] ❌ Aucune vidéo embeddable pour: "${track}" by ${artist}`)
+      console.log(`🎬 [V2] ❌ Aucune vidéo embeddable pour: "${trackName}" by ${artist}`)
       return undefined
       
     } catch (error) {
