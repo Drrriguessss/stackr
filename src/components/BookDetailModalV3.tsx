@@ -908,19 +908,40 @@ export default function BookDetailModalV3({
                 </div>
               )}
 
-              {/* Google Books Rating */}
-              {bookRating && bookRating.googleBooks > 0 && (
-                <div className="flex space-x-8 mb-6">
-                  <div>
-                    <h4 className="text-white font-semibold mb-1">Google Books</h4>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="text-gray-300">{bookRating.googleBooks.toFixed(1)}/5</span>
-                      <span className="text-gray-400 text-sm">({bookRating.ratingsCount} ratings)</span>
+              {/* Google Books Rating - Always displayed */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3">Google Books Rating</h3>
+                {bookRating && bookRating.googleBooks > 0 ? (
+                  <div className="flex items-center space-x-3">
+                    {/* Stars display */}
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={20}
+                          className={`${
+                            star <= Math.round(bookRating.googleBooks)
+                              ? 'text-purple-400 fill-current'
+                              : 'text-gray-600'
+                          }`}
+                        />
+                      ))}
                     </div>
+                    {/* Rating number */}
+                    <span className="text-white font-medium text-base">
+                      {bookRating.googleBooks.toFixed(1)}/5
+                    </span>
+                    {/* Ratings count */}
+                    <span className="text-gray-400 text-sm">
+                      ({bookRating.ratingsCount.toLocaleString()} {bookRating.ratingsCount === 1 ? 'rating' : 'ratings'})
+                    </span>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="text-gray-400 text-sm">
+                    No ratings available yet
+                  </div>
+                )}
+              </div>
 
               {/* Détails du livre */}
               <div className="space-y-2 text-sm mb-6">
