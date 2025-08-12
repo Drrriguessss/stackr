@@ -270,23 +270,17 @@ export default function MusicDetailModalV4({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center">
+      <div className="bg-[#0f0e17] min-h-screen flex items-center justify-center">
         <StackrLoadingSkeleton />
       </div>
     )
   }
 
-  if (!musicDetail) {
-    return (
-      <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center text-white">
-        Music not found
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-[#0f0e17] pb-20">
-      {/* Large header image - 160px height - COPIED FROM BookDetailModalV3 */}
+    <div className="bg-[#0f0e17] min-h-screen pb-20 font-system">
+      {musicDetail ? (
+        <>
+          {/* Large header image - 160px height */}
       <div className="relative h-[160px] overflow-hidden">
         <img
           src={musicDetail?.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1280&h=720&fit=crop&q=80'}
@@ -704,9 +698,18 @@ export default function MusicDetailModalV4({
           )}
         </div>
       </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-white text-center">
+            <h2 className="text-xl font-semibold mb-2">Music not found</h2>
+            <p className="text-gray-400">Unable to load music details</p>
+          </div>
+        </div>
+      )}
 
-      {/* Share Modal */}
-      {showShareWithFriendsModal && (
+      {/* Modals en dehors du contenu principal */}
+      {showShareWithFriendsModal && musicDetail && (
         <ShareWithFriendsModal
           isOpen={showShareWithFriendsModal}
           onClose={() => setShowShareWithFriendsModal(false)}
