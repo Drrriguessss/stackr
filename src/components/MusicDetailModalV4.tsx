@@ -366,16 +366,19 @@ export default function MusicDetailModalV4({
 
   if (!isOpen) return null
 
+  // Debug log
+  console.log('🟢 MusicDetailModalV4 rendering, isOpen:', isOpen, 'musicId:', musicId, 'musicDetail:', !!musicDetail)
+
   if (loading) {
     return (
-      <div className="bg-[#0f0e17] min-h-screen flex items-center justify-center">
+      <div className="fixed inset-0 z-[10000] bg-[#0f0e17] min-h-screen flex items-center justify-center">
         <StackrLoadingSkeleton />
       </div>
     )
   }
 
   return (
-    <div className="bg-[#0f0e17] min-h-screen pb-20 font-system">
+    <div className="fixed inset-0 z-[10000] bg-[#0f0e17] min-h-screen pb-20 font-system overflow-y-auto">
       {musicDetail ? (
         <>
           {/* Large header image - 160px height */}

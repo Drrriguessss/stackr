@@ -604,6 +604,7 @@ export default function Home() {
           item.id : `track-${item.id}`
         console.log('🎵 Final musicId:', musicId)
         setSelectedMusicId(musicId)
+        setActiveMainTab('music-detail')
         break
       case 'boardgames':
         console.log('🎲 Setting selectedBoardGameId:', itemId)
@@ -1304,19 +1305,6 @@ export default function Home() {
         activeTab={activeMainTab} 
         onTabChange={setActiveMainTab} 
       />
-
-
-
-      <MusicDetailModalV4
-        isOpen={!!selectedMusicId}
-        onClose={() => setSelectedMusicId(null)}
-        musicId={selectedMusicId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem}
-        library={library}
-        onMusicSelect={setSelectedMusicId}
-      />
-
 
       {/* LEGACY SEARCH MODAL - Simple search bar for all media */}
       <SearchModal

@@ -49,11 +49,19 @@ export default function MusicModal({
   const handleOpenDetail = (item: any) => {
     console.log('🎵 [MusicModal] Opening detail modal for:', item.name, 'ID:', item.id)
     
-    // Call the parent function directly to open the modal
-    onOpenDetail(item)
+    // FERMER ce modal avant d'ouvrir le detail modal
+    onClose()
+    
+    // Puis ouvrir le detail modal avec un petit délai
+    setTimeout(() => {
+      onOpenDetail(item)
+    }, 100)
   }
 
   if (!isOpen) return null
+
+  // Debug log
+  console.log('🔵 MusicModal rendering, isOpen:', isOpen)
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-y-auto">
