@@ -514,11 +514,12 @@ export default function Home() {
     setActiveMainTab('boardgame-detail')
   }
 
-  const handleOpenMovieDetail = (movieId: string) => {
-    console.log('🎬 [DEBUG] handleOpenMovieDetail called with:', movieId)
+  const handleOpenMovieDetail = (movieId: string, mediaType?: 'movie' | 'tv') => {
+    console.log('🎬 [DEBUG] handleOpenMovieDetail called with:', movieId, 'mediaType:', mediaType)
     const normalizedMovieId = normalizeId(movieId)
     console.log('🎬 [DEBUG] Normalized movie ID:', normalizedMovieId)
     setSelectedMovieId(normalizedMovieId)
+    setSelectedMovieType(mediaType || 'movie') // Store media type
     setSelectedGameId(null) // Clear game selection to ensure mutual exclusivity
     setActiveMainTab('movie-detail') // Switch to movie detail view
   }

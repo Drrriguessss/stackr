@@ -11,7 +11,7 @@ import type { LibraryItem, MediaStatus } from '@/types'
 interface UnifiedSearchBarProps {
   onAddToLibrary: (item: any, status: MediaStatus) => void
   onOpenGameDetail?: (gameId: string) => void
-  onOpenMovieDetail?: (movieId: string) => void
+  onOpenMovieDetail?: (movieId: string, mediaType?: 'movie' | 'tv') => void
   onOpenBookDetail?: (bookId: string) => void
   onOpenMusicDetail?: (musicId: string) => void
   onOpenBoardGameDetail?: (gameId: string) => void
@@ -346,7 +346,8 @@ export default function UnifiedSearchBar({
         break
       case 'movies':
         if (onOpenMovieDetail && 'id' in result) {
-          onOpenMovieDetail(result.id.toString())
+          const movieResult = result as OptimalMovieResult
+          onOpenMovieDetail(result.id.toString(), movieResult.media_type)
         }
         break
       case 'books':

@@ -68,6 +68,10 @@ export default function MusicDetailModalV4({
   // Metacritic states
   const [metacriticScore, setMetacriticScore] = useState<MetacriticScore | null>(null)
   const [loadingMetacritic, setLoadingMetacritic] = useState(false)
+  
+  // Album tracks states
+  const [albumTracks, setAlbumTracks] = useState<any[]>([])
+  const [loadingTracks, setLoadingTracks] = useState(false)
 
   // Determine if it's an album or single
   const isAlbum = useMemo(() => musicId.startsWith('album-'), [musicId])
@@ -93,6 +97,11 @@ export default function MusicDetailModalV4({
         console.log('🎵 [DEBUG] Loading additional data...')
         loadMetacriticScore(detail.title, detail.artist)
         loadExistingReview(detail.id)
+        
+        // Load album tracks if this is an album
+        if (isAlbum) {
+          loadAlbumTracks(detail.id, detail.title, detail.artist)
+        }
       }
     } catch (error) {
       console.error('Error fetching music details:', error)
@@ -129,6 +138,67 @@ export default function MusicDetailModalV4({
       console.error('Error loading existing review:', error)
     }
   }, [])
+  
+  // Load album tracks
+  const loadAlbumTracks = useCallback(async (albumId: string, albumTitle: string, artistName: string) => {
+    console.log('🎵 [AlbumTracks] Loading tracks for album:', albumId)
+    
+    try {
+      setLoadingTracks(true)
+      
+      // Utiliser l'API iTunes pour récupérer les tracks de l'album
+      const cleanId = albumId.replace('album-', '')
+      const response = await fetch(
+        `/api/itunes?endpoint=lookup&id=${cleanId}&entity=song&limit=50`,
+        { signal: AbortSignal.timeout(8000) }
+      )
+      
+      if (!response.ok) {
+        throw new Error(`Album tracks lookup failed: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (!data.results || data.results.length <= 1) {
+        // Pas de tracks trouvées (le premier résultat est souvent l'album lui-même)
+        setAlbumTracks([])
+        return
+      }
+      
+      // Filtrer et formater les tracks (exclure l'album lui-même)
+      const tracks = data.results
+        .filter((item: any) => item.wrapperType === 'track' && item.kind === 'song')
+        .map((track: any, index: number) => ({
+          id: `track-${track.trackId}`,
+          name: track.trackName,
+          duration: formatTrackDuration(track.trackTimeMillis),
+          trackNumber: track.trackNumber || index + 1,
+          previewUrl: track.previewUrl,
+          artist: track.artistName
+        }))
+        .sort((a: any, b: any) => a.trackNumber - b.trackNumber) // Trier par numéro de track
+      
+      console.log(`🎵 [AlbumTracks] Found ${tracks.length} tracks for album:`, albumTitle)
+      setAlbumTracks(tracks)
+      
+    } catch (error) {
+      console.error('🎵 [AlbumTracks] Error loading album tracks:', error)
+      setAlbumTracks([])
+    } finally {
+      setLoadingTracks(false)
+    }
+  }, [])
+  
+  // Helper function to format track duration
+  const formatTrackDuration = (milliseconds?: number): string => {
+    if (!milliseconds) return '3:30'
+    
+    const totalSeconds = Math.floor(milliseconds / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
 
   // Load data and check library status when modal opens - SINGLE EFFECT TO PREVENT DOUBLE RENDER
   useEffect(() => {
@@ -153,7 +223,7 @@ export default function MusicDetailModalV4({
       console.log('🎵 [DEBUG] About to call fetchMusicDetail()')
       fetchMusicDetail()
     }
-  }, [isOpen, musicId, library, fetchMusicDetail])
+  }, [isOpen, musicId, library])
 
   // Cleanup when modal closes
   useEffect(() => {
@@ -177,6 +247,10 @@ export default function MusicDetailModalV4({
         audioRef.pause()
         setAudioRef(null)
       }
+      setAlbumTracks([])
+      setLoadingTracks(false)
+      setMetacriticScore(null)
+      setLoadingMetacritic(false)
     }
   }, [isOpen, audioRef])
 
@@ -200,6 +274,13 @@ export default function MusicDetailModalV4({
     }
   }, [musicDetail?.previewUrl, isPreviewPlaying, audioRef])
 
+  // Go to album function
+  const handleGoToAlbum = useCallback(() => {
+    if (isSingle && musicDetail?.parentAlbum && onMusicSelect) {
+      onMusicSelect(musicDetail.parentAlbum.id)
+    }
+  }, [isSingle, musicDetail?.parentAlbum, onMusicSelect])
+  
   // Add to library function - copying BookDetailModalV3 logic
   const handleAddToLibrary = useCallback(async (status: MediaStatus) => {
     if (!musicDetail) return
@@ -384,11 +465,19 @@ export default function MusicDetailModalV4({
                 )}
               </div>
               
-              {/* Badge Single/Album */}
+              {/* Badge Single/Album + Album Link */}
               <div className="flex items-center gap-3 mt-2">
                 <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-indigo-600 to-purple-700 text-white">
                   {isAlbum ? 'Album' : 'Single'}
                 </span>
+                {isSingle && musicDetail?.parentAlbum && (
+                  <button
+                    onClick={handleGoToAlbum}
+                    className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
+                  >
+                    Album "{musicDetail.parentAlbum.title}"
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -687,20 +776,47 @@ export default function MusicDetailModalV4({
               )}
 
               {/* Track List (for albums) */}
-              {isAlbum && musicDetail.tracks && musicDetail.tracks.length > 0 && (
+              {isAlbum && (
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-3">Tracks</h3>
-                  <div className="space-y-2">
-                    {musicDetail.tracks.map((track, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-gray-400 text-sm w-6 text-center">{index + 1}</span>
-                          <span className="text-white">{track.name}</span>
+                  <h3 className="text-lg font-semibold text-white mb-3">Tracklist</h3>
+                  
+                  {loadingTracks ? (
+                    <div className="text-center text-gray-400 py-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-2"></div>
+                      Loading tracks...
+                    </div>
+                  ) : albumTracks.length > 0 ? (
+                    <div className="space-y-2">
+                      {albumTracks.map((track, index) => (
+                        <div key={track.id} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer group">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-gray-400 text-sm w-6 text-center font-mono">{track.trackNumber}</span>
+                            <div className="flex-1">
+                              <p className="text-white group-hover:text-purple-400 transition-colors">{track.name}</p>
+                              <p className="text-gray-500 text-xs">{track.artist}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {track.previewUrl && (
+                              <button 
+                                className="w-6 h-6 bg-purple-600/20 hover:bg-purple-600/40 rounded-full flex items-center justify-center transition-colors"
+                                title="Preview"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
+                                  <polygon points="8,5 8,19 19,12" fill="currentColor"/>
+                                </svg>
+                              </button>
+                            )}
+                            <span className="text-gray-400 text-sm font-mono">{track.duration}</span>
+                          </div>
                         </div>
-                        <span className="text-gray-400 text-sm">{track.duration}</span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-400 py-4">
+                      <p className="text-sm">No tracks found for this album</p>
+                    </div>
+                  )}
                 </div>
               )}
             </>
