@@ -505,9 +505,9 @@ export default function GameDetailDarkV2({
                           {gameDetail.description_raw.length > 200 && (
                             <button
                               onClick={() => setShowFullOverview(!showFullOverview)}
-                              className="text-purple-400 hover:text-purple-300 text-sm mt-2"
+                              className="text-gray-400 hover:text-gray-300 ml-1 text-sm"
                             >
-                              {showFullOverview ? 'Show less' : 'Show more'}
+                              {showFullOverview ? ' ...less' : ' ...more'}
                             </button>
                           )}
                         </div>

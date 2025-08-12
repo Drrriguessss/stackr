@@ -24,6 +24,8 @@ class TrailerService {
   
   // Cache pour éviter les appels API répétés
   private trailerCache: Map<string, GameTrailer | MovieTrailer> = new Map()
+  // Cache des trailers qui ne fonctionnent pas (pour les cacher)
+  private failedTrailers: Set<string> = new Set()
 
   /**
    * Récupère le trailer d'un jeu
@@ -512,6 +514,47 @@ class TrailerService {
   }
 
   /**
+   * Marque un trailer comme défaillant
+   */
+  markTrailerAsFailed(videoId: string) {
+    console.log('🎬 ❌ Marking trailer as failed:', videoId)
+    this.failedTrailers.add(videoId)
+  }
+
+  /**
+   * Vérifie si un trailer est marqué comme défaillant
+   */
+  isTrailerFailed(videoId: string): boolean {
+    return this.failedTrailers.has(videoId)
+  }
+
+  /**
+   * Valide qu'un trailer fonctionne et n'est pas dans la liste des échecs
+   */
+  async validateTrailer(trailer: GameTrailer | MovieTrailer): Promise<boolean> {
+    // Si déjà marqué comme défaillant, ne pas l'utiliser
+    if (this.isTrailerFailed(trailer.videoId)) {
+      console.log('🎬 ⚠️ Skipping known failed trailer:', trailer.videoId)
+      return false
+    }
+
+    // Pour les trailers avec ID de recherche, ne pas valider (ils pointent vers une recherche)
+    if (trailer.videoId.startsWith('search-')) {
+      return true
+    }
+
+    // Validation rapide pour les vrais videoIds
+    const isValid = await this.quickValidateVideoId(trailer.videoId)
+    
+    if (!isValid) {
+      this.markTrailerAsFailed(trailer.videoId)
+      return false
+    }
+
+    return true
+  }
+
+  /**
    * Base de trailers connus (déplacée ici pour être réutilisable)
    */
   private get knownTrailers() {
@@ -576,7 +619,7 @@ class TrailerService {
   /**
    * Récupère le trailer d'un film
    */
-  async getMovieTrailer(movieId: string, movieTitle: string): Promise<MovieTrailer> {
+  async getMovieTrailer(movieId: string, movieTitle: string, movieYear?: string): Promise<MovieTrailer> {
     console.log('🎬 Getting movie trailer for:', movieTitle)
     
     // Vérifier le cache d'abord
@@ -588,29 +631,34 @@ class TrailerService {
 
     // 1. Utiliser la base de trailers de films connus d'abord
     const knownTrailer = this.getKnownMovieTrailer(movieTitle)
-    if (knownTrailer) {
+    if (knownTrailer && await this.validateTrailer(knownTrailer)) {
       this.trailerCache.set(cacheKey, knownTrailer)
       return knownTrailer
     }
 
     // 2. Essayer TMDB API pour récupérer le trailer officiel
     const tmdbTrailer = await this.getTrailerFromTMDB(movieId, movieTitle)
-    if (tmdbTrailer) {
+    if (tmdbTrailer && await this.validateTrailer(tmdbTrailer)) {
       this.trailerCache.set(cacheKey, tmdbTrailer)
       return tmdbTrailer
     }
 
     // 3. Essayer l'API YouTube pour une recherche intelligente
     const youtubeTrailer = await this.searchYouTubeMovieTrailer(movieTitle)
-    if (youtubeTrailer) {
+    if (youtubeTrailer && await this.validateTrailer(youtubeTrailer)) {
       this.trailerCache.set(cacheKey, youtubeTrailer)
       return youtubeTrailer
     }
 
-    // 4. Fallback : générer une recherche YouTube avec vrais videoIds
-    const searchTrailer = await this.generateYouTubeMovieSearch(movieTitle)
-    this.trailerCache.set(cacheKey, searchTrailer)
-    return searchTrailer
+    // 4. Si tous les trailers ont échoué, ne pas afficher de trailer
+    console.log('🎬 ❌ All trailer methods failed or invalid for:', movieTitle)
+    const noTrailer: MovieTrailer = {
+      videoId: 'none',
+      provider: 'none',
+      url: ''
+    }
+    this.trailerCache.set(cacheKey, noTrailer)
+    return noTrailer
   }
 
   /**
@@ -703,8 +751,9 @@ class TrailerService {
 
       console.log('🎬 Searching YouTube API for movie trailer:', movieTitle)
       
-      // Construire la requête de recherche
-      const searchQuery = `${movieTitle} official trailer`
+      // Construire la requête de recherche avec nettoyage
+      const cleanTitle = this.sanitizeText(movieTitle)
+      const searchQuery = `${cleanTitle} official trailer`
       const params = new URLSearchParams({
         part: 'snippet',
         q: searchQuery,
@@ -935,25 +984,33 @@ class TrailerService {
       'first man': 'PSoRx87OO6k',
       'a quiet place': 'WR7cc5t7tv8',
       'ready player one': 'cSp1dM2Vj48',
-      'black panther: wakanda forever': 'RlOB3UALvrQ'
+      'black panther: wakanda forever': 'RlOB3UALvrQ',
+      'the hustle': '_j5hwooOHVE'
     }
   }
 
   /**
    * Recherche automatiquement un vrai videoId YouTube pour tous les films
    */
-  private async generateYouTubeMovieSearch(movieTitle: string): Promise<MovieTrailer> {
-    console.log('🎬 Auto-searching YouTube for real movie videoId:', movieTitle)
+  private async generateYouTubeMovieSearch(movieTitle: string, year?: string): Promise<MovieTrailer> {
+    console.log('🎬 Auto-searching YouTube for real movie videoId:', movieTitle, year ? `(${year})` : '')
     
     // Nettoyer le titre du film pour la recherche
-    let cleanTitle = movieTitle
+    let cleanTitle = this.sanitizeText(movieTitle)
       .replace(/[™®©]/g, '') // Enlever les symboles
       .replace(/:/g, '') // Enlever les deux-points
       .replace(/'/g, '') // Enlever les apostrophes
       .trim()
     
-    // Essayer plusieurs variantes de recherche pour les films
-    const searchTerms = [
+    // Essayer plusieurs variantes de recherche pour les films avec année
+    const searchTerms = year ? [
+      `${cleanTitle} ${year} official trailer`,
+      `${cleanTitle} ${year} final trailer`,
+      `${cleanTitle} ${year} trailer`,
+      `${cleanTitle} official trailer ${year}`,
+      `${cleanTitle} trailer ${year}`,
+      `${cleanTitle} official trailer` // Sans année en fallback
+    ] : [
       `${cleanTitle} official trailer`,
       `${cleanTitle} final trailer`,
       `${cleanTitle} main trailer`,
@@ -994,6 +1051,66 @@ class TrailerService {
    */
   clearCache() {
     this.trailerCache.clear()
+  }
+
+  /**
+   * Nettoie les caractères problématiques pour éviter les erreurs d'encodage JSON
+   */
+  private sanitizeText(text: string): string {
+    if (!text) return ''
+    
+    return text
+      // Supprimer les emojis et caractères spéciaux Unicode
+      .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emoticons
+      .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Symboles divers
+      .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transport et symboles de carte
+      .replace(/[\u{2600}-\u{26FF}]/gu, '')   // Symboles divers
+      .replace(/[\u{2700}-\u{27BF}]/gu, '')   // Dingbats
+      // Supprimer les caractères de contrôle
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      // Remplacer les apostrophes et guillemets problématiques
+      .replace(/['']/g, "'")
+      .replace(/[""]/g, '"')
+      // Nettoyer les espaces multiples
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  /**
+   * Encode proprement un objet en JSON en nettoyant les caractères problématiques
+   */
+  private safeStringify(obj: any): string | null {
+    try {
+      // Nettoyer récursivement tous les strings dans l'objet
+      const cleanObj = this.deepCleanObject(obj)
+      return JSON.stringify(cleanObj)
+    } catch (error) {
+      console.error('🔍 JSON stringify error:', error)
+      return null
+    }
+  }
+
+  /**
+   * Nettoie récursivement tous les strings dans un objet
+   */
+  private deepCleanObject(obj: any): any {
+    if (typeof obj === 'string') {
+      return this.sanitizeText(obj)
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.deepCleanObject(item))
+    }
+    
+    if (obj && typeof obj === 'object') {
+      const cleaned: any = {}
+      for (const [key, value] of Object.entries(obj)) {
+        cleaned[this.sanitizeText(key)] = this.deepCleanObject(value)
+      }
+      return cleaned
+    }
+    
+    return obj
   }
 }
 

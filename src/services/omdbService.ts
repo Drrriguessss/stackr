@@ -19,6 +19,11 @@ export interface OMDBMovie {
   Error?: string
   totalSeasons?: string
   Seasons?: string
+  Ratings?: Array<{
+    Source: string
+    Value: string
+  }>
+  Metascore?: string
 }
 
 export interface OMDBSearchResponse {

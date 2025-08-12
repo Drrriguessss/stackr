@@ -5,7 +5,7 @@ import CategoryTabs from '@/components/CategoryTabs'
 import ContentSection from '@/components/ContentSection'
 import LibrarySection from '@/components/LibrarySection'
 import GameDetailDarkV2 from '@/components/GameDetailDarkV2'
-import MovieDetailModalV3 from '@/components/MovieDetailModalV3'
+import MovieDetailModalV3 from '@/components/MovieDetailModalV3_Optimized'
 import BookDetailModalV3 from '@/components/BookDetailModalV3'
 import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
@@ -281,6 +281,13 @@ export default function Home() {
     console.log('🎬 [Debug] selectedMovieId changed:', selectedMovieId)
   }, [selectedMovieId])
 
+  useEffect(() => {
+    console.log('📚 [Debug] selectedBookId changed:', selectedBookId)
+    if (selectedBookId) {
+      console.log('📚 [Debug] Book modal should now open for ID:', selectedBookId)
+    }
+  }, [selectedBookId])
+
   // Utiliser les données de fallback immédiatement
   useEffect(() => {
     console.log('🔧 Utilisation du mode économie API - contenu statique')
@@ -517,8 +524,13 @@ export default function Home() {
   }
 
   const handleOpenBookDetail = (bookId: string) => {
+    console.log('📚 [DEBUG] handleOpenBookDetail called with:', bookId)
     const normalizedBookId = normalizeId(bookId)
+    console.log('📚 [DEBUG] Normalized book ID:', normalizedBookId)
     setSelectedBookId(normalizedBookId)
+    setSelectedMovieId(null) // Clear movie selection to ensure mutual exclusivity
+    setSelectedGameId(null) // Clear game selection to ensure mutual exclusivity  
+    setActiveMainTab('book-detail') // Switch to book detail view
   }
 
   const handleOpenMusicDetail = (musicId: string) => {
@@ -1048,6 +1060,18 @@ export default function Home() {
             onMovieSelect={(movieId) => setSelectedMovieId(movieId)}
           />
         ) : null
+      case 'book-detail':
+        return selectedBookId ? (
+          <BookDetailModalV3
+            isOpen={true}
+            onClose={() => setActiveMainTab('feed')}
+            bookId={selectedBookId}
+            onAddToLibrary={handleAddToLibrary}
+            onDeleteItem={handleDeleteItem}
+            library={library}
+            onBookSelect={(bookId) => setSelectedBookId(bookId)}
+          />
+        ) : null
       case 'roadmap':
         return <RoadmapPage onBack={() => setActiveMainTab('feed')} />
       case 'profile':
@@ -1237,17 +1261,6 @@ export default function Home() {
       />
 
 
-
-      <BookDetailModalV3
-        isOpen={!!selectedBookId}
-        onClose={() => setSelectedBookId(null)}
-        bookId={selectedBookId || ''}
-        onAddToLibrary={handleAddToLibrary}
-        onDeleteItem={handleDeleteItem}
-        library={library}
-        onBookSelect={(bookId) => setSelectedBookId(bookId)}
-        onOpenMovieDetail={(movieId) => setSelectedMovieId(movieId)}
-      />
 
       <MusicDetailModalV4
         isOpen={!!selectedMusicId}

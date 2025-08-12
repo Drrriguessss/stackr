@@ -62,7 +62,12 @@
       "Bash(del test-music-fix.js)",
       "Bash(move GameDetailDarkV2.tsx GameDetailDarkV2_OLD.tsx)",
       "Bash(move GameDetailDarkV2_NEW.tsx GameDetailDarkV2.tsx)",
-      "Bash(move:*)"
+      "Bash(move:*)",
+      "Bash(git restore:*)",
+      "WebFetch(domain:www.omdbapi.com)",
+      "Bash(set NODE_OPTIONS=--max-old-space-size=4096)",
+      "Bash(del test-trailer-fix.js)",
+      "Bash(npx eslint:*)"
     ],
     "deny": []
   }
