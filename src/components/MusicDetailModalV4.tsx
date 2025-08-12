@@ -75,21 +75,29 @@ export default function MusicDetailModalV4({
 
   // Load music detail
   const fetchMusicDetail = useCallback(async () => {
-    if (!musicId) return
+    console.log('🎵 [DEBUG] fetchMusicDetail called with musicId:', musicId)
+    if (!musicId) {
+      console.log('🎵 [DEBUG] No musicId, returning early')
+      return
+    }
     
     try {
+      console.log('🎵 [DEBUG] Setting loading to true')
       setLoading(true)
       const detail = await musicServiceV2.getMusicDetails(musicId)
+      console.log('🎵 [DEBUG] Got music detail:', detail ? 'success' : 'null')
       setMusicDetail(detail)
       
       // Load additional data
       if (detail) {
+        console.log('🎵 [DEBUG] Loading additional data...')
         loadMetacriticScore(detail.title, detail.artist)
         loadExistingReview(detail.id)
       }
     } catch (error) {
       console.error('Error fetching music details:', error)
     } finally {
+      console.log('🎵 [DEBUG] Setting loading to false')
       setLoading(false)
     }
   }, [musicId])
@@ -124,16 +132,25 @@ export default function MusicDetailModalV4({
 
   // Load data and check library status when modal opens - SINGLE EFFECT TO PREVENT DOUBLE RENDER
   useEffect(() => {
+    console.log('🎵 [DEBUG] useEffect triggered with:', { 
+      isOpen, 
+      musicId, 
+      libraryLength: library.length,
+      fetchMusicDetailRef: fetchMusicDetail.toString().substring(0, 50) + '...'
+    })
+    
     if (isOpen && musicId) {
       console.log('🎵 [Modal] Loading music detail and checking library status for:', musicId)
       
       // Check library status
       if (library.length > 0) {
         const libraryItem = library.find(item => item.id === musicId)
+        console.log('🎵 [DEBUG] Library item found:', libraryItem?.status || 'none')
         setSelectedStatus(libraryItem?.status || null)
       }
       
       // Fetch music detail
+      console.log('🎵 [DEBUG] About to call fetchMusicDetail()')
       fetchMusicDetail()
     }
   }, [isOpen, musicId, library, fetchMusicDetail])
