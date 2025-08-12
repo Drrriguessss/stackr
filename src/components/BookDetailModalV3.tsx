@@ -7,6 +7,10 @@ import type { LibraryItem, MediaStatus } from '@/types'
 import { useBookDetail } from '@/hooks/useBookDetail'
 import { useBookReview } from '@/hooks/useBookReview'
 
+// Services
+import { hardcoverService } from '@/services/hardcoverService'
+import { nytBooksService } from '@/services/nytBooksService'
+
 // Composants
 import StackrLoadingSkeleton from './StackrLoadingSkeleton'
 
@@ -476,72 +480,60 @@ export default function BookDetailModalV3({
   }, [])
 
   // Fonction pour charger les vraies reviews depuis APIs
-  const loadApiReviews = useCallback(async (bookTitle: string, isbn?: string) => {
+  const loadApiReviews = useCallback(async (bookTitle: string, isbn?: string, authors?: string[]) => {
     setLoadingApiReviews(true)
     
     try {
-      // Générer des reviews de démonstration basées sur le livre
-      const now = new Date()
-      const demoReviews: ApiReview[] = [
-        {
-          id: `review-${bookId}-1`,
-          username: "BookLover23",
-          rating: 5,
-          text: "This book completely changed my perspective on life. The author's writing style is captivating and the characters feel so real. I couldn't put it down and finished it in one sitting. Highly recommend to anyone looking for a thought-provoking read.",
-          date: "2 days ago",
-          timestamp: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          source: "Goodreads",
-          likes: 0,
-          comments: 0
-        },
-        {
-          id: `review-${bookId}-2`,
-          username: "CriticalReader",
-          rating: 4,
-          text: "Solid storytelling with well-developed characters. The plot moves at a good pace and keeps you engaged throughout. Some parts felt a bit predictable, but overall a great read.",
-          date: "1 week ago",
-          timestamp: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          source: "Amazon",
-          likes: 0,
-          comments: 0
-        },
-        {
-          id: `review-${bookId}-3`,
-          username: "PageTurner",
-          rating: 3,
-          text: "Decent book but not amazing. The premise was interesting but the execution fell short of my expectations.",
-          date: "2 weeks ago",
-          timestamp: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          source: "Google",
-          likes: 0,
-          comments: 0
-        },
-        {
-          id: `review-${bookId}-4`,
-          username: "LiteraryAddict",
-          rating: 5,
-          text: "Absolutely brilliant! One of the best books I've read this year. The author's mastery of language and storytelling is evident throughout.",
-          date: "3 weeks ago",
-          timestamp: new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-          source: "Apple Books",
-          likes: 0,
-          comments: 0
-        },
-        {
-          id: `review-${bookId}-5`,
-          username: "QuietReader",
-          rating: 4,
-          text: "A beautiful and moving story that stays with you long after you finish reading. Recommended for fans of literary fiction.",
-          date: "1 month ago",
-          timestamp: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-          source: "Goodreads",
-          likes: 0,
-          comments: 0
-        }
-      ]
+      console.log('📚 Loading real reviews for:', bookTitle, isbn, authors)
       
-      setApiReviews(demoReviews)
-      setRealReviews(demoReviews)
+      // Essayer d'abord Hardcover API
+      const hardcoverReviews = await hardcoverService.getBookReviews(isbn, bookTitle, authors?.[0])
+      
+      let reviews: ApiReview[] = []
+      
+      if (hardcoverReviews.length > 0) {
+        // Convertir les reviews Hardcover au format ApiReview
+        reviews = hardcoverReviews.map(review => ({
+          id: `hardcover-${review.id}`,
+          username: review.user.username,
+          rating: review.rating,
+          text: review.body,
+          date: review.createdAt,
+          timestamp: new Date().toISOString(), // Hardcover renvoie déjà formaté
+          source: "Hardcover" as const,
+          likes: review.likesCount,
+          comments: review.commentsCount
+        }))
+        
+        console.log(`📚 Found ${reviews.length} real reviews from Hardcover`)
+      } else {
+        console.log('📚 No reviews from Hardcover, trying NYT Books API fallback...')
+        
+        // Fallback vers NYT Books API pour reviews professionnelles
+        const nytResult = await nytBooksService.getReviewsWithFallback({ title: bookTitle, authors })
+        
+        if (nytResult.hasReviews) {
+          reviews = nytResult.reviews.map(review => ({
+            id: review.id,
+            username: review.username,
+            rating: review.rating,
+            text: review.text,
+            date: review.date,
+            timestamp: review.timestamp,
+            source: review.source,
+            likes: review.likes,
+            comments: review.comments
+          }))
+          
+          console.log(`📚 Found ${reviews.length} professional reviews from NYT`)
+        } else {
+          console.log('📚 No reviews found from any source')
+          reviews = []
+        }
+      }
+      
+      setApiReviews(reviews)
+      setRealReviews(reviews)
       
       // Initialiser les interactions pour chaque review
       const interactions: Record<string, {
@@ -572,7 +564,7 @@ export default function BookDetailModalV3({
   // Charger les reviews au mount
   useEffect(() => {
     if (bookDetail) {
-      loadApiReviews(bookDetail.title, bookDetail.isbn13 || bookDetail.isbn10)
+      loadApiReviews(bookDetail.title, bookDetail.isbn13 || bookDetail.isbn10, bookDetail.authors)
     }
   }, [bookDetail, loadApiReviews])
 
@@ -840,34 +832,44 @@ export default function BookDetailModalV3({
                       </div>
                     )}
                     
-                    {/* Actions Instagram style - SANS chiffres inventés */}
+                    {/* Actions Instagram style avec compteurs */}
                     <div className="ml-11">
                       <div className="flex items-center space-x-4">
-                        {/* Like - Heart outline */}
-                        <button 
-                          onClick={() => handleLikeUserReview()}
-                          className={`transition-colors ${userReviewData.isLiked ? 'text-red-500' : 'text-gray-400 hover:text-gray-300'}`}
-                        >
-                          {userReviewData.isLiked ? (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                            </svg>
-                          ) : (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                            </svg>
+                        {/* Like - Heart outline avec compteur */}
+                        <div className="flex items-center space-x-1">
+                          <button 
+                            onClick={() => handleLikeUserReview()}
+                            className={`transition-colors ${userReviewData.isLiked ? 'text-red-500' : 'text-gray-400 hover:text-gray-300'}`}
+                          >
+                            {userReviewData.isLiked ? (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                              </svg>
+                            ) : (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                              </svg>
+                            )}
+                          </button>
+                          {userReviewData.likesCount > 0 && (
+                            <span className="text-gray-300 text-xs">{userReviewData.likesCount}</span>
                           )}
-                        </button>
+                        </div>
                         
-                        {/* Comment - Chat bubble */}
-                        <button 
-                          onClick={() => setShowUserReviewComments(true)}
-                          className="text-gray-400 hover:text-gray-300 transition-colors"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                          </svg>
-                        </button>
+                        {/* Comment - Chat bubble avec compteur */}
+                        <div className="flex items-center space-x-1">
+                          <button 
+                            onClick={() => setShowUserReviewComments(true)}
+                            className="text-gray-400 hover:text-gray-300 transition-colors"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                          </button>
+                          {userReviewData.commentsCount > 0 && (
+                            <span className="text-gray-300 text-xs">{userReviewData.commentsCount}</span>
+                          )}
+                        </div>
                         
                         {/* Share - Send arrow */}
                         <button 
@@ -880,23 +882,6 @@ export default function BookDetailModalV3({
                           </svg>
                         </button>
                       </div>
-                      
-                      {/* Affichage des likes SEULEMENT s'il y en a */}
-                      {userReviewData.likesCount > 0 && (
-                        <div className="text-gray-300 text-xs mt-2">
-                          {userReviewData.likesCount} {userReviewData.likesCount === 1 ? 'like' : 'likes'}
-                        </div>
-                      )}
-                      
-                      {/* Affichage des comments SEULEMENT s'il y en a */}
-                      {userReviewData.commentsCount > 0 && (
-                        <button 
-                          onClick={() => setShowUserReviewComments(true)}
-                          className="text-gray-400 text-xs mt-1 hover:text-gray-300"
-                        >
-                          View {userReviewData.commentsCount === 1 ? 'comment' : `all ${userReviewData.commentsCount} comments`}
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1122,32 +1107,42 @@ export default function BookDetailModalV3({
                           </p>
                         </div>
                         
-                        {/* Actions Instagram style */}
+                        {/* Actions Instagram style avec compteurs */}
                         <div className="ml-11">
                           <div className="flex items-center space-x-4">
-                            {/* Like */}
-                            <button 
-                              onClick={() => handleLikeApiReview(review.id)}
-                              className={`transition-colors ${
-                                reviewInteractions[review.id]?.isLiked 
-                                  ? 'text-red-500' 
-                                  : 'text-gray-400 hover:text-gray-300'
-                              }`}
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill={reviewInteractions[review.id]?.isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                              </svg>
-                            </button>
+                            {/* Like avec compteur */}
+                            <div className="flex items-center space-x-1">
+                              <button 
+                                onClick={() => handleLikeApiReview(review.id)}
+                                className={`transition-colors ${
+                                  reviewInteractions[review.id]?.isLiked 
+                                    ? 'text-red-500' 
+                                    : 'text-gray-400 hover:text-gray-300'
+                                }`}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill={reviewInteractions[review.id]?.isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+                                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                              </button>
+                              {(reviewInteractions[review.id]?.likesCount || 0) > 0 && (
+                                <span className="text-gray-300 text-xs">{reviewInteractions[review.id]?.likesCount}</span>
+                              )}
+                            </div>
                             
-                            {/* Comment */}
-                            <button 
-                              onClick={() => setActiveCommentReview(review.id)}
-                              className="text-gray-400 hover:text-gray-300 transition-colors"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                              </svg>
-                            </button>
+                            {/* Comment avec compteur */}
+                            <div className="flex items-center space-x-1">
+                              <button 
+                                onClick={() => setActiveCommentReview(review.id)}
+                                className="text-gray-400 hover:text-gray-300 transition-colors"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                              </button>
+                              {(reviewInteractions[review.id]?.commentsCount || 0) > 0 && (
+                                <span className="text-gray-300 text-xs">{reviewInteractions[review.id]?.commentsCount}</span>
+                              )}
+                            </div>
                             
                             {/* Share */}
                             <button 
@@ -1160,23 +1155,6 @@ export default function BookDetailModalV3({
                               </svg>
                             </button>
                           </div>
-                          
-                          {/* Likes count si > 0 */}
-                          {reviewInteractions[review.id]?.likesCount > 0 && (
-                            <div className="text-gray-300 text-xs mt-2">
-                              {reviewInteractions[review.id].likesCount} {reviewInteractions[review.id].likesCount === 1 ? 'like' : 'likes'}
-                            </div>
-                          )}
-                          
-                          {/* Comments count si > 0 */}
-                          {reviewInteractions[review.id]?.commentsCount > 0 && (
-                            <button 
-                              onClick={() => setActiveCommentReview(review.id)}
-                              className="text-gray-400 text-xs mt-1 hover:text-gray-300"
-                            >
-                              View {reviewInteractions[review.id].commentsCount === 1 ? 'comment' : `all ${reviewInteractions[review.id].commentsCount} comments`}
-                            </button>
-                          )}
                         </div>
                       </div>
                     ))}
