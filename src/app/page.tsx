@@ -14,7 +14,7 @@ import UnifiedSearchBar from '@/components/UnifiedSearchBar'
 // All search modals removed - using unified SearchModal only
 import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
 import GamesV2Section from '@/components/GamesV2Section'
-import MusicModal from '@/components/MusicModal'
+// import MusicModal from '@/components/MusicModal' // Removed - using MusicDetailModalV4 instead
 // import MovieGoodModal from '@/components/MovieGoodModal' // OLD - not used
 import BottomNavigation from '@/components/BottomNavigation'
 import RoadmapPage from '@/components/RoadmapPage'
