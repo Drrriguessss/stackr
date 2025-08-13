@@ -51,10 +51,9 @@ export default function BoardGameDetailPage({
   const [similarGamesLoaded, setSimilarGamesLoaded] = useState(false)
   const [designerGamesLoaded, setDesignerGamesLoaded] = useState(false)
   const [showLibraryDropdown, setShowLibraryDropdown] = useState(false)
-  const [showFriendsModal, setShowFriendsModal] = useState(false)
+  // Removed showFriendsModal - no popup when selecting played status
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
-  const [selectedFriends, setSelectedFriends] = useState<any[]>([])
-  const [friendsSearch, setFriendsSearch] = useState('')
+  // Removed selectedFriends and friendsSearch - no longer needed without friends popup
   const [showGameSheet, setShowGameSheet] = useState(false)
   const [showFriendsWhoPlayedModal, setShowFriendsWhoPlayedModal] = useState(false)
   const [showFriendsSelector, setShowFriendsSelector] = useState(false)
@@ -478,16 +477,7 @@ export default function BoardGameDetailPage({
     }
   }
 
-  const toggleFriend = (friend: any) => {
-    setSelectedFriends(prev => {
-      const isSelected = prev.some(f => f.id === friend.id)
-      if (isSelected) {
-        return prev.filter(f => f.id !== friend.id)
-      } else {
-        return [...prev, friend]
-      }
-    })
-  }
+  // Removed toggleFriend function - no longer needed without friends popup
 
   const loadUserFriends = async () => {
     if (userFriends.length > 0) return // Already loaded
@@ -518,12 +508,7 @@ export default function BoardGameDetailPage({
     setShowFriendsSelector(false)
   }
 
-  const handleFriendsConfirm = () => {
-    setShowFriendsModal(false)
-    setFriendsSearch('')
-    // Synchroniser avec game sheet
-    setGameSheetData(prev => ({ ...prev, friendsPlayed: selectedFriends }))
-  }
+  // Removed handleFriendsConfirm - no longer needed without friends popup
 
   const handleStatusSelect = (status: MediaStatus) => {
     console.log('🎲 [BoardGame] handleStatusSelect called with status:', status)
@@ -560,11 +545,7 @@ export default function BoardGameDetailPage({
     setSelectedStatus(status)
     setShowLibraryDropdown(false)
     
-    // If status is 'completed' (Played), show friends modal
-    if (status === 'completed') {
-      console.log('🎲 [BoardGame] Status is completed, showing friends modal')
-      setShowFriendsModal(true)
-    }
+    // Status is now set without showing any popup
   }
 
   return (
@@ -934,84 +915,7 @@ export default function BoardGameDetailPage({
         </div>
       )}
       
-      {/* Friends Modal */}
-      {showFriendsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-[#1A1A1A] rounded-2xl border border-purple-500/30 max-w-md w-full max-h-[80vh] overflow-hidden">
-            <div className="p-6 border-b border-purple-500/30">
-              <h3 className="text-xl font-semibold text-white mb-2">Who did you play with?</h3>
-              <p className="text-gray-400 text-sm">Select friends who played this game with you</p>
-            </div>
-            
-            <div className="p-6 max-h-96 overflow-y-auto">
-              {/* Search */}
-              <div className="mb-4">
-                <input
-                  type="text"
-                  placeholder="Search friends..."
-                  value={friendsSearch}
-                  onChange={(e) => setFriendsSearch(e.target.value)}
-                  className="w-full bg-black/20 border border-purple-500/30 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
-                />
-              </div>
-              
-              {/* Friends List */}
-              <div className="space-y-2">
-                {mockFriends
-                  .filter(friend => friend.name.toLowerCase().includes(friendsSearch.toLowerCase()))
-                  .map((friend) => {
-                    const isSelected = selectedFriends.some(f => f.id === friend.id)
-                    return (
-                      <button
-                        key={friend.id}
-                        onClick={() => toggleFriend(friend)}
-                        className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
-                          isSelected 
-                            ? 'bg-purple-600/30 border border-purple-500'
-                            : 'bg-black/20 hover:bg-purple-600/10 border border-transparent'
-                        }`}
-                      >
-                        <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-medium">
-                          {friend.name.charAt(0)}
-                        </div>
-                        <span className={`font-medium ${
-                          isSelected ? 'text-purple-300' : 'text-white'
-                        }`}>
-                          {friend.name}
-                        </span>
-                        {isSelected && (
-                          <div className="ml-auto w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
-                            <Check size={12} className="text-white" />
-                          </div>
-                        )}
-                      </button>
-                    )
-                  })}
-              </div>
-            </div>
-            
-            <div className="p-6 border-t border-purple-500/30 flex space-x-3">
-              <button
-                onClick={() => {
-                  setShowFriendsModal(false)
-                  setSelectedFriends([])
-                  setFriendsSearch('')
-                }}
-                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-              >
-                Skip
-              </button>
-              <button
-                onClick={handleFriendsConfirm}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200"
-              >
-                Done ({selectedFriends.length})
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
+      {/* Friends Modal removed - no popup when selecting played status */}
       {/* Share With Friends Modal */}
       {showShareWithFriendsModal && gameDetail && (
         <ShareWithFriendsModal
