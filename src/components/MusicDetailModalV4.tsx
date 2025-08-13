@@ -328,9 +328,42 @@ export default function MusicDetailModalV4({
     }
     
     if (status === 'remove') {
-      console.log('🎵 [DEBUG] Removing from library:', musicDetail.id)
+      console.log('🔴 [BILLIE DEBUG] Starting removal process')
+      console.log('🔴 [BILLIE DEBUG] musicId from props:', musicId)
+      console.log('🔴 [BILLIE DEBUG] musicDetail.id:', musicDetail.id)
+      
+      // Chercher l'item dans la bibliothèque avec différents formats d'ID
+      const possibleIds = [
+        musicDetail.id,
+        musicId,
+        `track-${musicId.replace('track-', '')}`,
+        musicDetail.id.replace('track-', ''),
+        musicId.replace('track-', '')
+      ]
+      
+      console.log('🔴 [BILLIE DEBUG] Searching library for possible IDs:', possibleIds)
+      
+      let foundItem = null
+      let actualId = musicDetail.id
+      
+      for (const testId of possibleIds) {
+        foundItem = library.find(item => item.id === testId)
+        if (foundItem) {
+          actualId = testId
+          console.log('🔴 [BILLIE DEBUG] Found library item with ID:', testId, 'Status:', foundItem.status)
+          break
+        }
+      }
+      
+      if (!foundItem) {
+        console.log('🔴 [BILLIE WARNING] Item not found in library with any ID format')
+        console.log('🔴 [BILLIE DEBUG] Current library IDs:', library.map(item => item.id))
+      }
+      
+      console.log('🔴 [BILLIE DEBUG] Attempting to delete with ID:', actualId)
+      
       if (onDeleteItem) {
-        onDeleteItem(musicDetail.id)
+        onDeleteItem(actualId)
       }
       setSelectedStatus(null)
       setShowStatusDropdown(false)

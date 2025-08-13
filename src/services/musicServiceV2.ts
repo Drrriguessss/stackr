@@ -173,8 +173,13 @@ export class MusicServiceV2 {
         track.trackId = parseInt(cleanId) || 0
       }
       
+      // 🔧 FIX: Toujours utiliser le trackId d'iTunes pour la cohérence
+      // Si on a reçu track-123 et iTunes renvoie trackId=456, on garde track-456
+      const consistentId = track.trackId ? `track-${track.trackId}` : `track-${cleanId}`
+      console.log(`🎵 [ID CHECK] Input: ${trackId}, iTunes trackId: ${track.trackId}, Using: ${consistentId}`)
+      
       return {
-        id: `track-${track.trackId || cleanId}`,
+        id: consistentId,
         type: 'single',
         title: track.trackName,
         artist: track.artistName || 'Unknown Artist',
@@ -304,23 +309,36 @@ export class MusicServiceV2 {
   async getMusicDetails(musicId: string): Promise<MusicDetailData | null> {
     console.log('🎵 [V2] Getting music details for ID:', musicId)
     
+    // 🔧 IMPORTANT: Normaliser l'ID d'entrée
+    let normalizedId = musicId
+    
     if (musicId.startsWith('album-')) {
-      return this.getAlbumDetails(musicId)
+      const result = await this.getAlbumDetails(musicId)
+      console.log('🎵 [V2] Album details result ID:', result?.id)
+      return result
     } else if (musicId.startsWith('track-')) {
-      return this.getTrackDetails(musicId)
+      const result = await this.getTrackDetails(musicId)
+      console.log('🎵 [V2] Track details result ID:', result?.id)
+      return result
     } else if (/^\d+$/.test(musicId)) {
       // Handle legacy IDs without prefix - try as track first, then album
       console.log('🎵 [V2] Legacy ID format detected, trying as track first:', musicId)
       try {
         const trackResult = await this.getTrackDetails(`track-${musicId}`)
-        if (trackResult) return trackResult
+        if (trackResult) {
+          console.log('🎵 [V2] Legacy ID resolved as track, final ID:', trackResult.id)
+          return trackResult
+        }
       } catch (error) {
         console.log('🎵 [V2] Not a track, trying as album:', musicId)
       }
       
       try {
         const albumResult = await this.getAlbumDetails(`album-${musicId}`)
-        if (albumResult) return albumResult
+        if (albumResult) {
+          console.log('🎵 [V2] Legacy ID resolved as album, final ID:', albumResult.id)
+          return albumResult
+        }
       } catch (error) {
         console.log('🎵 [V2] Not an album either:', musicId)
       }
