@@ -1357,17 +1357,7 @@ export default function Home() {
       )}
 
 
-      <MusicModal
-        isOpen={isMusicOpen}
-        onClose={() => setIsMusicOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenDetail={handleOpenDetail}
-        onBackToSelection={() => {
-          setIsMusicOpen(false)
-          setActiveMainTab('search')
-        }}
-        library={library}
-      />
+      {/* MusicModal removed - using MusicDetailModalV4 instead */}
 
 
       {/* <MovieGoodModal
