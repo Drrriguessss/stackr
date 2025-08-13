@@ -159,23 +159,37 @@ export class MusicServiceV2 {
       
       const track = data.results[0] as MusicTrack
       
+      // 🔥 VALIDATION CRITIQUE: Vérifier que le titre existe
+      if (!track.trackName || track.trackName.trim() === '') {
+        console.error(`🎵 [ERROR] Track ${cleanId} has no title:`, track)
+        // Utiliser un titre par défaut basé sur l'artiste et l'ID
+        track.trackName = track.artistName ? `${track.artistName} - Track ${cleanId}` : `Untitled Track ${cleanId}`
+        console.log(`🎵 [FALLBACK] Using fallback title: ${track.trackName}`)
+      }
+      
+      // Vérifier aussi l'ID du track
+      if (!track.trackId) {
+        console.error(`🎵 [ERROR] Track has no ID, using cleanId:`, cleanId)
+        track.trackId = parseInt(cleanId) || 0
+      }
+      
       return {
-        id: `track-${track.trackId}`,
+        id: `track-${track.trackId || cleanId}`,
         type: 'single',
         title: track.trackName,
-        artist: track.artistName,
+        artist: track.artistName || 'Unknown Artist',
         image: this.getBestImageUrl(track.artworkUrl100, track.artworkUrl60, track.artworkUrl30),
         releaseDate: track.releaseDate || '',
         genre: track.primaryGenreName || 'Music',
         duration: this.formatTrackDuration(track.trackTimeMillis),
         parentAlbum: {
           id: `album-${track.collectionId}`,
-          title: track.collectionName,
+          title: track.collectionName || 'Unknown Album',
           year: track.releaseDate ? new Date(track.releaseDate).getFullYear() : 0
         },
-        description: `"${track.trackName}" by ${track.artistName} - Single from the album "${track.collectionName}"`,
+        description: `"${track.trackName}" by ${track.artistName || 'Unknown Artist'} - Single from the album "${track.collectionName || 'Unknown Album'}"`,
         rating: 4.0 + Math.random() * 1.0,
-        youtubeVideoId: await this.findTrackVideo(track.artistName, track.trackName),
+        youtubeVideoId: await this.findTrackVideo(track.artistName || '', track.trackName),
         previewUrl: track.previewUrl
       }
       
@@ -209,20 +223,29 @@ export class MusicServiceV2 {
    * 🔄 CONVERTIR TRACK VERS FORMAT APP
    */
   private convertTrackToAppItem(track: MusicTrack): AppMusicItem {
+    // Validation et fallback pour les données manquantes
+    const safeTrackName = track.trackName || `Untitled Track ${track.trackId || 'Unknown'}`
+    const safeArtistName = track.artistName || 'Unknown Artist'
+    const safeTrackId = track.trackId || Date.now() // Utiliser timestamp si pas d'ID
+    
+    if (!track.trackName) {
+      console.warn(`🎵 [WARN] Track ${track.trackId} has no name, using fallback:`, safeTrackName)
+    }
+    
     return {
-      id: `track-${track.trackId}`,
+      id: `track-${safeTrackId}`,
       type: 'single',
-      title: track.trackName,
-      artist: track.artistName,
+      title: safeTrackName,
+      artist: safeArtistName,
       year: track.releaseDate ? new Date(track.releaseDate).getFullYear() : 0,
       genre: track.primaryGenreName || 'Music',
       image: this.getBestImageUrl(track.artworkUrl100, track.artworkUrl60, track.artworkUrl30),
       duration: this.formatTrackDuration(track.trackTimeMillis),
       albumId: `album-${track.collectionId}`,
-      albumTitle: track.collectionName,
+      albumTitle: track.collectionName || 'Unknown Album',
       category: 'music',
       rating: 4.0 + Math.random() * 1.0,
-      description: `"${track.trackName}" by ${track.artistName}`
+      description: `"${safeTrackName}" by ${safeArtistName}`
     }
   }
   

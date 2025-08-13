@@ -337,21 +337,43 @@ export default function MusicDetailModalV4({
       return
     }
     
-    // STRUCTURE CORRECTE pour la library
+    // 🔴 DEBUG pour Chappell Roan et autres cas problématiques
+    console.log('🔴 [CHAPPELL DEBUG] musicDetail properties:')
+    console.log('🔴 ID:', musicDetail.id)
+    console.log('🔴 Title:', JSON.stringify(musicDetail.title))
+    console.log('🔴 Artist:', JSON.stringify(musicDetail.artist))
+    
+    // Validation et fallback pour les données critiques
+    if (!musicDetail.title || musicDetail.title === 'undefined') {
+      console.error('🎵 [CRITICAL] Title is undefined for:', musicDetail.id)
+      const fallbackTitle = musicDetail.artist ? 
+        `${musicDetail.artist} - Track ${musicDetail.id.replace('track-', '')}` : 
+        `Untitled Track ${musicDetail.id.replace('track-', '')}`
+      
+      console.log('🎵 [FALLBACK] Using fallback title:', fallbackTitle)
+      musicDetail.title = fallbackTitle
+    }
+    
+    // S'assurer que l'ID est valide
+    const safeId = musicDetail.id && musicDetail.id !== 'track-undefined' ? 
+      musicDetail.id : 
+      `track-${musicId.replace('track-', '')}`
+    
+    // STRUCTURE CORRECTE pour la library avec validations
     const musicData = {
-      id: musicDetail.id,
-      title: musicDetail.title,
+      id: safeId,
+      title: musicDetail.title || `Untitled Track`,
       category: 'music' as const,
       image: musicDetail.image,
       year: musicDetail.releaseDate ? new Date(musicDetail.releaseDate).getFullYear() : 2024,
       rating: musicDetail.rating || 4.0,
-      artist: musicDetail.artist,
-      genre: musicDetail.genre,
+      artist: musicDetail.artist || 'Unknown Artist',
+      genre: musicDetail.genre || 'Music',
       duration: musicDetail.duration,
       type: musicDetail.type || (isAlbum ? 'album' : 'single')
     }
     
-    console.log('🎵 [DEBUG] Calling onAddToLibrary with:', musicData, status)
+    console.log('🎵 [DEBUG] Calling onAddToLibrary with validated data:', musicData, status)
     
     try {
       // APPELER LA FONCTION PARENT D'ABORD
