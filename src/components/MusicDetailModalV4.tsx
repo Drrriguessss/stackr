@@ -27,12 +27,6 @@ const FRIENDS_WHO_LISTENED = [
   { id: 4, name: 'Emma', avatar: '/api/placeholder/32/32', hasReview: true }
 ]
 
-const MUSIC_STATUSES = [
-  { value: 'want-to-listen', label: 'Want to Listen' },
-  { value: 'currently-listening', label: 'Currently Listening' },
-  { value: 'listened', label: 'Listened' },
-  { value: 'remove', label: 'Remove from Library' }
-]
 
 export default function MusicDetailModalV4({
   isOpen,
@@ -315,6 +309,21 @@ export default function MusicDetailModalV4({
       setLoadingMetacritic(false)
     }
   }, [isOpen, cleanupAudio])
+
+  // GESTION DES CLICS EXTÉRIEURS POUR LE DROPDOWN - COMME DANS MOVIE
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const dropdown = document.querySelector('[data-dropdown="status"]')
+      if (dropdown && !dropdown.contains(event.target as Node)) {
+        setShowStatusDropdown(false)
+      }
+    }
+
+    if (showStatusDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showStatusDropdown])
 
   // AUSSI ajouter un cleanup au unmount du composant
   useEffect(() => {
@@ -719,10 +728,10 @@ export default function MusicDetailModalV4({
           </div>
 
 
-          {/* Buttons - EXACTLY LIKE BOOKS */}
+          {/* Buttons - OPTIMISÉ COMME DANS MOVIE */}
           <div className="flex space-x-3 mt-3 relative z-50" style={{ zIndex: 100000 }}>
-            {/* Status Button - AVEC DEBUG */}
-            <div className="relative flex-1">
+            {/* Status Button - AVEC CHEVRON ET DATA-DROPDOWN */}
+            <div className="relative flex-1" data-dropdown="status">
               <button
                 onClick={() => {
                   console.log('🎵 [DEBUG] Status button clicked, current status:', selectedStatus)
@@ -731,11 +740,13 @@ export default function MusicDetailModalV4({
                 className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-800 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
               >
                 <span>{formatStatusForDisplay(selectedStatus)}</span>
-                {/* DEBUG: Afficher le status actuel */}
-                {selectedStatus && <span className="text-xs opacity-60">({selectedStatus})</span>}
+                <ChevronDown 
+                  size={16} 
+                  className={`transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`} 
+                />
               </button>
               
-              {/* Dropdown EXACTLY LIKE BOOKS */}
+              {/* Dropdown OPTIMISÉ COMME DANS MOVIE */}
               {showStatusDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-purple-500 rounded-lg shadow-2xl z-[99999]">
                   {getAvailableStatuses().map((status) => (
