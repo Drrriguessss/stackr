@@ -108,7 +108,7 @@ export default function MusicDetailModalV4({
     setIsPreviewPlaying(false)
   }, [audioRef])
 
-  // Load music detail - UTILISER LA LOGIQUE SPÉCIFIQUE COMME DANS L'ANCIEN CODE
+  // Load music detail - LOGIQUE EXACTE DU CODE DE RÉFÉRENCE
   const fetchMusicDetail = useCallback(async () => {
     console.log('🎵 [DEBUG] fetchMusicDetail called with musicId:', formattedMusicId)
     if (!formattedMusicId) {
@@ -122,7 +122,7 @@ export default function MusicDetailModalV4({
       
       let detail: MusicDetailData | null = null
       
-      // ✅ UTILISER LA LOGIQUE SPÉCIFIQUE COMME DANS L'ANCIEN CODE
+      // 🔧 UTILISER LES MÉTHODES SPÉCIFIQUES COMME DANS L'ANCIEN CODE
       if (isAlbum) {
         console.log('🎵 [DEBUG] Loading as album with getAlbumDetails')
         detail = await musicServiceV2.getAlbumDetails(formattedMusicId)
@@ -140,7 +140,7 @@ export default function MusicDetailModalV4({
         loadMetacriticScore(detail.title, detail.artist)
         loadExistingReview(detail.id)
         
-        // Pour les albums, charger les tracks
+        // Pour les albums uniquement
         if (isAlbum) {
           loadAlbumTracks(detail.id, detail.title, detail.artist)
         }
@@ -181,68 +181,51 @@ export default function MusicDetailModalV4({
     }
   }, [])
   
-  // Load album tracks - IMPROVED VERSION
+  // Load album tracks - LOGIQUE SIMPLE COMME L'ANCIEN CODE
   const loadAlbumTracks = useCallback(async (albumId: string, albumTitle: string, artistName: string) => {
     console.log('🎵 [AlbumTracks] Loading tracks for album:', albumId)
     
     try {
       setLoadingTracks(true)
       
-      // Extract the numeric ID
+      // Utiliser l'API iTunes pour récupérer les tracks de l'album
       const cleanId = albumId.replace('album-', '')
+      const response = await fetch(
+        `/api/itunes?endpoint=lookup&id=${cleanId}&entity=song&limit=50`,
+        { signal: AbortSignal.timeout(8000) }
+      )
       
-      // Try multiple approaches to get all tracks
-      const endpoints = [
-        `/api/itunes?endpoint=lookup&id=${cleanId}&entity=song&limit=200`,
-        `/api/itunes?endpoint=search&term=${encodeURIComponent(`${artistName} ${albumTitle}`)}&entity=song&limit=200`,
-      ]
-      
-      let allTracks: any[] = []
-      
-      for (const endpoint of endpoints) {
-        try {
-          console.log('🎵 [AlbumTracks] Trying endpoint:', endpoint)
-          const response = await fetch(endpoint, { signal: AbortSignal.timeout(10000) })
-          
-          if (!response.ok) continue
-          
-          const data = await response.json()
-          
-          if (data.results && data.results.length > 0) {
-            const tracks = data.results
-              .filter((item: any) => 
-                item.wrapperType === 'track' && 
-                item.kind === 'song' &&
-                item.artistName.toLowerCase() === artistName.toLowerCase() // ✅ FILTRE STRICT PAR ARTISTE
-              )
-              .map((track: any, index: number) => ({
-                id: `track-${track.trackId}`,
-                name: track.trackName,
-                duration: formatTrackDuration(track.trackTimeMillis),
-                trackNumber: track.trackNumber || index + 1,
-                previewUrl: track.previewUrl,
-                artist: track.artistName,
-                collectionName: track.collectionName
-              }))
-            
-            // Merge with existing tracks (avoid duplicates)
-            tracks.forEach(track => {
-              if (!allTracks.find(t => t.id === track.id)) {
-                allTracks.push(track)
-              }
-            })
-          }
-        } catch (error) {
-          console.error('🎵 [AlbumTracks] Endpoint failed:', endpoint, error)
-          continue
-        }
+      if (!response.ok) {
+        throw new Error(`Album tracks lookup failed: ${response.status}`)
       }
       
-      // Sort by track number
-      allTracks.sort((a: any, b: any) => a.trackNumber - b.trackNumber)
+      const data = await response.json()
       
-      console.log(`🎵 [AlbumTracks] Found ${allTracks.length} tracks for album:`, albumTitle)
-      setAlbumTracks(allTracks)
+      if (!data.results || data.results.length <= 1) {
+        // Pas de tracks trouvées (le premier résultat est souvent l'album lui-même)
+        setAlbumTracks([])
+        return
+      }
+      
+      // 🔧 CORRECTION CRITIQUE: Filtrer avec artiste strict
+      const tracks = data.results
+        .filter((item: any) => 
+          item.wrapperType === 'track' && 
+          item.kind === 'song' &&
+          item.artistName?.toLowerCase() === artistName.toLowerCase() // ← LIGNE CRITIQUE
+        )
+        .map((track: any, index: number) => ({
+          id: `track-${track.trackId}`,
+          name: track.trackName,
+          duration: formatTrackDuration(track.trackTimeMillis),
+          trackNumber: track.trackNumber || index + 1,
+          previewUrl: track.previewUrl,
+          artist: track.artistName
+        }))
+        .sort((a: any, b: any) => a.trackNumber - b.trackNumber) // Trier par numéro de track
+      
+      console.log(`🎵 [AlbumTracks] Found ${tracks.length} tracks for album:`, albumTitle)
+      setAlbumTracks(tracks)
       
     } catch (error) {
       console.error('🎵 [AlbumTracks] Error loading album tracks:', error)
