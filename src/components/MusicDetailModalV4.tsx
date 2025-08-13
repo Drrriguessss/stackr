@@ -200,37 +200,56 @@ export default function MusicDetailModalV4({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
-  // Load data and check library status when modal opens - SINGLE EFFECT TO PREVENT DOUBLE RENDER
+  // Load music detail when modal opens
   useEffect(() => {
-    console.log('🎵 [DEBUG] useEffect triggered with:', { 
+    console.log('🎵 [DEBUG] Load effect triggered with:', { 
       isOpen, 
-      musicId, 
-      libraryLength: library.length,
-      fetchMusicDetailRef: fetchMusicDetail.toString().substring(0, 50) + '...'
+      musicId
     })
     
     if (isOpen && musicId) {
-      console.log('🎵 [Modal] Loading music detail and checking library status for:', musicId)
-      
-      // Check library status
-      if (library.length > 0) {
-        const libraryItem = library.find(item => item.id === musicId)
-        console.log('🎵 [DEBUG] Library item found:', libraryItem?.status || 'none')
-        setSelectedStatus(libraryItem?.status || null)
-      }
-      
-      // Fetch music detail
-      console.log('🎵 [DEBUG] About to call fetchMusicDetail()')
+      console.log('🎵 [Modal] Loading music detail for:', musicId)
       fetchMusicDetail()
     }
-  }, [isOpen, musicId, library])
+  }, [isOpen, musicId, fetchMusicDetail])
+
+  // Synchronize selectedStatus with library when modal opens or library changes
+  useEffect(() => {
+    console.log('🎵 [DEBUG] Library sync effect triggered:', { isOpen, musicId, libraryLength: library.length })
+    
+    if (isOpen && musicId && library.length >= 0) {
+      const libraryItem = library.find(item => item.id === musicId)
+      
+      if (libraryItem) {
+        console.log('🎵 [MusicDetailModal] Found in library with status:', libraryItem.status)
+        setSelectedStatus(libraryItem.status)
+      } else {
+        console.log('🎵 [MusicDetailModal] Not found in library, resetting status')
+        setSelectedStatus(null)
+      }
+    }
+  }, [isOpen, musicId, library]) // This dependency array is CRUCIAL
+
+  // Debug: Log when selectedStatus changes
+  useEffect(() => {
+    console.log('🎵 [DEBUG] selectedStatus changed to:', selectedStatus)
+  }, [selectedStatus])
 
   // Cleanup when modal closes
   useEffect(() => {
     if (!isOpen) {
-      // Reset all states when modal closes to prevent double modals
+      // FORCER L'ARRÊT DE L'AUDIO EN PREMIER
+      if (audioRef) {
+        audioRef.pause()
+        audioRef.currentTime = 0
+        audioRef.src = ''
+        setAudioRef(null)
+      }
+      setIsPreviewPlaying(false)
+      
+      // Reset all other states BUT NOT selectedStatus (let sync effect handle it)
       setMusicDetail(null)
-      setSelectedStatus(null)
+      // DON'T RESET: setSelectedStatus(null) - let the sync effect handle this
       setShowStatusDropdown(false)
       setShowShareWithFriendsModal(false)
       setShowFriendsWhoListened(false)
@@ -242,17 +261,24 @@ export default function MusicDetailModalV4({
       setUserReview('')
       setReviewPrivacy('private')
       setCurrentUserReview(null)
-      setIsPreviewPlaying(false)
-      if (audioRef) {
-        audioRef.pause()
-        setAudioRef(null)
-      }
       setAlbumTracks([])
       setLoadingTracks(false)
       setMetacriticScore(null)
       setLoadingMetacritic(false)
     }
   }, [isOpen, audioRef])
+
+  // AUSSI ajouter un cleanup au unmount du composant
+  useEffect(() => {
+    return () => {
+      // Cleanup audio on component unmount
+      if (audioRef) {
+        audioRef.pause()
+        audioRef.currentTime = 0
+        audioRef.src = ''
+      }
+    }
+  }, [])
 
   // Audio preview functions
   const handlePreviewToggle = useCallback(() => {
@@ -292,10 +318,17 @@ export default function MusicDetailModalV4({
     }
   }, [isSingle, musicDetail?.parentAlbum, onMusicSelect])
   
-  // Add to library function - copying BookDetailModalV3 logic
+  // Add to library function - CORRIGER LOGIQUE COMPLÈTE
   const handleAddToLibrary = useCallback(async (status: MediaStatus) => {
-    if (!musicDetail) return
+    console.log('🎵 [DEBUG] handleAddToLibrary called with:', { status, musicDetail: !!musicDetail, musicId })
+    
+    if (!musicDetail) {
+      console.error('🎵 [ERROR] handleAddToLibrary: No musicDetail available')
+      return
+    }
+    
     if (status === 'remove') {
+      console.log('🎵 [DEBUG] Removing from library:', musicDetail.id)
       if (onDeleteItem) {
         onDeleteItem(musicDetail.id)
       }
@@ -304,29 +337,41 @@ export default function MusicDetailModalV4({
       return
     }
     
-    // Add to library for ALL status
+    // STRUCTURE CORRECTE pour la library
     const musicData = {
       id: musicDetail.id,
       title: musicDetail.title,
       category: 'music' as const,
       image: musicDetail.image,
-      year: musicDetail.releaseDate ? new Date(musicDetail.releaseDate).getFullYear() : undefined,
-      rating: musicDetail.rating || 0,
+      year: musicDetail.releaseDate ? new Date(musicDetail.releaseDate).getFullYear() : 2024,
+      rating: musicDetail.rating || 4.0,
       artist: musicDetail.artist,
       genre: musicDetail.genre,
-      duration: musicDetail.duration
+      duration: musicDetail.duration,
+      type: musicDetail.type || (isAlbum ? 'album' : 'single')
     }
     
-    onAddToLibrary(musicData, status)
-    setSelectedStatus(status)
+    console.log('🎵 [DEBUG] Calling onAddToLibrary with:', musicData, status)
     
-    // Show inline rating for listened status
-    if (status === 'listened') {
-      setShowInlineRating(true)
+    try {
+      // APPELER LA FONCTION PARENT D'ABORD
+      await onAddToLibrary(musicData, status)
+      console.log('🎵 [SUCCESS] Added to library successfully')
+      
+      // METTRE À JOUR LE STATUS LOCAL IMMÉDIATEMENT
+      setSelectedStatus(status)
+      console.log('🎵 [DEBUG] Updated selectedStatus to:', status)
+      
+      // Show inline rating for listened status
+      if (status === 'listened') {
+        setShowInlineRating(true)
+      }
+      
+      setShowStatusDropdown(false)
+    } catch (error) {
+      console.error('🎵 [ERROR] Failed to add to library:', error)
     }
-    
-    setShowStatusDropdown(false)
-  }, [musicDetail, onAddToLibrary, onDeleteItem])
+  }, [musicDetail, onAddToLibrary, onDeleteItem, musicId, isAlbum])
 
   // Save review function
   const handleSaveReview = useCallback(async () => {
@@ -457,13 +502,13 @@ export default function MusicDetailModalV4({
               )}
             </div>
             
-            {/* Music Title Section */}
-            <div className="flex-1 pt-1">
-              <h1 className="text-xl font-bold text-white mb-1 leading-tight">{musicDetail?.title}</h1>
-              <p className="text-sm text-gray-400 mb-1">{musicDetail?.artist}</p>
+            {/* Music Title Section - FORCER L'AFFICHAGE */}
+            <div className="flex-1 pt-1 relative z-10">
+              <h1 className="text-xl font-bold text-white mb-1 leading-tight block md:text-2xl">{musicDetail?.title}</h1>
+              <p className="text-sm text-gray-400 mb-1 block md:text-base">{musicDetail?.artist}</p>
               
-              {/* Music Stats on same line */}
-              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+              {/* Music Stats - ASSURER VISIBILITÉ */}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 block md:text-sm">
                 {musicDetail?.releaseDate && <span>{new Date(musicDetail.releaseDate).getFullYear()}</span>}
                 {musicDetail?.genre && (
                   <>
@@ -479,18 +524,27 @@ export default function MusicDetailModalV4({
                 )}
               </div>
               
-              {/* Badge Single/Album + Album Link */}
-              <div className="flex items-center gap-3 mt-2">
-                <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-indigo-600 to-purple-700 text-white">
-                  {isAlbum ? 'Album' : 'Single'}
-                </span>
+              {/* Badge Single/Album + Album Link - RESPONSIVE FIX */}
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-indigo-600 to-purple-700 text-white">
+                    {isAlbum ? 'Album' : 'Single'}
+                    {isAlbum && albumTracks.length > 0 && (
+                      <span className="ml-1 text-white/80">• {albumTracks.length} tracks</span>
+                    )}
+                  </span>
+                </div>
+                {/* FORCER L'AFFICHAGE SUR MOBILE ET PC */}
                 {isSingle && musicDetail?.parentAlbum && (
-                  <button
-                    onClick={handleGoToAlbum}
-                    className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
-                  >
-                    Album "{musicDetail.parentAlbum.title}"
-                  </button>
+                  <div className="flex items-center w-full">
+                    <span className="text-xs text-gray-500 mr-2">From album:</span>
+                    <button
+                      onClick={handleGoToAlbum}
+                      className="text-xs text-purple-400 hover:text-purple-300 transition-colors underline flex-1 text-left"
+                    >
+                      {musicDetail.parentAlbum.title}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -499,13 +553,18 @@ export default function MusicDetailModalV4({
 
           {/* Buttons - EXACTLY LIKE BOOKS */}
           <div className="flex space-x-3 mt-3 relative z-50" style={{ zIndex: 100000 }}>
-            {/* Status Button - SAME STYLE AS BOOKS */}
+            {/* Status Button - AVEC DEBUG */}
             <div className="relative flex-1">
               <button
-                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                onClick={() => {
+                  console.log('🎵 [DEBUG] Status button clicked, current status:', selectedStatus)
+                  setShowStatusDropdown(!showStatusDropdown)
+                }}
                 className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-800 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
               >
                 <span>{formatStatusForDisplay(selectedStatus)}</span>
+                {/* DEBUG: Afficher le status actuel */}
+                {selectedStatus && <span className="text-xs opacity-60">({selectedStatus})</span>}
               </button>
               
               {/* Dropdown EXACTLY LIKE BOOKS */}
@@ -802,7 +861,16 @@ export default function MusicDetailModalV4({
                   ) : albumTracks.length > 0 ? (
                     <div className="space-y-2">
                       {albumTracks.map((track, index) => (
-                        <div key={track.id} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer group">
+                        <div 
+                          key={track.id} 
+                          className="flex items-center justify-between p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer group"
+                          onClick={() => {
+                            console.log('🎵 [DEBUG] Navigating to track:', track.id, track.name)
+                            if (onMusicSelect) {
+                              onMusicSelect(track.id)
+                            }
+                          }}
+                        >
                           <div className="flex items-center space-x-3">
                             <span className="text-gray-400 text-sm w-6 text-center font-mono">{track.trackNumber}</span>
                             <div className="flex-1">
@@ -813,6 +881,11 @@ export default function MusicDetailModalV4({
                           <div className="flex items-center space-x-2">
                             {track.previewUrl && (
                               <button 
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  console.log('🎵 [DEBUG] Playing preview for track:', track.name)
+                                  // Add preview functionality here
+                                }}
                                 className="w-6 h-6 bg-purple-600/20 hover:bg-purple-600/40 rounded-full flex items-center justify-center transition-colors"
                                 title="Preview"
                               >
