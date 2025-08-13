@@ -574,18 +574,33 @@ export default function MusicDetailModalV4({
     }
   }, [musicDetail, userRating, userReview, reviewPrivacy])
 
-  // Format status for display
+  // Format status for display - SIMPLIFIÉ COMME DANS MOVIE
   const formatStatusForDisplay = useCallback((status: MediaStatus | null) => {
     if (!status) return 'Add to Library'
-    const statusObj = MUSIC_STATUSES.find(s => s.value === status)
-    return statusObj?.label || 'Add to Library'
+    
+    const statusLabels = {
+      'want-to-listen': 'Want to Listen',
+      'currently-listening': 'Currently Listening',
+      'listened': 'Listened'
+    } as const
+    
+    return statusLabels[status as keyof typeof statusLabels] || 'Add to Library'
   }, [])
 
-  // Get available statuses
+  // Get available statuses - AMÉLIORÉ COMME DANS MOVIE
   const getAvailableStatuses = useCallback(() => {
-    return selectedStatus 
-      ? MUSIC_STATUSES 
-      : MUSIC_STATUSES.filter(s => s.value !== 'remove')
+    const baseStatuses = [
+      { value: 'want-to-listen', label: 'Want to Listen' },
+      { value: 'currently-listening', label: 'Currently Listening' },
+      { value: 'listened', label: 'Listened' }
+    ]
+    
+    // Ajouter "Remove" seulement si l'item est déjà dans la bibliothèque
+    if (selectedStatus) {
+      baseStatuses.push({ value: 'remove', label: 'Remove from Library' })
+    }
+    
+    return baseStatuses
   }, [selectedStatus])
 
   // Handle modal close with cleanup
