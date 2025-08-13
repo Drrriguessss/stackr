@@ -92,9 +92,9 @@ export default function MusicDetailModalV4({
   // Get formatted music ID
   const formattedMusicId = useMemo(() => formatMusicId(musicId), [musicId, formatMusicId])
 
-  // Determine if it's an album or single
-  const isAlbum = useMemo(() => formattedMusicId.startsWith('album-'), [formattedMusicId])
-  const isSingle = useMemo(() => formattedMusicId.startsWith('track-'), [formattedMusicId])
+  // 🔧 CORRECTION 4: Simplifier la détection (comme l'ancien code)
+  const isAlbum = formattedMusicId.startsWith('album-')
+  const isSingle = formattedMusicId.startsWith('track-')
 
   // Audio cleanup function
   const cleanupAudio = useCallback(() => {
@@ -108,7 +108,7 @@ export default function MusicDetailModalV4({
     setIsPreviewPlaying(false)
   }, [audioRef])
 
-  // Load music detail
+  // Load music detail - UTILISER LA LOGIQUE SPÉCIFIQUE COMME DANS L'ANCIEN CODE
   const fetchMusicDetail = useCallback(async () => {
     console.log('🎵 [DEBUG] fetchMusicDetail called with musicId:', formattedMusicId)
     if (!formattedMusicId) {
@@ -119,7 +119,18 @@ export default function MusicDetailModalV4({
     try {
       console.log('🎵 [DEBUG] Setting loading to true')
       setLoading(true)
-      const detail = await musicServiceV2.getMusicDetails(formattedMusicId)
+      
+      let detail: MusicDetailData | null = null
+      
+      // ✅ UTILISER LA LOGIQUE SPÉCIFIQUE COMME DANS L'ANCIEN CODE
+      if (isAlbum) {
+        console.log('🎵 [DEBUG] Loading as album with getAlbumDetails')
+        detail = await musicServiceV2.getAlbumDetails(formattedMusicId)
+      } else {
+        console.log('🎵 [DEBUG] Loading as track with getTrackDetails')
+        detail = await musicServiceV2.getTrackDetails(formattedMusicId)
+      }
+      
       console.log('🎵 [DEBUG] Got music detail:', detail ? 'success' : 'null')
       setMusicDetail(detail)
       
@@ -129,7 +140,7 @@ export default function MusicDetailModalV4({
         loadMetacriticScore(detail.title, detail.artist)
         loadExistingReview(detail.id)
         
-        // Load album tracks if this is an album
+        // Pour les albums, charger les tracks
         if (isAlbum) {
           loadAlbumTracks(detail.id, detail.title, detail.artist)
         }
@@ -202,8 +213,7 @@ export default function MusicDetailModalV4({
               .filter((item: any) => 
                 item.wrapperType === 'track' && 
                 item.kind === 'song' &&
-                item.collectionName?.toLowerCase().includes(albumTitle.toLowerCase().split('(')[0].trim()) &&
-                item.artistName?.toLowerCase().includes(artistName.toLowerCase())
+                item.artistName.toLowerCase() === artistName.toLowerCase() // ✅ FILTRE STRICT PAR ARTISTE
               )
               .map((track: any, index: number) => ({
                 id: `track-${track.trackId}`,
@@ -277,6 +287,18 @@ export default function MusicDetailModalV4({
     }
   }, [isOpen, formattedMusicId, library, fetchMusicDetail])
 
+  // 🔧 CORRECTION 2: Mettre à jour trackCount après chargement des tracks
+  useEffect(() => {
+    if (isAlbum && albumTracks.length > 0 && musicDetail) {
+      console.log(`🎵 [DEBUG] Updating trackCount from ${musicDetail.trackCount} to ${albumTracks.length}`)
+      // Mettre à jour le trackCount avec le nombre réel de tracks
+      setMusicDetail(prev => prev ? {
+        ...prev,
+        trackCount: albumTracks.length
+      } : prev)
+    }
+  }, [albumTracks.length, isAlbum, musicDetail])
+
   // Debug: Log when selectedStatus changes
   useEffect(() => {
     console.log('🎵 [DEBUG] selectedStatus changed to:', selectedStatus)
@@ -322,6 +344,22 @@ export default function MusicDetailModalV4({
       }
     }
   }, [])
+
+  // 🔧 CORRECTION 5: Simplifier la logique preview
+  const getPreviewUrl = useCallback(() => {
+    // Pour les singles, utiliser directement la preview URL
+    if (isSingle && musicDetail?.previewUrl) {
+      return musicDetail.previewUrl
+    }
+    
+    // Pour les albums, essayer le premier track avec preview
+    if (isAlbum && albumTracks.length > 0) {
+      const trackWithPreview = albumTracks.find(track => track.previewUrl)
+      return trackWithPreview?.previewUrl
+    }
+    
+    return null
+  }, [isSingle, isAlbum, musicDetail?.previewUrl, albumTracks])
 
   // Audio preview functions - IMPROVED
   const handlePreviewToggle = useCallback(() => {
@@ -674,8 +712,10 @@ export default function MusicDetailModalV4({
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-indigo-600 to-purple-700 text-white">
                     {isAlbum ? 'Album' : 'Single'}
-                    {isAlbum && albumTracks.length > 0 && (
-                      <span className="ml-1 text-white/80">• {albumTracks.length} tracks</span>
+                    {isAlbum && (
+                      <span className="ml-1 text-white/80">
+                        • {albumTracks.length > 0 ? albumTracks.length : (musicDetail?.trackCount || 'Loading...')} tracks
+                      </span>
                     )}
                   </span>
                 </div>
