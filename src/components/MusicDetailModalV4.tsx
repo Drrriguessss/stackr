@@ -73,14 +73,45 @@ export default function MusicDetailModalV4({
   const [albumTracks, setAlbumTracks] = useState<any[]>([])
   const [loadingTracks, setLoadingTracks] = useState(false)
 
+  // Format ID function - ensure consistent formatting
+  const formatMusicId = useCallback((id: string) => {
+    console.log('🎵 [FormatID] Input ID:', id)
+    
+    // If already formatted, return as is
+    if (id.startsWith('track-') || id.startsWith('album-')) {
+      console.log('🎵 [FormatID] Already formatted:', id)
+      return id
+    }
+    
+    // For legacy numeric IDs, default to track format
+    const formatted = `track-${id}`
+    console.log('🎵 [FormatID] Legacy ID formatted as:', formatted)
+    return formatted
+  }, [])
+
+  // Get formatted music ID
+  const formattedMusicId = useMemo(() => formatMusicId(musicId), [musicId, formatMusicId])
+
   // Determine if it's an album or single
-  const isAlbum = useMemo(() => musicId.startsWith('album-'), [musicId])
-  const isSingle = useMemo(() => musicId.startsWith('track-'), [musicId])
+  const isAlbum = useMemo(() => formattedMusicId.startsWith('album-'), [formattedMusicId])
+  const isSingle = useMemo(() => formattedMusicId.startsWith('track-'), [formattedMusicId])
+
+  // Audio cleanup function
+  const cleanupAudio = useCallback(() => {
+    if (audioRef) {
+      console.log('🎵 [Audio] Cleaning up audio element')
+      audioRef.pause()
+      audioRef.currentTime = 0
+      audioRef.removeEventListener('ended', () => setIsPreviewPlaying(false))
+      setAudioRef(null)
+    }
+    setIsPreviewPlaying(false)
+  }, [audioRef])
 
   // Load music detail
   const fetchMusicDetail = useCallback(async () => {
-    console.log('🎵 [DEBUG] fetchMusicDetail called with musicId:', musicId)
-    if (!musicId) {
+    console.log('🎵 [DEBUG] fetchMusicDetail called with musicId:', formattedMusicId)
+    if (!formattedMusicId) {
       console.log('🎵 [DEBUG] No musicId, returning early')
       return
     }
@@ -88,7 +119,7 @@ export default function MusicDetailModalV4({
     try {
       console.log('🎵 [DEBUG] Setting loading to true')
       setLoading(true)
-      const detail = await musicServiceV2.getMusicDetails(musicId)
+      const detail = await musicServiceV2.getMusicDetails(formattedMusicId)
       console.log('🎵 [DEBUG] Got music detail:', detail ? 'success' : 'null')
       setMusicDetail(detail)
       
@@ -109,7 +140,7 @@ export default function MusicDetailModalV4({
       console.log('🎵 [DEBUG] Setting loading to false')
       setLoading(false)
     }
-  }, [musicId])
+  }, [formattedMusicId, isAlbum])
 
   // Load Metacritic score
   const loadMetacriticScore = useCallback(async (title: string, artist: string) => {
@@ -139,47 +170,69 @@ export default function MusicDetailModalV4({
     }
   }, [])
   
-  // Load album tracks
+  // Load album tracks - IMPROVED VERSION
   const loadAlbumTracks = useCallback(async (albumId: string, albumTitle: string, artistName: string) => {
     console.log('🎵 [AlbumTracks] Loading tracks for album:', albumId)
     
     try {
       setLoadingTracks(true)
       
-      // Utiliser l'API iTunes pour récupérer les tracks de l'album
+      // Extract the numeric ID
       const cleanId = albumId.replace('album-', '')
-      const response = await fetch(
-        `/api/itunes?endpoint=lookup&id=${cleanId}&entity=song&limit=50`,
-        { signal: AbortSignal.timeout(8000) }
-      )
       
-      if (!response.ok) {
-        throw new Error(`Album tracks lookup failed: ${response.status}`)
+      // Try multiple approaches to get all tracks
+      const endpoints = [
+        `/api/itunes?endpoint=lookup&id=${cleanId}&entity=song&limit=200`,
+        `/api/itunes?endpoint=search&term=${encodeURIComponent(`${artistName} ${albumTitle}`)}&entity=song&limit=200`,
+      ]
+      
+      let allTracks: any[] = []
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log('🎵 [AlbumTracks] Trying endpoint:', endpoint)
+          const response = await fetch(endpoint, { signal: AbortSignal.timeout(10000) })
+          
+          if (!response.ok) continue
+          
+          const data = await response.json()
+          
+          if (data.results && data.results.length > 0) {
+            const tracks = data.results
+              .filter((item: any) => 
+                item.wrapperType === 'track' && 
+                item.kind === 'song' &&
+                item.collectionName?.toLowerCase().includes(albumTitle.toLowerCase().split('(')[0].trim()) &&
+                item.artistName?.toLowerCase().includes(artistName.toLowerCase())
+              )
+              .map((track: any, index: number) => ({
+                id: `track-${track.trackId}`,
+                name: track.trackName,
+                duration: formatTrackDuration(track.trackTimeMillis),
+                trackNumber: track.trackNumber || index + 1,
+                previewUrl: track.previewUrl,
+                artist: track.artistName,
+                collectionName: track.collectionName
+              }))
+            
+            // Merge with existing tracks (avoid duplicates)
+            tracks.forEach(track => {
+              if (!allTracks.find(t => t.id === track.id)) {
+                allTracks.push(track)
+              }
+            })
+          }
+        } catch (error) {
+          console.error('🎵 [AlbumTracks] Endpoint failed:', endpoint, error)
+          continue
+        }
       }
       
-      const data = await response.json()
+      // Sort by track number
+      allTracks.sort((a: any, b: any) => a.trackNumber - b.trackNumber)
       
-      if (!data.results || data.results.length <= 1) {
-        // Pas de tracks trouvées (le premier résultat est souvent l'album lui-même)
-        setAlbumTracks([])
-        return
-      }
-      
-      // Filtrer et formater les tracks (exclure l'album lui-même)
-      const tracks = data.results
-        .filter((item: any) => item.wrapperType === 'track' && item.kind === 'song')
-        .map((track: any, index: number) => ({
-          id: `track-${track.trackId}`,
-          name: track.trackName,
-          duration: formatTrackDuration(track.trackTimeMillis),
-          trackNumber: track.trackNumber || index + 1,
-          previewUrl: track.previewUrl,
-          artist: track.artistName
-        }))
-        .sort((a: any, b: any) => a.trackNumber - b.trackNumber) // Trier par numéro de track
-      
-      console.log(`🎵 [AlbumTracks] Found ${tracks.length} tracks for album:`, albumTitle)
-      setAlbumTracks(tracks)
+      console.log(`🎵 [AlbumTracks] Found ${allTracks.length} tracks for album:`, albumTitle)
+      setAlbumTracks(allTracks)
       
     } catch (error) {
       console.error('🎵 [AlbumTracks] Error loading album tracks:', error)
@@ -200,56 +253,46 @@ export default function MusicDetailModalV4({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
-  // Load music detail when modal opens
+  // Load data and check library status when modal opens
   useEffect(() => {
-    console.log('🎵 [DEBUG] Load effect triggered with:', { 
+    console.log('🎵 [DEBUG] useEffect triggered with:', { 
       isOpen, 
-      musicId
+      musicId: formattedMusicId, 
+      libraryLength: library.length
     })
     
-    if (isOpen && musicId) {
-      console.log('🎵 [Modal] Loading music detail for:', musicId)
+    if (isOpen && formattedMusicId) {
+      console.log('🎵 [Modal] Loading music detail and checking library status for:', formattedMusicId)
+      
+      // Check library status
+      if (library.length > 0) {
+        const libraryItem = library.find(item => item.id === formattedMusicId)
+        console.log('🎵 [DEBUG] Library item found:', libraryItem?.status || 'none')
+        setSelectedStatus(libraryItem?.status || null)
+      }
+      
+      // Fetch music detail
+      console.log('🎵 [DEBUG] About to call fetchMusicDetail()')
       fetchMusicDetail()
     }
-  }, [isOpen, musicId, fetchMusicDetail])
-
-  // Synchronize selectedStatus with library when modal opens or library changes
-  useEffect(() => {
-    console.log('🎵 [DEBUG] Library sync effect triggered:', { isOpen, musicId, libraryLength: library.length })
-    
-    if (isOpen && musicId && library.length >= 0) {
-      const libraryItem = library.find(item => item.id === musicId)
-      
-      if (libraryItem) {
-        console.log('🎵 [MusicDetailModal] Found in library with status:', libraryItem.status)
-        setSelectedStatus(libraryItem.status)
-      } else {
-        console.log('🎵 [MusicDetailModal] Not found in library, resetting status')
-        setSelectedStatus(null)
-      }
-    }
-  }, [isOpen, musicId, library]) // This dependency array is CRUCIAL
+  }, [isOpen, formattedMusicId, library, fetchMusicDetail])
 
   // Debug: Log when selectedStatus changes
   useEffect(() => {
     console.log('🎵 [DEBUG] selectedStatus changed to:', selectedStatus)
   }, [selectedStatus])
 
-  // Cleanup when modal closes
+  // Cleanup when modal closes - IMPROVED
   useEffect(() => {
     if (!isOpen) {
-      // FORCER L'ARRÊT DE L'AUDIO EN PREMIER
-      if (audioRef) {
-        audioRef.pause()
-        audioRef.currentTime = 0
-        audioRef.src = ''
-        setAudioRef(null)
-      }
-      setIsPreviewPlaying(false)
+      console.log('🎵 [Cleanup] Modal closed, cleaning up all states')
       
-      // Reset all other states BUT NOT selectedStatus (let sync effect handle it)
+      // Clean up audio first
+      cleanupAudio()
+      
+      // Reset all states when modal closes to prevent double modals
       setMusicDetail(null)
-      // DON'T RESET: setSelectedStatus(null) - let the sync effect handle this
+      setSelectedStatus(null)
       setShowStatusDropdown(false)
       setShowShareWithFriendsModal(false)
       setShowFriendsWhoListened(false)
@@ -266,7 +309,7 @@ export default function MusicDetailModalV4({
       setMetacriticScore(null)
       setLoadingMetacritic(false)
     }
-  }, [isOpen, audioRef])
+  }, [isOpen, cleanupAudio])
 
   // AUSSI ajouter un cleanup au unmount du composant
   useEffect(() => {
@@ -280,7 +323,7 @@ export default function MusicDetailModalV4({
     }
   }, [])
 
-  // Audio preview functions
+  // Audio preview functions - IMPROVED
   const handlePreviewToggle = useCallback(() => {
     // For albums, try to use the first track's preview if album doesn't have one
     let previewUrl = musicDetail?.previewUrl
@@ -293,34 +336,74 @@ export default function MusicDetailModalV4({
       }
     }
     
-    if (!previewUrl) return
+    if (!previewUrl) {
+      console.log('🎵 [Audio] No preview URL available')
+      return
+    }
 
     if (isPreviewPlaying) {
-      audioRef?.pause()
-      setIsPreviewPlaying(false)
+      console.log('🎵 [Audio] Stopping preview')
+      cleanupAudio()
     } else {
+      console.log('🎵 [Audio] Starting preview:', previewUrl)
+      
+      // Clean up any existing audio first
       if (audioRef) {
-        audioRef.play()
-      } else {
-        const audio = new Audio(previewUrl)
-        audio.addEventListener('ended', () => setIsPreviewPlaying(false))
-        audio.play()
-        setAudioRef(audio)
+        cleanupAudio()
       }
-      setIsPreviewPlaying(true)
+      
+      const audio = new Audio(previewUrl)
+      
+      // Set up event listeners
+      const handleEnded = () => {
+        console.log('🎵 [Audio] Preview ended')
+        setIsPreviewPlaying(false)
+      }
+      
+      const handleError = (e: any) => {
+        console.error('🎵 [Audio] Preview error:', e)
+        setIsPreviewPlaying(false)
+      }
+      
+      audio.addEventListener('ended', handleEnded)
+      audio.addEventListener('error', handleError)
+      
+      // Start playing
+      audio.play().then(() => {
+        setAudioRef(audio)
+        setIsPreviewPlaying(true)
+      }).catch((error) => {
+        console.error('🎵 [Audio] Failed to start preview:', error)
+        setIsPreviewPlaying(false)
+      })
     }
-  }, [musicDetail?.previewUrl, isPreviewPlaying, audioRef, isAlbum, albumTracks])
+  }, [musicDetail?.previewUrl, isPreviewPlaying, audioRef, isAlbum, albumTracks, cleanupAudio])
 
-  // Go to album function
+  // Go to album function - IMPROVED
   const handleGoToAlbum = useCallback(() => {
     if (isSingle && musicDetail?.parentAlbum && onMusicSelect) {
-      onMusicSelect(musicDetail.parentAlbum.id)
+      console.log('🎵 [Navigation] Going to album:', musicDetail.parentAlbum.id)
+      // Ensure the album ID is properly formatted
+      const albumId = musicDetail.parentAlbum.id.startsWith('album-') 
+        ? musicDetail.parentAlbum.id 
+        : `album-${musicDetail.parentAlbum.id}`
+      onMusicSelect(albumId)
     }
   }, [isSingle, musicDetail?.parentAlbum, onMusicSelect])
+
+  // Track navigation function
+  const handleTrackSelect = useCallback((trackId: string) => {
+    if (onMusicSelect) {
+      console.log('🎵 [Navigation] Going to track:', trackId)
+      // Clean up audio before navigation
+      cleanupAudio()
+      onMusicSelect(trackId)
+    }
+  }, [onMusicSelect, cleanupAudio])
   
   // Add to library function - CORRIGER LOGIQUE COMPLÈTE
   const handleAddToLibrary = useCallback(async (status: MediaStatus) => {
-    console.log('🎵 [DEBUG] handleAddToLibrary called with:', { status, musicDetail: !!musicDetail, musicId })
+    console.log('🎵 [DEBUG] handleAddToLibrary called with:', { status, musicDetail: !!musicDetail, musicId: formattedMusicId })
     
     if (!musicDetail) {
       console.error('🎵 [ERROR] handleAddToLibrary: No musicDetail available')
@@ -335,10 +418,10 @@ export default function MusicDetailModalV4({
       // Chercher l'item dans la bibliothèque avec différents formats d'ID
       const possibleIds = [
         musicDetail.id,
-        musicId,
-        `track-${musicId.replace('track-', '')}`,
+        formattedMusicId,
+        `track-${formattedMusicId.replace('track-', '')}`,
         musicDetail.id.replace('track-', ''),
-        musicId.replace('track-', '')
+        formattedMusicId.replace('track-', '')
       ]
       
       console.log('🔴 [BILLIE DEBUG] Searching library for possible IDs:', possibleIds)
@@ -390,7 +473,7 @@ export default function MusicDetailModalV4({
     // S'assurer que l'ID est valide
     const safeId = musicDetail.id && musicDetail.id !== 'track-undefined' ? 
       musicDetail.id : 
-      `track-${musicId.replace('track-', '')}`
+      `track-${formattedMusicId.replace('track-', '')}`
     
     // STRUCTURE CORRECTE pour la library avec validations
     const musicData = {
@@ -426,7 +509,7 @@ export default function MusicDetailModalV4({
     } catch (error) {
       console.error('🎵 [ERROR] Failed to add to library:', error)
     }
-  }, [musicDetail, onAddToLibrary, onDeleteItem, musicId, isAlbum])
+  }, [musicDetail, onAddToLibrary, onDeleteItem, formattedMusicId, isAlbum, library])
 
   // Save review function
   const handleSaveReview = useCallback(async () => {
@@ -475,10 +558,17 @@ export default function MusicDetailModalV4({
       : MUSIC_STATUSES.filter(s => s.value !== 'remove')
   }, [selectedStatus])
 
+  // Handle modal close with cleanup
+  const handleClose = useCallback(() => {
+    console.log('🎵 [Close] Closing modal and cleaning up')
+    cleanupAudio()
+    onClose()
+  }, [onClose, cleanupAudio])
+
   if (!isOpen) return null
 
   // Debug log
-  console.log('🟢 MusicDetailModalV4 rendering, isOpen:', isOpen, 'musicId:', musicId, 'musicDetail:', !!musicDetail)
+  console.log('🟢 MusicDetailModalV4 rendering, isOpen:', isOpen, 'musicId:', formattedMusicId, 'musicDetail:', !!musicDetail)
 
   if (loading) {
     return (
@@ -504,7 +594,7 @@ export default function MusicDetailModalV4({
         {/* Navigation Header - X button top right */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-end p-5" style={{ zIndex: 20 }}>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
           >
             <X size={20} />
@@ -882,7 +972,7 @@ export default function MusicDetailModalV4({
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-white mb-3">From the Album</h3>
                   <button
-                    onClick={() => onMusicSelect && onMusicSelect(musicDetail.parentAlbum!.id)}
+                    onClick={handleGoToAlbum}
                     className="flex items-center space-x-3 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors w-full text-left"
                   >
                     <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
@@ -919,12 +1009,7 @@ export default function MusicDetailModalV4({
                         <div 
                           key={track.id} 
                           className="flex items-center justify-between p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer group"
-                          onClick={() => {
-                            console.log('🎵 [DEBUG] Navigating to track:', track.id, track.name)
-                            if (onMusicSelect) {
-                              onMusicSelect(track.id)
-                            }
-                          }}
+                          onClick={() => handleTrackSelect(track.id)}
                         >
                           <div className="flex items-center space-x-3">
                             <span className="text-gray-400 text-sm w-6 text-center font-mono">{track.trackNumber}</span>
