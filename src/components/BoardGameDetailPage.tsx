@@ -512,8 +512,6 @@ export default function BoardGameDetailPage({
 
   const handleStatusSelect = (status: MediaStatus) => {
     console.log('🎲 [BoardGame] handleStatusSelect called with status:', status)
-    console.log('🎲 [BoardGame] gameDetail exists:', !!gameDetail)
-    console.log('🎲 [BoardGame] gameId:', gameId)
     
     if (!gameDetail) {
       console.error('🎲 [BoardGame] No gameDetail available, cannot add to library')
@@ -534,18 +532,12 @@ export default function BoardGameDetailPage({
       bggRating: gameDetail.bggRating
     }
     
-    console.log('🎲 [BoardGame] Game data to add:', gameForLibrary)
-    console.log('🎲 [BoardGame] Calling onAddToLibrary with status:', status)
-    
     // Call the parent's onAddToLibrary function
     onAddToLibrary(gameForLibrary, status)
     
-    // Update local state
-    console.log('🎲 [BoardGame] Setting local selectedStatus to:', status)
+    // Update local state immediately for smooth transition
     setSelectedStatus(status)
     setShowLibraryDropdown(false)
-    
-    // Status is now set without showing any popup
   }
 
   return (
@@ -656,15 +648,14 @@ export default function BoardGameDetailPage({
                 </div>
 
                 {/* NOUVELLE section pour les boutons - full width */}
-                <div className="flex space-x-3 mt-3 relative z-50" ref={libraryDropdownRef} style={{ zIndex: 100000 }}>
+                <div className="flex space-x-3 mt-3 relative z-50" style={{ zIndex: 100000 }}>
                   {/* Status Button */}
-                  <div className="relative flex-1">
+                  <div className="relative flex-1" ref={libraryDropdownRef}>
                     <button
                       onClick={() => setShowLibraryDropdown(!showLibraryDropdown)}
                       className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-800 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
                     >
                       <span>{selectedStatus ? getStatusLabel(selectedStatus) : 'Add to Library'}</span>
-                      <ChevronDown size={16} className={`transition-transform ${showLibraryDropdown ? 'rotate-180' : ''}`} />
                     </button>
                     
                     {showLibraryDropdown && (

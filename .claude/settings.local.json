@@ -68,8 +68,10 @@
       "Bash(set NODE_OPTIONS=--max-old-space-size=4096)",
       "Bash(del test-trailer-fix.js)",
       "Bash(npx eslint:*)",
-      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\BookDetailModalV3_Optimized.tsx\")"
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\BookDetailModalV3_Optimized.tsx\")",
+      "Bash(PORT=3011 npm run dev)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }
