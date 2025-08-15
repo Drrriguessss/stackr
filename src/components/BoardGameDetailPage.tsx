@@ -736,6 +736,17 @@ export default function BoardGameDetailPage({
                       <span>Customize this board game sheet</span>
                     </button>
                   </div>
+                  
+                  {/* Rate this game section - Always visible */}
+                  <div className="mt-4">
+                    <button
+                      onClick={() => setShowReviewBox(!showReviewBox)}
+                      className="text-purple-400 hover:text-purple-300 text-sm transition-colors flex items-center space-x-1"
+                    >
+                      <Star size={14} />
+                      <span>Rate this game</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -745,8 +756,8 @@ export default function BoardGameDetailPage({
           {/* Main Content - BookDetailModalV3 Style */}
           <div className="px-6 py-4 relative" style={{ zIndex: 1 }}>
 
-            {/* Rate this game section (shown if user has marked as played) */}
-            {selectedStatus === 'completed' && (
+            {/* Rate this game section (shown when user clicks rate button) */}
+            {showReviewBox && (
               <div className="mb-6 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/30 rounded-lg p-4">
                 <h3 className="text-white font-medium mb-3">Rate this game</h3>
                 <div className="flex items-center space-x-4 mb-4">
