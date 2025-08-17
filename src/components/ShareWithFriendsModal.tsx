@@ -1,6 +1,9 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Link, MessageCircle, Check, Copy } from 'lucide-react'
+import { Link, MessageCircle, Check, Copy, UserPlus } from 'lucide-react'
+import { socialService } from '@/services/socialService'
+import { avatarService } from '@/services/avatarService'
+import type { Friend } from '@/services/socialService'
 
 interface ShareWithFriendsModalProps {
   isOpen: boolean
@@ -13,25 +16,14 @@ interface ShareWithFriendsModalProps {
   }
 }
 
-// Mock friends data (remplacer par vraies données plus tard)
-const MOCK_FRIENDS = [
-  { id: 1, name: 'Alex', username: 'alex_23', avatar: 'https://i.pravatar.cc/150?img=1' },
-  { id: 2, name: 'Sarah', username: 'sarahh', avatar: 'https://i.pravatar.cc/150?img=2' },
-  { id: 3, name: 'Mike', username: 'mikedev', avatar: 'https://i.pravatar.cc/150?img=3' },
-  { id: 4, name: 'Emma', username: 'emma.art', avatar: 'https://i.pravatar.cc/150?img=4' },
-  { id: 5, name: 'David', username: 'davidm', avatar: 'https://i.pravatar.cc/150?img=5' },
-  { id: 6, name: 'Lisa', username: 'lisa_photo', avatar: 'https://i.pravatar.cc/150?img=6' },
-  { id: 7, name: 'John', username: 'johnny', avatar: 'https://i.pravatar.cc/150?img=7' },
-  { id: 8, name: 'Maya', username: 'maya.design', avatar: 'https://i.pravatar.cc/150?img=8' },
-  { id: 9, name: 'Chris', username: 'chriss', avatar: 'https://i.pravatar.cc/150?img=9' }
-]
-
 export default function ShareWithFriendsModal({ isOpen, onClose, item }: ShareWithFriendsModalProps) {
-  const [selectedFriends, setSelectedFriends] = useState<number[]>([])
+  const [friends, setFriends] = useState<Friend[]>([])
+  const [selectedFriends, setSelectedFriends] = useState<string[]>([])
   const [shareMessage, setShareMessage] = useState('')
   const [isVisible, setIsVisible] = useState(false)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (isOpen) {
@@ -39,13 +31,27 @@ export default function ShareWithFriendsModal({ isOpen, onClose, item }: ShareWi
       // Reset state when opening
       setSelectedFriends([])
       setShareMessage('')
+      // Load friends
+      loadFriends()
     } else {
       // Delay hiding to allow animation
       setTimeout(() => setIsVisible(false), 300)
     }
   }, [isOpen])
 
-  const toggleFriendSelection = (friendId: number) => {
+  const loadFriends = async () => {
+    setIsLoading(true)
+    try {
+      const friendsList = await socialService.getFriends()
+      setFriends(friendsList)
+    } catch (error) {
+      console.error('Error loading friends:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const toggleFriendSelection = (friendId: string) => {
     setSelectedFriends(prev => 
       prev.includes(friendId) 
         ? prev.filter(id => id !== friendId)
@@ -79,19 +85,39 @@ export default function ShareWithFriendsModal({ isOpen, onClose, item }: ShareWi
     }
   }
 
-  const handleSendToFriends = () => {
+  const handleSendToFriends = async () => {
     if (selectedFriends.length === 0) return
     
-    // Logique d'envoi aux amis
-    console.log('Sending to friends:', selectedFriends, 'Message:', shareMessage)
-    
-    // Show success toast
-    setToastMessage(`Sent to ${selectedFriends.length} friend${selectedFriends.length > 1 ? 's' : ''}!`)
-    setShowToast(true)
-    setTimeout(() => {
-      setShowToast(false)
-      onClose()
-    }, 1500)
+    try {
+      // Send to each selected friend
+      const promises = selectedFriends.map(friendId => 
+        socialService.shareMediaWithFriend(
+          friendId,
+          {
+            id: item.id,
+            type: item.type,
+            title: item.title,
+            image: item.image
+          },
+          shareMessage || undefined
+        )
+      )
+      
+      await Promise.all(promises)
+      
+      // Show success toast
+      setToastMessage(`Sent to ${selectedFriends.length} friend${selectedFriends.length > 1 ? 's' : ''}!`)
+      setShowToast(true)
+      setTimeout(() => {
+        setShowToast(false)
+        onClose()
+      }, 1500)
+    } catch (error) {
+      console.error('Error sharing with friends:', error)
+      setToastMessage('Failed to share. Please try again.')
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 2000)
+    }
   }
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -133,35 +159,60 @@ export default function ShareWithFriendsModal({ isOpen, onClose, item }: ShareWi
           <div className="overflow-y-auto" style={{ maxHeight: 'calc(70vh - 180px)' }}>
             {/* Friends Grid */}
             <div className="px-4 pb-4">
-              <div className="grid grid-cols-3 gap-4">
-                {MOCK_FRIENDS.map((friend) => (
-                  <button
-                    key={friend.id}
-                    onClick={() => toggleFriendSelection(friend.id)}
-                    className="flex flex-col items-center space-y-2"
-                  >
-                    <div className="relative">
-                      <img
-                        src={friend.avatar}
-                        alt={friend.name}
-                        className={`w-16 h-16 rounded-full object-cover transition-all ${
-                          selectedFriends.includes(friend.id)
-                            ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
-                            : ''
-                        }`}
-                      />
-                      {selectedFriends.includes(friend.id) && (
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                          <Check size={12} className="text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-white text-xs font-medium truncate w-full text-center">
-                      {friend.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-400 text-sm">Loading friends...</div>
+                </div>
+              ) : friends.length === 0 ? (
+                <div className="text-center py-8">
+                  <UserPlus size={48} className="text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-400 text-sm mb-2">No friends added yet</p>
+                  <p className="text-gray-500 text-xs">Add friends to share your favorite content!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-4">
+                  {friends.map((friend) => (
+                    <button
+                      key={friend.friend_id}
+                      onClick={() => toggleFriendSelection(friend.friend_id)}
+                      className="flex flex-col items-center space-y-2"
+                    >
+                      <div className="relative">
+                        {friend.avatar_url ? (
+                          <img
+                            src={friend.avatar_url}
+                            alt={friend.display_name}
+                            className={`w-16 h-16 rounded-full object-cover transition-all ${
+                              selectedFriends.includes(friend.friend_id)
+                                ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
+                                : ''
+                            }`}
+                          />
+                        ) : (
+                          <div 
+                            className={`w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg transition-all ${
+                              selectedFriends.includes(friend.friend_id)
+                                ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
+                                : ''
+                            }`}
+                            style={{ backgroundColor: avatarService.getAvatarColor(friend.friend_id) }}
+                          >
+                            {avatarService.getInitials(friend.display_name || friend.username)}
+                          </div>
+                        )}
+                        {selectedFriends.includes(friend.friend_id) && (
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                            <Check size={12} className="text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-white text-xs font-medium truncate w-full text-center">
+                        {friend.display_name || friend.username}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Message input - Only show if friends selected */}
