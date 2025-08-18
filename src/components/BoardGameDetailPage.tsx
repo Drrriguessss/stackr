@@ -7,7 +7,6 @@ import { userReviewsService } from '@/services/userReviewsService'
 import { socialService } from '@/services/socialService'
 import { reviewInteractionsService, type ReviewComment } from '@/services/reviewInteractionsService'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
-import { avatarService } from '@/services/avatarService'
 import { fetchYouTubeVideos, getVideoTypeLabel, getVideoTypeColor, type YouTubeVideo } from '@/services/youtubeService'
 // Removed BoardGameStatusManager import - using simple dropdown now
 
@@ -129,7 +128,6 @@ export default function BoardGameDetailPage({
     { id: 7, name: 'Susete', avatar: '/api/placeholder/32/32' }
   ]
 
-  // Removed loadFriendsWhoPlayed - not needed for simple dropdown
 
 
   useEffect(() => {
@@ -157,7 +155,6 @@ export default function BoardGameDetailPage({
     if (gameId && hasLoadedRef.current !== gameId) {
       hasLoadedRef.current = gameId
       fetchGameDetail()
-      // Removed loadFriendsWhoPlayed call
       loadUserRating()
     }
   }, [gameId])
@@ -1046,7 +1043,6 @@ export default function BoardGameDetailPage({
                   </button>
                 </div>
 
-                {/* Removed friends section - not needed for simple dropdown */}
                   
                   {/* Game Sheet Link */}
                   <div className="mt-2">
@@ -1776,55 +1772,6 @@ export default function BoardGameDetailPage({
         </div>
       )}
 
-      {/* Removed Friends Who Played Modal - not needed for simple dropdown */}
-      {false && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-[#1A1A1A] rounded-2xl border border-purple-500/30 max-w-md w-full max-h-[80vh] overflow-hidden">
-            <div className="p-6 border-b border-purple-500/30">
-              <h3 className="text-xl font-semibold text-white mb-2">Friends who played {gameDetail?.name}</h3>
-            </div>
-            <div className="p-6 max-h-96 overflow-y-auto space-y-4">
-              {[].map((friend) => (
-                <div key={friend.friend_id} className="bg-black/20 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-3">
-                      {friend.avatar_url ? (
-                        <img
-                          src={friend.avatar_url}
-                          alt={friend.display_name || friend.username}
-                          className="w-10 h-10 rounded-full"
-                        />
-                      ) : (
-                        <div 
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
-                          style={{ backgroundColor: avatarService.getAvatarColor(friend.friend_id) }}
-                        >
-                          {avatarService.getInitials(friend.display_name || friend.username)}
-                        </div>
-                      )}
-                      <span className="text-white font-medium">{friend.display_name || friend.username}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} size={12} className={star <= friend.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'} />
-                      ))}
-                      <span className="text-gray-400 text-sm ml-1">{friend.rating}/5</span>
-                    </div>
-                  </div>
-                  {friend.hasReview && friend.reviewText && (
-                    <p className="text-gray-300 text-sm">{friend.reviewText}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="p-6 border-t border-purple-500/30">
-              <button onClick={() => setShowFriendsWhoPlayedModal(false)} className="w-full py-3 bg-gradient-to-r from-gray-600 to-gray-800 text-white rounded-lg">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Comments Modal - Style Instagram */}
       {showUserReviewComments && (
