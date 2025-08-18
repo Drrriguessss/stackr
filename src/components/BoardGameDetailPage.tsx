@@ -5,8 +5,9 @@ import { optimalBoardGameAPI, type OptimalBoardGameResult } from '@/services/opt
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { userReviewsService } from '@/services/userReviewsService'
 import { socialService } from '@/services/socialService'
-import { avatarService } from '@/services/avatarService'
+import { reviewInteractionsService, type ReviewComment } from '@/services/reviewInteractionsService'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
+import { avatarService } from '@/services/avatarService'
 
 interface BoardGameDetailPageProps {
   gameId: string
@@ -68,8 +69,24 @@ export default function BoardGameDetailPage({
   const [userReviewData, setUserReviewData] = useState({
     isLiked: false,
     likesCount: 0,
-    commentsCount: 0
+    commentsCount: 0,
+    comments: [] as Array<{
+      id: string
+      userId: string
+      username: string
+      text: string
+      timestamp: string
+      likes: number
+      isLiked: boolean
+    }>
   })
+  
+  // Comment modal states
+  const [showUserReviewComments, setShowUserReviewComments] = useState(false)
+  const [newComment, setNewComment] = useState('')
+  
+  // Share modal states
+  const [showShareModal, setShowShareModal] = useState(false)
   const [gameSheetData, setGameSheetData] = useState({
     playDate: '',
     location: '',
@@ -163,10 +180,29 @@ export default function BoardGameDetailPage({
         setUserReview(existingReview.review_text || '')
         setReviewPrivacy(existingReview.is_public ? 'public' : 'private')
         
-        // If user has a rating, show the review box so they can see/edit their review
-        if (existingReview.rating > 0) {
-          setShowReviewBox(true)
-        }
+        // Load review interactions
+        const reviewId = `boardgame_${gameId}_user_${existingReview.user_identifier}`
+        const interactions = await reviewInteractionsService.getReviewInteractions(reviewId)
+        const comments = await reviewInteractionsService.getReviewComments(reviewId)
+        
+        setUserReviewData({
+          isLiked: interactions.user_liked,
+          likesCount: interactions.likes_count,
+          commentsCount: interactions.comments_count,
+          comments: comments.map(comment => ({
+            id: comment.id,
+            userId: comment.user_id,
+            username: comment.username,
+            text: comment.comment_text,
+            timestamp: comment.created_at,
+            likes: comment.likes_count || 0,
+            isLiked: comment.user_liked || false
+          }))
+        })
+        
+        // If user has a rating, we'll show the "Your review" section instead of opening the review box
+        // The review box will only open when user clicks "Edit" or when they start rating
+        // No need to auto-open setShowReviewBox here
       }
     } catch (error) {
       console.error('🎲 [BoardGame] Error loading user rating:', error)
@@ -175,15 +211,13 @@ export default function BoardGameDetailPage({
 
   useEffect(() => {
     const libraryItem = library.find(item => item.id === gameId)
-    console.log('🎲 [BoardGame] Library check for gameId:', gameId)
-    console.log('🎲 [BoardGame] Library items:', library.map(item => ({ id: item.id, title: item.title, status: item.status })))
-    console.log('🎲 [BoardGame] Found library item:', libraryItem)
+    // Library status check
     
     if (libraryItem) {
-      console.log('🎲 [BoardGame] Setting status to:', libraryItem.status)
+      // Status found in library
       setSelectedStatus(libraryItem.status)
     } else {
-      console.log('🎲 [BoardGame] No library item found, setting status to null')
+      // No status found in library
       setSelectedStatus(null)
     }
   }, [gameId, library])
@@ -353,11 +387,42 @@ export default function BoardGameDetailPage({
       let description = ''
       if (descriptionMatch) {
         description = descriptionMatch[1]
-          .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+          .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1') // Remove CDATA wrapper
           .replace(/&amp;/g, '&')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
           .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&#x27;/g, "'")
+          .replace(/&#x2F;/g, '/')
+          .replace(/&#10;/g, '\n') // Remplacer &#10; par saut de ligne
+          .replace(/&#13;/g, '\r') // Remplacer &#13; par retour chariot
+          .replace(/&#32;/g, ' ') // Remplacer &#32; par espace
+          .replace(/&#160;/g, ' ') // Remplacer &#160; par espace insécable
+          .replace(/&#8211;/g, '–') // Remplacer &#8211; par tiret court
+          .replace(/&#8212;/g, '—') // Remplacer &#8212; par tiret long
+          .replace(/&#8216;/g, "\u2018") // Remplacer &#8216; par apostrophe gauche
+          .replace(/&#8217;/g, "\u2019") // Remplacer &#8217; par apostrophe droite
+          .replace(/&#8220;/g, "\u201C") // Remplacer &#8220; par guillemet gauche
+          .replace(/&#8221;/g, "\u201D") // Remplacer &#8221; par guillemet droit
+          .replace(/&#8230;/g, '...') // Remplacer &#8230; par points de suspension
+          // Traiter les entités UTF-8 mal encodées (séquences &#226;&#128;&#xxx;)
+          .replace(/&#226;&#128;&#147;/g, '–') // EN DASH mal encodé
+          .replace(/&#226;&#128;&#148;/g, '—') // EM DASH mal encodé
+          .replace(/&#226;&#128;&#156;/g, '"') // LEFT DOUBLE QUOTE mal encodé
+          .replace(/&#226;&#128;&#157;/g, '"') // RIGHT DOUBLE QUOTE mal encodé
+          .replace(/&#226;&#128;&#152;/g, "'") // LEFT SINGLE QUOTE mal encodé
+          .replace(/&#226;&#128;&#153;/g, "'") // RIGHT SINGLE QUOTE mal encodé
+          .replace(/&#226;&#128;&#166;/g, '...') // ELLIPSIS mal encodé
+          .replace(/&#226;&#128;&#149;/g, '—') // HORIZONTAL BAR mal encodé
+          .replace(/&hellip;/g, '...')
+          .replace(/&mdash;/g, '—')
+          .replace(/&ndash;/g, '–')
+          .replace(/&rsquo;/g, "\u2019")
+          .replace(/&lsquo;/g, "\u2018")
+          .replace(/&rdquo;/g, "\u201D")
+          .replace(/&ldquo;/g, "\u201C")
+          .replace(/&nbsp;/g, ' ')
           .trim()
       }
       
@@ -447,15 +512,12 @@ export default function BoardGameDetailPage({
   // Library status management - moved above with friends modal logic
 
   const handleRemoveFromLibrary = () => {
-    console.log('🎲 [BoardGame] handleRemoveFromLibrary called')
-    console.log('🎲 [BoardGame] onDeleteItem exists:', !!onDeleteItem)
-    console.log('🎲 [BoardGame] selectedStatus:', selectedStatus)
-    console.log('🎲 [BoardGame] gameId to remove:', gameId)
+    // Remove from library called
     
     if (onDeleteItem && selectedStatus) {
-      console.log('🎲 [BoardGame] Calling onDeleteItem with gameId:', gameId)
+      // Removing item from library
       onDeleteItem(gameId)
-      console.log('🎲 [BoardGame] Setting selectedStatus to null')
+      // Status reset to null
       setSelectedStatus(null)
       setShowLibraryDropdown(false)
     } else {
@@ -508,8 +570,9 @@ export default function BoardGameDetailPage({
           isPublic: reviewPrivacy === 'public'
         })
         
-        console.log('🎲 [BoardGame] Review saved successfully')
-        // Don't close review box - allow continuous editing
+        // Review saved
+        // Close review box to show the Instagram-style review section
+        setShowReviewBox(false)
         
         // Show success feedback
         setReviewSaved(true)
@@ -529,7 +592,7 @@ export default function BoardGameDetailPage({
   const handleSkipReview = () => {
     // Just close the review box without saving any review text
     // The rating is already saved from handleRatingClick
-    console.log('🎲 [BoardGame] Skipping review, keeping only rating:', userRating)
+    // Saving rating only
     setShowReviewBox(false)
   }
 
@@ -538,23 +601,145 @@ export default function BoardGameDetailPage({
     return text.length > 60 ? text.substring(0, 60) + '...' : text
   }
 
+  // Helper to get current user identifier
+  const getCurrentUserIdentifier = () => {
+    if (typeof window === 'undefined') return 'anonymous'
+    return localStorage.getItem('stackr_user_identifier') || 'anonymous'
+  }
+
   // Your review actions
-  const handleLikeUserReview = () => {
-    setUserReviewData(prev => ({
-      ...prev,
-      isLiked: !prev.isLiked,
-      likesCount: prev.isLiked ? prev.likesCount - 1 : prev.likesCount + 1
-    }))
+  const handleLikeUserReview = async () => {
+    try {
+      const currentUser = getCurrentUserIdentifier()
+      const reviewId = `boardgame_${gameId}_user_${currentUser}`
+      
+      const newLikeState = await reviewInteractionsService.toggleReviewLike(reviewId)
+      
+      setUserReviewData(prev => ({
+        ...prev,
+        isLiked: newLikeState,
+        likesCount: newLikeState ? prev.likesCount + 1 : Math.max(0, prev.likesCount - 1)
+      }))
+    } catch (error) {
+      console.error('Error toggling like:', error)
+      // Fallback to local state update
+      setUserReviewData(prev => ({
+        ...prev,
+        isLiked: !prev.isLiked,
+        likesCount: prev.isLiked ? prev.likesCount - 1 : prev.likesCount + 1
+      }))
+    }
   }
 
   const handleCommentUserReview = () => {
-    // TODO: Open comments modal
-    console.log('🎲 [BoardGame] Opening comments for user review')
+    setShowUserReviewComments(true)
   }
 
-  const handleShareUserReview = () => {
-    // TODO: Open share modal
-    console.log('🎲 [BoardGame] Sharing user review')
+  const handleShareUserReview = async () => {
+    setShowShareModal(true)
+    
+    // Mark review as shared for tracking
+    try {
+      const currentUser = getCurrentUserIdentifier()
+      const reviewId = `boardgame_${gameId}_user_${currentUser}`
+      await reviewInteractionsService.markReviewAsShared(reviewId)
+    } catch (error) {
+      console.error('Error marking review as shared:', error)
+    }
+  }
+
+  // Comment functions
+  const handleSubmitComment = async () => {
+    if (!newComment.trim()) return
+    
+    try {
+      const currentUser = getCurrentUserIdentifier()
+      const reviewId = `boardgame_${gameId}_user_${currentUser}`
+      
+      const comment = await reviewInteractionsService.addReviewComment(reviewId, newComment.trim())
+      
+      if (comment) {
+        setUserReviewData(prev => ({
+          ...prev,
+          commentsCount: prev.commentsCount + 1,
+          comments: [...prev.comments, {
+            id: comment.id,
+            userId: comment.user_id,
+            username: comment.username,
+            text: comment.comment_text,
+            timestamp: comment.created_at,
+            likes: 0,
+            isLiked: false
+          }]
+        }))
+        
+        setNewComment('')
+      }
+    } catch (error) {
+      console.error('Error submitting comment:', error)
+    }
+  }
+
+  // Format timestamp for comments
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date()
+    const time = new Date(timestamp)
+    const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60))
+    
+    if (diffInMinutes < 1) return 'just now'
+    if (diffInMinutes < 60) return `${diffInMinutes}m`
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h`
+    return `${Math.floor(diffInMinutes / 1440)}d`
+  }
+
+  // Clean HTML description function
+  const cleanDescription = (htmlContent: string): string => {
+    if (!htmlContent) return ''
+    
+    // Supprimer toutes les balises HTML et nettoyer le contenu
+    return htmlContent
+      // D'abord remplacer certaines balises par des espaces pour éviter la concatenation
+      .replace(/<\/?(p|div|br|h[1-6])[^>]*>/gi, ' ') // Ajouter espaces pour les balises de bloc
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Supprimer entièrement les scripts
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '') // Supprimer entièrement les styles
+      .replace(/<[^>]*>/g, '') // Supprimer toutes les autres balises HTML
+      .replace(/&nbsp;/g, ' ') // Remplacer &nbsp; par espaces
+      .replace(/&amp;/g, '&') // Remplacer &amp; par &
+      .replace(/&lt;/g, '<') // Remplacer &lt; par <
+      .replace(/&gt;/g, '>') // Remplacer &gt; par >
+      .replace(/&quot;/g, '"') // Remplacer &quot; par "
+      .replace(/&#39;/g, "'") // Remplacer &#39; par '
+      .replace(/&#x27;/g, "'") // Remplacer &#x27; par '
+      .replace(/&#x2F;/g, '/') // Remplacer &#x2F; par /
+      .replace(/&#10;/g, '\n') // Remplacer &#10; par saut de ligne
+      .replace(/&#13;/g, '\r') // Remplacer &#13; par retour chariot
+      .replace(/&#32;/g, ' ') // Remplacer &#32; par espace
+      .replace(/&#160;/g, ' ') // Remplacer &#160; par espace insécable
+      .replace(/&#8211;/g, '–') // Remplacer &#8211; par tiret court
+      .replace(/&#8212;/g, '—') // Remplacer &#8212; par tiret long
+      .replace(/&#8216;/g, "\u2018") // Remplacer &#8216; par apostrophe gauche
+      .replace(/&#8217;/g, "\u2019") // Remplacer &#8217; par apostrophe droite
+      .replace(/&#8220;/g, "\u201C") // Remplacer &#8220; par guillemet gauche
+      .replace(/&#8221;/g, "\u201D") // Remplacer &#8221; par guillemet droit
+      .replace(/&#8230;/g, '...') // Remplacer &#8230; par points de suspension
+      // Traiter les entités UTF-8 mal encodées (séquences &#226;&#128;&#xxx;)
+      .replace(/&#226;&#128;&#147;/g, '–') // EN DASH mal encodé
+      .replace(/&#226;&#128;&#148;/g, '—') // EM DASH mal encodé
+      .replace(/&#226;&#128;&#156;/g, '"') // LEFT DOUBLE QUOTE mal encodé
+      .replace(/&#226;&#128;&#157;/g, '"') // RIGHT DOUBLE QUOTE mal encodé
+      .replace(/&#226;&#128;&#152;/g, "'") // LEFT SINGLE QUOTE mal encodé
+      .replace(/&#226;&#128;&#153;/g, "'") // RIGHT SINGLE QUOTE mal encodé
+      .replace(/&#226;&#128;&#166;/g, '...') // ELLIPSIS mal encodé
+      .replace(/&#226;&#128;&#149;/g, '—') // HORIZONTAL BAR mal encodé
+      .replace(/&hellip;/g, '...') // Remplacer &hellip; par ...
+      .replace(/&mdash;/g, '—') // Remplacer &mdash; par —
+      .replace(/&ndash;/g, '–') // Remplacer &ndash; par –
+      .replace(/&rsquo;/g, "\u2019") // Remplacer &rsquo; par '
+      .replace(/&lsquo;/g, "\u2018") // Remplacer &lsquo; par '
+      .replace(/&rdquo;/g, "\u201D") // Remplacer &rdquo; par "
+      .replace(/&ldquo;/g, "\u201C") // Remplacer &ldquo; par "
+      .replace(/\s+/g, ' ') // Normaliser les espaces multiples
+      .trim()
   }
 
   const handleRatingClick = async (rating: number) => {
@@ -581,11 +766,11 @@ export default function BoardGameDetailPage({
             reviewText: userReview,
             isPublic: reviewPrivacy === 'public'
           })
-          console.log('🎲 [BoardGame] Rating saved successfully:', newRating)
+          // Rating saved
         } else {
           // If rating is 0, delete the review
           await userReviewsService.deleteUserReview(gameId)
-          console.log('🎲 [BoardGame] Rating deleted successfully')
+          // Rating deleted
           setUserReview('') // Clear review text when rating is deleted
         }
       } catch (error) {
@@ -628,20 +813,13 @@ export default function BoardGameDetailPage({
   // Removed handleFriendsConfirm - no longer needed without friends popup
 
   const handleStatusSelect = (status: MediaStatus) => {
-    console.log('🎲 [BoardGame] handleStatusSelect called with status:', status)
-    console.log('🎲 [BoardGame] Current selectedStatus:', selectedStatus)
-    
     // If clicking on the same status, just close the dropdown
     if (selectedStatus === status) {
-      console.log('🎲 [BoardGame] Same status selected, closing dropdown')
       setShowLibraryDropdown(false)
       return
     }
     
-    if (!gameDetail) {
-      console.error('🎲 [BoardGame] No gameDetail available, cannot add to library')
-      return
-    }
+    if (!gameDetail) return
     
     const gameForLibrary = {
       id: gameId,
@@ -657,10 +835,8 @@ export default function BoardGameDetailPage({
       bggRating: gameDetail.bggRating
     }
     
-    // Call the parent's onAddToLibrary function (this will update or add the item)
+    // Call the parent's onAddToLibrary function and update state immediately
     onAddToLibrary(gameForLibrary, status)
-    
-    // Update local state immediately for smooth transition
     setSelectedStatus(status)
     setShowLibraryDropdown(false)
   }
@@ -1122,9 +1298,9 @@ export default function BoardGameDetailPage({
                       overflow: 'hidden'
                     } : undefined}
                   >
-                    {gameDetail.description}
+                    {cleanDescription(gameDetail.description)}
                   </div>
-                  {gameDetail.description.length > 300 && (
+                  {cleanDescription(gameDetail.description).length > 300 && (
                     <button
                       onClick={() => setShowFullOverview(!showFullOverview)}
                       className="text-gray-400 hover:text-gray-300 text-xs mt-1 transition-colors inline-block"
@@ -1448,6 +1624,102 @@ export default function BoardGameDetailPage({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Comments Modal - Style Instagram */}
+      {showUserReviewComments && (
+        <div className="fixed inset-0 z-60 bg-black/50">
+          {/* Overlay cliquable pour fermer */}
+          <div 
+            className="absolute inset-0" 
+            onClick={() => setShowUserReviewComments(false)}
+          />
+          
+          {/* Modal sliding from bottom */}
+          <div className="absolute bottom-0 left-0 right-0 bg-gray-900 rounded-t-2xl max-h-[80vh] flex flex-col">
+            {/* Handle bar */}
+            <div className="flex justify-center p-2">
+              <div className="w-10 h-1 bg-gray-600 rounded-full"></div>
+            </div>
+            
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-gray-700">
+              <h3 className="text-white font-semibold text-center">Comments</h3>
+            </div>
+            
+            {/* Comments list */}
+            <div className="flex-1 overflow-y-auto px-4 py-2">
+              {userReviewData.comments.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-400 text-sm">No comments yet</div>
+                  <div className="text-gray-500 text-xs mt-1">Be the first to comment</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userReviewData.comments.map((comment) => (
+                    <div key={comment.id} className="flex space-x-3">
+                      <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
+                        {comment.username[0]}
+                      </div>
+                      <div className="flex-1">
+                        <div className="bg-gray-800 rounded-2xl px-3 py-2">
+                          <div className="text-white text-sm font-medium">{comment.username}</div>
+                          <div className="text-gray-300 text-sm">{comment.text}</div>
+                        </div>
+                        <div className="flex items-center space-x-4 mt-1 ml-3">
+                          <span className="text-gray-500 text-xs">{formatTimeAgo(comment.timestamp)}</span>
+                          <button className="text-gray-500 text-xs font-medium">Like</button>
+                          <button className="text-gray-500 text-xs font-medium">Reply</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Comment input */}
+            <div className="p-4 border-t border-gray-700">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                  U
+                </div>
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="What do you think?"
+                    className="w-full bg-gray-800 text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    onKeyPress={(e) => e.key === 'Enter' && handleSubmitComment()}
+                  />
+                  {newComment.trim() && (
+                    <button
+                      onClick={handleSubmitComment}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-400 text-sm font-medium"
+                    >
+                      Post
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && gameDetail && (
+        <ShareWithFriendsModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          item={{
+            id: gameId,
+            type: 'boardgames',
+            title: gameDetail.name,
+            image: gameDetail.image
+          }}
+        />
       )}
     </div>
   )
