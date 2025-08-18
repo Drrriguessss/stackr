@@ -5,6 +5,7 @@ import { optimalBoardGameAPI, type OptimalBoardGameResult } from '@/services/opt
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { userReviewsService } from '@/services/userReviewsService'
 import { socialService } from '@/services/socialService'
+import { avatarService } from '@/services/avatarService'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 
 interface BoardGameDetailPageProps {
@@ -60,6 +61,15 @@ export default function BoardGameDetailPage({
   const [userFriends, setUserFriends] = useState<any[]>([])
   const [loadingFriends, setLoadingFriends] = useState(false)
   const [currentUserReview, setCurrentUserReview] = useState<any>(null)
+  const [realFriendsWhoPlayed, setRealFriendsWhoPlayed] = useState<any[]>([])
+  const [loadingFriendsWhoPlayed, setLoadingFriendsWhoPlayed] = useState(false)
+  const [reviewSaved, setReviewSaved] = useState(false)
+  const [expandedUserReview, setExpandedUserReview] = useState(false)
+  const [userReviewData, setUserReviewData] = useState({
+    isLiked: false,
+    likesCount: 0,
+    commentsCount: 0
+  })
   const [gameSheetData, setGameSheetData] = useState({
     playDate: '',
     location: '',
@@ -86,13 +96,33 @@ export default function BoardGameDetailPage({
     { id: 7, name: 'Susete', avatar: '/api/placeholder/32/32' }
   ]
 
-  // Mock friends who played this game
-  const friendsWhoPlayed = [
-    { id: 2, name: 'Maite', rating: 4, hasReview: true, reviewText: 'Amazing game! Great strategy and fun mechanics.' },
-    { id: 4, name: 'Joshua', rating: 5, hasReview: true, reviewText: 'One of the best board games I\'ve played this year!' },
-    { id: 6, name: 'Ana', rating: 3, hasReview: false, reviewText: null },
-    { id: 1, name: 'Axel', rating: 4, hasReview: true, reviewText: 'Great game night with friends. Highly recommend!' }
-  ]
+  // Load friends who played this game
+  const loadFriendsWhoPlayed = async () => {
+    setLoadingFriendsWhoPlayed(true)
+    try {
+      // Get all friends
+      const friends = await socialService.getFriends()
+      
+      // For now, we'll just show all friends as a placeholder
+      // In a real implementation, we would check each friend's library
+      // or activity feed to see who has played this game
+      
+      // Temporarily return empty array until we have a proper way to check
+      // which friends have played this specific game
+      setRealFriendsWhoPlayed([])
+      
+      // TODO: Implement proper logic to check which friends have this game
+      // This would require either:
+      // 1. A backend endpoint to get friends' library items for a specific game
+      // 2. Or access to friends' activity feeds filtered by this game
+      
+    } catch (error) {
+      console.error('Error loading friends who played:', error)
+      setRealFriendsWhoPlayed([])
+    } finally {
+      setLoadingFriendsWhoPlayed(false)
+    }
+  }
 
   // Mock BGG Reviews fallback
   const mockBGGReviews = [
@@ -118,8 +148,30 @@ export default function BoardGameDetailPage({
     if (gameId && hasLoadedRef.current !== gameId) {
       hasLoadedRef.current = gameId
       fetchGameDetail()
+      loadFriendsWhoPlayed()
+      loadUserRating()
     }
   }, [gameId])
+
+  // Load existing user rating for this game
+  const loadUserRating = async () => {
+    try {
+      const existingReview = await userReviewsService.getUserReviewForMedia(gameId)
+      if (existingReview) {
+        console.log('🎲 [BoardGame] Loading existing rating:', existingReview.rating)
+        setUserRating(existingReview.rating)
+        setUserReview(existingReview.review_text || '')
+        setReviewPrivacy(existingReview.is_public ? 'public' : 'private')
+        
+        // If user has a rating, show the review box so they can see/edit their review
+        if (existingReview.rating > 0) {
+          setShowReviewBox(true)
+        }
+      }
+    } catch (error) {
+      console.error('🎲 [BoardGame] Error loading user rating:', error)
+    }
+  }
 
   useEffect(() => {
     const libraryItem = library.find(item => item.id === gameId)
@@ -444,35 +496,100 @@ export default function BoardGameDetailPage({
     }
   }
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (userRating > 0 && userReview.trim()) {
-      onReviewSubmit({
-        rating: userRating,
-        review: userReview.trim()
-      })
-      
-      setShowReviewBox(false)
-      setUserReview('')
-      setUserRating(0)
-    }
-  }
-
-  const handleRatingClick = async (rating: number) => {
-    setUserRating(rating)
-    // Auto-save rating
-    if (gameDetail) {
       try {
         await userReviewsService.submitReview({
           mediaId: gameId,
-          mediaTitle: gameDetail.name,
+          mediaTitle: gameDetail?.name || '',
           mediaCategory: 'boardgames',
-          rating,
-          reviewText: userReview,
+          rating: userRating,
+          reviewText: userReview.trim(),
           isPublic: reviewPrivacy === 'public'
         })
-        console.log('🎲 [BoardGame] Rating saved successfully:', rating)
+        
+        console.log('🎲 [BoardGame] Review saved successfully')
+        // Don't close review box - allow continuous editing
+        
+        // Show success feedback
+        setReviewSaved(true)
+        setTimeout(() => setReviewSaved(false), 2000)
+        
+        // Call the parent's onReviewSubmit if it exists
+        onReviewSubmit({
+          rating: userRating,
+          review: userReview.trim()
+        })
       } catch (error) {
-        console.error('🎲 [BoardGame] Error saving rating:', error)
+        console.error('🎲 [BoardGame] Error saving review:', error)
+      }
+    }
+  }
+
+  const handleSkipReview = () => {
+    // Just close the review box without saving any review text
+    // The rating is already saved from handleRatingClick
+    console.log('🎲 [BoardGame] Skipping review, keeping only rating:', userRating)
+    setShowReviewBox(false)
+  }
+
+  // Helper function to truncate text to one line
+  const truncateToOneLine = (text: string) => {
+    return text.length > 60 ? text.substring(0, 60) + '...' : text
+  }
+
+  // Your review actions
+  const handleLikeUserReview = () => {
+    setUserReviewData(prev => ({
+      ...prev,
+      isLiked: !prev.isLiked,
+      likesCount: prev.isLiked ? prev.likesCount - 1 : prev.likesCount + 1
+    }))
+  }
+
+  const handleCommentUserReview = () => {
+    // TODO: Open comments modal
+    console.log('🎲 [BoardGame] Opening comments for user review')
+  }
+
+  const handleShareUserReview = () => {
+    // TODO: Open share modal
+    console.log('🎲 [BoardGame] Sharing user review')
+  }
+
+  const handleRatingClick = async (rating: number) => {
+    // Allow editing: if same rating is clicked, reset to 0
+    const newRating = userRating === rating ? 0 : rating
+    setUserRating(newRating)
+    
+    // Open review box when rating (but not when clearing)
+    if (newRating > 0) {
+      setShowReviewBox(true)
+    } else {
+      setShowReviewBox(false)
+    }
+    
+    // Auto-save rating
+    if (gameDetail) {
+      try {
+        if (newRating > 0) {
+          await userReviewsService.submitReview({
+            mediaId: gameId,
+            mediaTitle: gameDetail.name,
+            mediaCategory: 'boardgames',
+            rating: newRating,
+            reviewText: userReview,
+            isPublic: reviewPrivacy === 'public'
+          })
+          console.log('🎲 [BoardGame] Rating saved successfully:', newRating)
+        } else {
+          // If rating is 0, delete the review
+          await userReviewsService.deleteUserReview(gameId)
+          console.log('🎲 [BoardGame] Rating deleted successfully')
+          setUserReview('') // Clear review text when rating is deleted
+        }
+      } catch (error) {
+        console.error('🎲 [BoardGame] Error saving/deleting rating:', error)
       }
     }
   }
@@ -512,6 +629,14 @@ export default function BoardGameDetailPage({
 
   const handleStatusSelect = (status: MediaStatus) => {
     console.log('🎲 [BoardGame] handleStatusSelect called with status:', status)
+    console.log('🎲 [BoardGame] Current selectedStatus:', selectedStatus)
+    
+    // If clicking on the same status, just close the dropdown
+    if (selectedStatus === status) {
+      console.log('🎲 [BoardGame] Same status selected, closing dropdown')
+      setShowLibraryDropdown(false)
+      return
+    }
     
     if (!gameDetail) {
       console.error('🎲 [BoardGame] No gameDetail available, cannot add to library')
@@ -532,7 +657,7 @@ export default function BoardGameDetailPage({
       bggRating: gameDetail.bggRating
     }
     
-    // Call the parent's onAddToLibrary function
+    // Call the parent's onAddToLibrary function (this will update or add the item)
     onAddToLibrary(gameForLibrary, status)
     
     // Update local state immediately for smooth transition
@@ -701,29 +826,48 @@ export default function BoardGameDetailPage({
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
                       <span className="text-gray-400 text-sm">Friends who played:</span>
-                      <div className="flex -space-x-1">
-                        {friendsWhoPlayed.slice(0, 4).map((friend) => (
-                          <div
-                            key={friend.id}
-                            className="w-6 h-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
-                            title={`${friend.name} - ${friend.rating}/5 stars`}
-                          >
-                            {friend.name.charAt(0)}
-                          </div>
-                        ))}
-                        {friendsWhoPlayed.length > 4 && (
-                          <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform">
-                            +{friendsWhoPlayed.length - 4}
-                          </div>
-                        )}
-                      </div>
+                      {loadingFriendsWhoPlayed ? (
+                        <span className="text-gray-500 text-sm">Loading...</span>
+                      ) : realFriendsWhoPlayed.length > 0 ? (
+                        <div className="flex -space-x-1">
+                          {realFriendsWhoPlayed.slice(0, 4).map((friend) => (
+                            friend.avatar_url ? (
+                              <img
+                                key={friend.friend_id}
+                                src={friend.avatar_url}
+                                alt={friend.display_name || friend.username}
+                                className="w-6 h-6 rounded-full border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
+                                title={`${friend.display_name || friend.username}${friend.rating ? ` - ${friend.rating}/5 stars` : ''}`}
+                              />
+                            ) : (
+                              <div
+                                key={friend.friend_id}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
+                                style={{ backgroundColor: avatarService.getAvatarColor(friend.friend_id) }}
+                                title={`${friend.display_name || friend.username}${friend.rating ? ` - ${friend.rating}/5 stars` : ''}`}
+                              >
+                                {avatarService.getInitials(friend.display_name || friend.username)}
+                              </div>
+                            )
+                          ))}
+                          {realFriendsWhoPlayed.length > 4 && (
+                            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform">
+                              +{realFriendsWhoPlayed.length - 4}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-sm">None</span>
+                      )}
                     </div>
-                    <button 
-                      onClick={() => setShowFriendsWhoPlayedModal(true)}
-                      className="text-gray-400 hover:text-purple-400 text-sm transition-colors"
-                    >
-                      View all
-                    </button>
+                    {realFriendsWhoPlayed.length > 0 && (
+                      <button 
+                        onClick={() => setShowFriendsWhoPlayedModal(true)}
+                        className="text-gray-400 hover:text-purple-400 text-sm transition-colors"
+                      >
+                        View all
+                      </button>
+                    )}
                   </div>
                   
                   {/* Game Sheet Link */}
@@ -739,13 +883,30 @@ export default function BoardGameDetailPage({
                   
                   {/* Rate this game section - Always visible */}
                   <div className="mt-4">
-                    <button
-                      onClick={() => setShowReviewBox(!showReviewBox)}
-                      className="text-purple-400 hover:text-purple-300 text-sm transition-colors flex items-center space-x-1"
-                    >
-                      <Star size={14} />
-                      <span>Rate this game</span>
-                    </button>
+                    <div className="text-gray-400 text-sm mb-1">Rate this game</div>
+                    <div className="flex items-center space-x-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          onClick={() => handleRatingClick(star)}
+                          className="transition-all duration-200 hover:scale-110"
+                        >
+                          <Star
+                            size={18}
+                            className={`${
+                              star <= (hoverRating || userRating)
+                                ? 'text-purple-400 fill-purple-400 drop-shadow-sm'
+                                : 'text-gray-600 hover:text-gray-500'
+                            } transition-colors`}
+                          />
+                        </button>
+                      ))}
+                      {userRating > 0 && (
+                        <span className="text-gray-400 text-sm ml-2">{userRating}/5</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -756,54 +917,26 @@ export default function BoardGameDetailPage({
           {/* Main Content - BookDetailModalV3 Style */}
           <div className="px-6 py-4 relative" style={{ zIndex: 1 }}>
 
-            {/* Rate this game section (shown when user clicks rate button) */}
-            {showReviewBox && (
+            {/* Review section (shown when user rates the game) */}
+            {showReviewBox && userRating > 0 && (
               <div className="mb-6 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/30 rounded-lg p-4">
-                <h3 className="text-white font-medium mb-3">Rate this game</h3>
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="flex items-center space-x-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        onClick={() => handleRatingClick(star)}
-                        className="transition-all duration-200 hover:scale-110"
-                      >
-                        <Star
-                          size={20}
-                          className={`${
-                            star <= (hoverRating || userRating)
-                              ? 'text-yellow-400 fill-yellow-400 drop-shadow-sm'
-                              : 'text-white/30 hover:text-yellow-400'
-                          } transition-colors`}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                  {userRating > 0 && (
-                    <span className="text-purple-400 text-sm font-medium">
-                      {userRating}/5 stars
-                    </span>
-                  )}
-                </div>
+                <h3 className="text-white font-medium mb-3">Share your thoughts</h3>
                 
                 {/* Review Text Area */}
-                {userRating > 0 && (
-                  <div className="space-y-3">
-                    <textarea
-                      value={userReview}
-                      onChange={(e) => setUserReview(e.target.value)}
-                      placeholder="Write your review... (optional)"
-                      className="w-full bg-black/20 border border-purple-500/30 rounded-lg p-3 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
-                      rows={3}
-                    />
-                    
-                    {/* Privacy Toggle */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-white/70 text-sm">Review privacy:</span>
-                        <div className="flex bg-black/30 rounded-lg p-1">
+                <div className="space-y-3">
+                  <textarea
+                    value={userReview}
+                    onChange={(e) => setUserReview(e.target.value)}
+                    placeholder="Write your review... (optional)"
+                    className="w-full bg-black/20 border border-purple-500/30 rounded-lg p-3 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                    rows={3}
+                  />
+                  
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-white/70 text-sm">Review privacy:</span>
+                      <div className="flex bg-black/30 rounded-lg p-1">
                           <button
                             onClick={() => setReviewPrivacy('private')}
                             className={`px-3 py-1 rounded-md text-xs transition-colors ${
@@ -827,17 +960,152 @@ export default function BoardGameDetailPage({
                         </div>
                       </div>
                       
-                      {userReview.trim() && (
-                        <button
-                          onClick={handleSubmitReview}
-                          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200"
-                        >
-                          Save Review
-                        </button>
-                      )}
+                      <div className="flex items-center space-x-2">
+                        {!userReview.trim() && (
+                          <button
+                            onClick={handleSkipReview}
+                            className="px-3 py-1 bg-gray-700 text-gray-300 text-xs font-medium rounded-md hover:bg-gray-600 transition-colors"
+                          >
+                            Skip
+                          </button>
+                        )}
+                        {userReview.trim() && (
+                          <button
+                            onClick={handleSubmitReview}
+                            className={`px-3 py-1 text-white text-xs font-medium rounded-md transition-all duration-200 ${
+                              reviewSaved 
+                                ? 'bg-green-600 hover:bg-green-700' 
+                                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+                            }`}
+                          >
+                            {reviewSaved ? 'Saved!' : 'Save Review'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Your Review - Style Instagram (shown if user has rating but review box is closed) */}
+            {userRating > 0 && !showReviewBox && (
+              <div className="mb-6 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] rounded-lg p-4 md:p-6 border border-gray-700/50">
+                {/* Header: Title + Privacy + Edit */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-white font-semibold text-base">Your review</h3>
+                    <span className="text-gray-400 text-xs">({reviewPrivacy})</span>
+                  </div>
+                  <button
+                    onClick={() => setShowReviewBox(true)}
+                    className="text-white text-xs font-medium hover:text-gray-300 transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+                
+                {/* Fine ligne blanche */}
+                <div className="border-t border-white/10 mb-4"></div>
+                
+                {/* Review content */}
+                <div className="py-2">
+                  {/* Avatar + You + Rating */}
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                      U
+                    </div>
+                    <div className="flex items-center space-x-2 flex-1">
+                      <span className="text-white font-medium text-sm">You</span>
+                      {/* Rating en mauve */}
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={`${
+                              star <= userRating
+                                ? 'text-purple-400 fill-current'
+                                : 'text-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Review text */}
+                  {userReview && (
+                    <div className="mb-3 ml-11">
+                      <p className="text-gray-300 text-sm leading-relaxed">
+                        {expandedUserReview 
+                          ? userReview 
+                          : truncateToOneLine(userReview)
+                        }
+                        {userReview.length > 60 && (
+                          <button
+                            onClick={() => setExpandedUserReview(!expandedUserReview)}
+                            className="text-purple-400 hover:text-purple-300 ml-1 text-xs"
+                          >
+                            {expandedUserReview ? 'less' : 'more'}
+                          </button>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Actions Instagram style avec compteurs */}
+                  <div className="ml-11">
+                    <div className="flex items-center space-x-4">
+                      {/* Like - Heart outline avec compteur */}
+                      <div className="flex items-center space-x-1">
+                        <button 
+                          onClick={handleLikeUserReview}
+                          className={`transition-colors ${userReviewData.isLiked ? 'text-red-500' : 'text-gray-400 hover:text-gray-300'}`}
+                        >
+                          {userReviewData.isLiked ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                          )}
+                        </button>
+                        {userReviewData.likesCount > 0 && (
+                          <span className="text-gray-300 text-xs">{userReviewData.likesCount}</span>
+                        )}
+                      </div>
+                      
+                      {/* Comment - Chat bubble avec compteur */}
+                      <div className="flex items-center space-x-1">
+                        <button 
+                          onClick={handleCommentUserReview}
+                          className="text-gray-400 hover:text-gray-300 transition-colors"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                          </svg>
+                        </button>
+                        {userReviewData.commentsCount > 0 && (
+                          <span className="text-gray-300 text-xs">{userReviewData.commentsCount}</span>
+                        )}
+                      </div>
+                      
+                      {/* Share - Send arrow */}
+                      <button 
+                        onClick={handleShareUserReview}
+                        className="text-gray-400 hover:text-gray-300 transition-colors"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M22 2L11 13"/>
+                          <path d="M22 2L15 22L11 13L2 9L22 2z"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1140,14 +1408,25 @@ export default function BoardGameDetailPage({
               <h3 className="text-xl font-semibold text-white mb-2">Friends who played {gameDetail?.name}</h3>
             </div>
             <div className="p-6 max-h-96 overflow-y-auto space-y-4">
-              {friendsWhoPlayed.map((friend) => (
-                <div key={friend.id} className="bg-black/20 rounded-lg p-4">
+              {realFriendsWhoPlayed.map((friend) => (
+                <div key={friend.friend_id} className="bg-black/20 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-medium">
-                        {friend.name.charAt(0)}
-                      </div>
-                      <span className="text-white font-medium">{friend.name}</span>
+                      {friend.avatar_url ? (
+                        <img
+                          src={friend.avatar_url}
+                          alt={friend.display_name || friend.username}
+                          className="w-10 h-10 rounded-full"
+                        />
+                      ) : (
+                        <div 
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
+                          style={{ backgroundColor: avatarService.getAvatarColor(friend.friend_id) }}
+                        >
+                          {avatarService.getInitials(friend.display_name || friend.username)}
+                        </div>
+                      )}
+                      <span className="text-white font-medium">{friend.display_name || friend.username}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       {[1, 2, 3, 4, 5].map((star) => (

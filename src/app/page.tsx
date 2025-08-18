@@ -468,11 +468,23 @@ export default function Home() {
     }
 
     try {
-      await LibraryService.addToLibrary(itemToAdd, status)
+      // Check if item already exists in library
+      const existingItem = library.find(libItem => libItem.id === normalizedId)
+      
+      if (existingItem) {
+        // If item exists, update its status
+        console.log('📚 Item already in library, updating status:', normalizedId, status)
+        await LibraryService.updateLibraryItem(normalizedId, { status })
+      } else {
+        // If item doesn't exist, add it
+        console.log('📚 Adding new item to library:', normalizedId, status)
+        await LibraryService.addToLibrary(itemToAdd, status)
+      }
+      
       const updatedLibrary = await LibraryService.getLibrary()
       setLibrary(updatedLibrary)
     } catch (error) {
-      console.error('Error adding to library:', error)
+      console.error('Error adding/updating library:', error)
     }
   }
 
