@@ -56,11 +56,8 @@ export default function BoardGameDetailPage({
   const [designerGamesLoaded, setDesignerGamesLoaded] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [currentStatus, setCurrentStatus] = useState<MediaStatus | null>(null)
-  // Removed showFriendsModal - no popup when selecting played status
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
-  // Removed selectedFriends and friendsSearch - no longer needed without friends popup
   const [showGameSheet, setShowGameSheet] = useState(false)
-  const [showFriendsWhoPlayedModal, setShowFriendsWhoPlayedModal] = useState(false)
   const [youtubeVideos, setYoutubeVideos] = useState<YouTubeVideo[]>([])
   const [loadingVideos, setLoadingVideos] = useState(false)
   const [videosLoaded, setVideosLoaded] = useState(false)
@@ -81,12 +78,8 @@ export default function BoardGameDetailPage({
       document.body.style.touchAction = ''
     }
   }, [showGameSheet])
-  const [showFriendsSelector, setShowFriendsSelector] = useState(false)
-  const [userFriends, setUserFriends] = useState<any[]>([])
-  const [loadingFriends, setLoadingFriends] = useState(false)
   const [currentUserReview, setCurrentUserReview] = useState<any>(null)
-  const [realFriendsWhoPlayed, setRealFriendsWhoPlayed] = useState<any[]>([])
-  const [loadingFriendsWhoPlayed, setLoadingFriendsWhoPlayed] = useState(false)
+  // Removed friends-related state - not needed for simple dropdown
   const [reviewSaved, setReviewSaved] = useState(false)
   const [expandedUserReview, setExpandedUserReview] = useState(false)
   const [userReviewData, setUserReviewData] = useState({
@@ -262,15 +255,24 @@ export default function BoardGameDetailPage({
   // Dynamic button text based on current status
   const currentButtonText = currentStatus ? getStatusLabel(currentStatus) : 'Add to Library'
 
-  // Handle status change
+  // Handle status change - OPTIMIZED: UI INSTANT + SUPABASE BACKGROUND
   const handleStatusChange = async (status: MediaStatus | null) => {
     setShowDropdown(false)
     
+    // 🚀 INSTANT UI UPDATE (before any database calls)
+    setCurrentStatus(status)
+    
+    // 📡 BACKGROUND SUPABASE SYNC (non-blocking)
     if (status === null) {
-      // Remove from library
-      await handleRemoveFromLibrary()
+      // Remove from library in background
+      handleRemoveFromLibrary().catch(error => {
+        console.error('Background remove failed:', error)
+        // Revert UI on error
+        const libraryItem = library.find(item => item.id === gameId)
+        setCurrentStatus(libraryItem?.status || null)
+      })
     } else {
-      // Add/update in library
+      // Add/update in library in background
       const gameForLibrary = {
         id: gameDetail?.id,
         title: gameDetail?.name || '',
@@ -280,7 +282,13 @@ export default function BoardGameDetailPage({
         author: gameDetail?.designers?.[0]?.name || 'Unknown Designer',
         genre: gameDetail?.categories?.[0]?.name || 'Board Game'
       }
-      await onAddToLibrary(gameForLibrary, status)
+      
+      onAddToLibrary(gameForLibrary, status).catch(error => {
+        console.error('Background sync failed:', error)
+        // Revert UI on error
+        const libraryItem = library.find(item => item.id === gameId)
+        setCurrentStatus(libraryItem?.status || null)
+      })
     }
   }
 
