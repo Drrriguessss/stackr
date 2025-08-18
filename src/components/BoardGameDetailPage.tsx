@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { X, Star, Send, ChevronDown, Share, ExternalLink, Award, Trophy, Dice6, Check, FileText } from 'lucide-react'
+import { X, Star, Send, ChevronDown, Share, ExternalLink, Award, Trophy, Dice6, Check, FileText, Play } from 'lucide-react'
 import { optimalBoardGameAPI, type OptimalBoardGameResult } from '@/services/optimalBoardGameAPI'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { userReviewsService } from '@/services/userReviewsService'
@@ -8,6 +8,7 @@ import { socialService } from '@/services/socialService'
 import { reviewInteractionsService, type ReviewComment } from '@/services/reviewInteractionsService'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 import { avatarService } from '@/services/avatarService'
+import { fetchYouTubeVideos, getVideoTypeLabel, getVideoTypeColor, type YouTubeVideo } from '@/services/youtubeService'
 
 interface BoardGameDetailPageProps {
   gameId: string
@@ -24,7 +25,7 @@ interface BoardGameDetail extends OptimalBoardGameResult {
   // Additional fields can be added here if needed
 }
 
-type TabType = 'overview' | 'reviews' | 'moreinfo'
+type TabType = 'overview' | 'reviews' | 'moreinfo' | 'media'
 
 export default function BoardGameDetailPage({ 
   gameId,
@@ -58,6 +59,25 @@ export default function BoardGameDetailPage({
   // Removed selectedFriends and friendsSearch - no longer needed without friends popup
   const [showGameSheet, setShowGameSheet] = useState(false)
   const [showFriendsWhoPlayedModal, setShowFriendsWhoPlayedModal] = useState(false)
+  const [youtubeVideos, setYoutubeVideos] = useState<YouTubeVideo[]>([])
+  const [loadingVideos, setLoadingVideos] = useState(false)
+  const [videosLoaded, setVideosLoaded] = useState(false)
+
+  // Body scroll lock for Game Sheet Modal
+  useEffect(() => {
+    if (showGameSheet) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.touchAction = 'none'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+  }, [showGameSheet])
   const [showFriendsSelector, setShowFriendsSelector] = useState(false)
   const [userFriends, setUserFriends] = useState<any[]>([])
   const [loadingFriends, setLoadingFriends] = useState(false)
@@ -141,14 +161,6 @@ export default function BoardGameDetailPage({
     }
   }
 
-  // Mock BGG Reviews fallback
-  const mockBGGReviews = [
-    { id: 1, username: 'BoardGameGeeker', rating: 5, text: 'Fantastic game with amazing replay value. Great mechanics and theme integration.', date: '2024-01-15', platform: 'BGG' },
-    { id: 2, username: 'MeepleCollector', rating: 4, text: 'Solid game design with beautiful components. Takes a few plays to master.', date: '2024-01-12', platform: 'BGG' },
-    { id: 3, username: 'TabletopTactician', rating: 5, text: 'One of the best games in its category. Highly recommended!', date: '2024-01-10', platform: 'BGG' },
-    { id: 4, username: 'GameNightHost', rating: 4, text: 'Great for game nights. Easy to learn but deep strategy.', date: '2024-01-08', platform: 'BGG' },
-    { id: 5, username: 'StrategyGamer', rating: 5, text: 'Excellent balance of luck and strategy. Never gets old.', date: '2024-01-05', platform: 'BGG' }
-  ]
 
   useEffect(() => {
     setActiveTab('overview')
@@ -156,7 +168,17 @@ export default function BoardGameDetailPage({
     setShowStatusPopup(false)
     setSimilarGamesLoaded(false)
     setDesignerGamesLoaded(false)
+    setVideosLoaded(false)
+    setYoutubeVideos([])
   }, [gameId])
+
+  // Load YouTube videos when media tab is selected
+  useEffect(() => {
+    if (activeTab === 'media' && gameDetail?.name && !videosLoaded) {
+      loadYouTubeVideos()
+    }
+  }, [activeTab, gameDetail?.name, videosLoaded])
+
 
   // Ref pour éviter les appels API multiples
   const hasLoadedRef = useRef<string | null>(null)
@@ -169,6 +191,13 @@ export default function BoardGameDetailPage({
       loadUserRating()
     }
   }, [gameId])
+
+  // Load designer games when gameDetail is loaded
+  useEffect(() => {
+    if (gameDetail && gameDetail.designers?.length > 0 && !designerGamesLoaded) {
+      loadDesignerGames()
+    }
+  }, [gameDetail, designerGamesLoaded])
 
   // Load existing user rating for this game
   const loadUserRating = async () => {
@@ -475,14 +504,40 @@ export default function BoardGameDetailPage({
 
   // Lazy loading for designer games
   const loadDesignerGames = async () => {
-    if (loadingDesigner || designerGamesLoaded || !gameDetail || !gameDetail.designers?.length) return
+    if (loadingDesigner || designerGamesLoaded || !gameDetail || !gameDetail.designers?.length) {
+      console.log('🎲 Skipping designer games load:', { loadingDesigner, designerGamesLoaded, hasGameDetail: !!gameDetail, hasDesigners: !!gameDetail?.designers?.length })
+      return
+    }
     
     setLoadingDesigner(true)
     try {
-      console.log('🎲 Loading designer games...')
       const designerName = gameDetail.designers[0].name
-      const designerResults = await optimalBoardGameAPI.search(designerName, { limit: 4 })
-      const filteredResults = designerResults.filter(game => game.id !== gameDetail.id)
+      console.log('🎲 Loading designer games for:', designerName)
+      
+      // Strategy 1: Search by designer name directly (often doesn't work)
+      let designerResults = await optimalBoardGameAPI.search(designerName, { limit: 8 })
+      
+      // Strategy 2: If no results, search by game name variations to find similar games
+      if (designerResults.length === 0) {
+        console.log('🎲 No direct designer results, trying game name variations...')
+        const gameBaseName = gameDetail.name.split(' ')[0] // Get first word (e.g., "Catan" from "CATAN")
+        designerResults = await optimalBoardGameAPI.search(gameBaseName, { limit: 8 })
+      }
+      
+      // Strategy 3: Filter results to only include games likely from the same designer
+      let filteredResults = designerResults.filter(game => 
+        game.id !== gameDetail.id && 
+        (game.designers?.some(d => d.name === designerName) || 
+         game.name.toLowerCase().includes(gameDetail.name.split(' ')[0].toLowerCase()))
+      )
+      
+      // If still no results, show the top related games anyway
+      if (filteredResults.length === 0) {
+        console.log('🎲 No designer matches, showing related games...')
+        filteredResults = designerResults.filter(game => game.id !== gameDetail.id).slice(0, 4)
+      }
+      
+      console.log('🎲 Found designer games:', filteredResults.length, 'games for', designerName)
       setDesignerGames(filteredResults)
       setDesignerGamesLoaded(true)
     } catch (error) {
@@ -492,6 +547,24 @@ export default function BoardGameDetailPage({
       setLoadingDesigner(false)
     }
   }
+
+  const loadYouTubeVideos = async () => {
+    if (!gameDetail?.name || videosLoaded) return
+    
+    setLoadingVideos(true)
+    try {
+      const videos = await fetchYouTubeVideos(gameDetail.name)
+      setYoutubeVideos(videos)
+      setVideosLoaded(true)
+    } catch (error) {
+      console.error('Error loading YouTube videos:', error)
+    } finally {
+      setLoadingVideos(false)
+    }
+  }
+
+
+
 
   // Library status management - moved above with friends modal logic
 
@@ -822,7 +895,7 @@ export default function BoardGameDetailPage({
     // Call the parent's onAddToLibrary function and update state immediately
     onAddToLibrary(gameForLibrary, status)
     setSelectedStatus(status)
-    setShowLibraryDropdown(false)
+    setShowStatusPopup(false)
   }
 
   return (
@@ -858,13 +931,13 @@ export default function BoardGameDetailPage({
               </div>
             </div>
 
-            {/* Bottom Section: Game Info with Purple Gradient */}
+            {/* Bottom Section: Game Info with Gray/Black Gradient */}
             <div className="relative min-h-[240px] overflow-visible">
-              {/* Purple Gradient Background for Info Section */}
+              {/* Gray/Black Gradient Background for Info Section */}
               <div 
                 className="absolute inset-0"
                 style={{ 
-                  background: 'linear-gradient(to bottom, rgba(99, 102, 241, 0.4), rgba(126, 58, 242, 0.3), rgba(107, 33, 168, 0.2), rgba(15, 14, 23, 0.7))',
+                  background: 'linear-gradient(to bottom, rgba(55, 65, 81, 0.4), rgba(31, 41, 55, 0.3), rgba(17, 24, 39, 0.2), rgba(15, 14, 23, 0.7))',
                   zIndex: 1
                 }}
               />
@@ -883,7 +956,7 @@ export default function BoardGameDetailPage({
                 {/* Container avec image + infos SEULEMENT */}
                 <div className="flex gap-4 items-start mb-4">
                   {/* Game Thumbnail - Fixed 100x100 */}
-                  <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 relative cursor-pointer transition-transform duration-200 active:scale-95">
+                  <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a1a1a] to-[#121212] flex-shrink-0 relative cursor-pointer transition-transform duration-200 active:scale-95">
                     {gameDetail.image ? (
                       <img
                         src={gameDetail.image}
@@ -938,7 +1011,7 @@ export default function BoardGameDetailPage({
                   <div className="flex-1">
                     <button
                       onClick={() => setShowStatusPopup(true)}
-                      className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-800 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                      className="w-full py-3 px-4 bg-gradient-to-r from-gray-600 to-gray-800 text-white font-medium rounded-lg hover:from-gray-700 hover:to-gray-900 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
                     >
                       <span>{selectedStatus ? getStatusLabel(selectedStatus) : 'Add to Library'}</span>
                     </button>
@@ -947,7 +1020,7 @@ export default function BoardGameDetailPage({
                   {/* Share Button */}
                   <button 
                     onClick={() => setShowShareWithFriendsModal(true)}
-                    className="px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
+                    className="px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
                   >
                     <Share size={16} />
                     <span>Share</span>
@@ -1013,8 +1086,110 @@ export default function BoardGameDetailPage({
                       <span>Customize this board game sheet</span>
                     </button>
                   </div>
+
+                  {/* Tabs: Overview / Videos/Photos */}
+                  <div className="mt-6 mb-4">
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => setActiveTab('overview')}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                          activeTab === 'overview'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        Overview
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('media')}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                          activeTab === 'media'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        Videos
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Media Content - YouTube Videos */}
+                  {activeTab === 'media' && (
+                    <div className="mt-4 space-y-6">
+                      {loadingVideos ? (
+                        <div className="text-center text-gray-400 py-16">
+                          <div className="text-lg mb-2">Loading videos...</div>
+                          <div className="text-sm">Finding the best gameplay and tutorial videos</div>
+                        </div>
+                      ) : youtubeVideos.length > 0 ? (
+                        <div className="space-y-6">
+                          <div className="text-white text-lg font-medium">YouTube Videos</div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {youtubeVideos.map((video) => (
+                              <a
+                                key={video.id}
+                                href={video.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-black/20 rounded-lg overflow-hidden hover:bg-black/30 transition-all duration-200 group"
+                              >
+                                <div className="relative">
+                                  <img
+                                    src={video.thumbnail}
+                                    alt={video.title}
+                                    className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-200"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                    <Play size={32} className="text-white" />
+                                  </div>
+                                  <div className={`absolute top-2 left-2 px-2 py-1 text-xs font-medium text-white rounded ${getVideoTypeColor(video.type)}`}>
+                                    {getVideoTypeLabel(video.type)}
+                                  </div>
+                                </div>
+                                <div className="p-3">
+                                  <h4 className="text-white text-sm font-medium mb-1 overflow-hidden" style={{
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical' as const
+                                  }}>{video.title}</h4>
+                                  <p className="text-gray-400 text-xs">{video.channel}</p>
+                                  <div className="flex items-center justify-between mt-2">
+                                    <span className="text-gray-500 text-xs">
+                                      {new Date(video.publishedAt).toLocaleDateString()}
+                                    </span>
+                                    <ExternalLink size={12} className="text-gray-500" />
+                                  </div>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                          
+                          {/* Video Categories Filter */}
+                          <div className="border-t border-gray-700 pt-4">
+                            <div className="text-gray-400 text-sm mb-3">Video types found:</div>
+                            <div className="flex flex-wrap gap-2">
+                              {Array.from(new Set(youtubeVideos.map(v => v.type))).map((type) => (
+                                <span
+                                  key={type}
+                                  className={`px-3 py-1 text-xs font-medium text-white rounded-full ${getVideoTypeColor(type)}`}
+                                >
+                                  {getVideoTypeLabel(type)} ({youtubeVideos.filter(v => v.type === type).length})
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-400 py-16">
+                          <div className="text-lg mb-2">No videos found</div>
+                          <div className="text-sm">We couldn't find any videos for this game right now.</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Rate this game section - Always visible */}
+                  <div style={{ display: activeTab === 'overview' ? 'block' : 'none' }}>
                   <div className="mt-4">
                     <div className="text-gray-400 text-sm mb-1">Rate this game</div>
                     <div className="flex items-center space-x-2">
@@ -1041,6 +1216,7 @@ export default function BoardGameDetailPage({
                       )}
                     </div>
                   </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1048,11 +1224,11 @@ export default function BoardGameDetailPage({
           </div>
 
           {/* Main Content - BookDetailModalV3 Style */}
-          <div className="px-6 py-4 relative" style={{ zIndex: 1 }}>
+          <div className="px-6 py-4 relative" style={{ zIndex: 1, display: activeTab === 'overview' ? 'block' : 'none' }}>
 
             {/* Review section (shown when user rates the game) */}
             {showReviewBox && userRating > 0 && (
-              <div className="mb-6 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/30 rounded-lg p-4">
+              <div className="mb-6 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] border border-gray-700/50 rounded-lg p-4">
                 <h3 className="text-white font-medium mb-3">Share your thoughts</h3>
                 
                 {/* Review Text Area */}
@@ -1108,7 +1284,7 @@ export default function BoardGameDetailPage({
                             className={`px-3 py-1 text-white text-xs font-medium rounded-md transition-all duration-200 ${
                               reviewSaved 
                                 ? 'bg-green-600 hover:bg-green-700' 
-                                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+                                : 'bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900'
                             }`}
                           >
                             {reviewSaved ? 'Saved!' : 'Save Review'}
@@ -1145,7 +1321,7 @@ export default function BoardGameDetailPage({
                 <div className="py-2">
                   {/* Avatar + You + Rating */}
                   <div className="flex items-center space-x-3 mb-2">
-                    <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                    <div className="w-8 h-8 bg-gradient-to-r from-gray-600 to-gray-800 rounded-full flex items-center justify-center text-xs font-medium text-white">
                       U
                     </div>
                     <div className="flex items-center space-x-2 flex-1">
@@ -1294,7 +1470,12 @@ export default function BoardGameDetailPage({
               {gameDetail.bggRating && (
                 <div className="flex">
                   <span className="text-gray-400 w-24 flex-shrink-0 text-sm">BGG Rating:</span>
-                  <span className="text-white flex-1 text-sm">{gameDetail.bggRating.toFixed(1)}/10</span>
+                  <span className="text-white flex-1 text-sm">
+                    {gameDetail.bggRating.toFixed(1)}/10
+                    {gameDetail.ratingsCount && (
+                      <span className="text-gray-400 text-xs ml-1">({gameDetail.ratingsCount.toLocaleString()} evaluations)</span>
+                    )}
+                  </span>
                 </div>
               )}
               {gameDetail.categories && gameDetail.categories.length > 0 && (
@@ -1303,7 +1484,70 @@ export default function BoardGameDetailPage({
                   <span className="text-white flex-1 text-sm">{gameDetail.categories.map(c => c.name).join(', ')}</span>
                 </div>
               )}
+              
+              {gameDetail.mechanics && gameDetail.mechanics.length > 0 && (
+                <div className="flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0 text-sm">Mechanics:</span>
+                  <span className="text-white flex-1 text-sm">{gameDetail.mechanics.map(m => m.name).join(', ')}</span>
+                </div>
+              )}
+              
+              {gameDetail.artists && gameDetail.artists.length > 0 && (
+                <div className="flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0 text-sm">Artists:</span>
+                  <span className="text-white flex-1 text-sm">{gameDetail.artists.map(a => a.name).join(', ')}</span>
+                </div>
+              )}
+              
+              {gameDetail.publishers && gameDetail.publishers.length > 0 && (
+                <div className="flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0 text-sm">Publishers:</span>
+                  <span className="text-white flex-1 text-sm">{gameDetail.publishers.map(p => p.name).join(', ')}</span>
+                </div>
+              )}
+              
             </div>
+            
+            {/* Games from the same designer */}
+            {designerGames.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-white font-semibold mb-3">Games from the same designer</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {designerGames.slice(0, 4).map(game => (
+                    <div
+                      key={game.id}
+                      className="bg-black/20 rounded-lg p-3 hover:bg-black/30 transition-colors cursor-pointer"
+                      onClick={() => {
+                        // Navigate to this game
+                        window.location.hash = `#game-${game.id}`
+                        window.location.reload()
+                      }}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-gray-500 to-gray-700 flex-shrink-0">
+                          {game.image ? (
+                            <img src={game.image} alt={game.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-lg">🎲</div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white text-sm font-medium truncate">{game.name}</h4>
+                          <p className="text-gray-400 text-xs">{game.yearPublished || 'Unknown'}</p>
+                          {game.rating && (
+                            <div className="flex items-center mt-1">
+                              <Star size={12} className="text-yellow-400 fill-yellow-400 mr-1" />
+                              <span className="text-yellow-400 text-xs">{game.rating.toFixed(1)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
           </div>
         </div>
       ) : (
@@ -1335,17 +1579,32 @@ export default function BoardGameDetailPage({
       
       {/* Game Sheet Modal */}
       {showGameSheet && gameDetail && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-[#1A1A1A] rounded-2xl border border-purple-500/30 max-w-2xl w-full max-h-[90vh] overflow-hidden">
-            <div className="p-6 border-b border-purple-500/30">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          style={{ 
+            touchAction: 'none',
+            overscrollBehavior: 'contain'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowGameSheet(false)
+            }
+          }}
+        >
+          <div 
+            className="bg-[#1A1A1A] rounded-2xl border border-purple-500/30 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-purple-500/30 flex-shrink-0">
               <h3 className="text-xl font-semibold text-white mb-2">Board Game Sheet</h3>
               <p className="text-gray-400 text-sm">Track your board gaming experience</p>
             </div>
             
-            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="p-6 space-y-6">
               {/* Game Info */}
               <div className="flex items-start space-x-4">
-                <div className="w-20 h-20 rounded-lg overflow-hidden bg-gradient-to-br from-purple-500 to-indigo-600 flex-shrink-0">
+                <div className="w-20 h-20 rounded-lg overflow-hidden bg-gradient-to-br from-gray-500 to-gray-700 flex-shrink-0">
                   {gameDetail.image ? (
                     <img src={gameDetail.image} alt={gameDetail.name} className="w-full h-full object-cover" />
                   ) : (
@@ -1404,7 +1663,7 @@ export default function BoardGameDetailPage({
                   {gameSheetData.friendsPlayed.map((friend) => (
                     <div key={friend.id} className="flex items-center justify-between p-2 bg-black/20 rounded-lg">
                       <div className="flex items-center space-x-2">
-                        <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs">
+                        <div className="w-6 h-6 bg-gradient-to-r from-gray-500 to-gray-700 rounded-full flex items-center justify-center text-white text-xs">
                           {friend.name.charAt(0)}
                         </div>
                         <span className="text-white text-sm">{friend.name}</span>
@@ -1450,7 +1709,7 @@ export default function BoardGameDetailPage({
                                       : 'bg-black/20 hover:bg-black/40 text-white'
                                   }`}
                                 >
-                                  <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm">
+                                  <div className="w-8 h-8 bg-gradient-to-r from-gray-500 to-gray-700 rounded-full flex items-center justify-center text-white text-sm">
                                     {friend.name.charAt(0)}
                                   </div>
                                   <span className="text-sm">{friend.name}</span>
@@ -1510,9 +1769,10 @@ export default function BoardGameDetailPage({
                   rows={4}
                 />
               </div>
+              </div>
             </div>
             
-            <div className="p-6 border-t border-purple-500/30 flex space-x-3">
+            <div className="p-6 border-t border-purple-500/30 flex space-x-3 flex-shrink-0">
               <button
                 onClick={() => setShowGameSheet(false)}
                 className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
@@ -1524,7 +1784,7 @@ export default function BoardGameDetailPage({
                   // Save game sheet data
                   setShowGameSheet(false)
                 }}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200"
               >
                 Save Board Game Sheet
               </button>
@@ -1575,7 +1835,7 @@ export default function BoardGameDetailPage({
               ))}
             </div>
             <div className="p-6 border-t border-purple-500/30">
-              <button onClick={() => setShowFriendsWhoPlayedModal(false)} className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg">
+              <button onClick={() => setShowFriendsWhoPlayedModal(false)} className="w-full py-3 bg-gradient-to-r from-gray-600 to-gray-800 text-white rounded-lg">
                 Close
               </button>
             </div>
@@ -1724,20 +1984,13 @@ export default function BoardGameDetailPage({
                   >
                     <span className="font-medium">Remove from Library</span>
                     <div className="w-6 h-6 rounded-full border-2 border-red-400 flex items-center justify-center">
-                      <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                      {/* Empty circle for remove option */}
                     </div>
                   </button>
                 </>
               )}
             </div>
 
-            {/* Close Button */}
-            <button
-              onClick={() => setShowStatusPopup(false)}
-              className="w-full mt-6 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors"
-            >
-              Cancel
-            </button>
           </div>
         </div>
       )}

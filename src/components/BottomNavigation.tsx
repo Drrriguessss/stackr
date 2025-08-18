@@ -52,34 +52,20 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
     return (
       <button
         onClick={onClick}
-        className={`flex flex-col items-center justify-center py-2 px-2 min-w-0 flex-1 transition-all duration-200 relative ${
+        className={`flex items-center justify-center py-3 px-2 min-w-0 flex-1 transition-all duration-200 relative ${
           isActive 
-            ? 'text-purple-400' 
-            : 'text-gray-400 hover:text-purple-400'
+            ? 'text-white' 
+            : 'text-gray-400 hover:text-white'
         }`}
       >
-        {/* Barre active au-dessus */}
-        {isActive && (
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-purple-400 rounded-full transition-all duration-300 shadow-lg shadow-purple-400/50" />
-        )}
-        
-        <div className={`transition-all duration-300 ${isActive ? 'scale-105' : 'scale-100'}`}>
-          {/* Icône */}
-          <div className="flex justify-center mb-1">
-            <Icon 
-              size={20} 
-              className={`transition-all duration-300 ${
-                isActive ? 'stroke-2' : 'stroke-1.5'
-              }`}
-            />
-          </div>
-          
-          {/* Label */}
-          <span className={`text-xs font-medium transition-all duration-300 ${
-            isActive ? 'font-semibold' : 'font-normal'
-          }`}>
-            {tab.label}
-          </span>
+        <div className={`transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}>
+          {/* Icône agrandie */}
+          <Icon 
+            size={24} 
+            className={`transition-all duration-300 ${
+              isActive ? 'stroke-2' : 'stroke-1.5'
+            }`}
+          />
         </div>
       </button>
     )
@@ -88,7 +74,7 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
   return (
     <>
       {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0f0e17] backdrop-blur-xl border-t border-purple-500/30 px-4 py-2 z-40">
+      <div className="fixed bottom-0 left-0 right-0 bg-black/20 backdrop-blur-xl px-4 py-2 z-40">
         <div className="flex items-center justify-center max-w-md mx-auto">
           {mainTabs.map((tab) => (
             <TabButton
@@ -102,15 +88,14 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
           {/* More Button */}
           <button
             onClick={() => handleTabClick('more')}
-            className="flex flex-col items-center justify-center py-2 px-2 min-w-0 flex-1 text-gray-400 hover:text-purple-400 transition-colors duration-200"
+            className="flex items-center justify-center py-3 px-2 min-w-0 flex-1 text-gray-400 hover:text-white transition-all duration-200"
           >
-            <div className="flex justify-center mb-1">
+            <div className="transition-all duration-300 scale-100 hover:scale-110">
               <MoreHorizontal 
-                size={20} 
+                size={24} 
                 className="stroke-1.5"
               />
             </div>
-            <span className="text-xs font-normal">More</span>
           </button>
         </div>
       </div>
