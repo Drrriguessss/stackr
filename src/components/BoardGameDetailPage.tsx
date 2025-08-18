@@ -215,10 +215,18 @@ export default function BoardGameDetailPage({
     }
   }
 
-  // Sync currentStatus with library
+  // Sync currentStatus with library and initialize pending changes
   useEffect(() => {
     const libraryItem = library.find(item => item.id === gameId)
-    setCurrentStatus(libraryItem?.status || null)
+    const currentLibraryStatus = libraryItem?.status || null
+    
+    setCurrentStatus(currentLibraryStatus)
+    
+    // Initialize pending changes to match current library status
+    setPendingStatusChange({
+      status: currentLibraryStatus,
+      hasChanges: false
+    })
   }, [gameId, library])
 
   // Helper function moved up
@@ -238,51 +246,84 @@ export default function BoardGameDetailPage({
 
   // Mobile touch optimization: prevent double-tap issues
   const [isProcessingStatus, setIsProcessingStatus] = useState(false)
+  
+  // Deferred save optimization: track pending changes
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    status: MediaStatus | null
+    hasChanges: boolean
+  }>({
+    status: null,
+    hasChanges: false
+  })
 
-  // Handle status change - OPTIMIZED: UI INSTANT + SUPABASE BACKGROUND + MOBILE TOUCH
+  // Handle status change - MOBILE OPTIMIZED: INSTANT UI + DEFERRED SAVE
   const handleStatusChange = async (status: MediaStatus | null) => {
     if (isProcessingStatus) return // Prevent double-tap on mobile
     
     setIsProcessingStatus(true)
     setShowDropdown(false)
     
-    // 🚀 INSTANT UI UPDATE (before any database calls)
+    // 🚀 INSTANT UI UPDATE (zero delay for mobile)
     setCurrentStatus(status)
     
-    // 📡 BACKGROUND SUPABASE SYNC (non-blocking)
-    if (status === null) {
-      // Remove from library in background
-      handleRemoveFromLibrary().catch(error => {
-        console.error('Background remove failed:', error)
-        // Revert UI on error
-        const libraryItem = library.find(item => item.id === gameId)
-        setCurrentStatus(libraryItem?.status || null)
-      }).finally(() => {
-        // Reset processing state after 300ms to prevent UI issues
-        setTimeout(() => setIsProcessingStatus(false), 300)
-      })
-    } else {
-      // Add/update in library in background
-      const gameForLibrary = {
-        id: gameDetail?.id,
-        title: gameDetail?.name || '',
-        category: 'boardgames' as const,
-        image: gameDetail?.image,
-        year: gameDetail?.yearPublished,
-        author: gameDetail?.designers?.[0]?.name || 'Unknown Designer',
-        genre: gameDetail?.categories?.[0]?.name || 'Board Game'
+    // 📝 TRACK PENDING CHANGES (save on modal close)
+    setPendingStatusChange({
+      status,
+      hasChanges: true
+    })
+    
+    console.log('📱 [MOBILE OPTIMIZED] Status changed instantly to:', status, '- will save on modal close')
+    
+    // Reset processing state immediately for fluid UX
+    setTimeout(() => setIsProcessingStatus(false), 100)
+  }
+
+  // Deferred save function: save changes when modal closes
+  const savePendingChanges = async () => {
+    if (!pendingStatusChange.hasChanges || !gameDetail) return
+    
+    console.log('💾 [DEFERRED SAVE] Saving pending changes on modal close:', pendingStatusChange.status)
+    
+    try {
+      if (pendingStatusChange.status === null) {
+        // Remove from library
+        if (onDeleteItem) {
+          await onDeleteItem(gameId)
+          console.log('🗑️ [DEFERRED SAVE] Item removed from library')
+        }
+      } else {
+        // Add/update in library
+        const gameForLibrary = {
+          id: gameDetail.id,
+          title: gameDetail.name || '',
+          category: 'boardgames' as const,
+          image: gameDetail.image,
+          year: gameDetail.yearPublished,
+          author: gameDetail.designers?.[0]?.name || 'Unknown Designer',
+          genre: gameDetail.categories?.[0]?.name || 'Board Game'
+        }
+        
+        await onAddToLibrary(gameForLibrary, pendingStatusChange.status)
+        console.log('✅ [DEFERRED SAVE] Item saved to library with status:', pendingStatusChange.status)
       }
       
-      onAddToLibrary(gameForLibrary, status).catch(error => {
-        console.error('Background sync failed:', error)
-        // Revert UI on error
-        const libraryItem = library.find(item => item.id === gameId)
-        setCurrentStatus(libraryItem?.status || null)
-      }).finally(() => {
-        // Reset processing state after 300ms to prevent UI issues
-        setTimeout(() => setIsProcessingStatus(false), 300)
+      // Clear pending changes
+      setPendingStatusChange({
+        status: null,
+        hasChanges: false
       })
+    } catch (error) {
+      console.error('❌ [DEFERRED SAVE] Failed to save changes:', error)
+      // Optionally revert UI state here
     }
+  }
+
+  // Handle modal close with deferred save
+  const handleModalClose = async () => {
+    // Save any pending changes before closing
+    await savePendingChanges()
+    // Then close the modal
+    onBack()
   }
 
   // Removed dropdown click outside handler - using modal instead
@@ -944,10 +985,14 @@ export default function BoardGameDetailPage({
               {/* Navigation Header - X button top right */}
               <div className="absolute top-0 left-0 right-0 flex items-center justify-end p-5" style={{ zIndex: 20 }}>
                 <button
-                  onClick={onBack}
-                  className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
+                  onClick={handleModalClose}
+                  className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50 relative"
                 >
                   <X size={20} />
+                  {/* Pending changes indicator */}
+                  {pendingStatusChange.hasChanges && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border border-white/20" />
+                  )}
                 </button>
               </div>
             </div>
