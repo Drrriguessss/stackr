@@ -1092,6 +1092,9 @@ export default function Home() {
             userReviews={[]}
             bggReviews={[]}
             onReviewSubmit={() => {}}
+            onGameClick={(newGameId) => {
+              setSelectedBoardGameId(newGameId)
+            }}
           />
         ) : null
       case 'game-detail':

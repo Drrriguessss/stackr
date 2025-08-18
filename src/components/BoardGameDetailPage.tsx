@@ -20,6 +20,7 @@ interface BoardGameDetailPageProps {
   userReviews: Review[]
   bggReviews: Review[]
   onReviewSubmit: (reviewData: any) => void
+  onGameClick?: (gameId: string) => void
 }
 
 interface BoardGameDetail extends OptimalBoardGameResult {
@@ -36,7 +37,8 @@ export default function BoardGameDetailPage({
   library, 
   userReviews, 
   bggReviews, 
-  onReviewSubmit 
+  onReviewSubmit,
+  onGameClick
 }: BoardGameDetailPageProps) {
   const [gameDetail, setGameDetail] = useState<BoardGameDetail | null>(null)
   const [loading, setLoading] = useState(false)
@@ -166,6 +168,13 @@ export default function BoardGameDetailPage({
       loadDesignerGames()
     }
   }, [gameDetail, designerGamesLoaded])
+
+  // Load similar games when gameDetail is loaded
+  useEffect(() => {
+    if (gameDetail && !similarGamesLoaded) {
+      loadSimilarGames()
+    }
+  }, [gameDetail, similarGamesLoaded])
 
   // Load existing user rating for this game
   const loadUserRating = async () => {
@@ -1565,9 +1574,49 @@ export default function BoardGameDetailPage({
                       key={game.id}
                       className="bg-black/20 rounded-lg p-3 hover:bg-black/30 transition-colors cursor-pointer"
                       onClick={() => {
-                        // Navigate to this game
-                        window.location.hash = `#game-${game.id}`
-                        window.location.reload()
+                        if (onGameClick) {
+                          onGameClick(game.id)
+                        }
+                      }}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-gray-500 to-gray-700 flex-shrink-0">
+                          {game.image ? (
+                            <img src={game.image} alt={decodeHtmlEntities(game.name)} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-lg">🎲</div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white text-sm font-medium truncate">{decodeHtmlEntities(game.name)}</h4>
+                          <p className="text-gray-400 text-xs">{game.yearPublished || 'Unknown'}</p>
+                          {game.rating && (
+                            <div className="flex items-center mt-1">
+                              <Star size={12} className="text-yellow-400 fill-yellow-400 mr-1" />
+                              <span className="text-yellow-400 text-xs">{game.rating.toFixed(1)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Similar Games section */}
+            {similarGames.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-white font-semibold mb-3">Similar Games</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {similarGames.slice(0, 4).map(game => (
+                    <div
+                      key={game.id}
+                      className="bg-black/20 rounded-lg p-3 hover:bg-black/30 transition-colors cursor-pointer"
+                      onClick={() => {
+                        if (onGameClick) {
+                          onGameClick(game.id)
+                        }
                       }}
                     >
                       <div className="flex items-start space-x-3">

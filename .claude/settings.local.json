@@ -74,7 +74,10 @@
       "Bash(\"taskkill\" \"/F\" \"/PID\" \"13168\")",
       "Bash(PORT=3012 npm run dev)",
       "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\services\\boardGameImagesService.ts\")",
-      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\BoardGameStatusManager.tsx\")"
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\BoardGameStatusManager.tsx\")",
+      "Bash(git pull:*)",
+      "Bash(del test-html-decode.js test-bgg-search.js)",
+      "Bash(y)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
