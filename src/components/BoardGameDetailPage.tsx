@@ -129,33 +129,7 @@ export default function BoardGameDetailPage({
     { id: 7, name: 'Susete', avatar: '/api/placeholder/32/32' }
   ]
 
-  // Load friends who played this game
-  const loadFriendsWhoPlayed = async () => {
-    setLoadingFriendsWhoPlayed(true)
-    try {
-      // Get all friends
-      const friends = await socialService.getFriends()
-      
-      // For now, we'll just show all friends as a placeholder
-      // In a real implementation, we would check each friend's library
-      // or activity feed to see who has played this game
-      
-      // Temporarily return empty array until we have a proper way to check
-      // which friends have played this specific game
-      setRealFriendsWhoPlayed([])
-      
-      // TODO: Implement proper logic to check which friends have this game
-      // This would require either:
-      // 1. A backend endpoint to get friends' library items for a specific game
-      // 2. Or access to friends' activity feeds filtered by this game
-      
-    } catch (error) {
-      console.error('Error loading friends who played:', error)
-      setRealFriendsWhoPlayed([])
-    } finally {
-      setLoadingFriendsWhoPlayed(false)
-    }
-  }
+  // Removed loadFriendsWhoPlayed - not needed for simple dropdown
 
 
   useEffect(() => {
@@ -183,7 +157,7 @@ export default function BoardGameDetailPage({
     if (gameId && hasLoadedRef.current !== gameId) {
       hasLoadedRef.current = gameId
       fetchGameDetail()
-      loadFriendsWhoPlayed()
+      // Removed loadFriendsWhoPlayed call
       loadUserRating()
     }
   }, [gameId])
@@ -1072,47 +1046,7 @@ export default function BoardGameDetailPage({
                   </button>
                 </div>
 
-                {/* Friends who played */}
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-400 text-sm">Friends who played:</span>
-                      {loadingFriendsWhoPlayed ? (
-                        <span className="text-gray-500 text-sm">Loading...</span>
-                      ) : realFriendsWhoPlayed.length > 0 ? (
-                        <div className="flex -space-x-1">
-                          {realFriendsWhoPlayed.slice(0, 4).map((friend) => (
-                            friend.avatar_url ? (
-                              <img
-                                key={friend.friend_id}
-                                src={friend.avatar_url}
-                                alt={friend.display_name || friend.username}
-                                className="w-6 h-6 rounded-full border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
-                                title={`${friend.display_name || friend.username}${friend.rating ? ` - ${friend.rating}/5 stars` : ''}`}
-                              />
-                            ) : (
-                              <div
-                                key={friend.friend_id}
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
-                                style={{ backgroundColor: avatarService.getAvatarColor(friend.friend_id) }}
-                                title={`${friend.display_name || friend.username}${friend.rating ? ` - ${friend.rating}/5 stars` : ''}`}
-                              >
-                                {avatarService.getInitials(friend.display_name || friend.username)}
-                              </div>
-                            )
-                          ))}
-                          {realFriendsWhoPlayed.length > 4 && (
-                            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform">
-                              +{realFriendsWhoPlayed.length - 4}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-gray-500 text-sm">None</span>
-                      )}
-                    </div>
-                    {/* Removed friends modal button */}
-                  </div>
+                {/* Removed friends section - not needed for simple dropdown */}
                   
                   {/* Game Sheet Link */}
                   <div className="mt-2">
@@ -1850,7 +1784,7 @@ export default function BoardGameDetailPage({
               <h3 className="text-xl font-semibold text-white mb-2">Friends who played {gameDetail?.name}</h3>
             </div>
             <div className="p-6 max-h-96 overflow-y-auto space-y-4">
-              {realFriendsWhoPlayed.map((friend) => (
+              {[].map((friend) => (
                 <div key={friend.friend_id} className="bg-black/20 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-3">
