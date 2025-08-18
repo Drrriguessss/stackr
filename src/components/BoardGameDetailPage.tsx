@@ -9,6 +9,7 @@ import { reviewInteractionsService, type ReviewComment } from '@/services/review
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 import { avatarService } from '@/services/avatarService'
 import { fetchYouTubeVideos, getVideoTypeLabel, getVideoTypeColor, type YouTubeVideo } from '@/services/youtubeService'
+import BoardGameStatusManager from './BoardGameStatusManager'
 
 interface BoardGameDetailPageProps {
   gameId: string
@@ -40,7 +41,7 @@ export default function BoardGameDetailPage({
   const [gameDetail, setGameDetail] = useState<BoardGameDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<TabType>('overview')
-  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
+  // Removed selectedStatus - now handled by BoardGameStatusManager
   const [userRating, setUserRating] = useState<number>(0)
   const [hoverRating, setHoverRating] = useState<number>(0)
   const [showReviewBox, setShowReviewBox] = useState(false)
@@ -53,7 +54,7 @@ export default function BoardGameDetailPage({
   const [loadingDesigner, setLoadingDesigner] = useState(false)
   const [similarGamesLoaded, setSimilarGamesLoaded] = useState(false)
   const [designerGamesLoaded, setDesignerGamesLoaded] = useState(false)
-  const [showStatusPopup, setShowStatusPopup] = useState(false)
+  // Removed showStatusPopup - now handled by BoardGameStatusManager
   // Removed showFriendsModal - no popup when selecting played status
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
   // Removed selectedFriends and friendsSearch - no longer needed without friends popup
@@ -62,7 +63,7 @@ export default function BoardGameDetailPage({
   const [youtubeVideos, setYoutubeVideos] = useState<YouTubeVideo[]>([])
   const [loadingVideos, setLoadingVideos] = useState(false)
   const [videosLoaded, setVideosLoaded] = useState(false)
-  const [updatingLibrary, setUpdatingLibrary] = useState(false)
+  // Removed updatingLibrary - now handled by BoardGameStatusManager
 
   // Body scroll lock for Game Sheet Modal
   useEffect(() => {
@@ -239,43 +240,7 @@ export default function BoardGameDetailPage({
     }
   }
 
-  useEffect(() => {
-    console.log('🔍 [DEBUG] useEffect library sync triggered:', {
-      gameId,
-      libraryLength: library.length,
-      currentSelectedStatus: selectedStatus,
-      updatingLibrary,
-      timestamp: new Date().toISOString()
-    })
-    
-    // 🚨 CRITICAL FIX: Don't override local state while updating
-    if (updatingLibrary) {
-      console.log('🔍 [DEBUG] Skipping useEffect sync - currently updating library')
-      return
-    }
-    
-    const libraryItem = library.find(item => item.id === gameId)
-    console.log('🔍 [DEBUG] Found library item:', libraryItem)
-    
-    // Library status check - only update if different to avoid unnecessary re-renders
-    if (libraryItem) {
-      // Status found in library
-      if (selectedStatus !== libraryItem.status) {
-        console.log('🔍 [DEBUG] Library item found, updating selectedStatus from', selectedStatus, 'to', libraryItem.status)
-        setSelectedStatus(libraryItem.status)
-      } else {
-        console.log('🔍 [DEBUG] Library item found but status unchanged:', libraryItem.status)
-      }
-    } else {
-      // No status found in library
-      if (selectedStatus !== null) {
-        console.log('🔍 [DEBUG] No library item found, setting selectedStatus to null from', selectedStatus)
-        setSelectedStatus(null)
-      } else {
-        console.log('🔍 [DEBUG] No library item found and selectedStatus already null')
-      }
-    }
-  }, [gameId, library, selectedStatus, updatingLibrary])
+  // Removed problematic useEffect - status sync now handled by BoardGameStatusManager
 
   // Removed dropdown click outside handler - using modal instead
 
@@ -595,33 +560,18 @@ export default function BoardGameDetailPage({
   // Library status management - moved above with friends modal logic
 
   const handleRemoveFromLibrary = async () => {
-    // Remove from library called
-    
-    if (onDeleteItem && !updatingLibrary) {
-      setUpdatingLibrary(true)
+    // Simplified remove function for BoardGameStatusManager
+    if (onDeleteItem) {
       try {
-        // Status reset to null IMMEDIATELY for smooth UX
-        setSelectedStatus(null)
-        setShowStatusPopup(false)
-        
-        // Removing item from library
         await onDeleteItem(gameId)
-        
         console.log('🎲 [BoardGame] Item removed successfully')
       } catch (error) {
         console.error('🎲 [BoardGame] Error removing item:', error)
-        // Revert state if there's an error
-        const libraryItem = library.find(item => item.id === gameId)
-        if (libraryItem) {
-          setSelectedStatus(libraryItem.status)
-        }
-      } finally {
-        setUpdatingLibrary(false)
+        throw error // Let BoardGameStatusManager handle the error
       }
-    } else if (updatingLibrary) {
-      console.log('🎲 [BoardGame] Already updating library, ignoring request')
     } else {
       console.warn('🎲 [BoardGame] Cannot remove: onDeleteItem missing')
+      throw new Error('Remove function not available')
     }
   }
 
@@ -912,94 +862,9 @@ export default function BoardGameDetailPage({
 
   // Removed handleFriendsConfirm - no longer needed without friends popup
 
-  // TEST FUNCTION: Only update local state (bypass database)
-  const handleStatusSelectTestOnly = (status: MediaStatus) => {
-    console.log('🧪 [TEST] Direct state update START:', status)
-    const startTime = performance.now()
-    
-    setSelectedStatus(status)
-    setShowStatusPopup(false)
-    
-    const duration = performance.now() - startTime
-    console.log('🧪 [TEST] Direct state update completed in:', duration, 'ms')
-  }
+  // Removed handleStatusSelectTestOnly - no longer needed with new BoardGameStatusManager
 
-  const handleStatusSelect = async (status: MediaStatus) => {
-    const startTime = performance.now()
-    console.log('🔍 [DEBUG] handleStatusSelect START:', { 
-      status, 
-      currentSelectedStatus: selectedStatus, 
-      gameId,
-      timestamp: new Date().toISOString()
-    })
-    
-    // If clicking on the same status, just close the popup
-    if (selectedStatus === status) {
-      console.log('🔍 [DEBUG] Same status selected, closing popup')
-      setShowStatusPopup(false)
-      return
-    }
-    
-    if (!gameDetail || updatingLibrary) {
-      if (updatingLibrary) {
-        console.log('🔍 [DEBUG] Already updating library, ignoring request')
-      }
-      console.log('🔍 [DEBUG] Blocking request:', { gameDetail: !!gameDetail, updatingLibrary })
-      return
-    }
-    
-    console.log('🔍 [DEBUG] Setting updatingLibrary to true')
-    setUpdatingLibrary(true)
-    
-    try {
-      const gameForLibrary = {
-        id: gameId,
-        title: gameDetail.name,
-        designer: gameDetail.designers?.[0]?.name || 'Unknown Designer',
-        year: gameDetail.yearPublished || new Date().getFullYear(),
-        image: gameDetail.image,
-        category: 'boardgames' as const,
-        genre: gameDetail.categories?.[0]?.name || 'Board Game',
-        players: gameDetail.playerCountText,
-        playTime: gameDetail.playTimeText,
-        complexity: gameDetail.complexity,
-        bggRating: gameDetail.bggRating
-      }
-      
-      // Update local state IMMEDIATELY for smooth UX (like MovieModal)
-      const beforeStateUpdate = performance.now()
-      console.log('🔍 [DEBUG] About to update selectedStatus to:', status)
-      setSelectedStatus(status)
-      console.log('🔍 [DEBUG] selectedStatus updated (should be immediate):', performance.now() - beforeStateUpdate, 'ms')
-      
-      console.log('🔍 [DEBUG] Closing popup')
-      setShowStatusPopup(false)
-      
-      // Then call the parent's onAddToLibrary function
-      const beforeApiCall = performance.now()
-      console.log('🔍 [DEBUG] Calling onAddToLibrary...')
-      await onAddToLibrary(gameForLibrary, status)
-      const apiCallDuration = performance.now() - beforeApiCall
-      console.log('🔍 [DEBUG] onAddToLibrary completed in:', apiCallDuration, 'ms')
-      
-      // 🚀 OPTIMIZED: Short delay to allow events to process, then trust the system
-      console.log('🔍 [DEBUG] Allowing brief time for events to process...')
-      await new Promise(resolve => setTimeout(resolve, 100)) // Short 100ms delay
-      
-      const totalDuration = performance.now() - startTime
-      console.log('🔍 [DEBUG] TOTAL handleStatusSelect duration:', totalDuration, 'ms')
-      console.log('🔍 [DEBUG] Status updated successfully:', status)
-    } catch (error) {
-      console.error('🔍 [DEBUG] Error updating library:', error)
-      // Revert state if there's an error
-      const libraryItem = library.find(item => item.id === gameId)
-      setSelectedStatus(libraryItem?.status || null)
-      setShowStatusPopup(true) // Reopen popup if there was an error
-    } finally {
-      console.log('🔍 [DEBUG] Setting updatingLibrary to false')
-      setUpdatingLibrary(false)
-    }
-  }
+  // Removed handleStatusSelect - now handled by BoardGameStatusManager
 
   return (
     <div className="bg-[#0f0e17] min-h-screen pb-20 font-system">
@@ -1110,29 +975,27 @@ export default function BoardGameDetailPage({
 
                 {/* NOUVELLE section pour les boutons - full width */}
                 <div className="flex space-x-3 mt-3 relative z-50" style={{ zIndex: 100000 }}>
-                  {/* Status Button */}
+                  {/* Status Button - NEW SIMPLIFIED VERSION */}
                   <div className="flex-1">
-                    <button
-                      onClick={() => !updatingLibrary && setShowStatusPopup(true)}
-                      disabled={updatingLibrary}
-                      className={`w-full py-3 px-4 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm ${
-                        updatingLibrary 
-                          ? 'bg-gray-600 cursor-not-allowed opacity-70' 
-                          : 'bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900'
-                      }`}
-                    >
-                      {updatingLibrary ? (
-                        <>
-                          <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
-                          </div>
-                        </>
-                      ) : (
-                        <span>{selectedStatus ? getStatusLabel(selectedStatus) : 'Add to Library'}</span>
-                      )}
-                    </button>
+                    <BoardGameStatusManager
+                      gameId={gameId}
+                      library={library}
+                      onStatusChange={async (id, status) => {
+                        const gameForLibrary = {
+                          id: gameDetail?.id,
+                          title: gameDetail?.name || '',
+                          category: 'boardgames' as const,
+                          image: gameDetail?.image,
+                          year: gameDetail?.yearPublished,
+                          author: gameDetail?.designers?.[0]?.name || 'Unknown Designer',
+                          genre: gameDetail?.categories?.[0]?.name || 'Board Game'
+                        }
+                        await onAddToLibrary(gameForLibrary, status)
+                      }}
+                      onRemoveFromLibrary={async (id) => {
+                        await handleRemoveFromLibrary()
+                      }}
+                    />
                   </div>
                   
                   {/* Share Button */}
@@ -2068,80 +1931,7 @@ export default function BoardGameDetailPage({
         />
       )}
 
-      {/* Status Selection Popup */}
-      {showStatusPopup && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100000] p-4">
-          <div className="bg-[#1A1A1A] rounded-2xl p-6 w-full max-w-sm border border-purple-500/30">
-            {/* Header */}
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-semibold text-white mb-2">Add to Library</h3>
-              <p className="text-gray-400 text-sm">Choose your board game status</p>
-              
-              {/* DEBUG TEST SECTION */}
-              <div className="mt-4 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
-                <p className="text-red-300 text-xs font-bold mb-2">🧪 DEBUG TESTS</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleStatusSelectTestOnly('want-to-play')}
-                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded"
-                  >
-                    Test Want to Play (Local Only)
-                  </button>
-                  <button
-                    onClick={() => handleStatusSelectTestOnly('completed')}
-                    className="px-3 py-1 bg-green-600 text-white text-xs rounded"
-                  >
-                    Test Completed (Local Only)
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Status Options */}
-            <div className="space-y-3">
-              {(['want-to-play', 'completed'] as const).map((status) => (
-                <button
-                  key={status}
-                  onClick={() => handleStatusSelect(status)}
-                  className={`w-full p-4 rounded-xl border transition-all duration-200 flex items-center justify-between ${
-                    selectedStatus === status
-                      ? 'border-purple-500 bg-purple-500/20 text-purple-300'
-                      : 'border-gray-600 hover:border-purple-400 bg-gray-800/50 text-gray-300 hover:text-white'
-                  }`}
-                >
-                  <span className="font-medium">{getStatusLabel(status)}</span>
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                    selectedStatus === status
-                      ? 'border-purple-400 bg-purple-500'
-                      : 'border-gray-500'
-                  }`}>
-                    {selectedStatus === status && (
-                      <div className="w-3 h-3 bg-white rounded-full"></div>
-                    )}
-                  </div>
-                </button>
-              ))}
-
-              {/* Remove from Library option - only show if already in library */}
-              {selectedStatus && (
-                <>
-                  <div className="border-t border-gray-600 my-4"></div>
-                  <button
-                    onClick={handleRemoveFromLibrary}
-                    className="w-full p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all duration-200 flex items-center justify-between"
-                  >
-                    <span className="font-medium">Remove from Library</span>
-                    <div className="w-6 h-6 rounded-full border-2 border-red-400 flex items-center justify-center">
-                      {/* Empty circle for remove option */}
-                    </div>
-                  </button>
-                </>
-              )}
-            </div>
-
-          </div>
-        </div>
-      )}
+      {/* Old status popup removed - now handled by BoardGameStatusManager */}
     </div>
   )
 }
