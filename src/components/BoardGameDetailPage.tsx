@@ -236,8 +236,14 @@ export default function BoardGameDetailPage({
   // Dynamic button text based on current status
   const currentButtonText = currentStatus ? getStatusLabel(currentStatus) : 'Add to Library'
 
-  // Handle status change - OPTIMIZED: UI INSTANT + SUPABASE BACKGROUND
+  // Mobile touch optimization: prevent double-tap issues
+  const [isProcessingStatus, setIsProcessingStatus] = useState(false)
+
+  // Handle status change - OPTIMIZED: UI INSTANT + SUPABASE BACKGROUND + MOBILE TOUCH
   const handleStatusChange = async (status: MediaStatus | null) => {
+    if (isProcessingStatus) return // Prevent double-tap on mobile
+    
+    setIsProcessingStatus(true)
     setShowDropdown(false)
     
     // 🚀 INSTANT UI UPDATE (before any database calls)
@@ -251,6 +257,9 @@ export default function BoardGameDetailPage({
         // Revert UI on error
         const libraryItem = library.find(item => item.id === gameId)
         setCurrentStatus(libraryItem?.status || null)
+      }).finally(() => {
+        // Reset processing state after 300ms to prevent UI issues
+        setTimeout(() => setIsProcessingStatus(false), 300)
       })
     } else {
       // Add/update in library in background
@@ -269,6 +278,9 @@ export default function BoardGameDetailPage({
         // Revert UI on error
         const libraryItem = library.find(item => item.id === gameId)
         setCurrentStatus(libraryItem?.status || null)
+      }).finally(() => {
+        // Reset processing state after 300ms to prevent UI issues
+        setTimeout(() => setIsProcessingStatus(false), 300)
       })
     }
   }
@@ -1020,7 +1032,8 @@ export default function BoardGameDetailPage({
                   <div className="flex-1 relative">
                     <button
                       onClick={() => setShowDropdown(!showDropdown)}
-                      className="w-full py-3 px-4 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center text-sm bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 relative"
+                      className="w-full py-3 px-4 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center text-sm bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 active:from-gray-700 active:to-gray-900 relative touch-manipulation"
+                      style={{ touchAction: 'manipulation' }}
                     >
                       <span className="flex-1 text-center">{currentButtonText}</span>
                       <ChevronDown size={16} className={`absolute right-3 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
@@ -1029,30 +1042,35 @@ export default function BoardGameDetailPage({
                     {/* Dropdown Menu */}
                     {showDropdown && (
                       <>
-                        {/* Backdrop */}
+                        {/* Backdrop - Optimized for mobile touch */}
                         <div 
                           className="fixed inset-0 z-40"
                           onClick={() => setShowDropdown(false)}
+                          onTouchEnd={() => setShowDropdown(false)}
+                          style={{ touchAction: 'manipulation' }}
                         />
                         
                         {/* Dropdown */}
                         <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50">
                           <button
                             onClick={() => handleStatusChange('want-to-play')}
-                            className="w-full px-4 py-3 text-left text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200 rounded-t-lg"
+                            className="w-full px-4 py-3 text-left text-gray-300 hover:text-white hover:bg-gray-700 active:bg-gray-600 transition-colors duration-200 rounded-t-lg touch-manipulation"
+                            style={{ touchAction: 'manipulation' }}
                           >
                             Want to Play
                           </button>
                           <button
                             onClick={() => handleStatusChange('completed')}
-                            className="w-full px-4 py-3 text-left text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200"
+                            className="w-full px-4 py-3 text-left text-gray-300 hover:text-white hover:bg-gray-700 active:bg-gray-600 transition-colors duration-200 touch-manipulation"
+                            style={{ touchAction: 'manipulation' }}
                           >
                             Played
                           </button>
                           {currentStatus && (
                             <button
                               onClick={() => handleStatusChange(null)}
-                              className="w-full px-4 py-3 text-left text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors duration-200 rounded-b-lg border-t border-gray-600"
+                              className="w-full px-4 py-3 text-left text-red-400 hover:text-red-300 hover:bg-red-900/20 active:bg-red-900/30 transition-colors duration-200 rounded-b-lg border-t border-gray-600 touch-manipulation"
+                              style={{ touchAction: 'manipulation' }}
                             >
                               Remove from Library
                             </button>
