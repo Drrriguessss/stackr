@@ -127,6 +127,25 @@ class OptimalBoardGameAPI {
   }
 
   /**
+   * Decode HTML entities in text
+   */
+  private decodeHtmlEntities(text: string): string {
+    if (!text) return ''
+    
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&#039;/g, "'")
+      .replace(/&#x27;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&#x2F;/g, '/')
+      .replace(/&nbsp;/g, ' ')
+  }
+
+  /**
    * Main search method using BoardGameGeek API (free, most comprehensive)
    */
   async search(query: string, options: BoardGameSearchOptions = {}): Promise<OptimalBoardGameResult[]> {
@@ -421,7 +440,7 @@ class OptimalBoardGameAPI {
             results.push({
               id: idMatch[1],
               type: typeMatch[1],
-              name: nameMatch[1],
+              name: this.decodeHtmlEntities(nameMatch[1]),
               yearPublished: yearMatch ? parseInt(yearMatch[1]) : null
             })
           }
@@ -544,12 +563,15 @@ class OptimalBoardGameAPI {
         families: this.extractLinks(content, 'boardgamefamily')
       }
       
-      const name = primaryNameMatch ? primaryNameMatch[1] : ''
+      const rawName = primaryNameMatch ? primaryNameMatch[1] : ''
       
-      if (!name) {
+      if (!rawName) {
         console.warn('🎲 [OptimalBoardGame] Game missing name, ID:', id)
         return null
       }
+      
+      // Decode HTML entities in the name
+      const name = this.decodeHtmlEntities(rawName)
       
       console.log('🎲 [OptimalBoardGame] Successfully parsed:', name, {
         stats: stats ? 'yes' : 'no',
@@ -592,7 +614,7 @@ class OptimalBoardGameAPI {
       while ((match = regex.exec(content)) !== null) {
         links.push({
           id: match[1],
-          name: match[2]
+          name: this.decodeHtmlEntities(match[2])
         })
       }
     } catch (error) {
@@ -621,7 +643,7 @@ class OptimalBoardGameAPI {
           results.push({
             id,
             rank: parseInt(rank),
-            name: nameMatch[1],
+            name: this.decodeHtmlEntities(nameMatch[1]),
             yearPublished: yearMatch ? parseInt(yearMatch[1]) : null
           })
         }

@@ -7,6 +7,7 @@ import { userReviewsService } from '@/services/userReviewsService'
 import { socialService } from '@/services/socialService'
 import { reviewInteractionsService, type ReviewComment } from '@/services/reviewInteractionsService'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
+import { avatarService } from '@/services/avatarService'
 import { fetchYouTubeVideos, getVideoTypeLabel, getVideoTypeColor, type YouTubeVideo } from '@/services/youtubeService'
 // Removed BoardGameStatusManager import - using simple dropdown now
 
@@ -369,11 +370,13 @@ export default function BoardGameDetailPage({
         return { id: idMatch?.[1] || '', name: nameMatch?.[1] || '' }
       }) || []
       
-      const name = primaryNameMatch?.[1] || ''
-      if (!name) {
+      const rawName = primaryNameMatch?.[1] || ''
+      if (!rawName) {
         console.error('🎲 No primary name found in XML for game ID:', id)
         return null
       }
+      // Decode HTML entities in the name
+      const name = decodeHtmlEntities(rawName)
       
       const yearPublished = yearMatch ? parseInt(yearMatch[1]) : undefined
       const minPlayers = minPlayersMatch ? parseInt(minPlayersMatch[1]) : undefined
@@ -755,6 +758,23 @@ export default function BoardGameDetailPage({
   }
 
   // Clean HTML description function
+  // Decode HTML entities for titles (without removing HTML tags)
+  const decodeHtmlEntities = (text: string): string => {
+    if (!text) return ''
+    
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&#039;/g, "'")
+      .replace(/&#x27;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&#x2F;/g, '/')
+      .replace(/&nbsp;/g, ' ')
+  }
+
   const cleanDescription = (htmlContent: string): string => {
     if (!htmlContent) return ''
     
@@ -892,7 +912,7 @@ export default function BoardGameDetailPage({
             <div className="relative h-[160px] overflow-hidden">
               <img
                 src={gameDetail.image || 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?w=800&h=600&fit=crop&q=80'}
-                alt={`${gameDetail.name} background`}
+                alt={`${decodeHtmlEntities(gameDetail.name)} background`}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
@@ -940,7 +960,7 @@ export default function BoardGameDetailPage({
                     {gameDetail.image ? (
                       <img
                         src={gameDetail.image}
-                        alt={gameDetail.name}
+                        alt={decodeHtmlEntities(gameDetail.name)}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -957,7 +977,7 @@ export default function BoardGameDetailPage({
                   
                   {/* Game Title Section */}
                   <div className="flex-1 pt-1">
-                    <h1 className="text-xl font-bold text-white mb-1 leading-tight">{gameDetail.name}</h1>
+                    <h1 className="text-xl font-bold text-white mb-1 leading-tight">{decodeHtmlEntities(gameDetail.name)}</h1>
                     <p className="text-sm text-gray-400 mb-1">{gameDetail.designers?.[0]?.name || 'Unknown Designer'}</p>
                     
                     {/* Game Stats on same line */}
@@ -1043,6 +1063,54 @@ export default function BoardGameDetailPage({
                   </button>
                 </div>
 
+                {/* Friends who played */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-gray-400 text-sm">Friends who played:</span>
+                      {false ? (
+                        <span className="text-gray-500 text-sm">Loading...</span>
+                      ) : [].length > 0 ? (
+                        <div className="flex -space-x-1">
+                          {[].slice(0, 4).map((friend) => (
+                            friend.avatar_url ? (
+                              <img
+                                key={friend.friend_id}
+                                src={friend.avatar_url}
+                                alt={friend.display_name || friend.username}
+                                className="w-6 h-6 rounded-full border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
+                                title={`${friend.display_name || friend.username}${friend.rating ? ` - ${friend.rating}/5 stars` : ''}`}
+                              />
+                            ) : (
+                              <div
+                                key={friend.friend_id}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
+                                style={{ backgroundColor: avatarService.getAvatarColor(friend.friend_id) }}
+                                title={`${friend.display_name || friend.username}${friend.rating ? ` - ${friend.rating}/5 stars` : ''}`}
+                              >
+                                {avatarService.getInitials(friend.display_name || friend.username)}
+                              </div>
+                            )
+                          ))}
+                          {[].length > 4 && (
+                            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform">
+                              +{[].length - 4}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-sm">None</span>
+                      )}
+                    </div>
+                    {[].length > 0 && (
+                      <button 
+                        onClick={() => setShowFriendsWhoPlayedModal(true)}
+                        className="text-gray-400 hover:text-purple-400 text-sm transition-colors"
+                      >
+                        View all
+                      </button>
+                    )}
+                  </div>
                   
                   {/* Game Sheet Link */}
                   <div className="mt-2">
@@ -1505,13 +1573,13 @@ export default function BoardGameDetailPage({
                       <div className="flex items-start space-x-3">
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-gray-500 to-gray-700 flex-shrink-0">
                           {game.image ? (
-                            <img src={game.image} alt={game.name} className="w-full h-full object-cover" />
+                            <img src={game.image} alt={decodeHtmlEntities(game.name)} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-lg">🎲</div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-white text-sm font-medium truncate">{game.name}</h4>
+                          <h4 className="text-white text-sm font-medium truncate">{decodeHtmlEntities(game.name)}</h4>
                           <p className="text-gray-400 text-xs">{game.yearPublished || 'Unknown'}</p>
                           {game.rating && (
                             <div className="flex items-center mt-1">
@@ -1585,13 +1653,13 @@ export default function BoardGameDetailPage({
               <div className="flex items-start space-x-4">
                 <div className="w-20 h-20 rounded-lg overflow-hidden bg-gradient-to-br from-gray-500 to-gray-700 flex-shrink-0">
                   {gameDetail.image ? (
-                    <img src={gameDetail.image} alt={gameDetail.name} className="w-full h-full object-cover" />
+                    <img src={gameDetail.image} alt={decodeHtmlEntities(gameDetail.name)} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-2xl">🎲</div>
                   )}
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-lg font-semibold text-white mb-1">{gameDetail.name}</h4>
+                  <h4 className="text-lg font-semibold text-white mb-1">{decodeHtmlEntities(gameDetail.name)}</h4>
                   <p className="text-gray-400 text-sm mb-2">{gameDetail.designers?.[0]?.name || 'Unknown Designer'}</p>
                   <div className="flex flex-wrap gap-2 text-xs text-gray-500">
                     {gameDetail.yearPublished && <span>{gameDetail.yearPublished}</span>}
@@ -1772,6 +1840,55 @@ export default function BoardGameDetailPage({
         </div>
       )}
 
+      {/* Friends Who Played Modal */}
+      {false && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-[#1A1A1A] rounded-2xl border border-purple-500/30 max-w-md w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-purple-500/30">
+              <h3 className="text-xl font-semibold text-white mb-2">Friends who played {gameDetail?.name}</h3>
+            </div>
+            <div className="p-6 max-h-96 overflow-y-auto space-y-4">
+              {[].map((friend) => (
+                <div key={friend.friend_id} className="bg-black/20 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      {friend.avatar_url ? (
+                        <img
+                          src={friend.avatar_url}
+                          alt={friend.display_name || friend.username}
+                          className="w-10 h-10 rounded-full"
+                        />
+                      ) : (
+                        <div 
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
+                          style={{ backgroundColor: avatarService.getAvatarColor(friend.friend_id) }}
+                        >
+                          {avatarService.getInitials(friend.display_name || friend.username)}
+                        </div>
+                      )}
+                      <span className="text-white font-medium">{friend.display_name || friend.username}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star key={star} size={12} className={star <= friend.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'} />
+                      ))}
+                      <span className="text-gray-400 text-sm ml-1">{friend.rating}/5</span>
+                    </div>
+                  </div>
+                  {friend.hasReview && friend.reviewText && (
+                    <p className="text-gray-300 text-sm">{friend.reviewText}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="p-6 border-t border-purple-500/30">
+              <button onClick={() => setShowFriendsWhoPlayedModal(false)} className="w-full py-3 bg-gradient-to-r from-gray-600 to-gray-800 text-white rounded-lg">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Comments Modal - Style Instagram */}
       {showUserReviewComments && (
