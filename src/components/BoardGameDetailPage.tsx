@@ -1111,14 +1111,7 @@ export default function BoardGameDetailPage({
                         <span className="text-gray-500 text-sm">None</span>
                       )}
                     </div>
-                    {realFriendsWhoPlayed.length > 0 && (
-                      <button 
-                        onClick={() => setShowFriendsWhoPlayedModal(true)}
-                        className="text-gray-400 hover:text-purple-400 text-sm transition-colors"
-                      >
-                        View all
-                      </button>
-                    )}
+                    {/* Removed friends modal button */}
                   </div>
                   
                   {/* Game Sheet Link */}
@@ -1849,8 +1842,8 @@ export default function BoardGameDetailPage({
         </div>
       )}
 
-      {/* Friends Who Played Modal */}
-      {showFriendsWhoPlayedModal && (
+      {/* Removed Friends Who Played Modal - not needed for simple dropdown */}
+      {false && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-[#1A1A1A] rounded-2xl border border-purple-500/30 max-w-md w-full max-h-[80vh] overflow-hidden">
             <div className="p-6 border-b border-purple-500/30">
