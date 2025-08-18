@@ -77,7 +77,8 @@
       "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\BoardGameStatusManager.tsx\")",
       "Bash(git pull:*)",
       "Bash(del test-html-decode.js test-bgg-search.js)",
-      "Bash(y)"
+      "Bash(y)",
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\BoardGameTestModal.tsx\")"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

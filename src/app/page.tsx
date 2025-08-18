@@ -28,7 +28,6 @@ import ListsPage from '@/components/ListsPage'
 import BooksSection from '@/components/BooksSection'
 import BoardGamesSection from '@/components/BoardGamesSection'
 import BoardGameDetailPage from '@/components/BoardGameDetailPage'
-import BoardGameTestModal from '@/components/BoardGameTestModal'
 // import MoviesTVSectionV2 from '@/components/MoviesTVSectionV2' // Used in MoviesTVModalV2, not directly here
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
@@ -56,8 +55,6 @@ export default function Home() {
   const [selectedBoardGameId, setSelectedBoardGameId] = useState<string | null>(null)
   
   // Test modal state
-  const [selectedBoardGameTestId, setSelectedBoardGameTestId] = useState<string | null>(null)
-  const [isTestModalOpen, setIsTestModalOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   
   // Board games search state preservation
@@ -546,12 +543,6 @@ export default function Home() {
     setActiveMainTab('boardgame-detail')
   }
 
-  // Test modal handler
-  const handleOpenBoardGameTest = (gameId: string) => {
-    const normalizedGameId = normalizeId(gameId)
-    setSelectedBoardGameTestId(normalizedGameId)
-    setIsTestModalOpen(true)
-  }
 
   const handleOpenMovieDetail = (movieId: string, mediaType?: 'movie' | 'tv') => {
     console.log('🎬 [DEBUG] handleOpenMovieDetail called with:', movieId, 'mediaType:', mediaType)
@@ -956,7 +947,7 @@ export default function Home() {
                     onOpenMovieDetail={handleOpenMovieDetail}
                     onOpenBookDetail={handleOpenBookDetail}
                     onOpenMusicDetail={handleOpenMusicDetail}
-                    onOpenBoardGameDetail={handleOpenBoardGameTest}
+                    onOpenBoardGameDetail={handleOpenBoardGameDetail}
                     library={library}
                   />
                 </div>
@@ -1081,7 +1072,7 @@ export default function Home() {
                 onAddToLibrary={handleAddToLibrary}
                 onOpenDetail={(game) => {
                   // Use test modal for now
-                  handleOpenBoardGameTest(game.id)
+                  handleOpenBoardGameDetail(game.id)
                 }}
                 library={library}
                 // Pass preserved search state
@@ -1313,7 +1304,7 @@ export default function Home() {
       onUpdateItem={handleUpdateItem}
       onDeleteItem={handleDeleteItem}
       onOpenGameDetail={handleOpenGameDetail}
-      onOpenBoardGameDetail={handleOpenBoardGameTest}
+      onOpenBoardGameDetail={handleOpenBoardGameDetail}
       onOpenMovieDetail={handleOpenMovieDetail}
       onOpenBookDetail={handleOpenBookDetail}
       onOpenMusicDetail={handleOpenMusicDetail}
@@ -1356,7 +1347,7 @@ export default function Home() {
         onOpenMovieDetail={handleOpenMovieDetail}
         onOpenBookDetail={handleOpenBookDetail}
         onOpenMusicDetail={handleOpenMusicDetail}
-        onOpenBoardGameDetail={handleOpenBoardGameTest}
+        onOpenBoardGameDetail={handleOpenBoardGameDetail}
         library={library}
       />
 
@@ -1428,7 +1419,7 @@ export default function Home() {
           onOpenMovieDetail={handleOpenMovieDetail}
           onOpenBookDetail={handleOpenBookDetail}
           onOpenMusicDetail={handleOpenMusicDetail}
-          onOpenBoardGameDetail={handleOpenBoardGameTest}
+          onOpenBoardGameDetail={handleOpenBoardGameDetail}
           library={library}
         />
       )}
@@ -1443,20 +1434,6 @@ export default function Home() {
         }}
       />
 
-      {/* Board Game Test Modal */}
-      {selectedBoardGameTestId && (
-        <BoardGameTestModal
-          gameId={selectedBoardGameTestId}
-          isOpen={isTestModalOpen}
-          onClose={() => {
-            setIsTestModalOpen(false)
-            setSelectedBoardGameTestId(null)
-          }}
-          onAddToLibrary={handleAddToLibrary}
-          onDeleteItem={handleDeleteItem}
-          library={library}
-        />
-      )}
     </div>
   )
 }
