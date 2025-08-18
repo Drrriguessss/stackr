@@ -148,9 +148,9 @@ export default function BoardGameTestModal({
         }
       }}
     >
-      <div className="bg-white rounded-2xl max-w-md w-full my-8 shadow-2xl">
+      <div className="bg-white rounded-2xl max-w-lg w-full my-4 shadow-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="relative bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
+        <div className="relative bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 flex-shrink-0">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
@@ -161,7 +161,7 @@ export default function BoardGameTestModal({
         </div>
 
         {/* Content - avec scroll interne si nécessaire */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
+        <div className="p-6 overflow-y-auto flex-1">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -207,7 +207,7 @@ export default function BoardGameTestModal({
               </div>
 
               {/* Add to Library Button with Dropdown */}
-              <div className="relative">
+              <div className="relative mb-20">
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
                   className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl flex items-center justify-center space-x-2 hover:from-purple-700 hover:to-blue-700 transition-all duration-200 relative"
@@ -228,8 +228,8 @@ export default function BoardGameTestModal({
                       onClick={() => setShowDropdown(false)}
                     />
                     
-                    {/* Dropdown */}
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-20 overflow-hidden">
+                    {/* Dropdown - positionné au-dessus si pas assez de place en bas */}
+                    <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-20 overflow-hidden">
                       <button
                         onClick={() => handleStatusChange('want-to-play')}
                         className="w-full px-4 py-3 text-left text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
