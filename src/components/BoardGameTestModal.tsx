@@ -123,18 +123,32 @@ export default function BoardGameTestModal({
     }
   }
 
+  // Bloquer le scroll de la page quand le modal est ouvert
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    // Cleanup au démontage
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose()
         }
       }}
     >
-      <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden shadow-2xl">
+      <div className="bg-white rounded-2xl max-w-md w-full my-8 shadow-2xl">
         {/* Header */}
         <div className="relative bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
           <button
@@ -146,8 +160,8 @@ export default function BoardGameTestModal({
           <h2 className="text-xl font-bold pr-12">Board Game Test</h2>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Content - avec scroll interne si nécessaire */}
+        <div className="p-6 max-h-[60vh] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
