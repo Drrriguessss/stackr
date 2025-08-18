@@ -62,6 +62,7 @@ export default function BoardGameDetailPage({
   const [youtubeVideos, setYoutubeVideos] = useState<YouTubeVideo[]>([])
   const [loadingVideos, setLoadingVideos] = useState(false)
   const [videosLoaded, setVideosLoaded] = useState(false)
+  const [updatingLibrary, setUpdatingLibrary] = useState(false)
 
   // Body scroll lock for Game Sheet Modal
   useEffect(() => {
@@ -239,17 +240,42 @@ export default function BoardGameDetailPage({
   }
 
   useEffect(() => {
-    const libraryItem = library.find(item => item.id === gameId)
-    // Library status check
+    console.log('🔍 [DEBUG] useEffect library sync triggered:', {
+      gameId,
+      libraryLength: library.length,
+      currentSelectedStatus: selectedStatus,
+      updatingLibrary,
+      timestamp: new Date().toISOString()
+    })
     
+    // 🚨 CRITICAL FIX: Don't override local state while updating
+    if (updatingLibrary) {
+      console.log('🔍 [DEBUG] Skipping useEffect sync - currently updating library')
+      return
+    }
+    
+    const libraryItem = library.find(item => item.id === gameId)
+    console.log('🔍 [DEBUG] Found library item:', libraryItem)
+    
+    // Library status check - only update if different to avoid unnecessary re-renders
     if (libraryItem) {
       // Status found in library
-      setSelectedStatus(libraryItem.status)
+      if (selectedStatus !== libraryItem.status) {
+        console.log('🔍 [DEBUG] Library item found, updating selectedStatus from', selectedStatus, 'to', libraryItem.status)
+        setSelectedStatus(libraryItem.status)
+      } else {
+        console.log('🔍 [DEBUG] Library item found but status unchanged:', libraryItem.status)
+      }
     } else {
       // No status found in library
-      setSelectedStatus(null)
+      if (selectedStatus !== null) {
+        console.log('🔍 [DEBUG] No library item found, setting selectedStatus to null from', selectedStatus)
+        setSelectedStatus(null)
+      } else {
+        console.log('🔍 [DEBUG] No library item found and selectedStatus already null')
+      }
     }
-  }, [gameId, library])
+  }, [gameId, library, selectedStatus, updatingLibrary])
 
   // Removed dropdown click outside handler - using modal instead
 
@@ -568,17 +594,34 @@ export default function BoardGameDetailPage({
 
   // Library status management - moved above with friends modal logic
 
-  const handleRemoveFromLibrary = () => {
+  const handleRemoveFromLibrary = async () => {
     // Remove from library called
     
-    if (onDeleteItem && selectedStatus) {
-      // Removing item from library
-      onDeleteItem(gameId)
-      // Status reset to null
-      setSelectedStatus(null)
-      setShowStatusPopup(false)
+    if (onDeleteItem && !updatingLibrary) {
+      setUpdatingLibrary(true)
+      try {
+        // Status reset to null IMMEDIATELY for smooth UX
+        setSelectedStatus(null)
+        setShowStatusPopup(false)
+        
+        // Removing item from library
+        await onDeleteItem(gameId)
+        
+        console.log('🎲 [BoardGame] Item removed successfully')
+      } catch (error) {
+        console.error('🎲 [BoardGame] Error removing item:', error)
+        // Revert state if there's an error
+        const libraryItem = library.find(item => item.id === gameId)
+        if (libraryItem) {
+          setSelectedStatus(libraryItem.status)
+        }
+      } finally {
+        setUpdatingLibrary(false)
+      }
+    } else if (updatingLibrary) {
+      console.log('🎲 [BoardGame] Already updating library, ignoring request')
     } else {
-      console.warn('🎲 [BoardGame] Cannot remove: onDeleteItem or selectedStatus missing')
+      console.warn('🎲 [BoardGame] Cannot remove: onDeleteItem missing')
     }
   }
 
@@ -869,33 +912,93 @@ export default function BoardGameDetailPage({
 
   // Removed handleFriendsConfirm - no longer needed without friends popup
 
-  const handleStatusSelect = (status: MediaStatus) => {
+  // TEST FUNCTION: Only update local state (bypass database)
+  const handleStatusSelectTestOnly = (status: MediaStatus) => {
+    console.log('🧪 [TEST] Direct state update START:', status)
+    const startTime = performance.now()
+    
+    setSelectedStatus(status)
+    setShowStatusPopup(false)
+    
+    const duration = performance.now() - startTime
+    console.log('🧪 [TEST] Direct state update completed in:', duration, 'ms')
+  }
+
+  const handleStatusSelect = async (status: MediaStatus) => {
+    const startTime = performance.now()
+    console.log('🔍 [DEBUG] handleStatusSelect START:', { 
+      status, 
+      currentSelectedStatus: selectedStatus, 
+      gameId,
+      timestamp: new Date().toISOString()
+    })
+    
     // If clicking on the same status, just close the popup
     if (selectedStatus === status) {
+      console.log('🔍 [DEBUG] Same status selected, closing popup')
       setShowStatusPopup(false)
       return
     }
     
-    if (!gameDetail) return
-    
-    const gameForLibrary = {
-      id: gameId,
-      title: gameDetail.name,
-      designer: gameDetail.designers?.[0]?.name || 'Unknown Designer',
-      year: gameDetail.yearPublished || new Date().getFullYear(),
-      image: gameDetail.image,
-      category: 'boardgames' as const,
-      genre: gameDetail.categories?.[0]?.name || 'Board Game',
-      players: gameDetail.playerCountText,
-      playTime: gameDetail.playTimeText,
-      complexity: gameDetail.complexity,
-      bggRating: gameDetail.bggRating
+    if (!gameDetail || updatingLibrary) {
+      if (updatingLibrary) {
+        console.log('🔍 [DEBUG] Already updating library, ignoring request')
+      }
+      console.log('🔍 [DEBUG] Blocking request:', { gameDetail: !!gameDetail, updatingLibrary })
+      return
     }
     
-    // Call the parent's onAddToLibrary function and update state immediately
-    onAddToLibrary(gameForLibrary, status)
-    setSelectedStatus(status)
-    setShowStatusPopup(false)
+    console.log('🔍 [DEBUG] Setting updatingLibrary to true')
+    setUpdatingLibrary(true)
+    
+    try {
+      const gameForLibrary = {
+        id: gameId,
+        title: gameDetail.name,
+        designer: gameDetail.designers?.[0]?.name || 'Unknown Designer',
+        year: gameDetail.yearPublished || new Date().getFullYear(),
+        image: gameDetail.image,
+        category: 'boardgames' as const,
+        genre: gameDetail.categories?.[0]?.name || 'Board Game',
+        players: gameDetail.playerCountText,
+        playTime: gameDetail.playTimeText,
+        complexity: gameDetail.complexity,
+        bggRating: gameDetail.bggRating
+      }
+      
+      // Update local state IMMEDIATELY for smooth UX (like MovieModal)
+      const beforeStateUpdate = performance.now()
+      console.log('🔍 [DEBUG] About to update selectedStatus to:', status)
+      setSelectedStatus(status)
+      console.log('🔍 [DEBUG] selectedStatus updated (should be immediate):', performance.now() - beforeStateUpdate, 'ms')
+      
+      console.log('🔍 [DEBUG] Closing popup')
+      setShowStatusPopup(false)
+      
+      // Then call the parent's onAddToLibrary function
+      const beforeApiCall = performance.now()
+      console.log('🔍 [DEBUG] Calling onAddToLibrary...')
+      await onAddToLibrary(gameForLibrary, status)
+      const apiCallDuration = performance.now() - beforeApiCall
+      console.log('🔍 [DEBUG] onAddToLibrary completed in:', apiCallDuration, 'ms')
+      
+      // 🚀 OPTIMIZED: Short delay to allow events to process, then trust the system
+      console.log('🔍 [DEBUG] Allowing brief time for events to process...')
+      await new Promise(resolve => setTimeout(resolve, 100)) // Short 100ms delay
+      
+      const totalDuration = performance.now() - startTime
+      console.log('🔍 [DEBUG] TOTAL handleStatusSelect duration:', totalDuration, 'ms')
+      console.log('🔍 [DEBUG] Status updated successfully:', status)
+    } catch (error) {
+      console.error('🔍 [DEBUG] Error updating library:', error)
+      // Revert state if there's an error
+      const libraryItem = library.find(item => item.id === gameId)
+      setSelectedStatus(libraryItem?.status || null)
+      setShowStatusPopup(true) // Reopen popup if there was an error
+    } finally {
+      console.log('🔍 [DEBUG] Setting updatingLibrary to false')
+      setUpdatingLibrary(false)
+    }
   }
 
   return (
@@ -1010,10 +1113,25 @@ export default function BoardGameDetailPage({
                   {/* Status Button */}
                   <div className="flex-1">
                     <button
-                      onClick={() => setShowStatusPopup(true)}
-                      className="w-full py-3 px-4 bg-gradient-to-r from-gray-600 to-gray-800 text-white font-medium rounded-lg hover:from-gray-700 hover:to-gray-900 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                      onClick={() => !updatingLibrary && setShowStatusPopup(true)}
+                      disabled={updatingLibrary}
+                      className={`w-full py-3 px-4 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm ${
+                        updatingLibrary 
+                          ? 'bg-gray-600 cursor-not-allowed opacity-70' 
+                          : 'bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900'
+                      }`}
                     >
-                      <span>{selectedStatus ? getStatusLabel(selectedStatus) : 'Add to Library'}</span>
+                      {updatingLibrary ? (
+                        <>
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                          </div>
+                        </>
+                      ) : (
+                        <span>{selectedStatus ? getStatusLabel(selectedStatus) : 'Add to Library'}</span>
+                      )}
                     </button>
                   </div>
                   
@@ -1138,6 +1256,17 @@ export default function BoardGameDetailPage({
                                     src={video.thumbnail}
                                     alt={video.title}
                                     className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-200"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = `data:image/svg+xml;base64,${btoa(`
+                                        <svg width="320" height="180" xmlns="http://www.w3.org/2000/svg">
+                                          <rect width="320" height="180" fill="#1f2937"/>
+                                          <rect x="120" y="60" width="80" height="60" rx="8" fill="white" opacity="0.9"/>
+                                          <polygon points="145,75 145,105 165,90" fill="#1f2937"/>
+                                          <text x="160" y="140" text-anchor="middle" fill="white" font-family="Arial" font-size="12" font-weight="bold">YouTube</text>
+                                        </svg>
+                                      `)}`;
+                                    }}
                                   />
                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                     <Play size={32} className="text-white" />
@@ -1947,6 +2076,25 @@ export default function BoardGameDetailPage({
             <div className="text-center mb-6">
               <h3 className="text-xl font-semibold text-white mb-2">Add to Library</h3>
               <p className="text-gray-400 text-sm">Choose your board game status</p>
+              
+              {/* DEBUG TEST SECTION */}
+              <div className="mt-4 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                <p className="text-red-300 text-xs font-bold mb-2">🧪 DEBUG TESTS</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleStatusSelectTestOnly('want-to-play')}
+                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded"
+                  >
+                    Test Want to Play (Local Only)
+                  </button>
+                  <button
+                    onClick={() => handleStatusSelectTestOnly('completed')}
+                    className="px-3 py-1 bg-green-600 text-white text-xs rounded"
+                  >
+                    Test Completed (Local Only)
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Status Options */}

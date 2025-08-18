@@ -69,9 +69,16 @@
       "Bash(del test-trailer-fix.js)",
       "Bash(npx eslint:*)",
       "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\BookDetailModalV3_Optimized.tsx\")",
-      "Bash(PORT=3011 npm run dev)"
+      "Bash(PORT=3011 npm run dev)",
+      "Bash(del test-review-interactions.js)",
+      "Bash(\"taskkill\" \"/F\" \"/PID\" \"13168\")",
+      "Bash(PORT=3012 npm run dev)",
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\services\\boardGameImagesService.ts\")"
     ],
     "deny": [],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "C:\\c\\Users\\rgeoris\\desktop"
+    ]
   }
 }

@@ -459,7 +459,14 @@ export default function Home() {
   }
 
   const handleAddToLibrary = async (item: any, status: MediaStatus) => {
+    const startTime = performance.now()
     const normalizedId = normalizeId(item.id)
+    
+    console.log('🔍 [DEBUG PAGE] handleAddToLibrary START:', {
+      normalizedId,
+      status,
+      timestamp: new Date().toISOString()
+    })
     
     const itemToAdd = {
       ...item,
@@ -473,18 +480,25 @@ export default function Home() {
       
       if (existingItem) {
         // If item exists, update its status
-        console.log('📚 Item already in library, updating status:', normalizedId, status)
+        console.log('🔍 [DEBUG PAGE] Item already in library, updating status:', normalizedId, status)
+        const updateStart = performance.now()
         await LibraryService.updateLibraryItem(normalizedId, { status })
+        console.log('🔍 [DEBUG PAGE] LibraryService.updateLibraryItem took:', performance.now() - updateStart, 'ms')
       } else {
         // If item doesn't exist, add it
-        console.log('📚 Adding new item to library:', normalizedId, status)
+        console.log('🔍 [DEBUG PAGE] Adding new item to library:', normalizedId, status)
+        const addStart = performance.now()
         await LibraryService.addToLibrary(itemToAdd, status)
+        console.log('🔍 [DEBUG PAGE] LibraryService.addToLibrary took:', performance.now() - addStart, 'ms')
       }
       
-      const updatedLibrary = await LibraryService.getLibrary()
-      setLibrary(updatedLibrary)
+      // 🚀 OPTIMIZATION: Don't manually reload - events will handle it
+      console.log('🔍 [DEBUG PAGE] Skipping manual getLibrary - relying on events for faster UX')
+      
+      const totalDuration = performance.now() - startTime
+      console.log('🔍 [DEBUG PAGE] TOTAL handleAddToLibrary duration:', totalDuration, 'ms')
     } catch (error) {
-      console.error('Error adding/updating library:', error)
+      console.error('🔍 [DEBUG PAGE] Error adding/updating library:', error)
     }
   }
 
