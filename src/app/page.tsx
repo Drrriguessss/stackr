@@ -498,7 +498,8 @@ export default function Home() {
       const totalDuration = performance.now() - startTime
       console.log('🔍 [DEBUG PAGE] TOTAL handleAddToLibrary duration:', totalDuration, 'ms')
     } catch (error) {
-      console.error('🔍 [DEBUG PAGE] Error adding/updating library:', error)
+      console.error('🔍 [DEBUG PAGE] Error adding/updating library (non-blocking):', error)
+      // Don't throw error to prevent UI issues - localStorage fallback handles this
     }
   }
 

@@ -259,11 +259,13 @@ export class LibraryService {
         awards: item.awards
       }
 
-      // Essayer Supabase d'abord
-      try {
-        const { data, error } = await supabase
-          .from('library_items')
-          .upsert({
+      // Essayer Supabase d'abord (seulement si utilisateur connecté)
+      if (userId) {
+        console.log('👤 User authenticated, trying Supabase sync')
+        try {
+          const { data, error } = await supabase
+            .from('library_items')
+            .upsert({
             id: newItem.id,
             user_id: userId, // ✅ Ajouter l'ID utilisateur
             title: newItem.title,
@@ -344,8 +346,11 @@ export class LibraryService {
         } else {
           console.error('Supabase error:', error)
         }
-      } catch (supabaseError) {
-        console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)
+        } catch (supabaseError) {
+          console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)
+        }
+      } else {
+        console.log('👤 User not authenticated, skipping Supabase, using localStorage only')
       }
 
       // Fallback vers localStorage avec toutes les données
@@ -383,9 +388,11 @@ export class LibraryService {
       const userId = currentUser?.id
       const storageKey = this.getStorageKey(userId)
 
-      // Essayer Supabase d'abord
-      try {
-        const updateData: any = {}
+      // Essayer Supabase d'abord (seulement si utilisateur connecté)
+      if (userId) {
+        console.log('👤 User authenticated, trying Supabase update')
+        try {
+          const updateData: any = {}
         
         // Mapper les champs LibraryItem vers les champs de la base
         if (updates.status) updateData.status = updates.status
@@ -447,8 +454,11 @@ export class LibraryService {
         } else {
           console.error('Supabase update error:', error)
         }
-      } catch (supabaseError) {
-        console.log('⚠️ Supabase unavailable for update:', supabaseError)
+        } catch (supabaseError) {
+          console.log('⚠️ Supabase unavailable for update:', supabaseError)
+        }
+      } else {
+        console.log('👤 User not authenticated, skipping Supabase update, using localStorage only')
       }
 
       // Mise à jour localStorage (toujours faire)
