@@ -73,7 +73,8 @@
       "Bash(del test-review-interactions.js)",
       "Bash(\"taskkill\" \"/F\" \"/PID\" \"13168\")",
       "Bash(PORT=3012 npm run dev)",
-      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\services\\boardGameImagesService.ts\")"
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\services\\boardGameImagesService.ts\")",
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\BoardGameStatusManager.tsx\")"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

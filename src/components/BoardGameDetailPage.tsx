@@ -9,7 +9,7 @@ import { reviewInteractionsService, type ReviewComment } from '@/services/review
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 import { avatarService } from '@/services/avatarService'
 import { fetchYouTubeVideos, getVideoTypeLabel, getVideoTypeColor, type YouTubeVideo } from '@/services/youtubeService'
-import BoardGameStatusManager from './BoardGameStatusManager'
+// Removed BoardGameStatusManager import - using simple dropdown now
 
 interface BoardGameDetailPageProps {
   gameId: string
@@ -54,7 +54,8 @@ export default function BoardGameDetailPage({
   const [loadingDesigner, setLoadingDesigner] = useState(false)
   const [similarGamesLoaded, setSimilarGamesLoaded] = useState(false)
   const [designerGamesLoaded, setDesignerGamesLoaded] = useState(false)
-  // Removed showStatusPopup - now handled by BoardGameStatusManager
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [currentStatus, setCurrentStatus] = useState<MediaStatus | null>(null)
   // Removed showFriendsModal - no popup when selecting played status
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
   // Removed selectedFriends and friendsSearch - no longer needed without friends popup
@@ -167,7 +168,7 @@ export default function BoardGameDetailPage({
   useEffect(() => {
     setActiveTab('overview')
     setShowFullOverview(false)
-    setShowStatusPopup(false)
+    setShowDropdown(false)
     setSimilarGamesLoaded(false)
     setDesignerGamesLoaded(false)
     setVideosLoaded(false)
@@ -240,7 +241,48 @@ export default function BoardGameDetailPage({
     }
   }
 
-  // Removed problematic useEffect - status sync now handled by BoardGameStatusManager
+  // Sync currentStatus with library
+  useEffect(() => {
+    const libraryItem = library.find(item => item.id === gameId)
+    setCurrentStatus(libraryItem?.status || null)
+  }, [gameId, library])
+
+  // Helper function moved up
+  const getStatusLabel = (status: MediaStatus) => {
+    switch (status) {
+      case 'want-to-play': return 'Want to Play'
+      case 'currently-playing': return 'Playing'
+      case 'completed': return 'Played'
+      case 'paused': return 'Paused'
+      case 'dropped': return 'Dropped'
+      default: return status
+    }
+  }
+
+  // Dynamic button text based on current status
+  const currentButtonText = currentStatus ? getStatusLabel(currentStatus) : 'Add to Library'
+
+  // Handle status change
+  const handleStatusChange = async (status: MediaStatus | null) => {
+    setShowDropdown(false)
+    
+    if (status === null) {
+      // Remove from library
+      await handleRemoveFromLibrary()
+    } else {
+      // Add/update in library
+      const gameForLibrary = {
+        id: gameDetail?.id,
+        title: gameDetail?.name || '',
+        category: 'boardgames' as const,
+        image: gameDetail?.image,
+        year: gameDetail?.yearPublished,
+        author: gameDetail?.designers?.[0]?.name || 'Unknown Designer',
+        genre: gameDetail?.categories?.[0]?.name || 'Board Game'
+      }
+      await onAddToLibrary(gameForLibrary, status)
+    }
+  }
 
   // Removed dropdown click outside handler - using modal instead
 
@@ -575,16 +617,7 @@ export default function BoardGameDetailPage({
     }
   }
 
-  const getStatusLabel = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'Want to Play'
-      case 'currently-playing': return 'Playing'
-      case 'completed': return 'Played'
-      case 'paused': return 'Paused'
-      case 'dropped': return 'Dropped'
-      default: return status
-    }
-  }
+  // Removed duplicate getStatusLabel function
 
   const getStatusColor = (status: MediaStatus) => {
     switch (status) {
@@ -975,27 +1008,50 @@ export default function BoardGameDetailPage({
 
                 {/* NOUVELLE section pour les boutons - full width */}
                 <div className="flex space-x-3 mt-3 relative z-50" style={{ zIndex: 100000 }}>
-                  {/* Status Button - NEW SIMPLIFIED VERSION */}
-                  <div className="flex-1">
-                    <BoardGameStatusManager
-                      gameId={gameId}
-                      library={library}
-                      onStatusChange={async (id, status) => {
-                        const gameForLibrary = {
-                          id: gameDetail?.id,
-                          title: gameDetail?.name || '',
-                          category: 'boardgames' as const,
-                          image: gameDetail?.image,
-                          year: gameDetail?.yearPublished,
-                          author: gameDetail?.designers?.[0]?.name || 'Unknown Designer',
-                          genre: gameDetail?.categories?.[0]?.name || 'Board Game'
-                        }
-                        await onAddToLibrary(gameForLibrary, status)
-                      }}
-                      onRemoveFromLibrary={async (id) => {
-                        await handleRemoveFromLibrary()
-                      }}
-                    />
+                  {/* Status Button - SIMPLE DROPDOWN VERSION */}
+                  <div className="flex-1 relative">
+                    <button
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className="w-full py-3 px-4 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center text-sm bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 relative"
+                    >
+                      <span className="flex-1 text-center">{currentButtonText}</span>
+                      <ChevronDown size={16} className={`absolute right-3 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {showDropdown && (
+                      <>
+                        {/* Backdrop */}
+                        <div 
+                          className="fixed inset-0 z-40"
+                          onClick={() => setShowDropdown(false)}
+                        />
+                        
+                        {/* Dropdown */}
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50">
+                          <button
+                            onClick={() => handleStatusChange('want-to-play')}
+                            className="w-full px-4 py-3 text-left text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200 rounded-t-lg"
+                          >
+                            Want to Play
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange('completed')}
+                            className="w-full px-4 py-3 text-left text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200"
+                          >
+                            Played
+                          </button>
+                          {currentStatus && (
+                            <button
+                              onClick={() => handleStatusChange(null)}
+                              className="w-full px-4 py-3 text-left text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors duration-200 rounded-b-lg border-t border-gray-600"
+                            >
+                              Remove from Library
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                   
                   {/* Share Button */}
