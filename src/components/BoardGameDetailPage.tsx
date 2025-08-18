@@ -52,7 +52,7 @@ export default function BoardGameDetailPage({
   const [loadingDesigner, setLoadingDesigner] = useState(false)
   const [similarGamesLoaded, setSimilarGamesLoaded] = useState(false)
   const [designerGamesLoaded, setDesignerGamesLoaded] = useState(false)
-  const [showLibraryDropdown, setShowLibraryDropdown] = useState(false)
+  const [showStatusPopup, setShowStatusPopup] = useState(false)
   // Removed showFriendsModal - no popup when selecting played status
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
   // Removed selectedFriends and friendsSearch - no longer needed without friends popup
@@ -95,7 +95,7 @@ export default function BoardGameDetailPage({
     personalReview: ''
   })
 
-  const libraryDropdownRef = useRef<HTMLDivElement>(null)
+  // Removed libraryDropdownRef - using modal popup instead
 
   const gameStats = {
     'want-to-play': 2456,
@@ -153,7 +153,7 @@ export default function BoardGameDetailPage({
   useEffect(() => {
     setActiveTab('overview')
     setShowFullOverview(false)
-    setShowLibraryDropdown(false)
+    setShowStatusPopup(false)
     setSimilarGamesLoaded(false)
     setDesignerGamesLoaded(false)
   }, [gameId])
@@ -222,23 +222,7 @@ export default function BoardGameDetailPage({
     }
   }, [gameId, library])
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (libraryDropdownRef.current && !libraryDropdownRef.current.contains(event.target as Node)) {
-        setShowLibraryDropdown(false)
-      }
-    }
-
-    if (showLibraryDropdown) {
-      document.addEventListener('mousedown', handleClickOutside)
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showLibraryDropdown])
+  // Removed dropdown click outside handler - using modal instead
 
   const fetchGameDetail = async () => {
     if (!gameId) return
@@ -519,7 +503,7 @@ export default function BoardGameDetailPage({
       onDeleteItem(gameId)
       // Status reset to null
       setSelectedStatus(null)
-      setShowLibraryDropdown(false)
+      setShowStatusPopup(false)
     } else {
       console.warn('🎲 [BoardGame] Cannot remove: onDeleteItem or selectedStatus missing')
     }
@@ -813,9 +797,9 @@ export default function BoardGameDetailPage({
   // Removed handleFriendsConfirm - no longer needed without friends popup
 
   const handleStatusSelect = (status: MediaStatus) => {
-    // If clicking on the same status, just close the dropdown
+    // If clicking on the same status, just close the popup
     if (selectedStatus === status) {
-      setShowLibraryDropdown(false)
+      setShowStatusPopup(false)
       return
     }
     
@@ -951,40 +935,13 @@ export default function BoardGameDetailPage({
                 {/* NOUVELLE section pour les boutons - full width */}
                 <div className="flex space-x-3 mt-3 relative z-50" style={{ zIndex: 100000 }}>
                   {/* Status Button */}
-                  <div className="relative flex-1" ref={libraryDropdownRef}>
+                  <div className="flex-1">
                     <button
-                      onClick={() => setShowLibraryDropdown(!showLibraryDropdown)}
+                      onClick={() => setShowStatusPopup(true)}
                       className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-800 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
                     >
                       <span>{selectedStatus ? getStatusLabel(selectedStatus) : 'Add to Library'}</span>
                     </button>
-                    
-                    {showLibraryDropdown && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-purple-500 rounded-lg shadow-2xl z-[99999]">
-                        {(['want-to-play', 'completed'] as const).map((status) => (
-                          <button
-                            key={status}
-                            onClick={() => handleStatusSelect(status)}
-                            className={`w-full text-left px-4 py-3 text-sm hover:bg-purple-600/20 hover:text-purple-400 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                              selectedStatus === status ? 'text-purple-400 bg-purple-600/30' : 'text-gray-300'
-                            }`}
-                          >
-                            {getStatusLabel(status)}
-                          </button>
-                        ))}
-                        {selectedStatus && (
-                          <>
-                            <div className="border-t border-purple-500/30 my-1" />
-                            <button
-                              onClick={handleRemoveFromLibrary}
-                              className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-600/20 transition-colors rounded-b-lg"
-                            >
-                              Remove from Library
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
                   </div>
                   
                   {/* Share Button */}
@@ -1720,6 +1677,69 @@ export default function BoardGameDetailPage({
             image: gameDetail.image
           }}
         />
+      )}
+
+      {/* Status Selection Popup */}
+      {showStatusPopup && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100000] p-4">
+          <div className="bg-[#1A1A1A] rounded-2xl p-6 w-full max-w-sm border border-purple-500/30">
+            {/* Header */}
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-semibold text-white mb-2">Add to Library</h3>
+              <p className="text-gray-400 text-sm">Choose your board game status</p>
+            </div>
+
+            {/* Status Options */}
+            <div className="space-y-3">
+              {(['want-to-play', 'completed'] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => handleStatusSelect(status)}
+                  className={`w-full p-4 rounded-xl border transition-all duration-200 flex items-center justify-between ${
+                    selectedStatus === status
+                      ? 'border-purple-500 bg-purple-500/20 text-purple-300'
+                      : 'border-gray-600 hover:border-purple-400 bg-gray-800/50 text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <span className="font-medium">{getStatusLabel(status)}</span>
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                    selectedStatus === status
+                      ? 'border-purple-400 bg-purple-500'
+                      : 'border-gray-500'
+                  }`}>
+                    {selectedStatus === status && (
+                      <div className="w-3 h-3 bg-white rounded-full"></div>
+                    )}
+                  </div>
+                </button>
+              ))}
+
+              {/* Remove from Library option - only show if already in library */}
+              {selectedStatus && (
+                <>
+                  <div className="border-t border-gray-600 my-4"></div>
+                  <button
+                    onClick={handleRemoveFromLibrary}
+                    className="w-full p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all duration-200 flex items-center justify-between"
+                  >
+                    <span className="font-medium">Remove from Library</span>
+                    <div className="w-6 h-6 rounded-full border-2 border-red-400 flex items-center justify-center">
+                      <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                    </div>
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setShowStatusPopup(false)}
+              className="w-full mt-6 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
