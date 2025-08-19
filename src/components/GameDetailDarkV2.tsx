@@ -293,20 +293,20 @@ export default function GameDetailDarkV2({
             </div>
           ) : gameDetail ? (
             <>
-              {/* 1. Large header image - 160px height */}
-              <div className="relative h-[160px] overflow-hidden">
+              {/* Header with backdrop image - Same as MusicModal */}
+              <div className="relative h-[200px] overflow-hidden">
                 <img
-                  src={gameDetail.background_image || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop&q=80'}
-                  alt={`${gameDetail.name} background`}
+                  src={gameDetail.background_image || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1280&h=720&fit=crop&q=80'}
+                  alt={`${gameDetail.name} backdrop`}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop&q=80'
-                  }}
+                  loading="eager"
                 />
                 
-                {/* Navigation Header - X button top right */}
-                <div className="absolute top-0 left-0 right-0 flex items-center justify-end p-5" style={{ zIndex: 20 }}>
+                {/* Gradient overlay - Same as MusicModal */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0f0e17] via-[#0f0e17]/60 to-transparent" />
+                
+                {/* Close button - Same as MusicModal */}
+                <div className="absolute top-0 right-0 p-5">
                   <button
                     onClick={onBack}
                     className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
@@ -316,63 +316,63 @@ export default function GameDetailDarkV2({
                 </div>
               </div>
 
-              {/* Bottom Section: Game Info with Purple Gradient */}
-              <div className="relative min-h-[240px] overflow-visible">
-                {/* Purple Gradient Background */}
-                <div 
-                  className="absolute inset-0"
-                  style={{ 
-                    background: 'linear-gradient(to bottom, rgba(99, 102, 241, 0.4), rgba(126, 58, 242, 0.3), rgba(107, 33, 168, 0.2), rgba(15, 14, 23, 0.7))',
-                    zIndex: 1
-                  }}
-                />
-                
-                {/* Game Info Container */}
-                <div className="px-5 py-6 relative z-30">
-                  {/* Game Thumbnail + Game Title Section */}
-                  <div className="flex gap-4 items-start mb-4">
-                    {/* Game Thumbnail */}
-                    <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden border-2 border-white/10 flex-shrink-0">
-                      <img
-                        src={gameDetail.background_image || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop&q=80'}
-                        alt={gameDetail.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.src = 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop&q=80'
-                        }}
-                      />
-                    </div>
+              {/* Game Info Section - Same structure as MusicModal */}
+              <div className="px-6 py-6 relative -mt-16">
+                {/* Thumbnail + Basic Info - Same as MusicModal */}
+                <div className="flex gap-4 items-start mb-4 relative z-10">
+                  {/* Game Thumbnail - Same size as music modal */}
+                  <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden border-2 border-white/10 flex-shrink-0">
+                    <img
+                      src={gameDetail.background_image || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=100&h=100&fit=crop&q=80'}
+                      alt={gameDetail.name}
+                      className="w-full h-full object-cover"
+                      loading="eager"
+                      style={{ imageRendering: 'crisp-edges', backfaceVisibility: 'hidden' }}
+                    />
+                  </div>
+                  
+                  {/* Title and Developer - Same style as music modal */}
+                  <div className="flex-1 pt-1">
+                    <h1 className="text-xl font-bold text-white mb-1 leading-tight">{gameDetail.name}</h1>
+                    <p className="text-sm text-gray-400 mb-1">{gameDetail.developers?.[0]?.name || 'Unknown Developer'}</p>
                     
-                    {/* Game Title Section */}
-                    <div className="flex-1 pt-1">
-                      <h1 className="text-xl font-bold text-white mb-1 leading-tight">{gameDetail.name}</h1>
-                      <p className="text-sm text-gray-400 mb-1">{gameDetail.developers?.[0]?.name || 'Unknown Developer'}</p>
-                      
-                      {/* Game Stats on same line - WITHOUT platforms */}
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                        {gameDetail.released && <span>{new Date(gameDetail.released).getFullYear()}</span>}
-                        {gameDetail.genres?.[0] && (
-                          <>
-                            <span className="text-gray-600">•</span>
-                            <span>{gameDetail.genres[0].name}</span>
-                          </>
-                        )}
-                      </div>
+                    {/* Game Stats - Same style as music modal */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                      {gameDetail.released && <span>{new Date(gameDetail.released).getFullYear()}</span>}
+                      {gameDetail.genres?.[0]?.name && (
+                        <>
+                          <span className="text-gray-600">•</span>
+                          <span>{gameDetail.genres[0].name}</span>
+                        </>
+                      )}
+                      {gameDetail.rating && (
+                        <>
+                          <span className="text-gray-600">•</span>
+                          <span>{gameDetail.rating.toFixed(1)}/5</span>
+                        </>
+                      )}
+                      {gameDetail.platforms?.[0]?.platform?.name && (
+                        <>
+                          <span className="text-gray-600">•</span>
+                          <span>{gameDetail.platforms[0].platform.name}</span>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  {/* Buttons - full width */}
-                  <div className="flex space-x-3 mt-3 relative z-50" ref={libraryDropdownRef} style={{ zIndex: 100000 }}>
-                    {/* Status Button */}
-                    <div className="relative flex-1">
-                      <button
-                        onClick={() => setShowLibraryDropdown(!showLibraryDropdown)}
-                        className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-800 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
-                      >
-                        <span>{selectedStatus ? getStatusLabel(selectedStatus) : 'Add to Library'}</span>
-                        <ChevronDown size={16} className={`transition-transform ${showLibraryDropdown ? 'rotate-180' : ''}`} />
-                      </button>
+                {/* Action Buttons - Same as MusicModal */}
+                <div className="flex space-x-3 mt-3">
+                  {/* Status Button */}
+                  <div className="relative flex-1">
+                    <button
+                      onClick={() => setShowLibraryDropdown(!showLibraryDropdown)}
+                      className="w-full h-12 px-3 bg-gradient-to-r from-gray-600 to-gray-800 text-white font-medium rounded-lg hover:from-gray-700 hover:to-gray-900 transition-all duration-200 flex items-center justify-center space-x-1 text-xs"
+                    >
+                      <span className="truncate">{selectedStatus ? getStatusLabel(selectedStatus) : 'Add to Library'}</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`transition-transform flex-shrink-0 ${showLibraryDropdown ? 'rotate-180' : ''}`}>
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
                       
                       {showLibraryDropdown && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-purple-500 rounded-lg shadow-2xl z-[99999]">
@@ -402,15 +402,15 @@ export default function GameDetailDarkV2({
                       )}
                     </div>
                     
-                    {/* Share Button */}
-                    <button 
-                      onClick={() => setShowShareWithFriendsModal(true)}
-                      className="px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
-                    >
-                      <Share size={16} />
-                      <span>Share</span>
-                    </button>
-                  </div>
+                  {/* Share Button - Same as MusicModal */}
+                  <button 
+                    onClick={() => setShowShareWithFriendsModal(true)}
+                    className="h-12 px-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200 flex items-center space-x-1 text-xs"
+                  >
+                    <Share size={14} />
+                    <span>Share</span>
+                  </button>
+                </div>
 
                   {/* Friends who played */}
                   <div className="mt-4">
