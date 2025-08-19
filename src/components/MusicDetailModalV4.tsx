@@ -731,10 +731,10 @@ export default function MusicDetailModalV4({
           <div className="relative flex-1">
             <button
               onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-              className="w-full py-3 px-4 bg-gradient-to-r from-gray-600 to-gray-800 text-white font-medium rounded-lg hover:from-gray-700 hover:to-gray-900 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+              className="w-full h-12 px-3 bg-gradient-to-r from-gray-600 to-gray-800 text-white font-medium rounded-lg hover:from-gray-700 hover:to-gray-900 transition-all duration-200 flex items-center justify-center space-x-1 text-xs"
             >
-              <span>{formatStatusForDisplay(selectedStatus)}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={`transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`}>
+              <span className="truncate">{formatStatusForDisplay(selectedStatus)}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`transition-transform flex-shrink-0 ${showStatusDropdown ? 'rotate-180' : ''}`}>
                 <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -771,9 +771,9 @@ export default function MusicDetailModalV4({
           {/* Share Button */}
           <button 
             onClick={() => setShowShareWithFriendsModal(true)}
-            className="px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
+            className="h-12 px-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200 flex items-center space-x-1 text-xs"
           >
-            <Share size={16} />
+            <Share size={14} />
             <span>Share</span>
           </button>
         </div>
