@@ -74,7 +74,7 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
   return (
     <>
       {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-black/20 backdrop-blur-xl px-4 py-2 z-40">
+      <div className="fixed bottom-0 left-0 right-0 bg-black px-4 py-2 z-40">
         <div className="flex items-center justify-center max-w-md mx-auto">
           {mainTabs.map((tab) => (
             <TabButton

@@ -1089,71 +1089,7 @@ export default function SearchModal({
                           )}
                         </p>
 
-                        {/* Bouton d'action */}
-                        <div className="mt-2">
-                          {(isInLibrary || wasJustAdded) && !isAdding ? (
-                            <div className="inline-flex items-center space-x-1 text-green-500 text-xs">
-                              <Check size={12} />
-                              <span>{getStatusDisplayLabel(libraryItem?.status || 'completed', result.category)}</span>
-                            </div>
-                          ) : isAdding ? (
-                            <div className="inline-flex items-center space-x-1 text-gray-400 text-xs">
-                              <Loader2 className="animate-spin" size={12} />
-                              <span>Adding...</span>
-                            </div>
-                          ) : (
-                            <div className="relative inline-block">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowStatusPopup(result.id)
-                                }}
-                                className="text-blue-500 hover:text-blue-400 text-sm font-medium"
-                              >
-                                Add +
-                              </button>
-
-                              {showStatusPopup === result.id && (
-                                <>
-                                  <div 
-                                    className="fixed inset-0 z-[99998]"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setShowStatusPopup(null)
-                                    }}
-                                  />
-                                  
-                                  <div 
-                                    className={`absolute left-0 bottom-full mb-2 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-1 min-w-44 z-[99999] transition-all duration-300 ${
-                                      fadeOutPopup === result.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                                    }`}
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {getStatusOptions(result.category).map((option) => (
-                                      <button
-                                        key={option.value}
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleStatusSelect(result, option.value)
-                                        }}
-                                        className={`w-full text-left px-3 py-2 text-sm transition-all duration-200 hover:bg-gray-700 flex items-center justify-between ${
-                                          selectedStatus === option.value 
-                                            ? 'bg-green-900/30 text-green-400' 
-                                            : 'text-gray-300 hover:text-white'
-                                        }`}
-                                      >
-                                        <span>{option.label}</span>
-                                        {selectedStatus === option.value && (
-                                          <Check className="text-green-400" size={12} />
-                                        )}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        {/* Bouton d'action supprimé - fonctionnalité retirée */}
                       </div>
                     </div>
                   )

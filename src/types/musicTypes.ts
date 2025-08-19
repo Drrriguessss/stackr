@@ -27,6 +27,9 @@ export interface MusicTrack {
   primaryGenreName?: string
   country?: string
   currency?: string
+  trackExplicitness?: string
+  trackViewUrl?: string
+  artistViewUrl?: string
   
   // API flags
   wrapperType: 'track'
@@ -56,6 +59,7 @@ export interface MusicAlbum {
   primaryGenreName?: string
   country?: string
   currency?: string
+  collectionExplicitness?: string
   
   // Links
   collectionViewUrl?: string
@@ -123,6 +127,16 @@ export interface MusicDetailData {
   rating: number
   youtubeVideoId?: string
   previewUrl?: string
+  
+  // Purchase and metadata
+  trackPrice?: number
+  collectionPrice?: number
+  currency?: string
+  trackExplicitness?: string
+  collectionExplicitness?: string
+  copyright?: string
+  itunesUrl?: string
+  artistViewUrl?: string
 }
 
 export type MusicSearchResult = MusicTrack | MusicAlbum

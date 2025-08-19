@@ -99,6 +99,11 @@ class UserReviewsService {
       }
 
       if (data.isPublic) {
+        // Temporairement, utiliser seulement localStorage
+        console.log('📝 Saving review to localStorage (Supabase table user_reviews not ready)...')
+        return this.saveToLocalStorage(reviewData)
+        
+        /*
         // Si publique, sauvegarder dans Supabase
         console.log('📝 Saving public review to Supabase...')
         const { data: savedReview, error } = await supabase
@@ -114,6 +119,7 @@ class UserReviewsService {
         }
 
         console.log('✅ Review saved to Supabase:', savedReview)
+        */
         
         // Créer une activité sociale pour les reviews publiques
         try {
@@ -195,19 +201,7 @@ class UserReviewsService {
     try {
       const userId = this.getUserIdentifier()
       
-      // D'abord chercher dans Supabase
-      const { data: supabaseReview, error } = await supabase
-        .from('user_reviews')
-        .select('*')
-        .eq('media_id', mediaId)
-        .eq('user_identifier', userId)
-        .single()
-
-      if (!error && supabaseReview) {
-        return supabaseReview as UserReview
-      }
-
-      // Ensuite chercher dans localStorage
+      // Utiliser uniquement localStorage pour l'instant
       const localReviews = this.getLocalReviews()
       return localReviews.find(
         r => r.media_id === mediaId && r.user_identifier === userId
@@ -220,6 +214,12 @@ class UserReviewsService {
 
   // Récupérer toutes les reviews publiques pour un média (méthode principale)
   async getPublicReviewsForMedia(mediaId: string): Promise<UserReview[]> {
+    // Utiliser uniquement localStorage pour l'instant (table user_reviews pas prête)
+    console.log('📝 Using local reviews only for media:', mediaId)
+    const localReviews = this.getLocalReviews()
+    return localReviews.filter(r => r.media_id === mediaId && r.is_public)
+    
+    /*
     try {
       console.log('📝 Fetching public reviews for media:', mediaId)
       
@@ -251,6 +251,7 @@ class UserReviewsService {
       console.error('Error fetching public reviews:', error)
       return []
     }
+    */
   }
 
   // Mettre à jour le nombre de "helpful" pour une review

@@ -1,32 +1,39 @@
 'use client'
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Star, X, Share, FileText, ChevronDown } from 'lucide-react'
+import { Star, X, Share, FileText, ChevronDown, Play, Pause } from 'lucide-react'
 import type { LibraryItem, MediaStatus } from '@/types'
 import type { MusicDetailData } from '@/types/musicTypes'
 import { musicServiceV2 } from '@/services/musicServiceV2'
 import { musicMetacriticService, type MetacriticScore } from '@/services/musicMetacriticService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
+import { avatarService } from '@/services/avatarService'
+import { musicVideoService } from '@/services/musicVideoService'
 import StackrLoadingSkeleton from './StackrLoadingSkeleton'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 
 interface MusicDetailModalV4Props {
   isOpen: boolean
   onClose: () => void
-  musicId: string // Format: 'track-123' ou 'album-456'
+  musicId: string
   onAddToLibrary: (item: any, status: MediaStatus) => void
   onDeleteItem?: (id: string) => void
   library: LibraryItem[]
   onMusicSelect?: (musicId: string) => void
 }
 
-// Mock friends data
-const FRIENDS_WHO_LISTENED = [
-  { id: 1, name: 'Alex', avatar: '/api/placeholder/32/32' },
-  { id: 2, name: 'Sarah', avatar: '/api/placeholder/32/32', hasReview: true },
-  { id: 3, name: 'Mike', avatar: '/api/placeholder/32/32' },
-  { id: 4, name: 'Emma', avatar: '/api/placeholder/32/32', hasReview: true }
-]
+// Real friends data - empty array like boardgame modal
+const FRIENDS_WHO_LISTENED: any[] = []
 
+// Types for comments
+interface Comment {
+  id: string
+  userId: string
+  username: string
+  text: string
+  timestamp: string
+  likes: number
+  isLiked: boolean
+}
 
 export default function MusicDetailModalV4({
   isOpen,
@@ -36,17 +43,45 @@ export default function MusicDetailModalV4({
   onDeleteItem,
   library,
   onMusicSelect
-}: MusicDetailModalV4Props) {
-  // States - copying from BookDetailModalV3 structure
+}: MusicDetailModalV4Props): JSX.Element | null {
   const [musicDetail, setMusicDetail] = useState<MusicDetailData | null>(null)
   const [loading, setLoading] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+  const [albumTracks, setAlbumTracks] = useState<any[]>([])
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false)
+  const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null)
+  const [showShareModal, setShowShareModal] = useState(false)
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
   const [showFriendsWhoListened, setShowFriendsWhoListened] = useState(false)
   const [showFriendsListModal, setShowFriendsListModal] = useState(false)
   const [showInlineRating, setShowInlineRating] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'media'>('overview')
+  const [expandedUserReview, setExpandedUserReview] = useState(false)
+  const [reviewSaved, setReviewSaved] = useState(false)
+  const userAvatar = null // Will be implemented later with user system
+  
+  // États pour Your Review interactions Instagram-like
+  const [userReviewData, setUserReviewData] = useState({
+    isLiked: false,
+    likesCount: 0,
+    commentsCount: 0,
+    comments: [] as any[]
+  })
+  
+  // États pour modales et commentaires
+  const [showUserReviewComments, setShowUserReviewComments] = useState(false)
+  const [showShareUserReviewModal, setShowShareUserReviewModal] = useState(false)
+  const [newComment, setNewComment] = useState('')
+  const [showMusicSheet, setShowMusicSheet] = useState(false)
+  const [musicSheetData, setMusicSheetData] = useState({
+    dateListened: '',
+    location: '',
+    mood: '',
+    format: 'streaming',
+    personalRating: 0,
+    personalReview: ''
+  })
   
   // Review states
   const [userRating, setUserRating] = useState(0)
@@ -55,17 +90,15 @@ export default function MusicDetailModalV4({
   const [reviewPrivacy, setReviewPrivacy] = useState<'private' | 'public'>('private')
   const [currentUserReview, setCurrentUserReview] = useState<UserReview | null>(null)
   
-  // Audio preview states
-  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false)
-  const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null)
-  
   // Metacritic states
   const [metacriticScore, setMetacriticScore] = useState<MetacriticScore | null>(null)
   const [loadingMetacritic, setLoadingMetacritic] = useState(false)
-  
-  // Album tracks states
-  const [albumTracks, setAlbumTracks] = useState<any[]>([])
   const [loadingTracks, setLoadingTracks] = useState(false)
+  
+  // Video states
+  const [musicVideo, setMusicVideo] = useState<any>(null)
+  const [loadingVideo, setLoadingVideo] = useState(false)
+  const [videosLoaded, setVideosLoaded] = useState(false)
 
   // Format ID function - ensure consistent formatting
   const formatMusicId = useCallback((id: string) => {
@@ -86,66 +119,88 @@ export default function MusicDetailModalV4({
   // Get formatted music ID
   const formattedMusicId = useMemo(() => formatMusicId(musicId), [musicId, formatMusicId])
 
-  // 🔧 CORRECTION 4: Simplifier la détection (comme l'ancien code)
+  // Extract type from musicId
   const isAlbum = formattedMusicId.startsWith('album-')
   const isSingle = formattedMusicId.startsWith('track-')
 
-  // Audio cleanup function
+  // Clean up audio function
   const cleanupAudio = useCallback(() => {
     if (audioRef) {
       console.log('🎵 [Audio] Cleaning up audio element')
       audioRef.pause()
       audioRef.currentTime = 0
       audioRef.removeEventListener('ended', () => setIsPreviewPlaying(false))
+      audioRef.removeEventListener('error', () => setIsPreviewPlaying(false))
       setAudioRef(null)
     }
     setIsPreviewPlaying(false)
   }, [audioRef])
 
-  // Load music detail - LOGIQUE EXACTE DU CODE DE RÉFÉRENCE
-  const fetchMusicDetail = useCallback(async () => {
-    console.log('🎵 [DEBUG] fetchMusicDetail called with musicId:', formattedMusicId)
-    if (!formattedMusicId) {
-      console.log('🎵 [DEBUG] No musicId, returning early')
-      return
-    }
+  const handleClose = useCallback(() => {
+    console.log('🎵 [Close] Closing modal and cleaning up')
+    // Clean up audio when closing
+    cleanupAudio()
+    // Reset all states
+    setShowShareModal(false)
+    setShowStatusDropdown(false)
+    onClose()
+  }, [cleanupAudio, onClose])
+
+  // Format track duration
+  const formatTrackDuration = (milliseconds?: number): string => {
+    if (!milliseconds) return '3:30'
+    const totalSeconds = Math.floor(milliseconds / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
+
+  // Load album tracks
+  const loadAlbumTracks = useCallback(async (albumId: string, albumTitle: string, artistName: string) => {
+    console.log('🎵 [AlbumTracks] Loading tracks for album:', albumId)
     
     try {
-      console.log('🎵 [DEBUG] Setting loading to true')
-      setLoading(true)
+      const cleanId = albumId.replace('album-', '')
+      const response = await fetch(
+        `/api/itunes?endpoint=lookup&id=${cleanId}&entity=song&limit=50`,
+        { signal: AbortSignal.timeout(8000) }
+      )
       
-      let detail: MusicDetailData | null = null
-      
-      // 🔧 UTILISER LES MÉTHODES SPÉCIFIQUES COMME DANS L'ANCIEN CODE
-      if (isAlbum) {
-        console.log('🎵 [DEBUG] Loading as album with getAlbumDetails')
-        detail = await musicServiceV2.getAlbumDetails(formattedMusicId)
-      } else {
-        console.log('🎵 [DEBUG] Loading as track with getTrackDetails')
-        detail = await musicServiceV2.getTrackDetails(formattedMusicId)
+      if (!response.ok) {
+        throw new Error(`Album tracks lookup failed: ${response.status}`)
       }
       
-      console.log('🎵 [DEBUG] Got music detail:', detail ? 'success' : 'null')
-      setMusicDetail(detail)
+      const data = await response.json()
       
-      // Load additional data
-      if (detail) {
-        console.log('🎵 [DEBUG] Loading additional data...')
-        loadMetacriticScore(detail.title, detail.artist)
-        loadExistingReview(detail.id)
-        
-        // Pour les albums uniquement
-        if (isAlbum) {
-          loadAlbumTracks(detail.id, detail.title, detail.artist)
-        }
+      if (!data.results || data.results.length <= 1) {
+        setAlbumTracks([])
+        return
       }
+      
+      const tracks = data.results
+        .filter((item: any) => 
+          item.wrapperType === 'track' && 
+          item.kind === 'song' &&
+          item.artistName?.toLowerCase() === artistName.toLowerCase()
+        )
+        .map((track: any, index: number) => ({
+          id: `track-${track.trackId}`,
+          name: track.trackName,
+          duration: formatTrackDuration(track.trackTimeMillis),
+          trackNumber: track.trackNumber || index + 1,
+          previewUrl: track.previewUrl,
+          artist: track.artistName
+        }))
+        .sort((a: any, b: any) => a.trackNumber - b.trackNumber)
+      
+      console.log(`🎵 [AlbumTracks] Found ${tracks.length} tracks for album:`, albumTitle)
+      setAlbumTracks(tracks)
+      
     } catch (error) {
-      console.error('Error fetching music details:', error)
-    } finally {
-      console.log('🎵 [DEBUG] Setting loading to false')
-      setLoading(false)
+      console.error('🎵 [AlbumTracks] Error loading album tracks:', error)
+      setAlbumTracks([])
     }
-  }, [formattedMusicId, isAlbum])
+  }, [])
 
   // Load Metacritic score
   const loadMetacriticScore = useCallback(async (title: string, artist: string) => {
@@ -175,124 +230,198 @@ export default function MusicDetailModalV4({
     }
   }, [])
   
-  // Load album tracks - LOGIQUE SIMPLE COMME L'ANCIEN CODE
-  const loadAlbumTracks = useCallback(async (albumId: string, albumTitle: string, artistName: string) => {
-    console.log('🎵 [AlbumTracks] Loading tracks for album:', albumId)
+  // Load music video
+  const loadMusicVideo = useCallback(async () => {
+    if (!musicDetail?.artist || !musicDetail?.title || videosLoaded) return
     
     try {
-      setLoadingTracks(true)
+      setLoadingVideo(true)
+      setVideosLoaded(true)
+      const video = await musicVideoService.getMusicVideo(musicDetail.artist, musicDetail.title)
+      setMusicVideo(video)
+      console.log('🎵 [MusicModal] Video loaded:', video)
+    } catch (error) {
+      console.error('🎵 [MusicModal] Error loading video:', error)
+    } finally {
+      setLoadingVideo(false)
+    }
+  }, [musicDetail?.artist, musicDetail?.title, videosLoaded])
+
+  // Save review function
+  const handleSaveReview = useCallback(async () => {
+    if (!musicDetail) return
+    
+    try {
+      setReviewSaved(true)
+      await userReviewsService.submitReview({
+        mediaId: musicDetail.id,
+        mediaTitle: musicDetail.title,
+        mediaCategory: 'music',
+        rating: userRating,
+        reviewText: userReview,
+        isPublic: reviewPrivacy === 'public'
+      })
       
-      // Utiliser l'API iTunes pour récupérer les tracks de l'album
-      const cleanId = albumId.replace('album-', '')
-      const response = await fetch(
-        `/api/itunes?endpoint=lookup&id=${cleanId}&entity=song&limit=50`,
-        { signal: AbortSignal.timeout(8000) }
-      )
-      
-      if (!response.ok) {
-        throw new Error(`Album tracks lookup failed: ${response.status}`)
+      // Only close review box after saving if there's review text
+      // Otherwise keep it open for user to continue writing
+      if (userReview.trim()) {
+        setTimeout(() => {
+          setShowInlineRating(false)
+          setReviewSaved(false)
+        }, 1000)
+      } else {
+        // Just show "Saved!" briefly then reset
+        setTimeout(() => {
+          setReviewSaved(false)
+        }, 1000)
       }
-      
-      const data = await response.json()
-      
-      if (!data.results || data.results.length <= 1) {
-        // Pas de tracks trouvées (le premier résultat est souvent l'album lui-même)
-        setAlbumTracks([])
-        return
-      }
-      
-      // 🔧 CORRECTION CRITIQUE: Filtrer avec artiste strict
-      const tracks = data.results
-        .filter((item: any) => 
-          item.wrapperType === 'track' && 
-          item.kind === 'song' &&
-          item.artistName?.toLowerCase() === artistName.toLowerCase() // ← LIGNE CRITIQUE
-        )
-        .map((track: any, index: number) => ({
-          id: `track-${track.trackId}`,
-          name: track.trackName,
-          duration: formatTrackDuration(track.trackTimeMillis),
-          trackNumber: track.trackNumber || index + 1,
-          previewUrl: track.previewUrl,
-          artist: track.artistName
-        }))
-        .sort((a: any, b: any) => a.trackNumber - b.trackNumber) // Trier par numéro de track
-      
-      console.log(`🎵 [AlbumTracks] Found ${tracks.length} tracks for album:`, albumTitle)
-      setAlbumTracks(tracks)
       
     } catch (error) {
-      console.error('🎵 [AlbumTracks] Error loading album tracks:', error)
-      setAlbumTracks([])
-    } finally {
-      setLoadingTracks(false)
+      console.error('Error saving review:', error)
+      setReviewSaved(false)
     }
+  }, [musicDetail, userRating, userReview, reviewPrivacy])
+  
+  // Fonction pour formater le temps Instagram-style
+  const formatTimeAgo = useCallback((timestamp: string): string => {
+    const now = new Date()
+    const then = new Date(timestamp)
+    const seconds = Math.floor((now.getTime() - then.getTime()) / 1000)
+    
+    if (seconds < 60) return 'just now'
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`
+    if (seconds < 2592000) return `${Math.floor(seconds / 604800)}w ago`
+    return then.toLocaleDateString()
   }, [])
   
-  // Helper function to format track duration
-  const formatTrackDuration = (milliseconds?: number): string => {
-    if (!milliseconds) return '3:30'
+  // Handler pour liker sa propre review
+  const handleLikeUserReview = useCallback(() => {
+    setUserReviewData(prev => ({
+      ...prev,
+      isLiked: !prev.isLiked,
+      likesCount: prev.isLiked ? prev.likesCount - 1 : prev.likesCount + 1
+    }))
+  }, [])
+  
+  // Handler pour partager sa review
+  const handleShareUserReview = useCallback(() => {
+    // Ouvrir la modale ShareWithFriendsModal pour la review
+    setShowShareUserReviewModal(true)
+  }, [])
+  
+  // Handler pour soumettre un commentaire
+  const handleSubmitComment = useCallback(() => {
+    if (!newComment.trim()) return
     
-    const totalSeconds = Math.floor(milliseconds / 1000)
-    const minutes = Math.floor(totalSeconds / 60)
-    const seconds = totalSeconds % 60
+    const comment: Comment = {
+      id: Date.now().toString(),
+      userId: 'current-user',
+      username: 'You',
+      text: newComment,
+      timestamp: new Date().toISOString(),
+      likes: 0,
+      isLiked: false
+    }
     
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
+    setUserReviewData(prev => ({
+      ...prev,
+      comments: [...prev.comments, comment],
+      commentsCount: prev.commentsCount + 1
+    }))
+    
+    setNewComment('')
+  }, [newComment])
 
-  // Load data and check library status when modal opens
-  useEffect(() => {
-    console.log('🎵 [DEBUG] useEffect triggered with:', { 
-      isOpen, 
-      musicId: formattedMusicId, 
-      libraryLength: library.length
-    })
+  // Save music sheet data
+  const saveMusicSheetData = useCallback(() => {
+    try {
+      if (musicDetail) {
+        console.log('🎵 [MusicSheet] Saving data:', musicSheetData)
+        // Here you would typically save to a database
+        // For now, we'll just log and close the modal
+        setShowMusicSheet(false)
+      }
+    } catch (error) {
+      console.error('🎵 [MusicSheet] Error saving data:', error)
+    }
+  }, [musicDetail, musicSheetData])
+
+  // Load music detail
+  const fetchMusicDetail = useCallback(async () => {
+    if (!formattedMusicId) return
     
-    if (isOpen && formattedMusicId) {
-      console.log('🎵 [Modal] Loading music detail and checking library status for:', formattedMusicId)
+    try {
+      setLoading(true)
       
+      let detail: MusicDetailData | null = null
+      
+      if (isAlbum) {
+        detail = await musicServiceV2.getAlbumDetails(formattedMusicId)
+      } else {
+        detail = await musicServiceV2.getTrackDetails(formattedMusicId)
+        
+        // Validation supplémentaire pour les tracks
+        if (detail && (!detail.title || detail.title.trim() === '')) {
+          console.warn('🎵 [WARNING] Track detail has invalid title, discarding')
+          detail = null
+        }
+      }
+      
+      setMusicDetail(detail)
+      
+      // Load additional data
+      if (detail) {
+        console.log('🎵 [DEBUG] Loading additional data...')
+        loadMetacriticScore(detail.title, detail.artist)
+        loadExistingReview(detail.id)
+        
+        // Pour les albums uniquement
+        if (isAlbum) {
+          loadAlbumTracks(detail.id, detail.title, detail.artist)
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error fetching music details:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [formattedMusicId, isAlbum, loadAlbumTracks, loadMetacriticScore, loadExistingReview])
+
+  // Check library status
+  useEffect(() => {
+    if (isOpen && formattedMusicId) {
       // Check library status
       if (library.length > 0) {
         const libraryItem = library.find(item => item.id === formattedMusicId)
-        console.log('🎵 [DEBUG] Library item found:', libraryItem?.status || 'none')
         setSelectedStatus(libraryItem?.status || null)
       }
       
       // Fetch music detail
-      console.log('🎵 [DEBUG] About to call fetchMusicDetail()')
       fetchMusicDetail()
     }
   }, [isOpen, formattedMusicId, library, fetchMusicDetail])
-
-  // 🔧 CORRECTION 2: Mettre à jour trackCount après chargement des tracks
+  
+  // Load videos when Videos tab is selected (only for singles, not albums)
   useEffect(() => {
-    if (isAlbum && albumTracks.length > 0 && musicDetail) {
-      console.log(`🎵 [DEBUG] Updating trackCount from ${musicDetail.trackCount} to ${albumTracks.length}`)
-      // Mettre à jour le trackCount avec le nombre réel de tracks
-      setMusicDetail(prev => prev ? {
-        ...prev,
-        trackCount: albumTracks.length
-      } : prev)
+    if (activeTab === 'media' && musicDetail && !isAlbum && !videosLoaded) {
+      loadMusicVideo()
     }
-  }, [albumTracks.length, isAlbum, musicDetail])
+  }, [activeTab, musicDetail, isAlbum, videosLoaded, loadMusicVideo])
 
-  // Debug: Log when selectedStatus changes
-  useEffect(() => {
-    console.log('🎵 [DEBUG] selectedStatus changed to:', selectedStatus)
-  }, [selectedStatus])
-
-  // Cleanup when modal closes - IMPROVED
+  // Cleanup on modal close
   useEffect(() => {
     if (!isOpen) {
       console.log('🎵 [Cleanup] Modal closed, cleaning up all states')
-      
-      // Clean up audio first
       cleanupAudio()
       
       // Reset all states when modal closes to prevent double modals
       setMusicDetail(null)
       setSelectedStatus(null)
       setShowStatusDropdown(false)
+      setShowShareModal(false)
       setShowShareWithFriendsModal(false)
       setShowFriendsWhoListened(false)
       setShowFriendsListModal(false)
@@ -302,64 +431,41 @@ export default function MusicDetailModalV4({
       setHoverRating(0)
       setUserReview('')
       setReviewPrivacy('private')
+      setExpandedUserReview(false)
+      setReviewSaved(false)
       setCurrentUserReview(null)
+      setUserReviewData({ isLiked: false, likesCount: 0, commentsCount: 0, comments: [] })
+      setShowUserReviewComments(false)
+      setShowShareUserReviewModal(false)
+      setNewComment('')
       setAlbumTracks([])
       setLoadingTracks(false)
       setMetacriticScore(null)
       setLoadingMetacritic(false)
+      setMusicVideo(null)
+      setLoadingVideo(false)
+      setVideosLoaded(false)
     }
   }, [isOpen, cleanupAudio])
 
-  // GESTION DES CLICS EXTÉRIEURS POUR LE DROPDOWN - COMME DANS MOVIE
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const dropdown = document.querySelector('[data-dropdown="status"]')
-      if (dropdown && !dropdown.contains(event.target as Node)) {
-        setShowStatusDropdown(false)
-      }
-    }
-
-    if (showStatusDropdown) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showStatusDropdown])
-
-  // AUSSI ajouter un cleanup au unmount du composant
+  // Cleanup on component unmount
   useEffect(() => {
     return () => {
-      // Cleanup audio on component unmount
+      console.log('🎵 [Unmount] Component unmounting, final cleanup')
       if (audioRef) {
         audioRef.pause()
         audioRef.currentTime = 0
         audioRef.src = ''
       }
     }
-  }, [])
+  }, [audioRef])
 
-  // 🔧 CORRECTION 5: Simplifier la logique preview
-  const getPreviewUrl = useCallback(() => {
-    // Pour les singles, utiliser directement la preview URL
-    if (isSingle && musicDetail?.previewUrl) {
-      return musicDetail.previewUrl
-    }
-    
-    // Pour les albums, essayer le premier track avec preview
-    if (isAlbum && albumTracks.length > 0) {
-      const trackWithPreview = albumTracks.find(track => track.previewUrl)
-      return trackWithPreview?.previewUrl
-    }
-    
-    return null
-  }, [isSingle, isAlbum, musicDetail?.previewUrl, albumTracks])
-
-  // Audio preview functions - IMPROVED
+  // Audio preview controls
   const handlePreviewToggle = useCallback(() => {
-    // For albums, try to use the first track's preview if album doesn't have one
     let previewUrl = musicDetail?.previewUrl
     
+    // For albums, try to use the first track's preview if album doesn't have one
     if (!previewUrl && isAlbum && albumTracks.length > 0) {
-      // Try to find the first track with a preview
       const trackWithPreview = albumTracks.find(track => track.previewUrl)
       if (trackWithPreview) {
         previewUrl = trackWithPreview.previewUrl
@@ -373,7 +479,12 @@ export default function MusicDetailModalV4({
 
     if (isPreviewPlaying) {
       console.log('🎵 [Audio] Stopping preview')
-      cleanupAudio()
+      if (audioRef) {
+        audioRef.pause()
+        audioRef.currentTime = 0
+        setAudioRef(null)
+      }
+      setIsPreviewPlaying(false)
     } else {
       console.log('🎵 [Audio] Starting preview:', previewUrl)
       
@@ -388,11 +499,13 @@ export default function MusicDetailModalV4({
       const handleEnded = () => {
         console.log('🎵 [Audio] Preview ended')
         setIsPreviewPlaying(false)
+        setAudioRef(null)
       }
       
       const handleError = (e: any) => {
-        console.error('🎵 [Audio] Preview error:', e)
+        console.error('🎵 [Audio] Preview error - failed to load:', previewUrl)
         setIsPreviewPlaying(false)
+        setAudioRef(null)
       }
       
       audio.addEventListener('ended', handleEnded)
@@ -407,175 +520,91 @@ export default function MusicDetailModalV4({
         setIsPreviewPlaying(false)
       })
     }
-  }, [musicDetail?.previewUrl, isPreviewPlaying, audioRef, isAlbum, albumTracks, cleanupAudio])
+  }, [musicDetail?.previewUrl, isPreviewPlaying, audioRef, isAlbum, albumTracks])
 
-  // Go to album function - IMPROVED
+  // Go to album
   const handleGoToAlbum = useCallback(() => {
-    if (isSingle && musicDetail?.parentAlbum && onMusicSelect) {
+    if (!isAlbum && musicDetail?.parentAlbum && onMusicSelect) {
       console.log('🎵 [Navigation] Going to album:', musicDetail.parentAlbum.id)
-      // Ensure the album ID is properly formatted
       const albumId = musicDetail.parentAlbum.id.startsWith('album-') 
         ? musicDetail.parentAlbum.id 
         : `album-${musicDetail.parentAlbum.id}`
       onMusicSelect(albumId)
     }
-  }, [isSingle, musicDetail?.parentAlbum, onMusicSelect])
+  }, [isAlbum, musicDetail?.parentAlbum, onMusicSelect])
 
-  // Track navigation function
+  // Track navigation
   const handleTrackSelect = useCallback((trackId: string) => {
     if (onMusicSelect) {
       console.log('🎵 [Navigation] Going to track:', trackId)
       // Clean up audio before navigation
-      cleanupAudio()
+      if (audioRef) {
+        audioRef.pause()
+        audioRef.currentTime = 0
+        setAudioRef(null)
+      }
+      setIsPreviewPlaying(false)
       onMusicSelect(trackId)
     }
-  }, [onMusicSelect, cleanupAudio])
-  
-  // Add to library function - CORRIGER LOGIQUE COMPLÈTE
+  }, [onMusicSelect, audioRef])
+
+  // Add to library
   const handleAddToLibrary = useCallback(async (status: MediaStatus) => {
-    console.log('🎵 [DEBUG] handleAddToLibrary called with:', { status, musicDetail: !!musicDetail, musicId: formattedMusicId })
-    
-    if (!musicDetail) {
-      console.error('🎵 [ERROR] handleAddToLibrary: No musicDetail available')
-      return
-    }
+    if (!musicDetail) return
     
     if (status === 'remove') {
-      console.log('🔴 [BILLIE DEBUG] Starting removal process')
-      console.log('🔴 [BILLIE DEBUG] musicId from props:', musicId)
-      console.log('🔴 [BILLIE DEBUG] musicDetail.id:', musicDetail.id)
-      
-      // Chercher l'item dans la bibliothèque avec différents formats d'ID
-      const possibleIds = [
-        musicDetail.id,
-        formattedMusicId,
-        `track-${formattedMusicId.replace('track-', '')}`,
-        musicDetail.id.replace('track-', ''),
-        formattedMusicId.replace('track-', '')
-      ]
-      
-      console.log('🔴 [BILLIE DEBUG] Searching library for possible IDs:', possibleIds)
-      
-      let foundItem = null
-      let actualId = musicDetail.id
-      
-      for (const testId of possibleIds) {
-        foundItem = library.find(item => item.id === testId)
-        if (foundItem) {
-          actualId = testId
-          console.log('🔴 [BILLIE DEBUG] Found library item with ID:', testId, 'Status:', foundItem.status)
-          break
-        }
-      }
-      
-      if (!foundItem) {
-        console.log('🔴 [BILLIE WARNING] Item not found in library with any ID format')
-        console.log('🔴 [BILLIE DEBUG] Current library IDs:', library.map(item => item.id))
-      }
-      
-      console.log('🔴 [BILLIE DEBUG] Attempting to delete with ID:', actualId)
-      
       if (onDeleteItem) {
-        onDeleteItem(actualId)
+        onDeleteItem(musicDetail.id)
       }
       setSelectedStatus(null)
       setShowStatusDropdown(false)
       return
     }
     
-    // 🔴 DEBUG pour Chappell Roan et autres cas problématiques
-    console.log('🔴 [CHAPPELL DEBUG] musicDetail properties:')
-    console.log('🔴 ID:', musicDetail.id)
-    console.log('🔴 Title:', JSON.stringify(musicDetail.title))
-    console.log('🔴 Artist:', JSON.stringify(musicDetail.artist))
-    
-    // Validation et fallback pour les données critiques
-    if (!musicDetail.title || musicDetail.title === 'undefined') {
-      console.error('🎵 [CRITICAL] Title is undefined for:', musicDetail.id)
-      const fallbackTitle = musicDetail.artist ? 
-        `${musicDetail.artist} - Track ${musicDetail.id.replace('track-', '')}` : 
-        `Untitled Track ${musicDetail.id.replace('track-', '')}`
-      
-      console.log('🎵 [FALLBACK] Using fallback title:', fallbackTitle)
-      musicDetail.title = fallbackTitle
-    }
-    
-    // S'assurer que l'ID est valide
-    const safeId = musicDetail.id && musicDetail.id !== 'track-undefined' ? 
-      musicDetail.id : 
-      `track-${formattedMusicId.replace('track-', '')}`
-    
-    // STRUCTURE CORRECTE pour la library avec validations
     const musicData = {
-      id: safeId,
-      title: musicDetail.title || `Untitled Track`,
+      id: musicDetail.id,
+      title: musicDetail.title,
       category: 'music' as const,
       image: musicDetail.image,
       year: musicDetail.releaseDate ? new Date(musicDetail.releaseDate).getFullYear() : 2024,
       rating: musicDetail.rating || 4.0,
-      artist: musicDetail.artist || 'Unknown Artist',
+      artist: musicDetail.artist,
       genre: musicDetail.genre || 'Music',
       duration: musicDetail.duration,
       type: musicDetail.type || (isAlbum ? 'album' : 'single')
     }
     
-    console.log('🎵 [DEBUG] Calling onAddToLibrary with validated data:', musicData, status)
-    
     try {
-      // APPELER LA FONCTION PARENT D'ABORD
       await onAddToLibrary(musicData, status)
-      console.log('🎵 [SUCCESS] Added to library successfully')
-      
-      // METTRE À JOUR LE STATUS LOCAL IMMÉDIATEMENT
       setSelectedStatus(status)
-      console.log('🎵 [DEBUG] Updated selectedStatus to:', status)
+      setShowStatusDropdown(false)
       
       // Show inline rating for listened status
       if (status === 'listened') {
         setShowInlineRating(true)
       }
-      
-      setShowStatusDropdown(false)
     } catch (error) {
       console.error('🎵 [ERROR] Failed to add to library:', error)
     }
-  }, [musicDetail, onAddToLibrary, onDeleteItem, formattedMusicId, isAlbum, library])
+  }, [musicDetail, onAddToLibrary, onDeleteItem, isAlbum])
 
-  // Save review function
-  const handleSaveReview = useCallback(async () => {
-    if (!musicDetail) return
+  // Get available statuses
+  const getAvailableStatuses = useCallback(() => {
+    const baseStatuses = [
+      { value: 'want-to-listen', label: 'Want to Listen' },
+      { value: 'currently-listening', label: 'Currently Listening' },
+      { value: 'listened', label: 'Listened' }
+    ]
     
-    try {
-      await userReviewsService.submitReview({
-        mediaId: musicDetail.id,
-        mediaTitle: musicDetail.title,
-        mediaCategory: 'music',
-        rating: userRating,
-        reviewText: userReview,
-        isPublic: reviewPrivacy === 'public'
-      })
-      
-      setShowInlineRating(false)
-      setCurrentUserReview({
-        id: 'temp',
-        media_id: musicDetail.id,
-        media_title: musicDetail.title,
-        media_category: 'music',
-        user_identifier: 'temp',
-        rating: userRating,
-        review_text: userReview,
-        is_public: reviewPrivacy === 'public',
-        helpful_count: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-    } catch (error) {
-      console.error('Error saving review:', error)
+    if (selectedStatus) {
+      baseStatuses.push({ value: 'remove', label: 'Remove from Library' })
     }
-  }, [musicDetail, userRating, userReview, reviewPrivacy])
+    
+    return baseStatuses
+  }, [selectedStatus])
 
-  // Format status for display - SIMPLIFIÉ COMME DANS MOVIE
-  const formatStatusForDisplay = useCallback((status: MediaStatus | null) => {
+  // Format status for display
+  const formatStatusForDisplay = (status: MediaStatus | null) => {
     if (!status) return 'Add to Library'
     
     const statusLabels = {
@@ -585,59 +614,58 @@ export default function MusicDetailModalV4({
     } as const
     
     return statusLabels[status as keyof typeof statusLabels] || 'Add to Library'
-  }, [])
-
-  // Get available statuses - AMÉLIORÉ COMME DANS MOVIE
-  const getAvailableStatuses = useCallback(() => {
-    const baseStatuses = [
-      { value: 'want-to-listen', label: 'Want to Listen' },
-      { value: 'currently-listening', label: 'Currently Listening' },
-      { value: 'listened', label: 'Listened' }
-    ]
-    
-    // Ajouter "Remove" seulement si l'item est déjà dans la bibliothèque
-    if (selectedStatus) {
-      baseStatuses.push({ value: 'remove', label: 'Remove from Library' })
-    }
-    
-    return baseStatuses
-  }, [selectedStatus])
-
-  // Handle modal close with cleanup
-  const handleClose = useCallback(() => {
-    console.log('🎵 [Close] Closing modal and cleaning up')
-    cleanupAudio()
-    onClose()
-  }, [onClose, cleanupAudio])
+  }
 
   if (!isOpen) return null
 
-  // Debug log
-  console.log('🟢 MusicDetailModalV4 rendering, isOpen:', isOpen, 'musicId:', formattedMusicId, 'musicDetail:', !!musicDetail)
-
   if (loading) {
     return (
-      <div className="fixed inset-0 z-[10000] bg-[#0f0e17] min-h-screen flex items-center justify-center">
-        <StackrLoadingSkeleton />
+      <div className="fixed top-0 left-0 right-0 bottom-16 z-30 bg-[#0f0e17] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
       </div>
     )
   }
 
+  if (!musicDetail) {
+    return (
+      <div className="fixed top-0 left-0 right-0 bottom-16 z-30 bg-[#0f0e17] font-system overflow-y-auto">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center text-gray-400 px-6">
+            <div className="text-6xl mb-4">🎵</div>
+            <div className="text-lg mb-2">Music not found</div>
+            <div className="text-sm mb-6">
+              Unable to load details for this {isAlbum ? 'album' : 'track'}.
+            </div>
+            <button
+              onClick={handleClose}
+              className="px-6 py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const hasPreview = musicDetail?.previewUrl || (isAlbum && albumTracks.some(t => t.previewUrl))
+
   return (
-    <div className="fixed inset-0 z-[10000] bg-[#0f0e17] min-h-screen pb-20 font-system overflow-y-auto">
-      {musicDetail ? (
-        <>
-          {/* Large header image - 160px height */}
-      <div className="relative h-[160px] overflow-hidden">
+    <div className="fixed top-0 left-0 right-0 bottom-16 z-30 bg-[#0f0e17] font-system overflow-y-auto">
+      {/* Header with backdrop image */}
+      <div className="relative h-[200px] overflow-hidden">
         <img
-          src={musicDetail?.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1280&h=720&fit=crop&q=80'}
-          alt={`${musicDetail?.title} backdrop`}
+          src={musicDetail.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1280&h=720&fit=crop&q=80'}
+          alt={`${musicDetail.title} backdrop`}
           className="w-full h-full object-cover"
           loading="eager"
         />
         
-        {/* Navigation Header - X button top right */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-end p-5" style={{ zIndex: 20 }}>
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0f0e17] via-[#0f0e17]/60 to-transparent" />
+        
+        {/* Close button */}
+        <div className="absolute top-0 right-0 p-5">
           <button
             onClick={handleClose}
             className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
@@ -647,474 +675,956 @@ export default function MusicDetailModalV4({
         </div>
       </div>
 
-      {/* Music Info Section with GRAY/BLACK Gradient - COPIED FROM BookDetailModalV3 */}
-      <div className="relative min-h-[240px] overflow-visible">
-        {/* GRAY/BLACK Gradient Background - EXACTLY LIKE BOOKS */}
-        <div 
-          className="absolute inset-0"
-          style={{ 
-            background: 'linear-gradient(to bottom, rgba(55, 65, 81, 0.4), rgba(31, 41, 55, 0.3), rgba(17, 24, 39, 0.2), rgba(15, 14, 23, 0.7))',
-            zIndex: 1
-          }}
-        />
-        
-        {/* Music Info Container */}
-        <div className="px-5 py-6 relative z-30">
-          {/* Thumbnail + Title Section - SAME LAYOUT AS BOOKS */}
-          <div className="flex gap-4 items-start mb-4">
-            {/* Music Thumbnail - 100x100 EXACTLY LIKE BOOKS + Listen Icon */}
-            <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden border-2 border-white/10 flex-shrink-0 relative">
-              <img
-                src={musicDetail?.image}
-                alt={musicDetail?.title}
-                className="w-full h-full object-cover"
-              />
-              {/* Listen Icon - Bottom Right for Singles and Albums with preview */}
-              {(musicDetail?.previewUrl || (isAlbum && albumTracks.some(t => t.previewUrl))) && (
-                <button
-                  onClick={handlePreviewToggle}
-                  className="absolute bottom-2 right-2 w-8 h-8 bg-gray-800/90 rounded-full flex items-center justify-center transition-all duration-200 hover:bg-gray-700/90 backdrop-blur-sm md:w-10 md:h-10"
-                  title="Listen to 30-second preview"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white" className="md:w-[14px] md:h-[14px]">
-                    {isPreviewPlaying ? (
-                      // Pause icon
-                      <>
-                        <rect x="6" y="4" width="4" height="16" fill="white"/>
-                        <rect x="14" y="4" width="4" height="16" fill="white"/>
-                      </>
-                    ) : (
-                      // Play icon
-                      <polygon points="8,5 8,19 19,12" fill="white"/>
-                    )}
-                  </svg>
-                </button>
-              )}
-            </div>
+      {/* Music Info Section */}
+      <div className="px-6 py-6 relative -mt-16">
+        {/* Thumbnail + Basic Info */}
+        <div className="flex gap-4 items-start mb-4 relative z-10">
+          {/* Music Thumbnail - Same size as book modal */}
+          <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden border-2 border-white/10 flex-shrink-0">
+            <img
+              src={musicDetail.image}
+              alt={musicDetail.title}
+              className="w-full h-full object-cover"
+              loading="eager"
+              style={{ imageRendering: 'crisp-edges', backfaceVisibility: 'hidden' }}
+            />
+          </div>
+          
+          {/* Title and Artist - Same style as book modal */}
+          <div className="flex-1 pt-1">
+            <h1 className="text-xl font-bold text-white mb-1 leading-tight">{musicDetail.title}</h1>
+            <p className="text-sm text-gray-400 mb-1">{musicDetail.artist}</p>
             
-            {/* Music Title Section - FORCER L'AFFICHAGE */}
-            <div className="flex-1 pt-1 relative z-10">
-              <h1 className="text-xl font-bold text-white mb-1 leading-tight block md:text-2xl">{musicDetail?.title}</h1>
-              <p className="text-sm text-gray-400 mb-1 block md:text-base">{musicDetail?.artist}</p>
-              
-              {/* Music Stats - ASSURER VISIBILITÉ */}
-              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 block md:text-sm">
-                {musicDetail?.releaseDate && <span>{new Date(musicDetail.releaseDate).getFullYear()}</span>}
-                {musicDetail?.genre && (
-                  <>
-                    <span className="text-gray-600">•</span>
-                    <span>{musicDetail.genre}</span>
-                  </>
-                )}
-                {musicDetail?.duration && (
-                  <>
-                    <span className="text-gray-600">•</span>
-                    <span>{musicDetail.duration}</span>
-                  </>
-                )}
-              </div>
-              
-              {/* Badge Single/Album + Album Link - RESPONSIVE FIX */}
-              <div className="flex flex-col gap-2 mt-2">
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-indigo-600 to-purple-700 text-white">
-                    {isAlbum ? 'Album' : 'Single'}
-                    {isAlbum && (
-                      <span className="ml-1 text-white/80">
-                        • {albumTracks.length > 0 ? albumTracks.length : (musicDetail?.trackCount || 'Loading...')} tracks
-                      </span>
-                    )}
-                  </span>
-                </div>
-                {/* FORCER L'AFFICHAGE SUR MOBILE ET PC */}
-                {isSingle && musicDetail?.parentAlbum && (
-                  <div className="flex items-center w-full">
-                    <span className="text-xs text-gray-500 mr-2">From album:</span>
-                    <button
-                      onClick={handleGoToAlbum}
-                      className="text-xs text-purple-400 hover:text-purple-300 transition-colors underline flex-1 text-left"
-                    >
-                      {musicDetail.parentAlbum.title}
-                    </button>
-                  </div>
-                )}
-              </div>
+            {/* Music Stats - Same style as book modal */}
+            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+              {musicDetail.releaseDate && <span>{new Date(musicDetail.releaseDate).getFullYear()}</span>}
+              {musicDetail.genre && (
+                <>
+                  <span className="text-gray-600">•</span>
+                  <span>{musicDetail.genre}</span>
+                </>
+              )}
+              {musicDetail.duration && (
+                <>
+                  <span className="text-gray-600">•</span>
+                  <span>{musicDetail.duration}</span>
+                </>
+              )}
+              {/* Type Badge inline with stats */}
+              <>
+                <span className="text-gray-600">•</span>
+                <span>{isAlbum ? 'Album' : 'Single'}</span>
+              </>
+              {isAlbum && albumTracks.length > 0 && (
+                <>
+                  <span className="text-gray-600">•</span>
+                  <span>{albumTracks.length} tracks</span>
+                </>
+              )}
             </div>
           </div>
+        </div>
 
-
-          {/* Buttons - OPTIMISÉ COMME DANS MOVIE */}
-          <div className="flex space-x-3 mt-3 relative z-50" style={{ zIndex: 100000 }}>
-            {/* Status Button - AVEC CHEVRON ET DATA-DROPDOWN */}
-            <div className="relative flex-1" data-dropdown="status">
-              <button
-                onClick={() => {
-                  console.log('🎵 [DEBUG] Status button clicked, current status:', selectedStatus)
-                  setShowStatusDropdown(!showStatusDropdown)
-                }}
-                className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-800 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
-              >
-                <span>{formatStatusForDisplay(selectedStatus)}</span>
-                <ChevronDown 
-                  size={16} 
-                  className={`transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`} 
-                />
-              </button>
-              
-              {/* Dropdown OPTIMISÉ COMME DANS MOVIE */}
-              {showStatusDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-purple-500 rounded-lg shadow-2xl z-[99999]">
-                  {getAvailableStatuses().map((status) => (
-                    <button
-                      key={status.value}
-                      onClick={() => handleAddToLibrary(status.value as MediaStatus)}
-                      className={`w-full text-left px-4 py-3 text-sm hover:bg-purple-600/20 hover:text-purple-400 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                        selectedStatus === status.value ? 'text-purple-400 bg-purple-600/30' : 'text-gray-300'
-                      } ${status.value === 'remove' ? 'text-red-400 hover:bg-red-600/20' : ''}`}
-                    >
-                      {status.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {/* Share Button - SAME STYLE AS BOOKS */}
-            <button 
-              onClick={() => setShowShareWithFriendsModal(true)}
-              className="px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
+        {/* Action Buttons */}
+        <div className="flex space-x-3 mt-3">
+          {/* Status Button */}
+          <div className="relative flex-1">
+            <button
+              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              className="w-full py-3 px-4 bg-gradient-to-r from-gray-600 to-gray-800 text-white font-medium rounded-lg hover:from-gray-700 hover:to-gray-900 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
             >
-              <Share size={16} />
-              <span>Share</span>
+              <span>{formatStatusForDisplay(selectedStatus)}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={`transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`}>
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
+            
+            {/* Dropdown */}
+            {showStatusDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-purple-500 rounded-lg shadow-2xl z-[99999]">
+                {getAvailableStatuses().map((status) => (
+                  <button
+                    key={status.value}
+                    onClick={() => handleAddToLibrary(status.value as MediaStatus)}
+                    className={`w-full text-left px-4 py-3 text-sm hover:bg-purple-600/20 hover:text-purple-400 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                      selectedStatus === status.value ? 'text-purple-400 bg-purple-600/30' : 'text-gray-300'
+                    } ${status.value === 'remove' ? 'text-red-400 hover:bg-red-600/20' : ''}`}
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+          
+          {/* Preview Button - Square with icon only */}
+          {hasPreview && (
+            <button
+              onClick={handlePreviewToggle}
+              className="w-12 h-12 bg-white hover:bg-gray-100 text-black rounded-lg transition-all duration-200 flex items-center justify-center"
+              title={isPreviewPlaying ? 'Stop Preview' : 'Play Preview'}
+            >
+              {isPreviewPlaying ? <Pause size={16} /> : <Play size={16} />}
+            </button>
+          )}
+          
+          {/* Share Button */}
+          <button 
+            onClick={() => setShowShareWithFriendsModal(true)}
+            className="px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
+          >
+            <Share size={16} />
+            <span>Share</span>
+          </button>
+        </div>
 
-          {/* Friends who listened - EXACTLY LIKE BOOKS */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-400 text-sm">Friends who listened:</span>
+        {/* Friends who listened - EXACTLY LIKE BOOKS */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-400 text-sm">Friends who listened:</span>
+              {false ? (
+                <span className="text-gray-500 text-sm">Loading...</span>
+              ) : FRIENDS_WHO_LISTENED.length > 0 ? (
                 <div className="flex -space-x-1">
                   {FRIENDS_WHO_LISTENED.slice(0, 4).map((friend) => (
-                    <div
-                      key={friend.id}
-                      className="w-6 h-6 bg-gradient-to-r from-gray-500 to-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
-                      title={friend.name}
-                    >
-                      {friend.name.charAt(0)}
-                    </div>
+                    friend.avatar_url ? (
+                      <img
+                        key={friend.friend_id}
+                        src={friend.avatar_url}
+                        alt={friend.display_name || friend.username}
+                        className="w-6 h-6 rounded-full border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
+                        title={`${friend.display_name || friend.username}${friend.rating ? ` - ${friend.rating}/5 stars` : ''}`}
+                      />
+                    ) : (
+                      <div
+                        key={friend.friend_id}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
+                        style={{ backgroundColor: avatarService.getAvatarColor(friend.friend_id) }}
+                        title={`${friend.display_name || friend.username}${friend.rating ? ` - ${friend.rating}/5 stars` : ''}`}
+                      >
+                        {avatarService.getInitials(friend.display_name || friend.username)}
+                      </div>
+                    )
                   ))}
                   {FRIENDS_WHO_LISTENED.length > 4 && (
-                    <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17]">
+                    <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform">
                       +{FRIENDS_WHO_LISTENED.length - 4}
                     </div>
                   )}
                 </div>
-              </div>
-              <button
+              ) : (
+                <span className="text-gray-500 text-sm">None</span>
+              )}
+            </div>
+            {FRIENDS_WHO_LISTENED.length > 0 && (
+              <button 
                 onClick={() => setShowFriendsListModal(true)}
-                className="text-gray-400 hover:text-gray-300 text-sm cursor-pointer"
+                className="text-gray-400 hover:text-purple-400 text-sm transition-colors"
               >
                 View all
               </button>
-            </div>
-            
-            {/* Customize music sheet - LIKE BOOKS */}
-            <button className="text-gray-400 hover:text-gray-300 text-sm flex items-center space-x-1 cursor-pointer">
-              <FileText size={14} />
-              <span>Customize music sheet</span>
+            )}
+          </div>
+          
+          {/* Customize music sheet - LIKE BOOKS */}
+          <button 
+            onClick={() => setShowMusicSheet(true)}
+            className="text-purple-400 hover:text-purple-300 text-sm flex items-center space-x-1 cursor-pointer transition-colors"
+          >
+            <FileText size={14} />
+            <span>Customize music sheet</span>
+          </button>
+        </div>
+
+        {/* Tabs: Overview / Videos */}
+        <div className="mt-6 mb-4">
+          <div className="flex space-x-2">
+            <button 
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                activeTab === 'overview'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              Overview
+            </button>
+            <button 
+              onClick={() => setActiveTab('media')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                activeTab === 'media'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              Videos
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Content Section - COPIED FROM BookDetailModalV3 */}
-      <div className="px-6 py-4 relative z-1">
-        <div className="space-y-8">
-          
-          {/* Rate this music section - COPY RATING LOGIC FROM BOOKS */}
-          {showInlineRating && (
-            <div className="mb-6 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] rounded-lg p-4 border border-gray-700/50">
-              <h3 className="text-white font-semibold text-base mb-4">Rate this {isAlbum ? 'album' : 'song'}</h3>
-              
-              {/* Rating stars */}
-              <div className="flex items-center space-x-1 mb-4">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={24}
-                    className={`cursor-pointer transition-colors ${
-                      star <= (hoverRating || userRating) 
-                        ? 'text-purple-500 fill-current' 
-                        : 'text-gray-600 hover:text-purple-400'
-                    }`}
-                    onClick={() => setUserRating(star)}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                  />
-                ))}
-                {userRating > 0 && (
-                  <span className="text-white ml-2 text-sm">{userRating}/5 stars</span>
-                )}
-              </div>
-
-              {/* Review textarea - ONLY if rating > 0 */}
-              {userRating > 0 && (
-                <div className="space-y-3">
-                  <textarea
-                    value={userReview}
-                    onChange={(e) => setUserReview(e.target.value)}
-                    placeholder="Write your review... (optional)"
-                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 h-20 text-sm"
-                  />
+        {/* Overview Content */}
+        <div style={{ display: activeTab === 'overview' ? 'block' : 'none' }}>
+          <div className="space-y-8">
+            {/* Rate this music section - EXACTLY LIKE BOOKS */}
+            <div className="mt-4">
+              <div className="text-gray-400 text-sm mb-1">Rate this {isAlbum ? 'album' : 'song'}</div>
+            
+          <div className="flex items-center space-x-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+                onClick={async () => {
+                  // Allow editing: if same rating is clicked, reset to 0
+                  const newRating = userRating === star ? 0 : star
+                  setUserRating(newRating)
                   
-                  {/* Privacy buttons */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-400 text-sm">Review privacy:</span>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => setReviewPrivacy('private')}
-                          className={`px-3 py-1 rounded text-xs transition-colors ${
-                            reviewPrivacy === 'private'
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          }`}
-                        >
-                          Private
-                        </button>
-                        <button
-                          onClick={() => setReviewPrivacy('public')}
-                          className={`px-3 py-1 rounded text-xs transition-colors ${
-                            reviewPrivacy === 'public'
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          }`}
-                        >
-                          Public
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Save button */}
+                  // Open review box when rating (but not when clearing)
+                  if (newRating > 0) {
+                    setShowInlineRating(true)
+                  } else {
+                    setShowInlineRating(false)
+                  }
+                  
+                  // Note: Rating will be saved when user clicks "Save Review" button
+                  // No auto-save here to prevent closing the review box prematurely
+                }}
+                className="transition-all duration-200 hover:scale-110"
+              >
+                <Star
+                  size={18}
+                  className={`${
+                    star <= (hoverRating || userRating)
+                      ? 'text-purple-400 fill-purple-400 drop-shadow-sm'
+                      : 'text-gray-600 hover:text-gray-500'
+                  } transition-colors`}
+                />
+              </button>
+            ))}
+            {userRating > 0 && (
+              <span className="text-gray-400 text-sm ml-2">{userRating}/5</span>
+            )}
+              </div>
+            </div>
+
+            {/* Review section - EXACTLY LIKE BOOKS - ONLY if rating > 0 */}
+        {showInlineRating && userRating > 0 && (
+          <div className="mb-6 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] border border-gray-700/50 rounded-lg p-4">
+            <h3 className="text-white font-medium mb-3">Share your thoughts</h3>
+            
+            {/* Review Text Area */}
+            <div className="space-y-3">
+              <textarea
+                value={userReview}
+                onChange={(e) => setUserReview(e.target.value)}
+                placeholder="Write your review... (optional)"
+                className="w-full bg-black/20 border border-purple-500/30 rounded-lg p-3 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                rows={3}
+              />
+              
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-white/70 text-sm">Review privacy:</span>
+                  <div className="flex bg-black/30 rounded-lg p-1">
                     <button
-                      onClick={handleSaveReview}
-                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors"
+                      onClick={() => setReviewPrivacy('private')}
+                      className={`px-3 py-1 rounded-md text-xs transition-colors ${
+                        reviewPrivacy === 'private'
+                          ? 'bg-purple-600 text-white'
+                          : 'text-white/60 hover:text-white/80'
+                      }`}
                     >
-                      Save
+                      Private
+                    </button>
+                    <button
+                      onClick={() => setReviewPrivacy('public')}
+                      className={`px-3 py-1 rounded-md text-xs transition-colors ${
+                        reviewPrivacy === 'public'
+                          ? 'bg-purple-600 text-white'
+                          : 'text-white/60 hover:text-white/80'
+                      }`}
+                    >
+                      Public
                     </button>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Your Review - COPY FROM BOOKS */}
-          {currentUserReview && (
-            <div className="mb-6 md:mb-8 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] rounded-lg p-4 md:p-6 border border-gray-700/50">
-              {/* Header: Title + Privacy + Edit */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <h3 className="text-white font-semibold text-base">Your review</h3>
-                  <span className="text-gray-400 text-xs">({currentUserReview.is_public ? 'public' : 'private'})</span>
-                </div>
-                <button
-                  onClick={() => setShowInlineRating(true)}
-                  className="text-white text-xs font-medium hover:text-gray-300 transition-colors"
-                >
-                  Edit
-                </button>
-              </div>
-              
-              {/* Fine ligne blanche */}
-              <div className="border-t border-white/10 mb-4"></div>
-              
-              {/* Review content */}
-              <div className="space-y-4">
-                {/* Rating stars */}
-                <div className="flex items-center space-x-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      size={16}
-                      className={star <= currentUserReview.rating ? 'text-purple-500 fill-current' : 'text-gray-600'}
-                    />
-                  ))}
-                  <span className="text-gray-400 text-sm ml-2">{currentUserReview.rating}/5</span>
-                </div>
                 
-                {/* Review text */}
-                {currentUserReview.review_text && (
-                  <p className="text-gray-300 text-sm leading-relaxed">
-                    {currentUserReview.review_text}
-                  </p>
-                )}
+                <div className="flex items-center space-x-2">
+                  {!userReview.trim() && (
+                    <button
+                      onClick={() => {
+                        // Skip: just close the review box without saving review text
+                        setShowInlineRating(false)
+                      }}
+                      className="px-3 py-1 bg-gray-700 text-gray-300 text-xs font-medium rounded-md hover:bg-gray-600 transition-colors"
+                    >
+                      Skip
+                    </button>
+                  )}
+                  {userReview.trim() && (
+                    <button
+                      onClick={handleSaveReview}
+                      className={`px-3 py-1 text-white text-xs font-medium rounded-md transition-all duration-200 ${
+                        reviewSaved 
+                          ? 'bg-green-600 hover:bg-green-700' 
+                          : 'bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900'
+                      }`}
+                    >
+                      {reviewSaved ? 'Saved!' : 'Save Review'}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Tabs: Overview / Videos/Photos - SAME STYLE AS GAME DETAIL */}
-          <div className="mb-6">
-            <div className="flex space-x-2">
-              <button 
-                onClick={() => setActiveTab('overview')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                  activeTab === 'overview'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Overview
-              </button>
-              <button 
-                onClick={() => setActiveTab('media')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                  activeTab === 'media'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Videos/Photos
-              </button>
             </div>
           </div>
+            )}
 
-          {/* Tab Content */}
-          {activeTab === 'overview' && (
-            <>
-              {/* Metacritic Score */}
-              {metacriticScore?.available && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-3">Metacritic Score</h3>
-                  <div className="text-white font-medium text-lg">{metacriticScore.score}/100</div>
+            {/* Your Review - Style Instagram (shown if user has rating but review box is closed) */}
+        {userRating > 0 && !showInlineRating && (
+          <div className="mb-6 md:mb-8 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] rounded-lg p-4 md:p-6 border border-gray-700/50">
+            {/* Header: Title + Privacy + Edit */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <h3 className="text-white font-semibold text-base">Your review</h3>
+                <span className="text-gray-400 text-xs">({reviewPrivacy})</span>
+              </div>
+              <button
+                onClick={() => setShowInlineRating(true)}
+                className="text-white text-xs font-medium hover:text-gray-300 transition-colors"
+              >
+                Edit
+              </button>
+            </div>
+            
+            {/* Fine ligne blanche */}
+            <div className="border-t border-white/10 mb-4"></div>
+            
+            {/* Review content */}
+            <div className="py-2">
+              {/* Avatar + You + Rating */}
+              <div className="flex items-center space-x-3 mb-2">
+                {userAvatar ? (
+                  <img 
+                    src={userAvatar} 
+                    alt="Your avatar" 
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                    U
+                  </div>
+                )}
+                <div className="flex items-center space-x-2 flex-1">
+                  <span className="text-white font-medium text-sm">You</span>
+                  {/* Rating en violet */}
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        size={12}
+                        className={`${
+                          star <= userRating
+                            ? 'text-purple-400 fill-current'
+                            : 'text-gray-600'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Review text */}
+              {userReview && (
+                <div className="mb-3 ml-11">
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    {expandedUserReview 
+                      ? userReview 
+                      : userReview.length > 60 ? userReview.substring(0, 60) + '...' : userReview
+                    }
+                    {userReview.length > 60 && (
+                      <button
+                        onClick={() => setExpandedUserReview(!expandedUserReview)}
+                        className="text-gray-400 hover:text-gray-300 ml-1 text-xs"
+                      >
+                        {expandedUserReview ? '...less' : '...more'}
+                      </button>
+                    )}
+                  </p>
                 </div>
               )}
-
-              {/* Music Details */}
-              <div className="space-y-2 text-sm mb-6">
-                <div className="flex items-center text-gray-400">
-                  <span className="w-20 flex-shrink-0">Artist:</span>
-                  <span className="text-white">{musicDetail.artist}</span>
-                </div>
-                {musicDetail.genre && (
-                  <div className="flex items-center text-gray-400">
-                    <span className="w-20 flex-shrink-0">Genre:</span>
-                    <span className="text-white">{musicDetail.genre}</span>
+              
+              {/* Actions Instagram style avec compteurs */}
+              <div className="ml-11">
+                <div className="flex items-center space-x-4">
+                  {/* Like - Heart outline avec compteur */}
+                  <div className="flex items-center space-x-1">
+                    <button 
+                      onClick={() => handleLikeUserReview()}
+                      className={`transition-colors ${userReviewData.isLiked ? 'text-red-500' : 'text-gray-400 hover:text-gray-300'}`}
+                    >
+                      {userReviewData.isLiked ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                      )}
+                    </button>
+                    {userReviewData.likesCount > 0 && (
+                      <span className="text-gray-300 text-xs">{userReviewData.likesCount}</span>
+                    )}
                   </div>
-                )}
-                {musicDetail.releaseDate && (
-                  <div className="flex items-center text-gray-400">
-                    <span className="w-20 flex-shrink-0">Released:</span>
-                    <span className="text-white">{new Date(musicDetail.releaseDate).getFullYear()}</span>
+                  
+                  {/* Comment - Chat bubble avec compteur */}
+                  <div className="flex items-center space-x-1">
+                    <button 
+                      onClick={() => setShowUserReviewComments(true)}
+                      className="text-gray-400 hover:text-gray-300 transition-colors"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                    </button>
+                    {userReviewData.commentsCount > 0 && (
+                      <span className="text-gray-300 text-xs">{userReviewData.commentsCount}</span>
+                    )}
                   </div>
-                )}
-                {musicDetail.duration && (
-                  <div className="flex items-center text-gray-400">
-                    <span className="w-20 flex-shrink-0">Duration:</span>
-                    <span className="text-white">{musicDetail.duration}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Link to Complete Album (for singles) */}
-              {isSingle && musicDetail.parentAlbum && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-3">From the Album</h3>
-                  <button
-                    onClick={handleGoToAlbum}
-                    className="flex items-center space-x-3 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors w-full text-left"
+                  
+                  {/* Share - Send arrow */}
+                  <button 
+                    onClick={() => handleShareUserReview()}
+                    className="text-gray-400 hover:text-gray-300 transition-colors"
                   >
-                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                      <img 
-                        src={musicDetail.image} 
-                        alt={musicDetail.parentAlbum.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">{musicDetail.parentAlbum.title}</p>
-                      <p className="text-gray-400 text-sm">{musicDetail.artist} • {musicDetail.parentAlbum.year}</p>
-                    </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-gray-400">
-                      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M22 2L11 13"/>
+                      <path d="M22 2L15 22L11 13L2 9L22 2Z"/>
                     </svg>
                   </button>
                 </div>
-              )}
-
-              {/* Track List (for albums) */}
-              {isAlbum && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-3">Tracklist</h3>
-                  
-                  {loadingTracks ? (
-                    <div className="text-center text-gray-400 py-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-2"></div>
-                      Loading tracks...
-                    </div>
-                  ) : albumTracks.length > 0 ? (
-                    <div className="space-y-2">
-                      {albumTracks.map((track, index) => (
-                        <div 
-                          key={track.id} 
-                          className="flex items-center justify-between p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer group"
-                          onClick={() => handleTrackSelect(track.id)}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <span className="text-gray-400 text-sm w-6 text-center font-mono">{track.trackNumber}</span>
-                            <div className="flex-1">
-                              <p className="text-white group-hover:text-purple-400 transition-colors">{track.name}</p>
-                              <p className="text-gray-500 text-xs">{track.artist}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {track.previewUrl && (
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  console.log('🎵 [DEBUG] Playing preview for track:', track.name)
-                                  // Add preview functionality here
-                                }}
-                                className="w-6 h-6 bg-purple-600/20 hover:bg-purple-600/40 rounded-full flex items-center justify-center transition-colors"
-                                title="Preview"
-                              >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
-                                  <polygon points="8,5 8,19 19,12" fill="currentColor"/>
-                                </svg>
-                              </button>
-                            )}
-                            <span className="text-gray-400 text-sm font-mono">{track.duration}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-400 py-4">
-                      <p className="text-sm">No tracks found for this album</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {activeTab === 'media' && (
-            <div className="space-y-6">
-              <div className="text-center text-gray-400 py-8">
-                Videos and photos coming soon...
               </div>
             </div>
-          )}
-        </div>
-      </div>
-        </>
-      ) : (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-white text-center">
-            <h2 className="text-xl font-semibold mb-2">Music not found</h2>
-            <p className="text-gray-400">Unable to load music details</p>
+          </div>
+            )}
+
+            {/* Description - Like Book Modal */}
+            {musicDetail?.description && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3">Description</h3>
+                <div className="text-gray-400 leading-relaxed text-sm">
+                  {musicDetail.description}
+                </div>
+              </div>
+            )}
+
+            {/* Music Info - Like Book Modal Info Section */}
+            <div className="space-y-2 text-sm mb-6">
+              {musicDetail?.genre && (
+                <div className="text-sm flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0">Genre:</span>
+                  <span className="text-white">{musicDetail.genre}</span>
+                </div>
+              )}
+              {musicDetail?.releaseDate && (
+                <div className="text-sm flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0">Released:</span>
+                  <span className="text-white">{new Date(musicDetail.releaseDate).toLocaleDateString()}</span>
+                </div>
+              )}
+              {isAlbum && musicDetail?.trackCount && (
+                <div className="text-sm flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0">Tracks:</span>
+                  <span className="text-white">{musicDetail.trackCount}</span>
+                </div>
+              )}
+              {!isAlbum && musicDetail?.duration && (
+                <div className="text-sm flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0">Duration:</span>
+                  <span className="text-white">{musicDetail.duration}</span>
+                </div>
+              )}
+              
+              {/* Content Rating */}
+              {(musicDetail?.trackExplicitness || musicDetail?.collectionExplicitness) && (
+                <div className="text-sm flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0">Content:</span>
+                  <span className="text-white">
+                    {(musicDetail.trackExplicitness === 'explicit' || musicDetail.collectionExplicitness === 'Explicit') 
+                      ? 'Explicit' 
+                      : 'Clean'}
+                  </span>
+                </div>
+              )}
+              
+              {/* Price */}
+              {(musicDetail?.trackPrice || musicDetail?.collectionPrice) && (
+                <div className="text-sm flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0">Price:</span>
+                  <span className="text-white">
+                    {musicDetail.currency === 'USD' ? '$' : ''}
+                    {isAlbum ? musicDetail.collectionPrice : musicDetail.trackPrice}
+                    {musicDetail.currency !== 'USD' ? ` ${musicDetail.currency}` : ''}
+                  </span>
+                </div>
+              )}
+              
+              {/* Buy Links - Like Book Modal */}
+              {(musicDetail?.itunesUrl || musicDetail?.title) && (
+                <div className="text-sm flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0">Buy:</span>
+                  <div className="flex items-center space-x-3">
+                    {musicDetail.itunesUrl && (
+                      <a 
+                        href={musicDetail.itunesUrl}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300"
+                      >
+                        iTunes
+                      </a>
+                    )}
+                    <a 
+                      href={`https://www.amazon.com/s?k=${encodeURIComponent(musicDetail?.title + ' ' + musicDetail?.artist)}&tag=drrriguessss-20`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-orange-400 hover:text-orange-300"
+                    >
+                      Amazon 🔍
+                    </a>
+                  </div>
+                </div>
+              )}
+              
+              {/* Copyright */}
+              {musicDetail?.copyright && (
+                <div className="text-sm flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0">Copyright:</span>
+                  <span className="text-white text-xs">{musicDetail.copyright}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Album Link for Singles - Enhanced */}
+        {!isAlbum && musicDetail.parentAlbum && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-white mb-3">From the Album</h3>
+            <button
+              onClick={handleGoToAlbum}
+              className="flex items-center space-x-3 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors w-full text-left"
+            >
+              <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                <img 
+                  src={musicDetail.image} 
+                  alt={musicDetail.parentAlbum.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1">
+                <p className="text-white font-medium">{musicDetail.parentAlbum.title}</p>
+                <p className="text-gray-400 text-sm">{musicDetail.artist} • {musicDetail.parentAlbum.year}</p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-gray-400">
+                <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+            )}
+
+            {/* Track List for Albums */}
+        {isAlbum && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-white mb-3">Tracklist</h3>
+            
+            {albumTracks.length > 0 ? (
+              <div className="space-y-2">
+                {albumTracks.map((track, index) => (
+                  <div 
+                    key={track.id} 
+                    className="flex items-center justify-between p-3 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] border border-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer group"
+                    onClick={() => handleTrackSelect(track.id)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <span className="text-gray-400 text-sm w-6 text-center font-mono">{track.trackNumber}</span>
+                      <div className="flex-1">
+                        <p className="text-white group-hover:text-purple-400 transition-colors">{track.name}</p>
+                        <p className="text-gray-500 text-xs">{track.artist}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {track.previewUrl && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            console.log('🎵 [DEBUG] Playing preview for track:', track.name)
+                          }}
+                          className="w-6 h-6 bg-purple-600/20 hover:bg-purple-600/40 rounded-full flex items-center justify-center transition-colors"
+                          title="Preview"
+                        >
+                          <Play size={10} className="text-white ml-0.5" />
+                        </button>
+                      )}
+                      <span className="text-gray-400 text-sm font-mono">{track.duration}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-400 py-4">
+                <p className="text-sm">Loading tracks...</p>
+              </div>
+            )}
+          </div>
+        )}
           </div>
         </div>
+
+        {/* Videos Content */}
+        <div style={{ display: activeTab === 'media' ? 'block' : 'none' }}>
+          <div className="mt-4 space-y-6">
+            {isAlbum ? (
+              // Albums don't have videos - show message
+              <div className="text-center text-gray-400 py-16">
+                <div className="text-6xl mb-4">📀</div>
+                <div className="text-lg mb-2">Albums don't have videos</div>
+                <div className="text-sm">Only singles have music videos available</div>
+              </div>
+            ) : loadingVideo ? (
+              // Loading state
+              <div className="text-center text-gray-400 py-16">
+                <div className="text-lg mb-2">Loading video...</div>
+                <div className="text-sm">Finding the best music video for this track</div>
+              </div>
+            ) : musicVideo && musicVideo.isEmbeddable ? (
+              // Show embedded YouTube video
+              <div className="space-y-4">
+                <div className="text-white text-lg font-medium">Official Music Video</div>
+                <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                  <iframe
+                    src={musicVideo.embedUrl}
+                    title={`${musicDetail?.title} - ${musicDetail?.artist} (Official Music Video)`}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                </div>
+                {musicVideo.fallbackReason && (
+                  <div className="text-xs text-gray-500">
+                    {musicVideo.fallbackReason}
+                  </div>
+                )}
+                <div className="text-center">
+                  <a
+                    href={musicVideo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-2 text-red-400 hover:text-red-300 text-sm transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    <span>Watch on YouTube</span>
+                  </a>
+                </div>
+              </div>
+            ) : musicVideo && !musicVideo.isEmbeddable ? (
+              // Video found but not embeddable - show thumbnail with play button
+              <div className="space-y-4">
+                <div className="text-white text-lg font-medium">Music Video Available</div>
+                <div className="relative">
+                  {/* YouTube thumbnail placeholder with album/single artwork */}
+                  <div className="aspect-video rounded-lg overflow-hidden relative group cursor-pointer">
+                    {/* Background album/single image */}
+                    <div className="absolute inset-0">
+                      <img
+                        src={musicDetail?.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=450&fit=crop&q=80'}
+                        alt={`${musicDetail?.title} artwork`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {/* Dark overlay for readability */}
+                      <div className="absolute inset-0 bg-black/50"></div>
+                    </div>
+                    
+                    {/* Play button centered */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-black/60 rounded-full p-6 group-hover:bg-black/80 group-hover:scale-110 transition-all duration-300">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    {/* Music info overlay at bottom */}
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <div className="bg-black/70 backdrop-blur-sm rounded-lg p-3">
+                        <div className="text-white font-medium text-sm">{musicDetail?.title}</div>
+                        <div className="text-gray-200 text-xs">{musicDetail?.artist}</div>
+                      </div>
+                    </div>
+                    
+                    {/* YouTube badge */}
+                    <div className="absolute top-4 right-4">
+                      <div className="bg-red-600 text-white text-xs px-2 py-1 rounded flex items-center space-x-1 shadow-lg">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                        <span>YouTube</span>
+                      </div>
+                    </div>
+                    
+                    {/* Optional music note decoration */}
+                    <div className="absolute top-4 left-4">
+                      <div className="text-white/70 text-2xl">🎵</div>
+                    </div>
+                  </div>
+                  
+                  {/* Click overlay */}
+                  <a
+                    href={musicVideo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute inset-0"
+                  />
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-gray-400 text-sm mb-3">
+                    Video cannot be embedded due to copyright restrictions
+                  </div>
+                  <a
+                    href={musicVideo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    <span>Watch on YouTube</span>
+                  </a>
+                </div>
+              </div>
+            ) : (
+              // No video found - show multiple search options
+              <div className="space-y-6">
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">🎵</div>
+                  <div className="text-white text-lg mb-2">No official video found</div>
+                  <div className="text-gray-400 text-sm">Try searching for live performances, covers, or lyric videos</div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="text-white font-medium text-center mb-4">Search Options:</div>
+                  
+                  <a
+                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${musicDetail?.artist || ''} ${musicDetail?.title || ''} official music video`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors group relative overflow-hidden"
+                  >
+                    {/* Background album image with overlay */}
+                    <div className="absolute inset-0 opacity-20">
+                      <img
+                        src={musicDetail?.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop&q=80'}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-red-600/80"></div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 relative z-10">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                      </svg>
+                      <div>
+                        <div className="font-medium">Official Music Video</div>
+                        <div className="text-red-200 text-sm">Search for the official video</div>
+                      </div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:translate-x-1 transition-transform relative z-10">
+                      <path d="M5 12h14"/>
+                      <path d="M12 5l7 7-7 7"/>
+                    </svg>
+                  </a>
+                  
+                  <a
+                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${musicDetail?.artist || ''} ${musicDetail?.title || ''} live performance`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors group relative overflow-hidden"
+                  >
+                    {/* Background album image with overlay */}
+                    <div className="absolute inset-0 opacity-20">
+                      <img
+                        src={musicDetail?.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop&q=80'}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-purple-600/80"></div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 relative z-10">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 9h3l3-3h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9Z"/>
+                        <path d="M9 9V6a3 3 0 0 1 6 0v3"/>
+                      </svg>
+                      <div>
+                        <div className="font-medium">Live Performance</div>
+                        <div className="text-purple-200 text-sm">Find live concerts or performances</div>
+                      </div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:translate-x-1 transition-transform relative z-10">
+                      <path d="M5 12h14"/>
+                      <path d="M12 5l7 7-7 7"/>
+                    </svg>
+                  </a>
+                  
+                  <a
+                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${musicDetail?.artist || ''} ${musicDetail?.title || ''} lyrics video`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors group relative overflow-hidden"
+                  >
+                    {/* Background album image with overlay */}
+                    <div className="absolute inset-0 opacity-20">
+                      <img
+                        src={musicDetail?.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop&q=80'}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-blue-600/80"></div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 relative z-10">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10,9 9,9 8,9"/>
+                      </svg>
+                      <div>
+                        <div className="font-medium">Lyrics Video</div>
+                        <div className="text-blue-200 text-sm">Search for lyric videos</div>
+                      </div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:translate-x-1 transition-transform relative z-10">
+                      <path d="M5 12h14"/>
+                      <path d="M12 5l7 7-7 7"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Comments Modal - Style Instagram */}
+      {showUserReviewComments && (
+        <div className="fixed inset-0 z-60 bg-black/50">
+          {/* Overlay cliquable pour fermer */}
+          <div 
+            className="absolute inset-0" 
+            onClick={() => setShowUserReviewComments(false)}
+          />
+          
+          {/* Modal sliding from bottom */}
+          <div className="absolute bottom-0 left-0 right-0 bg-gray-900 rounded-t-2xl max-h-[80vh] flex flex-col">
+            {/* Handle bar */}
+            <div className="flex justify-center p-2">
+              <div className="w-10 h-1 bg-gray-600 rounded-full"></div>
+            </div>
+            
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-gray-700">
+              <h3 className="text-white font-semibold text-center">Comments</h3>
+            </div>
+            
+            {/* Comments list */}
+            <div className="flex-1 overflow-y-auto px-4 py-2">
+              {userReviewData.comments.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-400 text-sm">No comments yet</div>
+                  <div className="text-gray-500 text-xs mt-1">Be the first to comment</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userReviewData.comments.map((comment) => (
+                    <div key={comment.id} className="flex space-x-3">
+                      <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
+                        {comment.username[0]}
+                      </div>
+                      <div className="flex-1">
+                        <div className="bg-gray-800 rounded-2xl px-3 py-2">
+                          <div className="text-white text-sm font-medium">{comment.username}</div>
+                          <div className="text-gray-300 text-sm">{comment.text}</div>
+                        </div>
+                        <div className="flex items-center space-x-4 mt-1 ml-3">
+                          <span className="text-gray-500 text-xs">{formatTimeAgo(comment.timestamp)}</span>
+                          <button className="text-gray-500 text-xs font-medium">Like</button>
+                          <button className="text-gray-500 text-xs font-medium">Reply</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Comment input */}
+            <div className="p-4 border-t border-gray-700">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                  U
+                </div>
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="What do you think?"
+                    className="w-full bg-gray-800 text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    onKeyPress={(e) => e.key === 'Enter' && handleSubmitComment()}
+                  />
+                  {newComment.trim() && (
+                    <button
+                      onClick={handleSubmitComment}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-400 text-sm font-medium"
+                    >
+                      Post
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share User Review Modal */}
+      {showShareUserReviewModal && musicDetail && userReview && (
+        <ShareWithFriendsModal
+          isOpen={showShareUserReviewModal}
+          onClose={() => setShowShareUserReviewModal(false)}
+          item={{
+            id: `${musicDetail.id}-review`,
+            type: 'review',
+            title: `My review: "${musicDetail.title}"`,
+            image: musicDetail.image,
+            reviewText: userReview,
+            rating: userRating
+          }}
+        />
       )}
 
       {/* Modals en dehors du contenu principal */}
@@ -1132,7 +1642,7 @@ export default function MusicDetailModalV4({
       )}
 
       {/* Friends Who Listened Modal */}
-      {showFriendsListModal && (
+      {false && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-gray-900 rounded-2xl w-full max-w-md max-h-[70vh] overflow-hidden">
             {/* Header */}
@@ -1142,22 +1652,33 @@ export default function MusicDetailModalV4({
                 onClick={() => setShowFriendsListModal(false)}
                 className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-600 transition-colors"
               >
-                ×
+                <X size={16} />
               </button>
             </div>
             
             {/* Content */}
             <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(70vh - 80px)' }}>
               {FRIENDS_WHO_LISTENED.map((friend) => (
-                <div key={friend.id} className="flex items-center space-x-3 py-3">
+                <div key={friend.friend_id} className="flex items-center space-x-3 py-3">
                   {/* Avatar */}
-                  <div className="w-12 h-12 bg-gradient-to-r from-gray-500 to-gray-600 rounded-full flex items-center justify-center text-white font-medium">
-                    {friend.name.charAt(0)}
-                  </div>
+                  {friend.avatar_url ? (
+                    <img
+                      src={friend.avatar_url}
+                      alt={friend.display_name || friend.username}
+                      className="w-12 h-12 rounded-full"
+                    />
+                  ) : (
+                    <div 
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium"
+                      style={{ backgroundColor: avatarService.getAvatarColor(friend.friend_id) }}
+                    >
+                      {avatarService.getInitials(friend.display_name || friend.username)}
+                    </div>
+                  )}
                   
                   {/* Friend Info */}
                   <div className="flex-1">
-                    <p className="text-white font-medium">{friend.name}</p>
+                    <p className="text-white font-medium">{friend.display_name || friend.username}</p>
                     {friend.hasReview ? (
                       <div className="flex items-center space-x-1 mt-1">
                         {/* Rating stars */}
@@ -1186,6 +1707,113 @@ export default function MusicDetailModalV4({
               <div className="text-center py-8 text-gray-400">
                 <p className="text-sm">Reviews and ratings from friends coming soon!</p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Music Sheet Modal */}
+      {showMusicSheet && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-white">Music Sheet</h3>
+              <button
+                onClick={() => setShowMusicSheet(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Date listened</label>
+                <input
+                  type="date"
+                  value={musicSheetData.dateListened}
+                  onChange={(e) => setMusicSheetData({...musicSheetData, dateListened: e.target.value})}
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Location</label>
+                <input
+                  type="text"
+                  value={musicSheetData.location}
+                  onChange={(e) => setMusicSheetData({...musicSheetData, location: e.target.value})}
+                  placeholder="Where did you listen to this?"
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Mood</label>
+                <input
+                  type="text"
+                  value={musicSheetData.mood}
+                  onChange={(e) => setMusicSheetData({...musicSheetData, mood: e.target.value})}
+                  placeholder="What was your mood?"
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Format</label>
+                <select
+                  value={musicSheetData.format}
+                  onChange={(e) => setMusicSheetData({...musicSheetData, format: e.target.value})}
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  <option value="streaming">Streaming</option>
+                  <option value="vinyl">Vinyl</option>
+                  <option value="cd">CD</option>
+                  <option value="digital">Digital download</option>
+                  <option value="cassette">Cassette</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Rating</label>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={24}
+                      className={`cursor-pointer transition-colors ${
+                        star <= musicSheetData.personalRating ? 'text-yellow-500 fill-current' : 'text-gray-600'
+                      }`}
+                      onClick={() => setMusicSheetData({...musicSheetData, personalRating: star})}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Review</label>
+                <textarea
+                  value={musicSheetData.personalReview}
+                  onChange={(e) => setMusicSheetData({...musicSheetData, personalReview: e.target.value})}
+                  placeholder="Write your review..."
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 h-20"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowMusicSheet(false)}
+                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveMusicSheetData}
+                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>

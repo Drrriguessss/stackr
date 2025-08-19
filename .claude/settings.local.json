@@ -78,7 +78,17 @@
       "Bash(git pull:*)",
       "Bash(del test-html-decode.js test-bgg-search.js)",
       "Bash(y)",
-      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\BoardGameTestModal.tsx\")"
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\BoardGameTestModal.tsx\")",
+      "WebSearch",
+      "Bash(npx prettier:*)",
+      "Bash(PORT=3002 npm run dev)",
+      "Bash(PORT=3001 npm run dev)",
+      "Bash(PORT=3003 npm run dev)",
+      "Bash(timeout:*)",
+      "Bash(PORT=3000 npm run dev)",
+      "Bash(\"taskkill\" \"/PID\" \"3432\" \"/F\")",
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\UnifiedMusicPlayer.tsx\")",
+      "Bash(git rebase:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

@@ -1624,6 +1624,127 @@ export default function BoardGameDetailPage({
                   <span className="text-white flex-1 text-sm">{gameDetail.publishers.map(p => p.name).join(', ')}</span>
                 </div>
               )}
+
+              {/* Amazon Affiliate Link for Board Games */}
+              {gameDetail.name && (
+                <div className="text-sm flex">
+                  <span className="text-gray-400 w-24 flex-shrink-0">Buy:</span>
+                  <a 
+                    href={(() => {
+                      // Popular board games with known ASINs for direct links
+                      const gameASINs: { [key: string]: string } = {
+                        "Catan": "B00U26V4VQ",
+                        "Ticket to Ride": "B0008JKFDK",
+                        "Azul": "B077MZ2MPW",
+                        "Wingspan": "B07XLBMHQX",
+                        "Splendor": "B00IZEUFIA",
+                        "7 Wonders": "B0043KJW5M",
+                        "Pandemic": "B00A2HD40E",
+                        "King of Tokyo": "B004U5R5BI",
+                        "Codenames": "B014Q1XX9S",
+                        "Gloomhaven": "B01LZXVN4P",
+                        "Spirit Island": "B01MUHBC71",
+                        "Root": "B077D7SLSW",
+                        "Everdell": "B07GZ8YPEV",
+                        "Terraforming Mars": "B01GSYA4K2",
+                        "Scythe": "B01IPUGYK6",
+                        "Brass: Birmingham": "B07KQQL7VP",
+                        "Puerto Rico": "B00008URUT",
+                        "Power Grid": "B0007YDBLE",
+                        "Agricola": "B001C7617Q",
+                        "Dominion": "B001JQY6K4",
+                        "Machi Koro": "B00OR56HNS",
+                        "Sushi Go!": "B00J57VU44",
+                        "Love Letter": "B00AGK0HCY",
+                        "Exploding Kittens": "B010TQY7A8",
+                        "Cards Against Humanity": "B004S8F7QM",
+                        "Monopoly": "B00000IWCT",
+                        "Scrabble": "B00000DMFP",
+                        "Chess": "B07QVCNWY7",
+                        "Clue": "B00000DMEN",
+                        "Risk": "B00000DMOD",
+                        "Uno": "B00004TZY8",
+                        "Yahtzee": "B00000DMBS",
+                        "Connect 4": "B00000DMFW",
+                        "Jenga": "B00000DMFD",
+                        "Twister": "B00000DMF3"
+                      }
+                      
+                      // Check for exact match first (case-insensitive)
+                      const gameName = gameDetail.name.trim()
+                      const exactMatch = Object.keys(gameASINs).find(key => 
+                        key.toLowerCase() === gameName.toLowerCase()
+                      )
+                      
+                      if (exactMatch) {
+                        return `https://amazon.com/dp/${gameASINs[exactMatch]}/?tag=drrriguessss-20`
+                      }
+                      
+                      // Check for partial matches (for game variations)
+                      const partialMatch = Object.keys(gameASINs).find(key =>
+                        gameName.toLowerCase().includes(key.toLowerCase()) ||
+                        key.toLowerCase().includes(gameName.toLowerCase())
+                      )
+                      
+                      if (partialMatch) {
+                        return `https://amazon.com/dp/${gameASINs[partialMatch]}/?tag=drrriguessss-20`
+                      }
+                      
+                      // Fallback to optimized search with publisher and year
+                      const publisher = gameDetail.publishers?.[0]?.name || ''
+                      const year = gameDetail.yearPublished || ''
+                      
+                      let searchTerms = `"${gameName}"`
+                      if (publisher) searchTerms += ` "${publisher}"`
+                      if (year) searchTerms += ` ${year}`
+                      searchTerms += ` board game`
+                      
+                      return `https://amazon.com/s?k=${encodeURIComponent(searchTerms).replace(/%20/g, '+')}&tag=drrriguessss-20`
+                    })()}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-orange-400 hover:text-orange-300 mr-3"
+                    title={(() => {
+                      const gameASINs: { [key: string]: string } = {
+                        "Catan": "B00U26V4VQ", "Ticket to Ride": "B0008JKFDK", "Azul": "B077MZ2MPW",
+                        "Wingspan": "B07XLBMHQX", "Splendor": "B00IZEUFIA", "7 Wonders": "B0043KJW5M",
+                        "Pandemic": "B00A2HD40E", "King of Tokyo": "B004U5R5BI", "Codenames": "B014Q1XX9S",
+                        "Gloomhaven": "B01LZXVN4P", "Spirit Island": "B01MUHBC71", "Root": "B077D7SLSW",
+                        "Everdell": "B07GZ8YPEV", "Terraforming Mars": "B01GSYA4K2", "Scythe": "B01IPUGYK6"
+                      }
+                      
+                      const gameName = gameDetail.name.trim()
+                      const hasDirectLink = Object.keys(gameASINs).some(key => 
+                        key.toLowerCase() === gameName.toLowerCase() ||
+                        gameName.toLowerCase().includes(key.toLowerCase()) ||
+                        key.toLowerCase().includes(gameName.toLowerCase())
+                      )
+                      
+                      return hasDirectLink ? "Direct Amazon product link" : "Optimized Amazon search"
+                    })()}
+                  >
+                    Amazon
+                    {(() => {
+                      const gameASINs: { [key: string]: string } = {
+                        "Catan": "B00U26V4VQ", "Ticket to Ride": "B0008JKFDK", "Azul": "B077MZ2MPW",
+                        "Wingspan": "B07XLBMHQX", "Splendor": "B00IZEUFIA", "7 Wonders": "B0043KJW5M",
+                        "Pandemic": "B00A2HD40E", "King of Tokyo": "B004U5R5BI", "Codenames": "B014Q1XX9S",
+                        "Gloomhaven": "B01LZXVN4P", "Spirit Island": "B01MUHBC71", "Root": "B077D7SLSW",
+                        "Everdell": "B07GZ8YPEV", "Terraforming Mars": "B01GSYA4K2", "Scythe": "B01IPUGYK6"
+                      }
+                      
+                      const gameName = gameDetail.name.trim()
+                      const hasDirectLink = Object.keys(gameASINs).some(key => 
+                        key.toLowerCase() === gameName.toLowerCase() ||
+                        gameName.toLowerCase().includes(key.toLowerCase()) ||
+                        key.toLowerCase().includes(gameName.toLowerCase())
+                      )
+                      
+                      return hasDirectLink ? " 🎯" : " 🔍"
+                    })()}
+                  </a>
+                </div>
+              )}
               
             </div>
             

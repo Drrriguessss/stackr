@@ -124,7 +124,14 @@ export class MusicServiceV2 {
         totalDuration: this.estimateAlbumDuration(album.trackCount || 0),
         description: `${album.collectionName} by ${album.artistName} - ${album.primaryGenreName} album with ${album.trackCount} tracks.`,
         rating: 4.0 + Math.random() * 1.0,
-        youtubeVideoId: undefined // Albums n'ont jamais de vidéos
+        youtubeVideoId: undefined, // Albums n'ont jamais de vidéos
+        // Additional metadata
+        collectionPrice: album.collectionPrice,
+        currency: album.currency || 'USD',
+        collectionExplicitness: album.collectionExplicitness,
+        copyright: album.copyright,
+        itunesUrl: album.collectionViewUrl,
+        artistViewUrl: album.artistViewUrl
       }
       
     } catch (error) {
@@ -154,14 +161,21 @@ export class MusicServiceV2 {
       const data = await response.json()
       
       if (!data.results || data.results.length === 0) {
-        throw new Error('Track not found')
+        console.warn(`🎵 [WARNING] Track ${cleanId} not found in iTunes database`)
+        return null
       }
       
       const track = data.results[0] as MusicTrack
       
-      // 🔥 VALIDATION CRITIQUE: Vérifier que le titre existe
+      // 🔥 VALIDATION CRITIQUE: Vérifier que l'objet track est valide
+      if (!track || Object.keys(track).length === 0) {
+        console.warn(`🎵 [WARNING] Empty track object returned for ID ${cleanId}`)
+        return null
+      }
+      
+      // Vérifier que le titre existe
       if (!track.trackName || track.trackName.trim() === '') {
-        console.error(`🎵 [ERROR] Track ${cleanId} has no title:`, track)
+        console.warn(`🎵 [WARNING] Track ${cleanId} has no title, using fallback`)
         // Utiliser un titre par défaut basé sur l'artiste et l'ID
         track.trackName = track.artistName ? `${track.artistName} - Track ${cleanId}` : `Untitled Track ${cleanId}`
         console.log(`🎵 [FALLBACK] Using fallback title: ${track.trackName}`)
@@ -169,7 +183,7 @@ export class MusicServiceV2 {
       
       // Vérifier aussi l'ID du track
       if (!track.trackId) {
-        console.error(`🎵 [ERROR] Track has no ID, using cleanId:`, cleanId)
+        console.warn(`🎵 [WARNING] Track has no ID, using cleanId: ${cleanId}`)
         track.trackId = parseInt(cleanId) || 0
       }
       
@@ -195,7 +209,13 @@ export class MusicServiceV2 {
         description: `"${track.trackName}" by ${track.artistName || 'Unknown Artist'} - Single from the album "${track.collectionName || 'Unknown Album'}"`,
         rating: 4.0 + Math.random() * 1.0,
         youtubeVideoId: await this.findTrackVideo(track.artistName || '', track.trackName),
-        previewUrl: track.previewUrl
+        previewUrl: track.previewUrl,
+        // Additional metadata
+        trackPrice: track.trackPrice,
+        currency: track.currency || 'USD',
+        trackExplicitness: track.trackExplicitness,
+        itunesUrl: track.trackViewUrl,
+        artistViewUrl: track.artistViewUrl
       }
       
     } catch (error) {

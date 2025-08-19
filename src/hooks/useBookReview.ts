@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { userReviewsService } from '@/services/userReviewsService'
 import type { BookDetail } from './useBookDetail'
 import type { MediaStatus } from '@/types'
@@ -15,7 +15,9 @@ interface UseBookReviewReturn {
   setHoverRating: (rating: number) => void
   showReviewBox: boolean
   setShowReviewBox: (show: boolean) => void
-  submitReview: (bookDetail: BookDetail | null, selectedStatus: MediaStatus | null, onAddToLibrary: (item: any, status: MediaStatus) => void) => Promise<void>
+  reviewSaved: boolean
+  setReviewSaved: (saved: boolean) => void
+  submitReview: (bookDetail: BookDetail | null, selectedStatus: MediaStatus | null, onAddToLibrary: (item: any, status: MediaStatus) => void, isAutoSave?: boolean) => Promise<void>
 }
 
 export function useBookReview(bookId: string): UseBookReviewReturn {
@@ -24,18 +26,44 @@ export function useBookReview(bookId: string): UseBookReviewReturn {
   const [reviewPrivacy, setReviewPrivacy] = useState<'private' | 'public'>('private')
   const [hoverRating, setHoverRating] = useState(0)
   const [showReviewBox, setShowReviewBox] = useState(false)
+  const [reviewSaved, setReviewSaved] = useState(false)
+
+  // Stable callbacks to prevent infinite re-renders
+  const setUserRatingStable = useCallback((rating: number) => {
+    setUserRating(rating)
+  }, [])
+
+  const setUserReviewStable = useCallback((review: string) => {
+    setUserReview(review)
+  }, [])
+
+  const setReviewPrivacyStable = useCallback((privacy: 'private' | 'public') => {
+    setReviewPrivacy(privacy)
+  }, [])
 
   const submitReview = useCallback(async (
     bookDetail: BookDetail | null,
     selectedStatus: MediaStatus | null,
-    onAddToLibrary: (item: any, status: MediaStatus) => void
+    onAddToLibrary: (item: any, status: MediaStatus) => void,
+    isAutoSave: boolean = false
   ) => {
-    if (!bookDetail) return
+    if (!bookDetail) {
+      console.log('📚 [BookReview] No bookDetail provided')
+      return
+    }
 
     try {
+      console.log('📚 [BookReview] Submitting review...', {
+        rating: userRating,
+        reviewText: userReview.trim(),
+        isPublic: reviewPrivacy === 'public',
+        bookId: bookDetail.id,
+        bookTitle: bookDetail.title
+      })
+
       // Sauvegarder la review si rating ou review fourni
       if (userRating > 0 || userReview.trim()) {
-        await userReviewsService.submitReview({
+        const result = await userReviewsService.submitReview({
           mediaId: bookDetail.id,
           mediaTitle: bookDetail.title,
           mediaCategory: 'books',
@@ -43,6 +71,14 @@ export function useBookReview(bookId: string): UseBookReviewReturn {
           reviewText: userReview,
           isPublic: reviewPrivacy === 'public'
         })
+        
+        console.log('📚 [BookReview] Review submission result:', result)
+        
+        // Show success feedback
+        setReviewSaved(true)
+        setTimeout(() => setReviewSaved(false), 2000)
+      } else {
+        console.log('📚 [BookReview] No rating or review text to save')
       }
 
       // Toujours ajouter à la bibliothèque si un statut est sélectionné
@@ -62,27 +98,35 @@ export function useBookReview(bookId: string): UseBookReviewReturn {
         onAddToLibrary(bookData, selectedStatus)
       }
 
-      // Fermer la modal de review et réinitialiser les valeurs
-      setShowReviewBox(false)
-      // Pour l'inline rating, on ne réinitialise pas les valeurs car elles seront utilisées pour afficher la review
+      // Ne fermer la review box que si ce n'est pas un auto-save
+      if (!isAutoSave) {
+        console.log('📚 [BookReview] Closing review box and finishing submission')
+        // Fermer la modal de review et réinitialiser les valeurs
+        setShowReviewBox(false)
+        // Pour l'inline rating, on ne réinitialise pas les valeurs car elles seront utilisées pour afficher la review
+      } else {
+        console.log('📚 [BookReview] Auto-save completed, keeping review box open')
+      }
 
     } catch (error) {
-      console.error('Error submitting review:', error)
+      console.error('📚 [BookReview] Error submitting review:', error)
       // On pourrait ajouter une notification d'erreur ici
     }
   }, [userRating, userReview, reviewPrivacy])
 
   return {
     userRating,
-    setUserRating,
+    setUserRating: setUserRatingStable,
     userReview,
-    setUserReview,
+    setUserReview: setUserReviewStable,
     reviewPrivacy,
-    setReviewPrivacy,
+    setReviewPrivacy: setReviewPrivacyStable,
     hoverRating,
     setHoverRating,
     showReviewBox,
     setShowReviewBox,
+    reviewSaved,
+    setReviewSaved,
     submitReview
   }
 }

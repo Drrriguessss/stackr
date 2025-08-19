@@ -27,6 +27,12 @@ export interface BookDetail {
   infoLink: string
   buyLink: string
   subtitle?: string
+  // Digital availability info
+  isEbook?: boolean
+  epubAvailable?: boolean
+  pdfAvailable?: boolean
+  webReaderLink?: string
+  price?: string
 }
 
 interface UseBookDetailReturn {
@@ -84,6 +90,7 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
       // Transformer les données pour correspondre à l'interface BookDetail
       const volumeInfo = detail.volumeInfo
       const saleInfo = detail.saleInfo
+      const accessInfo = detail.accessInfo
 
       // Extraire les ISBN
       const isbn10 = volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier || ''
@@ -113,7 +120,13 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
         previewLink: volumeInfo.previewLink || '',
         infoLink: volumeInfo.infoLink || '',
         buyLink: saleInfo?.buyLink || '',
-        subtitle: volumeInfo.subtitle
+        subtitle: volumeInfo.subtitle,
+        // Digital availability info
+        isEbook: saleInfo?.isEbook || false,
+        epubAvailable: accessInfo?.epub?.isAvailable || false,
+        pdfAvailable: accessInfo?.pdf?.isAvailable || false,
+        webReaderLink: accessInfo?.webReaderLink || '',
+        price: saleInfo?.listPrice ? `${saleInfo.listPrice.amount} ${saleInfo.listPrice.currencyCode}` : undefined
       }
 
       setBookDetail(bookDetailData)

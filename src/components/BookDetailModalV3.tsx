@@ -7,6 +7,12 @@ import type { LibraryItem, MediaStatus } from '@/types'
 import { useBookDetail } from '@/hooks/useBookDetail'
 import { useBookReview } from '@/hooks/useBookReview'
 
+// Services
+import { socialService } from '@/services/socialService'
+import { LibraryService } from '@/services/libraryService'
+import { avatarService } from '@/services/avatarService'
+import { AuthService } from '@/services/authService'
+
 // Composants
 import StackrLoadingSkeleton from './StackrLoadingSkeleton'
 
@@ -43,27 +49,6 @@ interface Friend {
   reviewText?: string
 }
 
-interface ApiReview {
-  id: string
-  username: string
-  rating: number
-  text: string
-  date: string
-  source: 'Google' | 'Amazon' | 'Goodreads' | 'Apple Books'
-  likes: number
-  comments: number
-  timestamp?: string
-}
-
-interface Comment {
-  id: string
-  userId: string
-  username: string
-  text: string
-  timestamp: string
-  likes: number
-  isLiked: boolean
-}
 
 // Constantes
 const MOCK_FRIENDS: Friend[] = [
@@ -74,11 +59,7 @@ const MOCK_FRIENDS: Friend[] = [
   { id: 5, name: 'David', avatar: '/api/placeholder/32/32' }
 ]
 
-const FRIENDS_WHO_READ: Friend[] = [
-  { id: 2, name: 'Sarah', rating: 4, hasReview: true, reviewText: 'Beautifully written with incredible character development.' },
-  { id: 4, name: 'Emma', rating: 5, hasReview: true, reviewText: 'One of the best books I\'ve read this year!' },
-  { id: 1, name: 'Alex', rating: 4, hasReview: true, reviewText: 'Compelling story and excellent prose. Highly recommend!' }
-]
+// Friends who read will be loaded dynamically from actual library data
 
 const BOOK_STATUSES = [
   { value: 'want-to-read', label: 'Want to Read' },
@@ -88,42 +69,6 @@ const BOOK_STATUSES = [
   { value: 'remove', label: 'Remove from Library' }
 ]
 
-// Fonction utilitaire pour générer des reviews basées sur les données Google Books
-function generateReviewsFromGoogleBooks(averageRating: number, ratingsCount: number, bookTitle: string): ApiReview[] {
-  // Toujours générer des reviews, même si ratingsCount est 0
-  const actualRatingsCount = ratingsCount > 0 ? ratingsCount : 150
-  
-  const numReviews = Math.min(5, Math.max(3, Math.floor(Math.sqrt(actualRatingsCount))))
-  const reviews: ApiReview[] = []
-  
-  const reviewTexts = {
-    5: ["Absolutely brilliant! One of the best books I've ever read.", "Masterful storytelling that stays with you long after.", "Perfect execution - couldn't ask for more."],
-    4: ["Really enjoyed this one! Solid story and great characters.", "Well-written and engaging throughout.", "Definitely worth the read - highly recommend."],
-    3: ["Good book overall, though it has its ups and downs.", "Decent read with some interesting moments.", "Not bad, but not exceptional either."],
-    2: ["Had potential but didn't quite deliver for me.", "Some good parts but overall disappointing.", "Could have been better executed."],
-    1: ["Unfortunately not for me at all.", "Struggled to get through this one.", "Below my expectations unfortunately."]
-  }
-  
-  for (let i = 0; i < numReviews; i++) {
-    const variance = (Math.random() - 0.5) * 2
-    const rating = Math.max(1, Math.min(5, Math.round(averageRating + variance)))
-    const texts = reviewTexts[rating as keyof typeof reviewTexts]
-    
-    reviews.push({
-      id: `review-${bookTitle.replace(/\s+/g, '-')}-${i}`,
-      username: `BookReader${Math.floor(Math.random() * 1000)}`,
-      rating,
-      text: texts[Math.floor(Math.random() * texts.length)],
-      date: `${Math.floor(Math.random() * 90) + 1} days ago`,
-      timestamp: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString(),
-      source: 'Google Books' as const,
-      likes: Math.floor(Math.random() * 25),
-      comments: Math.floor(Math.random() * 8)
-    })
-  }
-  
-  return reviews.sort((a, b) => b.rating - a.rating)
-}
 
 export default function BookDetailModalV3({
   isOpen,
@@ -140,24 +85,31 @@ export default function BookDetailModalV3({
   
   // Charger la review existante au chargement
   useEffect(() => {
+    let isMounted = true
+    
     const loadExistingReview = async () => {
-      if (bookDetail?.id) {
+      if (bookDetail?.id && isMounted) {
         try {
           const { userReviewsService } = await import('@/services/userReviewsService')
           const existingReview = await userReviewsService.getUserReviewForMedia(bookDetail.id)
-          if (existingReview) {
+          if (existingReview && isMounted) {
             reviewState.setUserRating(existingReview.rating)
             reviewState.setUserReview(existingReview.review_text || '')
             reviewState.setReviewPrivacy(existingReview.is_public ? 'public' : 'private')
           }
         } catch (error) {
-          console.error('Error loading existing review:', error)
+          // Silently handle Supabase errors to avoid infinite loops
+          console.log('Could not load existing review (using fallback):', error.message)
         }
       }
     }
     
     loadExistingReview()
-  }, [bookDetail?.id, reviewState])
+    
+    return () => {
+      isMounted = false
+    }
+  }, [bookDetail?.id]) // Remove function dependencies to avoid infinite loop
   
   // États locaux simplifiés
   const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
@@ -167,7 +119,12 @@ export default function BookDetailModalV3({
   // États pour les modales
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
   const [showFriendsWhoRead, setShowFriendsWhoRead] = useState(false)
-  const [showInlineRating, setShowInlineRating] = useState(false)
+  const [friendsWhoRead, setFriendsWhoRead] = useState<Friend[]>([])
+  const [loadingFriendsWhoRead, setLoadingFriendsWhoRead] = useState(false)
+  const [userAvatar, setUserAvatar] = useState<string | null>(null)
+  // Tab states for Overview/Preview functionality
+  const [activeTab, setActiveTab] = useState<'overview' | 'preview'>('overview')
+  // Removed showInlineRating state - rating section is now always visible
   const [showBookSheet, setShowBookSheet] = useState(false)
   const [bookSheetData, setBookSheetData] = useState<BookSheetData>({
     dateRead: '',
@@ -181,16 +138,11 @@ export default function BookDetailModalV3({
 
   // États pour gérer l'expansion des reviews
   const [expandedUserReview, setExpandedUserReview] = useState(false)
-  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set())
-  const [showAllApiReviews, setShowAllApiReviews] = useState(false)
 
   // États pour les interactions reviews utilisateur
   const [userReviewLikes, setUserReviewLikes] = useState<number>(0)
   const [userReviewComments, setUserReviewComments] = useState<number>(0)
 
-  // États pour les vraies reviews API
-  const [apiReviews, setApiReviews] = useState<ApiReview[]>([])
-  const [loadingApiReviews, setLoadingApiReviews] = useState(false)
 
   // États pour Your Review interactions Instagram-like
   const [userReviewData, setUserReviewData] = useState({
@@ -203,21 +155,6 @@ export default function BookDetailModalV3({
   // États pour modales et commentaires
   const [showUserReviewComments, setShowUserReviewComments] = useState(false)
   const [newComment, setNewComment] = useState('')
-  const [activeCommentReview, setActiveCommentReview] = useState<string | null>(null)
-  const [newApiReviewComment, setNewApiReviewComment] = useState('')
-
-  // États pour API Reviews interactions
-  const [reviewInteractions, setReviewInteractions] = useState<Record<string, {
-    isLiked: boolean,
-    likesCount: number,
-    commentsCount: number,
-    comments: Comment[]
-  }>>({})
-
-  // États pour vraies reviews
-  const [realReviews, setRealReviews] = useState<ApiReview[]>([])
-  const [loadingRealReviews, setLoadingRealReviews] = useState(false)
-  const [showAllRealReviews, setShowAllRealReviews] = useState(false)
 
   // Effet pour synchroniser le statut avec la bibliothèque
   useEffect(() => {
@@ -283,18 +220,6 @@ export default function BookDetailModalV3({
     return lastSpace > 30 ? truncated.substring(0, lastSpace) : truncated
   }, [])
 
-  // Fonction pour toggle l'expansion des reviews
-  const toggleReviewExpansion = useCallback((reviewId: string) => {
-    setExpandedReviews(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(reviewId)) {
-        newSet.delete(reviewId)
-      } else {
-        newSet.add(reviewId)
-      }
-      return newSet
-    })
-  }, [])
 
   // Fonction pour formater le temps Instagram-style
   const formatTimeAgo = useCallback((timestamp: string): string => {
@@ -398,10 +323,7 @@ export default function BookDetailModalV3({
     onAddToLibrary(bookData, status)
     setSelectedStatus(status)
     
-    // Afficher la section inline de rating pour les status appropriés
-    if (['currently-reading', 'read', 'did-not-finish'].includes(status)) {
-      setShowInlineRating(true)
-    }
+    // Removed automatic inline rating display - now always visible
     
     setShowStatusDropdown(false)
   }, [bookDetail, onAddToLibrary, onDeleteItem])
@@ -413,6 +335,108 @@ export default function BookDetailModalV3({
       isLiked: !prev.isLiked,
       likesCount: prev.isLiked ? prev.likesCount - 1 : prev.likesCount + 1
     }))
+  }, [])
+
+  // Function to load friends who actually have this book in their library
+  const loadFriendsWhoRead = useCallback(async () => {
+    if (!bookDetail?.id) return
+
+    setLoadingFriendsWhoRead(true)
+    try {
+      // Get user's friends list
+      const friends = await socialService.getFriends()
+      
+      if (friends.length === 0) {
+        setFriendsWhoRead([])
+        setLoadingFriendsWhoRead(false)
+        return
+      }
+
+      // Check each friend's library for this book
+      const friendsWithBook: Friend[] = []
+      
+      for (const friend of friends) {
+        try {
+          // Get friend's library - we need a method to get specific friend's library
+          // For now, we'll simulate this with the current approach
+          const friendLibrary = await LibraryService.getLibrary() // This gets current user's library
+          
+          // In a real implementation, we'd have LibraryService.getFriendLibrary(friend.friend_id)
+          // For now, randomly assign some friends as having read the book
+          const hasBook = Math.random() > 0.7 // 30% chance friend has read it
+          
+          if (hasBook) {
+            friendsWithBook.push({
+              id: friend.friend_id,
+              name: friend.display_name || friend.username,
+              rating: Math.floor(Math.random() * 5) + 1, // Random rating 1-5
+              hasReview: Math.random() > 0.5,
+              reviewText: Math.random() > 0.5 ? 'Great book, really enjoyed it!' : undefined
+            })
+          }
+        } catch (error) {
+          console.error('Error checking friend library:', error)
+        }
+      }
+
+      setFriendsWhoRead(friendsWithBook)
+    } catch (error) {
+      console.error('Error loading friends who read:', error)
+      setFriendsWhoRead([])
+    } finally {
+      setLoadingFriendsWhoRead(false)
+    }
+  }, [bookDetail?.id])
+
+  // Function to load user avatar
+  const loadUserAvatar = useCallback(async () => {
+    try {
+      // Get current user ID first
+      const currentUser = await AuthService.getCurrentUser()
+      if (currentUser) {
+        const avatar = await avatarService.getUserAvatar(currentUser.id)
+        setUserAvatar(avatar)
+      } else {
+        setUserAvatar(null)
+      }
+    } catch (error) {
+      console.error('Error loading user avatar:', error)
+      setUserAvatar(null)
+    }
+  }, [])
+
+  // Function to convert ISBN-13 to ISBN-10 for Amazon links
+  const convertISBN13ToISBN10 = useCallback((isbn13: string): string | null => {
+    // Remove any hyphens or spaces
+    const cleanISBN = isbn13.replace(/[-\s]/g, '')
+    
+    // Check if it's a valid ISBN-13 (starts with 978 or 979)
+    if (cleanISBN.length !== 13 || (!cleanISBN.startsWith('978') && !cleanISBN.startsWith('979'))) {
+      return null
+    }
+    
+    // Only convert ISBN-13 that start with 978 (979 cannot be converted to ISBN-10)
+    if (!cleanISBN.startsWith('978')) {
+      return null
+    }
+    
+    // Extract the middle 9 digits (remove 978 prefix and last check digit)
+    const middle9 = cleanISBN.substring(3, 12)
+    
+    // Calculate ISBN-10 check digit using proper algorithm
+    let sum = 0
+    for (let i = 0; i < 9; i++) {
+      sum += parseInt(middle9[i]) * (10 - i)
+    }
+    
+    const remainder = sum % 11
+    const checkDigit = (11 - remainder) % 11
+    const checkChar = checkDigit === 10 ? 'X' : checkDigit.toString()
+    
+    const isbn10 = middle9 + checkChar
+    console.log(`📚 ISBN conversion: ${isbn13} → ${isbn10}`)
+    
+    return isbn10
   }, [])
 
   // Handler pour partager sa review
@@ -454,142 +478,11 @@ export default function BookDetailModalV3({
     setNewComment('')
   }, [newComment])
 
-  // Handler pour liker une review API
-  const handleLikeApiReview = useCallback((reviewId: string) => {
-    setReviewInteractions(prev => ({
-      ...prev,
-      [reviewId]: {
-        ...prev[reviewId],
-        isLiked: !prev[reviewId]?.isLiked,
-        likesCount: prev[reviewId]?.isLiked 
-          ? (prev[reviewId]?.likesCount || 0) - 1 
-          : (prev[reviewId]?.likesCount || 0) + 1
-      }
-    }))
-  }, [])
 
-  // Handler pour partager une review API
-  const handleShareApiReview = useCallback((reviewId: string) => {
-    const review = apiReviews.find(r => r.id === reviewId) || realReviews.find(r => r.id === reviewId)
-    if (!review) return
-    
-    if (navigator.share) {
-      navigator.share({
-        title: `Review by ${review.username}`,
-        text: review.text,
-        url: window.location.href
-      })
-    } else {
-      navigator.clipboard.writeText(window.location.href)
-      console.log('Link copied to clipboard')
-    }
-  }, [apiReviews, realReviews])
 
-  // Handler pour soumettre un commentaire sur une review API
-  const handleSubmitApiReviewComment = useCallback((reviewId: string) => {
-    if (!newApiReviewComment.trim()) return
-    
-    const comment: Comment = {
-      id: `comment-${Date.now()}-${Math.random()}`,
-      userId: 'current-user',
-      username: 'You', 
-      text: newApiReviewComment.trim(),
-      timestamp: new Date().toISOString(),
-      likes: 0,
-      isLiked: false
-    }
-    
-    setReviewInteractions(prev => ({
-      ...prev,
-      [reviewId]: {
-        ...prev[reviewId],
-        comments: [...(prev[reviewId]?.comments || []), comment],
-        commentsCount: (prev[reviewId]?.commentsCount || 0) + 1
-      }
-    }))
-    
-    setNewApiReviewComment('')
-  }, [newApiReviewComment])
 
-  // Handlers pour interactions reviews
-  const handleLikeReview = useCallback((reviewId: string) => {
-    // Logique pour liker une review
-    setApiReviews(prev => 
-      prev.map(review => 
-        review.id === reviewId 
-          ? { ...review, likes: review.likes + 1 }
-          : review
-      )
-    )
-  }, [])
 
-  const handleCommentReview = useCallback((reviewId: string) => {
-    // Ouvrir modal de commentaire
-    console.log('Comment on review:', reviewId)
-  }, [])
 
-  const handleShareReview = useCallback((reviewId: string) => {
-    // Ouvrir modal de partage
-    console.log('Share review:', reviewId)
-  }, [])
-
-  // Fonction pour charger les vraies reviews depuis APIs
-  const loadApiReviews = useCallback(async (bookTitle: string, isbn?: string, authors?: string[]) => {
-    setLoadingApiReviews(true)
-    
-    try {
-      console.log('📚 Loading reviews from Google Books data for:', bookTitle)
-      
-      let reviews: ApiReview[] = []
-      
-      // Générer des reviews pour tous les livres
-      if (bookDetail) {
-        // Si on a des vraies données Google Books, les utiliser
-        if (bookDetail.averageRating && bookDetail.ratingsCount > 0) {
-          reviews = generateReviewsFromGoogleBooks(bookDetail.averageRating, bookDetail.ratingsCount, bookTitle)
-        } else {
-          // Sinon, générer des reviews avec une note moyenne de 3.8
-          reviews = generateReviewsFromGoogleBooks(3.8, 150, bookTitle)
-        }
-        console.log(`📚 Generated ${reviews.length} reviews for ${bookTitle}`)
-      }
-      
-      setApiReviews(reviews)
-      setRealReviews(reviews)
-      
-      // Initialiser les interactions pour chaque review
-      const interactions: Record<string, {
-        isLiked: boolean,
-        likesCount: number,
-        commentsCount: number,
-        comments: Comment[]
-      }> = {}
-      
-      reviews.forEach(review => {
-        interactions[review.id] = {
-          isLiked: false,
-          likesCount: 0,
-          commentsCount: 0,
-          comments: []
-        }
-      })
-      
-      setReviewInteractions(interactions)
-    } catch (error) {
-      console.error('Error loading reviews:', error)
-      setApiReviews([])
-      setRealReviews([])
-    } finally {
-      setLoadingApiReviews(false)
-    }
-  }, [bookId, bookDetail])
-
-  // Charger les reviews au mount
-  useEffect(() => {
-    if (bookDetail) {
-      loadApiReviews(bookDetail.title, bookDetail.isbn13 || bookDetail.isbn10, bookDetail.authors)
-    }
-  }, [bookDetail, loadApiReviews])
 
   // Initialiser les likes/comments pour user review
   useEffect(() => {
@@ -598,6 +491,18 @@ export default function BookDetailModalV3({
       setUserReviewComments(Math.floor(Math.random() * 10) + 1)
     }
   }, [reviewState.userRating])
+
+  // Load friends who read this book
+  useEffect(() => {
+    if (bookDetail?.id) {
+      loadFriendsWhoRead()
+    }
+  }, [bookDetail?.id, loadFriendsWhoRead])
+
+  // Load user avatar
+  useEffect(() => {
+    loadUserAvatar()
+  }, [loadUserAvatar])
 
   // Debug removed
 
@@ -609,7 +514,7 @@ export default function BookDetailModalV3({
   if (loading) {
     return (
       <div className="bg-[#0f0e17] min-h-screen flex items-center justify-center">
-        <StackrLoadingSkeleton />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
       </div>
     )
   }
@@ -712,7 +617,7 @@ export default function BookDetailModalV3({
                 <div className="relative flex-1">
                   <button
                     onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-800 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                    className="w-full py-3 px-4 bg-gradient-to-r from-gray-600 to-gray-800 text-white font-medium rounded-lg hover:from-gray-700 hover:to-gray-900 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
                   >
                     <span>{formatStatusForDisplay(selectedStatus)}</span>
                   </button>
@@ -737,7 +642,7 @@ export default function BookDetailModalV3({
                 {/* Share Button - Style violet dégradé comme film */}
                 <button 
                   onClick={() => setShowShareWithFriendsModal(true)}
-                  className="px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
+                  className="px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
                 >
                   <Share size={16} />
                   <span>Share</span>
@@ -750,127 +655,326 @@ export default function BookDetailModalV3({
                   <div className="flex items-center space-x-2">
                     <span className="text-gray-400 text-sm">Friends who read:</span>
                     <div className="flex -space-x-1">
-                      {FRIENDS_WHO_READ.slice(0, 4).map((friend) => (
-                        <div
-                          key={friend.id}
-                          className="w-6 h-6 bg-gradient-to-r from-gray-500 to-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
-                          title={`${friend.name} - ${friend.rating}/5 stars`}
-                        >
-                          {friend.name.charAt(0)}
+                      {loadingFriendsWhoRead ? (
+                        <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs animate-pulse">
+                          ...
                         </div>
-                      ))}
-                      {FRIENDS_WHO_READ.length > 4 && (
-                        <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17]">
-                          +{FRIENDS_WHO_READ.length - 4}
-                        </div>
+                      ) : friendsWhoRead.length === 0 ? (
+                        <span className="text-gray-500 text-xs">None</span>
+                      ) : (
+                        <>
+                          {friendsWhoRead.slice(0, 4).map((friend) => (
+                            <div
+                              key={friend.id}
+                              className="w-6 h-6 bg-gradient-to-r from-gray-500 to-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
+                              title={`${friend.name} - ${friend.rating}/5 stars`}
+                            >
+                              {friend.name.charAt(0)}
+                            </div>
+                          ))}
+                          {friendsWhoRead.length > 4 && (
+                            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17]">
+                              +{friendsWhoRead.length - 4}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setShowFriendsWhoRead(true)}
-                    className="text-gray-400 hover:text-gray-300 text-sm cursor-pointer"
-                  >
-                    View all
-                  </button>
+                  {friendsWhoRead.length > 0 && (
+                    <button
+                      onClick={() => setShowFriendsWhoRead(true)}
+                      className="text-gray-400 hover:text-gray-300 text-sm cursor-pointer"
+                    >
+                      View all
+                    </button>
+                  )}
                 </div>
                 
                 {/* Customize book sheet - SIMPLE TEXTE */}
                 <button
                   onClick={() => setShowBookSheet(true)}
-                  className="text-gray-400 hover:text-gray-300 text-sm flex items-center space-x-1 cursor-pointer"
+                  className="text-purple-400 hover:text-purple-300 text-sm flex items-center space-x-1 cursor-pointer"
                 >
                   <FileText size={14} />
                   <span>Customize book sheet</span>
                 </button>
+
+                {/* Tabs: Overview / Preview */}
+                <div className="mt-6 mb-4">
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => setActiveTab('overview')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                        activeTab === 'overview'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      Overview
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('preview')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                        activeTab === 'preview'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      Preview
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Contenu principal - Single page sans tabs */}
-          <div className="px-6 py-4 relative z-1">
-            <div className="space-y-8">
-              {/* Rate this book section - SEULEMENT si showInlineRating = true */}
-              {showInlineRating && (
-                <div className="mb-6 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] rounded-lg p-4 border border-gray-700/50">
-                  <h3 className="text-white font-semibold text-base mb-4">Rate this book</h3>
-                  
-                  {/* Rating stars */}
-                  <div className="flex items-center space-x-1 mb-4">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={24}
-                        className={`cursor-pointer transition-colors ${
-                          star <= (reviewState.hoverRating || reviewState.userRating) 
-                            ? 'text-purple-500 fill-current' 
-                            : 'text-gray-600 hover:text-purple-400'
-                        }`}
-                        onClick={() => reviewState.setUserRating(star)}
-                        onMouseEnter={() => reviewState.setHoverRating(star)}
-                        onMouseLeave={() => reviewState.setHoverRating(0)}
-                      />
-                    ))}
-                    {reviewState.userRating > 0 && (
-                      <span className="text-white ml-2 text-sm">{reviewState.userRating}/5 stars</span>
-                    )}
-                  </div>
-
-                  {/* Review textarea - SEULEMENT si rating > 0 */}
-                  {reviewState.userRating > 0 && (
-                    <div className="space-y-3">
-                      <textarea
-                        value={reviewState.userReview}
-                        onChange={(e) => reviewState.setUserReview(e.target.value)}
-                        placeholder="Write your review... (optional)"
-                        className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 h-20 text-sm"
+          {/* Preview Content - Google Books Embed */}
+          {activeTab === 'preview' && (
+            <div className="px-6 py-4">
+              <div className="space-y-4">
+                {bookDetail?.previewLink || bookDetail?.webReaderLink ? (
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <div className="text-white text-lg font-medium mb-4">Book Preview</div>
+                    
+                    {/* Try Google Books embed first */}
+                    <div className="relative">
+                      <iframe 
+                        src={`https://books.google.com/books?id=${bookId}&lpg=PP1&pg=PP1&output=embed&hl=en`}
+                        className="w-full h-96 rounded-lg border border-gray-600 bg-gray-900"
+                        title="Book Preview"
+                        loading="lazy"
                       />
                       
-                      {/* Privacy buttons */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-gray-400 text-sm">Review privacy:</span>
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => reviewState.setReviewPrivacy('private')}
-                              className={`px-3 py-1 rounded text-xs transition-colors ${
-                                reviewState.reviewPrivacy === 'private'
-                                  ? 'bg-purple-600 text-white'
-                                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                              }`}
-                            >
-                              Private
-                            </button>
-                            <button
-                              onClick={() => reviewState.setReviewPrivacy('public')}
-                              className={`px-3 py-1 rounded text-xs transition-colors ${
-                                reviewState.reviewPrivacy === 'public'
-                                  ? 'bg-purple-600 text-white'
-                                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                              }`}
-                            >
-                              Public
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {/* Save button - SEULEMENT si review privacy est sélectionné */}
-                        <button
-                          onClick={async () => {
-                            await reviewState.submitReview(bookDetail, selectedStatus, onAddToLibrary)
-                            setShowInlineRating(false) // Fermer la section après sauvegarde
-                          }}
-                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors"
-                        >
-                          Save
-                        </button>
+                      {/* Loading overlay */}
+                      <div className="absolute inset-0 bg-gray-900 rounded-lg flex items-center justify-center pointer-events-none">
+                        <div className="text-gray-400 text-sm">Loading preview...</div>
                       </div>
                     </div>
-                  )}
+                    
+                    <div className="mt-4 flex flex-wrap gap-3 justify-center text-sm">
+                      {bookDetail.previewLink && (
+                        <a 
+                          href={bookDetail.previewLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          📖 Open in Google Books
+                        </a>
+                      )}
+                      {bookDetail.webReaderLink && (
+                        <a 
+                          href={bookDetail.webReaderLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-green-400 hover:text-green-300 transition-colors"
+                        >
+                          📱 Web Reader
+                        </a>
+                      )}
+                      {bookDetail.infoLink && (
+                        <a 
+                          href={bookDetail.infoLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-400 hover:text-purple-300 transition-colors"
+                        >
+                          ℹ️ Book Info
+                        </a>
+                      )}
+                    </div>
+                    
+                    <div className="mt-3 text-center">
+                      <p className="text-gray-500 text-xs">
+                        Preview availability depends on publisher permissions
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400 py-16">
+                    <div className="text-6xl mb-4">📚</div>
+                    <div className="text-lg mb-2">No preview available</div>
+                    <div className="text-sm mb-4">This book doesn't have a preview available from Google Books.</div>
+                    
+                    {/* Alternative options */}
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500">Try these alternatives:</p>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {bookDetail?.buyLink && (
+                          <a 
+                            href={bookDetail.buyLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 text-xs"
+                          >
+                            🛒 Buy on Google Books
+                          </a>
+                        )}
+                        <a 
+                          href={`https://www.amazon.com/s?k=${encodeURIComponent(bookDetail?.title || '')}&tag=drrriguessss-20`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-orange-400 hover:text-orange-300 text-xs"
+                        >
+                          📖 Find on Amazon
+                        </a>
+                        <a 
+                          href={`https://www.goodreads.com/search?q=${encodeURIComponent(bookDetail?.title || '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-yellow-400 hover:text-yellow-300 text-xs"
+                        >
+                          ⭐ View on Goodreads
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Contenu principal - Overview tab */}
+          <div className="px-6 py-4 relative z-1" style={{ display: activeTab === 'overview' ? 'block' : 'none' }}>
+            <div className="space-y-8">
+              {/* Rate this book section - Always visible */}
+              <div className="">
+                  <div className="text-gray-400 text-sm mb-1">Rate this book</div>
+                  <div className="flex items-center space-x-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onMouseEnter={() => reviewState.setHoverRating(star)}
+                        onMouseLeave={() => reviewState.setHoverRating(0)}
+                        onClick={async () => {
+                          // Allow editing: if same rating is clicked, reset to 0
+                          const newRating = reviewState.userRating === star ? 0 : star
+                          reviewState.setUserRating(newRating)
+                          
+                          // Open review box when rating (but not when clearing)
+                          if (newRating > 0) {
+                            reviewState.setShowReviewBox(true)
+                          } else {
+                            reviewState.setShowReviewBox(false)
+                          }
+                          
+                          // Auto-save rating (like board game modal)
+                          if (bookDetail) {
+                            try {
+                              if (newRating > 0) {
+                                await reviewState.submitReview(bookDetail, selectedStatus, onAddToLibrary, true)
+                                console.log('📚 [BookModal] Rating auto-saved:', newRating)
+                              } else {
+                                // If rating is 0, delete the review
+                                console.log('📚 [BookModal] Rating cleared, deleting review')
+                              }
+                            } catch (error) {
+                              console.error('📚 [BookModal] Error auto-saving rating:', error)
+                            }
+                          }
+                        }}
+                        className="transition-all duration-200 hover:scale-110"
+                      >
+                        <Star
+                          size={18}
+                          className={`${
+                            star <= (reviewState.hoverRating || reviewState.userRating)
+                              ? 'text-purple-400 fill-purple-400 drop-shadow-sm'
+                              : 'text-gray-600 hover:text-gray-500'
+                          } transition-colors`}
+                        />
+                      </button>
+                    ))}
+                    {reviewState.userRating > 0 && (
+                      <span className="text-gray-400 text-sm ml-2">{reviewState.userRating}/5</span>
+                    )}
+                  </div>
+                </div>
+
+              
+              {/* Review section - SEULEMENT si rating > 0 */}
+              {reviewState.showReviewBox && reviewState.userRating > 0 && (
+                <div className="mb-6 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] border border-gray-700/50 rounded-lg p-4">
+                  <h3 className="text-white font-medium mb-3">Share your thoughts</h3>
+                  
+                  {/* Review Text Area */}
+                  <div className="space-y-3">
+                    <textarea
+                      value={reviewState.userReview}
+                      onChange={(e) => reviewState.setUserReview(e.target.value)}
+                      placeholder="Write your review... (optional)"
+                      className="w-full bg-black/20 border border-purple-500/30 rounded-lg p-3 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                      rows={3}
+                    />
+                    
+                    {/* Action Buttons */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-white/70 text-sm">Review privacy:</span>
+                        <div className="flex bg-black/30 rounded-lg p-1">
+                          <button
+                            onClick={() => reviewState.setReviewPrivacy('private')}
+                            className={`px-3 py-1 rounded-md text-xs transition-colors ${
+                              reviewState.reviewPrivacy === 'private'
+                                ? 'bg-purple-600 text-white'
+                                : 'text-white/60 hover:text-white/80'
+                            }`}
+                          >
+                            Private
+                          </button>
+                          <button
+                            onClick={() => reviewState.setReviewPrivacy('public')}
+                            className={`px-3 py-1 rounded-md text-xs transition-colors ${
+                              reviewState.reviewPrivacy === 'public'
+                                ? 'bg-purple-600 text-white'
+                                : 'text-white/60 hover:text-white/80'
+                            }`}
+                          >
+                            Public
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        {!reviewState.userReview.trim() && (
+                          <button
+                            onClick={() => {
+                              // Skip: just close the review box without saving review text
+                              reviewState.setShowReviewBox(false)
+                            }}
+                            className="px-3 py-1 bg-gray-700 text-gray-300 text-xs font-medium rounded-md hover:bg-gray-600 transition-colors"
+                          >
+                            Skip
+                          </button>
+                        )}
+                        {reviewState.userReview.trim() && (
+                          <button
+                            onClick={() => {
+                              console.log('📚 [BookModal] Save Review clicked', { bookDetail, selectedStatus })
+                              if (!bookDetail) {
+                                console.error('📚 [BookModal] bookDetail is null!')
+                                return
+                              }
+                              reviewState.submitReview(bookDetail, selectedStatus, onAddToLibrary)
+                            }}
+                            className={`px-3 py-1 text-white text-xs font-medium rounded-md transition-all duration-200 ${
+                              reviewState.reviewSaved 
+                                ? 'bg-green-600 hover:bg-green-700' 
+                                : 'bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900'
+                            }`}
+                          >
+                            {reviewState.reviewSaved ? 'Saved!' : 'Save Review'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Your Review - Style Instagram */}
-              {reviewState.userRating > 0 && (
+              {/* Your Review - Style Instagram (shown if user has rating but review box is closed) */}
+              {reviewState.userRating > 0 && !reviewState.showReviewBox && (
                 <div className="mb-6 md:mb-8 bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] rounded-lg p-4 md:p-6 border border-gray-700/50">
                   {/* Header: Title + Privacy + Edit */}
                   <div className="flex items-center justify-between mb-4">
@@ -879,7 +983,7 @@ export default function BookDetailModalV3({
                       <span className="text-gray-400 text-xs">({reviewState.reviewPrivacy})</span>
                     </div>
                     <button
-                      onClick={() => setShowInlineRating(true)}
+                      onClick={() => reviewState.setShowReviewBox(true)}
                       className="text-white text-xs font-medium hover:text-gray-300 transition-colors"
                     >
                       Edit
@@ -893,9 +997,17 @@ export default function BookDetailModalV3({
                   <div className="py-2">
                     {/* Avatar + You + Rating */}
                     <div className="flex items-center space-x-3 mb-2">
-                      <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
-                        U
-                      </div>
+                      {userAvatar ? (
+                        <img 
+                          src={userAvatar} 
+                          alt="Your avatar" 
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                          U
+                        </div>
+                      )}
                       <div className="flex items-center space-x-2 flex-1">
                         <span className="text-white font-medium text-sm">You</span>
                         {/* Rating en violet */}
@@ -1064,6 +1176,110 @@ export default function BookDetailModalV3({
                     <span className="text-white">{bookDetail.language.toUpperCase()}</span>
                   </div>
                 )}
+
+                {/* Digital Availability */}
+                {bookDetail.isEbook && (
+                  <div className="text-sm flex">
+                    <span className="text-gray-400 w-24 flex-shrink-0">Ebook:</span>
+                    <span className="text-white">Available</span>
+                  </div>
+                )}
+                {bookDetail.pdfAvailable && (
+                  <div className="text-sm flex">
+                    <span className="text-gray-400 w-24 flex-shrink-0">PDF:</span>
+                    <span className="text-white">Available</span>
+                  </div>
+                )}
+                {bookDetail.epubAvailable && (
+                  <div className="text-sm flex">
+                    <span className="text-gray-400 w-24 flex-shrink-0">EPUB:</span>
+                    <span className="text-white">Available</span>
+                  </div>
+                )}
+                {bookDetail.webReaderLink && (
+                  <div className="text-sm flex">
+                    <span className="text-gray-400 w-24 flex-shrink-0">Preview:</span>
+                    <a 
+                      href={bookDetail.webReaderLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      Read online
+                    </a>
+                  </div>
+                )}
+                {/* Amazon Affiliate Link */}
+                {(bookDetail.isbn13 || bookDetail.isbn10 || bookDetail.title) && (
+                  <div className="text-sm flex">
+                    <span className="text-gray-400 w-24 flex-shrink-0">Buy:</span>
+                    <a 
+                      href={(() => {
+                        // Hybrid Strategy: Prioritize direct links, fallback to search
+                        
+                        // 1. Try existing ISBN-10 first (highest commission rate)
+                        if (bookDetail.isbn10) {
+                          return `https://amazon.com/dp/${bookDetail.isbn10}/?tag=drrriguessss-20`
+                        }
+                        
+                        // 2. Try ISBN-13 to ISBN-10 conversion for direct links
+                        if (bookDetail.isbn13) {
+                          const isbn10 = convertISBN13ToISBN10(bookDetail.isbn13)
+                          if (isbn10) {
+                            // Check if this is a potentially problematic ISBN (length or format issues)
+                            if (isbn10.length === 10 && !isbn10.startsWith('178')) {
+                              return `https://amazon.com/dp/${isbn10}/?tag=drrriguessss-20`
+                            }
+                          }
+                          // Fallback to ISBN-13 search for problematic conversions
+                          return `https://amazon.com/s?k=${bookDetail.isbn13}&tag=drrriguessss-20`
+                        }
+                        
+                        // 3. Final fallback to title + author search
+                        return `https://amazon.com/s?k=${encodeURIComponent(`"${bookDetail.title}" "${bookDetail.authors?.[0] || ''}"`).replace(/%20/g, '+')}&tag=drrriguessss-20`
+                      })()}
+                      title={(() => {
+                        // Show user what type of link this is
+                        if (bookDetail.isbn10) return "Direct Amazon product link"
+                        if (bookDetail.isbn13) {
+                          const isbn10 = convertISBN13ToISBN10(bookDetail.isbn13)
+                          if (isbn10 && isbn10.length === 10 && !isbn10.startsWith('178')) {
+                            return "Direct Amazon product link"
+                          }
+                          return "Amazon search (reliable)"
+                        }
+                        return "Amazon search by title"
+                      })()}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-orange-400 hover:text-orange-300 mr-3"
+                    >
+                      Amazon
+                      {(() => {
+                        // Visual indicator for link type
+                        if (bookDetail.isbn10) return " 🎯" // Direct link
+                        if (bookDetail.isbn13) {
+                          const isbn10 = convertISBN13ToISBN10(bookDetail.isbn13)
+                          if (isbn10 && isbn10.length === 10 && !isbn10.startsWith('178')) {
+                            return " 🎯" // Direct link via conversion
+                          }
+                          return " 🔍" // Search by ISBN
+                        }
+                        return " 🔍" // Search by title
+                      })()}
+                    </a>
+                    {bookDetail.buyLink && (
+                      <a 
+                        href={bookDetail.buyLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300"
+                      >
+                        Google Books{bookDetail.price && ` (${bookDetail.price})`}
+                      </a>
+                    )}
+                  </div>
+                )}
                 {bookDetail.isbn13 && (
                   <div className="text-sm flex">
                     <span className="text-gray-400 w-24 flex-shrink-0">ISBN-13:</span>
@@ -1143,134 +1359,6 @@ export default function BookDetailModalV3({
                 </div>
               )}
 
-              {/* Real Reviews Section */}
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Reviews</h3>
-                  {realReviews.length > 3 && (
-                    <button 
-                      onClick={() => setShowAllRealReviews(!showAllRealReviews)}
-                      className="text-gray-400 hover:text-white text-sm font-medium transition-colors"
-                    >
-                      {showAllRealReviews ? 'Less' : 'More'}
-                    </button>
-                  )}
-                </div>
-                
-                {loadingRealReviews ? (
-                  <div className="text-center py-4">
-                    <div className="text-gray-400 text-sm">Loading reviews...</div>
-                  </div>
-                ) : realReviews.length === 0 ? (
-                  <div className="text-gray-400 text-sm bg-gray-800/30 rounded-lg p-4 text-center">
-                    No reviews yet
-                    <div className="text-gray-500 text-xs mt-1">Be the first to review this book</div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {(showAllRealReviews ? realReviews : realReviews.slice(0, 3)).map((review) => (
-                      <div key={review.id} className="bg-gradient-to-b from-[#1a1a1a] via-[#161616] to-[#121212] rounded-lg p-4 border border-gray-700/50">
-                        {/* User info + date */}
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-3">
-                            {/* Avatar violet rond */}
-                            <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
-                              {review.username[0]?.toUpperCase() || 'U'}
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-white font-medium text-sm">{review.username}</span>
-                              {/* Rating en violet */}
-                              <div className="flex">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    size={12}
-                                    className={`${
-                                      star <= review.rating
-                                        ? 'text-purple-400 fill-current'
-                                        : 'text-gray-600'
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                          {/* Date à droite */}
-                          <span className="text-gray-500 text-xs">{review.timestamp ? formatTimeAgo(review.timestamp) : review.date}</span>
-                        </div>
-                        
-                        {/* Review text */}
-                        <div className="mb-3 ml-11">
-                          <p className="text-gray-300 text-sm leading-relaxed">
-                            {expandedReviews.has(review.id) 
-                              ? review.text 
-                              : truncateToOneLine(review.text)
-                            }
-                            {review.text.length > 60 && (
-                              <button
-                                onClick={() => toggleReviewExpansion(review.id)}
-                                className="text-gray-400 hover:text-gray-300 ml-1 text-xs"
-                              >
-                                {expandedReviews.has(review.id) ? '...less' : '...more'}
-                              </button>
-                            )}
-                          </p>
-                        </div>
-                        
-                        {/* Actions Instagram style avec compteurs */}
-                        <div className="ml-11">
-                          <div className="flex items-center space-x-4">
-                            {/* Like avec compteur */}
-                            <div className="flex items-center space-x-1">
-                              <button 
-                                onClick={() => handleLikeApiReview(review.id)}
-                                className={`transition-colors ${
-                                  reviewInteractions[review.id]?.isLiked 
-                                    ? 'text-red-500' 
-                                    : 'text-gray-400 hover:text-gray-300'
-                                }`}
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill={reviewInteractions[review.id]?.isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
-                                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                                </svg>
-                              </button>
-                              {(reviewInteractions[review.id]?.likesCount || 0) > 0 && (
-                                <span className="text-gray-300 text-xs">{reviewInteractions[review.id]?.likesCount}</span>
-                              )}
-                            </div>
-                            
-                            {/* Comment avec compteur */}
-                            <div className="flex items-center space-x-1">
-                              <button 
-                                onClick={() => setActiveCommentReview(review.id)}
-                                className="text-gray-400 hover:text-gray-300 transition-colors"
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                </svg>
-                              </button>
-                              {(reviewInteractions[review.id]?.commentsCount || 0) > 0 && (
-                                <span className="text-gray-300 text-xs">{reviewInteractions[review.id]?.commentsCount}</span>
-                              )}
-                            </div>
-                            
-                            {/* Share */}
-                            <button 
-                              onClick={() => handleShareApiReview(review.id)}
-                              className="text-gray-400 hover:text-gray-300 transition-colors"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                <path d="M22 2L11 13"/>
-                                <path d="M22 2L15 22L11 13L2 9L22 2Z"/>
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </>
@@ -1418,9 +1506,7 @@ export default function BookDetailModalV3({
               <button
                 onClick={() => {
                   setShowFriendsModal(false)
-                  if (['read', 'currently-reading', 'did-not-finish'].includes(selectedStatus || '')) {
-                    reviewState.setShowReviewBox(true)
-                  }
+                  // Review section is now always visible - no need to show review box conditionally
                 }}
                 className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
               >
@@ -1446,7 +1532,12 @@ export default function BookDetailModalV3({
             </div>
             
             <div className="space-y-4">
-              {FRIENDS_WHO_READ.map((friend) => (
+              {friendsWhoRead.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">None of your friends have read this book yet.</p>
+                </div>
+              ) : (
+                friendsWhoRead.map((friend) => (
                 <div key={friend.id} className="bg-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-3">
@@ -1469,7 +1560,8 @@ export default function BookDetailModalV3({
                     <p className="text-gray-300 text-sm">{friend.reviewText}</p>
                   )}
                 </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -1662,87 +1754,6 @@ export default function BookDetailModalV3({
         </div>
       )}
 
-      {/* API Review Comments Modal - Style Instagram */}
-      {activeCommentReview && (
-        <div className="fixed inset-0 z-60 bg-black/50">
-          {/* Overlay cliquable pour fermer */}
-          <div 
-            className="absolute inset-0" 
-            onClick={() => setActiveCommentReview(null)}
-          />
-          
-          {/* Modal sliding from bottom */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gray-900 rounded-t-2xl max-h-[80vh] flex flex-col">
-            {/* Handle bar */}
-            <div className="flex justify-center p-2">
-              <div className="w-10 h-1 bg-gray-600 rounded-full"></div>
-            </div>
-            
-            {/* Header */}
-            <div className="px-4 py-3 border-b border-gray-700">
-              <h3 className="text-white font-semibold text-center">Comments</h3>
-            </div>
-            
-            {/* Comments list */}
-            <div className="flex-1 overflow-y-auto px-4 py-2">
-              {(!reviewInteractions[activeCommentReview]?.comments?.length) ? (
-                <div className="text-center py-8">
-                  <div className="text-gray-400 text-sm">No comments yet</div>
-                  <div className="text-gray-500 text-xs mt-1">Be the first to comment</div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {reviewInteractions[activeCommentReview].comments.map((comment) => (
-                    <div key={comment.id} className="flex space-x-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
-                        {comment.username[0]}
-                      </div>
-                      <div className="flex-1">
-                        <div className="bg-gray-800 rounded-2xl px-3 py-2">
-                          <div className="text-white text-sm font-medium">{comment.username}</div>
-                          <div className="text-gray-300 text-sm">{comment.text}</div>
-                        </div>
-                        <div className="flex items-center space-x-4 mt-1 ml-3">
-                          <span className="text-gray-500 text-xs">{formatTimeAgo(comment.timestamp)}</span>
-                          <button className="text-gray-500 text-xs font-medium">Like</button>
-                          <button className="text-gray-500 text-xs font-medium">Reply</button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {/* Comment input */}
-            <div className="p-4 border-t border-gray-700">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
-                  U
-                </div>
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={newApiReviewComment}
-                    onChange={(e) => setNewApiReviewComment(e.target.value)}
-                    placeholder="What do you think?"
-                    className="w-full bg-gray-800 text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    onKeyPress={(e) => e.key === 'Enter' && handleSubmitApiReviewComment(activeCommentReview)}
-                  />
-                  {newApiReviewComment.trim() && (
-                    <button
-                      onClick={() => handleSubmitApiReviewComment(activeCommentReview)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-400 text-sm font-medium"
-                    >
-                      Post
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

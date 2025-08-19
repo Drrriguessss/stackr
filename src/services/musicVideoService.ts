@@ -310,7 +310,7 @@ class MusicVideoService {
   }
 
   /**
-   * Recherche via l'API Invidious (comme pour les trailers)
+   * Recherche via l'API Next.js (contourne CORS)
    */
   private async searchInvidious(artist: string, track: string): Promise<string[]> {
     const videoIds: string[] = []
@@ -322,58 +322,47 @@ class MusicVideoService {
       `${artist} ${track}`
     ]
     
-    const invidiousInstances = [
-      'https://invidious.privacydev.net',
-      'https://iv.ggtyler.dev',
-      'https://invidious.lunar.icu'
-    ]
-    
     for (const searchTerm of searchTerms.slice(0, 2)) { // Limiter pour éviter trop d'appels
-      for (const instance of invidiousInstances) {
-        try {
-          const searchUrl = `${instance}/api/v1/search?q=${encodeURIComponent(searchTerm)}&type=video&sort_by=relevance`
+      try {
+        const searchUrl = `/api/youtube-search?q=${encodeURIComponent(searchTerm)}`
+        
+        const response = await fetch(searchUrl, { 
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(8000)
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
           
-          const response = await fetch(searchUrl, { 
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(5000)
-          })
-          
-          if (response.ok) {
-            const data = await response.json()
-            
-            if (Array.isArray(data) && data.length > 0) {
-              // Prendre les 3 premiers résultats les plus pertinents
-              const bestVideos = data
-                .filter(video => video.videoId && video.title)
-                .filter(video => {
-                  const title = video.title.toLowerCase()
-                  const artistName = artist.toLowerCase()
-                  const trackName = track.toLowerCase()
-                  // Vérifier que le titre contient l'artiste ET le titre
-                  return title.includes(artistName) && title.includes(trackName)
-                })
-                .slice(0, 3)
-                
-              for (const video of bestVideos) {
-                if (video.videoId && !videoIds.includes(video.videoId)) {
-                  videoIds.push(video.videoId)
-                  console.log(`🎵 [MusicVideo] Found Invidious videoId: ${video.videoId} - ${video.title}`)
-                }
-              }
+          if (Array.isArray(data) && data.length > 0) {
+            // Prendre les 3 premiers résultats les plus pertinents
+            const bestVideos = data
+              .filter(video => video.videoId && video.title)
+              .filter(video => {
+                const title = video.title.toLowerCase()
+                const artistName = artist.toLowerCase()
+                const trackName = track.toLowerCase()
+                // Vérifier que le titre contient l'artiste ET le titre
+                return title.includes(artistName) && title.includes(trackName)
+              })
+              .slice(0, 3)
               
-              // Si on a trouvé des résultats, pas besoin d'essayer d'autres instances
-              if (videoIds.length > 0) break
+            for (const video of bestVideos) {
+              if (video.videoId && !videoIds.includes(video.videoId)) {
+                videoIds.push(video.videoId)
+                console.log(`🎵 [MusicVideo] Found YouTube videoId: ${video.videoId} - ${video.title}`)
+              }
             }
+            
+            // Si on a trouvé des résultats, pas besoin d'essayer d'autres termes
+            if (videoIds.length > 0) break
           }
-        } catch (error) {
-          console.log(`🎵 [MusicVideo] Invidious instance ${instance} failed:`, error.message)
-          continue
         }
+      } catch (error) {
+        console.log(`🎵 [MusicVideo] YouTube search API failed:`, error.message)
+        continue
       }
-      
-      // Si on a des résultats, pas besoin d'essayer d'autres termes
-      if (videoIds.length > 0) break
     }
     
     return videoIds

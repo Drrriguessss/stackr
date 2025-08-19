@@ -682,61 +682,7 @@ export default function UnifiedSearchBar({
                         </p>
                       </div>
                       
-                      {/* NOUVEAU : Bouton Add à droite avec dropdown */}
-                      <div className="relative" onClick={(e) => e.stopPropagation()}>
-                        {/* Afficher le statut si déjà ajouté, sinon bouton Add */}
-                        {currentStatus ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDropdownToggle(info.id, e.currentTarget)
-                            }}
-                            className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-full flex items-center space-x-1 transition-colors hover:bg-purple-700"
-                          >
-                            <span>{statusOptions[selectedFilter].find(s => s.key === currentStatus)?.label || 'Added'}</span>
-                            <ChevronDown size={12} />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDropdownToggle(info.id, e.currentTarget)
-                            }}
-                            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium rounded-full flex items-center space-x-1 transition-colors"
-                          >
-                            <Plus size={12} />
-                            <span>Add</span>
-                          </button>
-                        )}
-                        
-                        {/* Dropdown menu */}
-                        {showDropdownForItem === info.id && (
-                          <div 
-                            className={`absolute right-0 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-32 ${
-                              dropdownPosition === 'above' 
-                                ? 'bottom-full mb-1' 
-                                : 'top-full mt-1'
-                            }`}
-                            style={{
-                              zIndex: 99999,
-                              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
-                            }}
-                          >
-                            {statusOptions[selectedFilter].map((option) => (
-                              <button
-                                key={option.key}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleStatusSelect(info.id, option.key, result)
-                                }}
-                                className="w-full text-left px-3 py-2 text-white text-xs hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg transition-colors"
-                              >
-                                {option.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      {/* Bouton Add supprimé - fonctionnalité retirée */}
                     </div>
                     
                     {/* Ligne séparatrice - pas après le dernier élément */}
