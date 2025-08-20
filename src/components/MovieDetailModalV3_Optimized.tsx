@@ -142,15 +142,23 @@ export default function MovieDetailModalV3Optimized({
     personalReview: ''
   })
 
-  // Effet pour synchroniser le statut avec la bibliothèque
+  // Effet pour synchroniser le statut avec la bibliothèque - LIKE MUSIC MODAL
   useEffect(() => {
-    console.log('🔄 [MOVIE MODAL] Synchronizing status with library for movieId:', movieId)
-    const libraryItem = library.find(item => item.id === movieId)
-    console.log('🔍 [MOVIE MODAL] Found library item:', libraryItem)
-    const newStatus = libraryItem?.status || null
-    console.log('🔄 [MOVIE MODAL] Setting status to:', newStatus)
-    setSelectedStatus(newStatus)
-  }, [movieId, library])
+    if (isOpen && movieId) {
+      console.log('🔄 [MOVIE MODAL] Synchronizing status with library for movieId:', movieId)
+      
+      // Check library status
+      if (library && library.length > 0) {
+        const libraryItem = library.find(item => item.id === movieId)
+        console.log('🔍 [MOVIE MODAL] Found library item:', libraryItem)
+        const newStatus = libraryItem?.status || null
+        console.log('🔄 [MOVIE MODAL] Setting status to:', newStatus)
+        setSelectedStatus(newStatus)
+      } else {
+        setSelectedStatus(null)
+      }
+    }
+  }, [isOpen, movieId, library])
 
   // Effet pour charger les données de la feuille de film
   useEffect(() => {
@@ -193,6 +201,32 @@ export default function MovieDetailModalV3Optimized({
       }
     }
   }, [movieId])
+
+  // Cleanup on modal close - LIKE MUSIC MODAL
+  useEffect(() => {
+    if (!isOpen) {
+      console.log('🎬 [Cleanup] Modal closed, resetting all states')
+      
+      // Reset all states when modal closes
+      setSelectedStatus(null)
+      setShowStatusDropdown(false)
+      setShowInlineRating(false)
+      setActiveTab('overview')
+      setUserRating(0)
+      setHoverRating(0)
+      setUserReview('')
+      setReviewPrivacy('private')
+      setExpandedUserReview(false)
+      setReviewSaved(false)
+      setShowMovieSheet(false)
+      setShowShareModal(false)
+      setShowShareWithFriendsModal(false)
+      setShowFriendsModal(false)
+      setShowFriendsWhoWatchedModal(false)
+      setStreamingProviders([])
+      setLoadingProviders(false)
+    }
+  }, [isOpen])
 
   // Load streaming providers
   useEffect(() => {
@@ -312,11 +346,13 @@ export default function MovieDetailModalV3Optimized({
     }
   }, [movieId, movieSheetData, reviewState])
 
-  // Handle status selection
-  const handleStatusSelect = useCallback(async (status: MediaStatus) => {
-    if (status === null) {
-      // Remove from library
-      if (onDeleteItem && movieDetail) {
+  // Handle status selection - MATCHED WITH MUSIC MODAL PATTERN
+  const handleStatusSelect = useCallback(async (status: MediaStatus | null) => {
+    if (!movieDetail) return
+    
+    // Handle remove from library
+    if (status === null || status === 'remove') {
+      if (onDeleteItem) {
         onDeleteItem(movieDetail.imdbID)
       }
       setSelectedStatus(null)
@@ -324,8 +360,7 @@ export default function MovieDetailModalV3Optimized({
       return
     }
     
-    if (!movieDetail) return
-    
+    // Prepare movie data for library
     const movieData = {
       id: movieDetail.imdbID,
       title: movieDetail.Title,
@@ -334,15 +369,31 @@ export default function MovieDetailModalV3Optimized({
       year: parseInt(movieDetail.Year),
       rating: parseFloat(movieDetail.imdbRating) || 0,
       director: movieDetail.Director,
-      genre: movieDetail.Genre
+      genre: movieDetail.Genre,
+      runtime: movieDetail.Runtime,
+      actors: movieDetail.Actors,
+      plot: movieDetail.Plot,
+      language: movieDetail.Language,
+      country: movieDetail.Country,
+      awards: movieDetail.Awards,
+      type: movieDetail.Type
     }
     
     try {
+      // Add/update item in library
       await onAddToLibrary(movieData, status)
       setSelectedStatus(status)
       setShowStatusDropdown(false)
+      
+      // Show friends modal for social statuses (like music modal)
+      if (status === 'watched') {
+        // Optional: show a rating modal or friends activity
+        setShowInlineRating(true)
+      }
+      
+      console.log('🎬 [MOVIE MODAL] Successfully updated library with status:', status)
     } catch (error) {
-      console.error('🎬 [ERROR] Failed to add to library:', error)
+      console.error('🎬 [ERROR] Failed to update library:', error)
     }
   }, [movieDetail, onAddToLibrary, onDeleteItem])
 

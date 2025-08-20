@@ -120,7 +120,7 @@ const MovieInfoSection = memo(({
               ))}
               {selectedStatus && (
                 <button
-                  onClick={() => handleStatusSelect(null as any)}
+                  onClick={() => handleStatusSelect('remove' as MediaStatus)}
                   className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-600/20 transition-colors last:rounded-b-lg"
                 >
                   Remove from Library
