@@ -274,7 +274,8 @@ export class LibraryService {
 
       // Essayer Supabase d'abord (seulement si utilisateur connecté)
       if (userId) {
-        console.log('👤 User authenticated, trying Supabase sync')
+        console.log('👤 [LibraryService] User authenticated, trying Supabase sync for user:', userId)
+        console.log('📝 [LibraryService] Item to add:', { id: newItem.id, title: newItem.title, status: newItem.status })
         try {
           const { data, error } = await supabase
             .from('library_items')
@@ -319,7 +320,8 @@ export class LibraryService {
           .select()
 
         if (!error) {
-          console.log('➕ Added to Supabase with complete data:', newItem.title)
+          console.log('✅ [LibraryService] Successfully added to Supabase:', newItem.title)
+          console.log('📊 [LibraryService] Supabase data:', data)
           
           // Synchroniser localStorage
           const library = await this.getLibraryFromLocalStorage(userId)
@@ -357,7 +359,8 @@ export class LibraryService {
           this.notifyLibraryChange('added', newItem)
           return true
         } else {
-          console.error('Supabase error:', error)
+          console.error('❌ [LibraryService] Supabase error:', error.message)
+          console.error('❌ [LibraryService] Full error:', error)
         }
         } catch (supabaseError) {
           console.log('⚠️ Supabase unavailable, using localStorage:', supabaseError)

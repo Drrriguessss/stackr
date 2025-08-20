@@ -20,19 +20,28 @@ export class AuthService {
     try {
       const { data: { user }, error } = await supabase.auth.getUser()
       
-      if (error || !user) {
+      if (error) {
+        console.error('❌ [AuthService] Error getting user:', error)
+        return null
+      }
+      
+      if (!user) {
+        console.log('ℹ️ [AuthService] No user found - user not authenticated')
         return null
       }
 
-      return {
+      const authUser = {
         id: user.id,
         email: user.email || '',
         name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
         avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture,
         provider: user.app_metadata?.provider
       }
+      
+      console.log('✅ [AuthService] Current user found:', authUser.email, 'ID:', authUser.id)
+      return authUser
     } catch (error) {
-      console.error('❌ [Auth] Error getting current user:', error)
+      console.error('❌ [AuthService] Exception getting current user:', error)
       return null
     }
   }
@@ -120,10 +129,16 @@ export class AuthService {
    */
   static async signInWithGoogle(): Promise<{ error: string | null }> {
     try {
+      // Utiliser l'URL actuelle pour la redirection (localhost ou production)
+      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+      const redirectUrl = `${currentOrigin}/auth/callback`
+      
+      console.log('🔗 Google OAuth redirect URL:', redirectUrl)
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: redirectUrl
         }
       })
 
