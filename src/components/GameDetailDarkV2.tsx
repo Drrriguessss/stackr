@@ -14,6 +14,7 @@ interface GameDetailDarkV2Props {
   onBack: () => void
   onAddToLibrary: (item: any, status: MediaStatus) => void
   onDeleteItem?: (id: string) => void
+  onUpdateItem?: (id: string, updates: Partial<LibraryItem>) => void
   library: LibraryItem[]
   userReviews: Review[]
   googleReviews: Review[]
@@ -48,6 +49,7 @@ export default function GameDetailDarkV2({
   onBack, 
   onAddToLibrary, 
   onDeleteItem,
+  onUpdateItem,
   library, 
   userReviews, 
   googleReviews, 
@@ -117,8 +119,18 @@ export default function GameDetailDarkV2({
       fetchGameDetail()
       fetchGameImages()
       loadUserRatingAndReview()
+      loadGameSheetData()
     }
   }, [gameId])
+
+  const loadGameSheetData = () => {
+    const libraryItem = library.find(item => 
+      item.id === gameId || item.id === `game-${gameId}`
+    )
+    if (libraryItem?.additionalInfo?.gameSheet) {
+      setGameSheetData(libraryItem.additionalInfo.gameSheet)
+    }
+  }
 
   useEffect(() => {
     const libraryItem = library.find(item => 
@@ -316,11 +328,11 @@ export default function GameDetailDarkV2({
                 </div>
               </div>
 
-              {/* Game Info Section - Same structure as MusicModal */}
+              {/* Game Info Section */}
               <div className="px-6 py-6 relative -mt-16">
-                {/* Thumbnail + Basic Info - Same as MusicModal */}
+                {/* Thumbnail + Basic Info */}
                 <div className="flex gap-4 items-start mb-4 relative z-10">
-                  {/* Game Thumbnail - Same size as music modal */}
+                  {/* Game Thumbnail */}
                   <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden border-2 border-white/10 flex-shrink-0">
                     <img
                       src={gameDetail.background_image || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=100&h=100&fit=crop&q=80'}
@@ -331,12 +343,12 @@ export default function GameDetailDarkV2({
                     />
                   </div>
                   
-                  {/* Title and Developer - Same style as music modal */}
+                  {/* Title and Developer */}
                   <div className="flex-1 pt-1">
                     <h1 className="text-xl font-bold text-white mb-1 leading-tight">{gameDetail.name}</h1>
                     <p className="text-sm text-gray-400 mb-1">{gameDetail.developers?.[0]?.name || 'Unknown Developer'}</p>
                     
-                    {/* Game Stats - Same style as music modal */}
+                    {/* Game Stats */}
                     <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                       {gameDetail.released && <span>{new Date(gameDetail.released).getFullYear()}</span>}
                       {gameDetail.genres?.[0]?.name && (
@@ -359,9 +371,10 @@ export default function GameDetailDarkV2({
                       )}
                     </div>
                   </div>
+                </div>
 
-                {/* Action Buttons - Same as MusicModal */}
-                <div className="flex space-x-3 mt-3">
+                {/* Action Buttons */}
+                <div className="flex space-x-3 mb-4">
                   {/* Status Button */}
                   <div className="relative flex-1">
                     <button
@@ -402,7 +415,7 @@ export default function GameDetailDarkV2({
                       )}
                     </div>
                     
-                  {/* Share Button - Same as MusicModal */}
+                  {/* Share Button */}
                   <button 
                     onClick={() => setShowShareWithFriendsModal(true)}
                     className="h-12 px-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200 flex items-center space-x-1 text-xs"
@@ -412,65 +425,84 @@ export default function GameDetailDarkV2({
                   </button>
                 </div>
 
-                  {/* Friends who played */}
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-gray-400 text-sm">Friends who played:</span>
+                {/* Friends who played */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-gray-400 text-sm">Friends who played:</span>
+                      {friendsWhoPlayed.length > 0 ? (
                         <div className="flex -space-x-1">
                           {friendsWhoPlayed.slice(0, 4).map((friend) => (
                             <div
                               key={friend.id}
-                              className="w-6 h-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
+                              className="w-6 h-6 bg-gradient-to-r from-gray-500 to-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
                               title={`${friend.name} - ${friend.rating}/5 stars`}
                             >
                               {friend.name.charAt(0)}
                             </div>
                           ))}
+                          {friendsWhoPlayed.length > 4 && (
+                            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17]">
+                              +{friendsWhoPlayed.length - 4}
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      ) : (
+                        <span className="text-gray-500 text-sm">None</span>
+                      )}
+                    </div>
+                    {friendsWhoPlayed.length > 0 && (
                       <button
                         onClick={() => setShowFriendsWhoPlayedModal(true)}
-                        className="text-gray-400 hover:text-purple-400 text-sm cursor-pointer"
+                        className="text-gray-400 hover:text-purple-400 text-sm transition-colors"
                       >
                         View all
                       </button>
-                    </div>
-                    
-                    {/* Customize this game sheet */}
-                    <button
-                      onClick={() => setShowGameSheet(true)}
-                      className="text-purple-400 hover:text-purple-300 text-sm flex items-center space-x-1 cursor-pointer"
-                    >
-                      <FileText size={14} />
-                      <span>Customize this game sheet</span>
-                    </button>
+                    )}
                   </div>
+                  
+                  {/* Customize game sheet */}
+                  <button
+                    onClick={() => setShowGameSheet(true)}
+                    className="text-purple-400 hover:text-purple-300 text-sm flex items-center space-x-1 cursor-pointer transition-colors"
+                  >
+                    <FileText size={14} />
+                    <span>Customize game sheet</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Main Content Section - Under the colored section */}
+              {/* Main Content Section */}
               <div className="px-6 py-4 relative z-1">
-                {/* Tab Navigation */}
-                <div className="flex space-x-2 mb-6">
-                  {(['overview', 'trailers'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
+                {/* Tabs: Overview / Trailers */}
+                <div className="mb-4">
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => setActiveTab('overview')}
                       className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                        activeTab === tab
+                        activeTab === 'overview'
                           ? 'bg-purple-600 text-white'
                           : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                       }`}
                     >
-                      {tab === 'overview' ? 'Overview' : 'Trailers/Photos'}
+                      Overview
                     </button>
-                  ))}
+                    <button 
+                      onClick={() => setActiveTab('trailers')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                        activeTab === 'trailers'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      Trailers/Photos
+                    </button>
+                  </div>
                 </div>
 
-                {/* Tab Content */}
-                {activeTab === 'overview' && (
-                  <div className="space-y-6">
+                {/* Overview Content */}
+                <div style={{ display: activeTab === 'overview' ? 'block' : 'none' }}>
+                  <div className="space-y-8">
                     {/* Section rating utilisateur - visible si l'utilisateur a noté */}
                     {userRating > 0 && (
                       <div className="mb-6 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/30 rounded-lg p-4">
@@ -561,9 +593,10 @@ export default function GameDetailDarkV2({
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
 
-                {activeTab === 'trailers' && (
+                {/* Trailers Content */}
+                <div style={{ display: activeTab === 'trailers' ? 'block' : 'none' }}>
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-white mb-3">Media</h3>
                     
@@ -592,7 +625,7 @@ export default function GameDetailDarkV2({
                       </div>
                     )}
                   </div>
-                )}
+                </div>
               </div>
             </>
           ) : (
@@ -787,6 +820,106 @@ export default function GameDetailDarkV2({
               image: gameDetail.background_image
             }}
           />
+        )}
+
+        {/* Game Sheet Modal */}
+        {showGameSheet && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-xl font-semibold text-white mb-4">Game Sheet</h3>
+              
+              {/* Date Played */}
+              <div className="mb-4">
+                <label className="block text-gray-400 text-sm mb-2">Date Played</label>
+                <input
+                  type="date"
+                  value={gameSheetData.datePlayed}
+                  onChange={(e) => setGameSheetData({...gameSheetData, datePlayed: e.target.value})}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                />
+              </div>
+
+              {/* Platform */}
+              <div className="mb-4">
+                <label className="block text-gray-400 text-sm mb-2">Platform</label>
+                <select
+                  value={gameSheetData.platform}
+                  onChange={(e) => setGameSheetData({...gameSheetData, platform: e.target.value})}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                >
+                  <option value="">Select Platform</option>
+                  <option value="PlayStation 5">PlayStation 5</option>
+                  <option value="Xbox Series X/S">Xbox Series X/S</option>
+                  <option value="Nintendo Switch">Nintendo Switch</option>
+                  <option value="PC">PC</option>
+                  <option value="Steam Deck">Steam Deck</option>
+                  <option value="Mobile">Mobile</option>
+                </select>
+              </div>
+
+              {/* Access Method */}
+              <div className="mb-4">
+                <label className="block text-gray-400 text-sm mb-2">Access Method</label>
+                <select
+                  value={gameSheetData.accessMethod}
+                  onChange={(e) => setGameSheetData({...gameSheetData, accessMethod: e.target.value})}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                >
+                  <option value="">Select Access Method</option>
+                  <option value="Purchased">Purchased</option>
+                  <option value="Game Pass">Game Pass</option>
+                  <option value="PlayStation Plus">PlayStation Plus</option>
+                  <option value="Free to Play">Free to Play</option>
+                  <option value="Gift">Gift</option>
+                </select>
+              </div>
+
+              {/* Purchase Price */}
+              <div className="mb-6">
+                <label className="block text-gray-400 text-sm mb-2">Purchase Price</label>
+                <input
+                  type="text"
+                  placeholder="$59.99"
+                  value={gameSheetData.purchasePrice}
+                  onChange={(e) => setGameSheetData({...gameSheetData, purchasePrice: e.target.value})}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowGameSheet(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    // Save game sheet data to library item
+                    if (onUpdateItem && gameDetail) {
+                      const libraryItemId = library.find(item => 
+                        item.id === gameId || item.id === `game-${gameId}`
+                      )?.id
+                      
+                      if (libraryItemId) {
+                        const existingItem = library.find(item => item.id === libraryItemId)
+                        onUpdateItem(libraryItemId, { 
+                          additionalInfo: {
+                            ...existingItem?.additionalInfo,
+                            gameSheet: gameSheetData
+                          }
+                        })
+                      }
+                    }
+                    setShowGameSheet(false)
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
         )}
     </div>
   )

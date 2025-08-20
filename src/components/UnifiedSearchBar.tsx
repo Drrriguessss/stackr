@@ -146,11 +146,11 @@ export default function UnifiedSearchBar({
   }
 
   const filterOptions = [
-    { key: 'movies' as const, label: 'Movies/\nTV', icon: Film },
+    { key: 'movies' as const, label: 'Movies/TV', icon: Film },
     { key: 'games' as const, label: 'Games', icon: Gamepad2 },
     { key: 'books' as const, label: 'Books', icon: BookOpen },
     { key: 'music' as const, label: 'Music', icon: Music },
-    { key: 'boardgames' as const, label: 'Board\nGames', icon: Dice6 }
+    { key: 'boardgames' as const, label: 'Board Games', icon: Dice6 }
   ]
 
   // Search functions using the EXACT same logic as existing buttons
@@ -496,7 +496,7 @@ export default function UnifiedSearchBar({
 
       {/* Filtres style Apple Music avec animation de coulissement */}
       <div className="px-4 py-1">
-        <div className="relative flex bg-gray-900 rounded-lg p-1">
+        <div className="relative grid grid-cols-5 bg-gray-900 rounded-lg p-1">
           {/* Indicateur de sélection qui glisse */}
           <div 
             className="absolute top-1 bottom-1 bg-white rounded-md shadow-sm transition-all duration-300 ease-out"
@@ -513,13 +513,16 @@ export default function UnifiedSearchBar({
             <button
               key={filter.key}
               onClick={() => setSelectedFilter(filter.key)}
-              className={`relative flex-1 py-2.5 px-3 text-xs font-medium transition-all duration-200 leading-tight z-10 ${
+              className={`relative w-full py-2.5 px-0 text-[10px] font-medium transition-all duration-200 leading-tight z-10 flex items-center justify-center ${
                 selectedFilter === filter.key
                   ? 'text-black'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              <span className="whitespace-pre-line text-center">
+              <span className={`whitespace-nowrap ${
+                filter.key === 'movies' ? 'transform -translate-x-1' : 
+                filter.key === 'boardgames' ? 'transform translate-x-1' : ''
+              }`}>
                 {filter.label}
               </span>
             </button>

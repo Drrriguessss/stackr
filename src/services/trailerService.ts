@@ -872,12 +872,34 @@ class TrailerService {
     // Recherche exacte d'abord
     let knownId = this.knownMovieTrailers[normalizedTitle]
     
-    // Si pas trouvé, chercher avec des correspondances partielles
+    // Si pas trouvé, chercher avec des correspondances partielles SÛRES
     if (!knownId) {
       for (const [key, videoId] of Object.entries(this.knownMovieTrailers)) {
-        if (normalizedTitle.includes(key) || key.includes(normalizedTitle)) {
+        // Éviter les correspondances trop courtes qui causent des faux positifs
+        // Par exemple: "up" ne doit pas matcher "once upon a time in hollywood"
+        const minLength = 4 // Minimum 4 caractères pour éviter les faux positifs
+        
+        // Vérifier que le titre recherché soit assez long et qu'il soit contenu dans la clé
+        if (normalizedTitle.length >= minLength && key.includes(normalizedTitle)) {
+          // Vérifier que c'est une correspondance sûre (mot entier ou début/fin de titre)
+          const words = key.split(' ')
+          const titleWords = normalizedTitle.split(' ')
+          
+          // Vérifier si c'est un mot complet ou un titre complet
+          const isCompleteMatch = words.some(word => word === normalizedTitle) ||
+                                 titleWords.every(titleWord => words.includes(titleWord))
+          
+          if (isCompleteMatch) {
+            knownId = videoId
+            console.log(`🎬 Found safe partial movie match: ${key} -> ${movieTitle}`)
+            break
+          }
+        }
+        
+        // Vérifier dans l'autre sens uniquement pour des titres assez longs
+        if (key.length >= minLength && normalizedTitle.includes(key)) {
           knownId = videoId
-          console.log(`🎬 Found partial movie match: ${key} -> ${movieTitle}`)
+          console.log(`🎬 Found reverse partial movie match: ${key} -> ${movieTitle}`)
           break
         }
       }
@@ -985,7 +1007,9 @@ class TrailerService {
       'a quiet place': 'WR7cc5t7tv8',
       'ready player one': 'cSp1dM2Vj48',
       'black panther: wakanda forever': 'RlOB3UALvrQ',
-      'the hustle': '_j5hwooOHVE'
+      'the hustle': '_j5hwooOHVE',
+      'up': 'pkqzFUhGPJg',
+      'up 2009': 'pkqzFUhGPJg'
     }
   }
 

@@ -22,7 +22,12 @@ class FanartService {
           console.log(`🎨 [Fanart] No images found for ${imdbId}`)
           return null
         }
-        throw new Error(`HTTP ${response.status}`)
+        if (response.status === 401) {
+          console.warn(`🎨 [Fanart] API key unauthorized - please register at https://fanart.tv/get-an-api-key/`)
+          return null
+        }
+        console.warn(`🎨 [Fanart] API error ${response.status} - falling back to other image sources`)
+        return null
       }
 
       const data = await response.json()

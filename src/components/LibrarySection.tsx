@@ -503,9 +503,79 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showAddInfoModal, setShowAddInfoModal] = useState<string | null>(null)
+  const [showGameSheet, setShowGameSheet] = useState<string | null>(null)
+  const [gameSheetData, setGameSheetData] = useState({
+    datePlayed: '',
+    platform: '',
+    accessMethod: '',
+    purchasePrice: '',
+    customTags: [] as string[],
+    friendsPlayed: [] as any[],
+    personalRating: 0,
+    personalReview: ''
+  })
+  const [showMusicSheet, setShowMusicSheet] = useState<string | null>(null)
+  const [musicSheetData, setMusicSheetData] = useState({
+    dateListened: '',
+    platform: '',
+    format: '',
+    purchasePrice: '',
+    personalRating: 0,
+    personalReview: '',
+    favoriteTrack: ''
+  })
   const [showLocalSearchModal, setShowLocalSearchModal] = useState(false)
   const [fetchingMissingInfo, setFetchingMissingInfo] = useState(false)
   const [viewType, setViewType] = useState<'list' | 'grid'>('list')
+
+  // Load existing sheet data when opening modals
+  useEffect(() => {
+    if (showGameSheet) {
+      console.log('🔍 Loading game sheet for item:', showGameSheet)
+      const item = library.find(item => item.id === showGameSheet)
+      console.log('🔍 Found library item:', item)
+      console.log('🔍 Additional info:', item?.additionalInfo)
+      console.log('🔍 Game sheet data:', item?.additionalInfo?.gameSheet)
+      
+      if (item?.additionalInfo?.gameSheet) {
+        console.log('✅ Loading existing game sheet data')
+        setGameSheetData(item.additionalInfo.gameSheet)
+      } else {
+        console.log('➕ No existing data, using defaults')
+        // Reset to default values
+        setGameSheetData({
+          datePlayed: '',
+          platform: '',
+          accessMethod: '',
+          purchasePrice: '',
+          customTags: [],
+          friendsPlayed: [],
+          personalRating: 0,
+          personalReview: ''
+        })
+      }
+    }
+  }, [showGameSheet, library])
+
+  useEffect(() => {
+    if (showMusicSheet) {
+      const item = library.find(item => item.id === showMusicSheet)
+      if (item?.additionalInfo?.musicSheet) {
+        setMusicSheetData(item.additionalInfo.musicSheet)
+      } else {
+        // Reset to default values
+        setMusicSheetData({
+          dateListened: '',
+          platform: '',
+          format: '',
+          purchasePrice: '',
+          personalRating: 0,
+          personalReview: '',
+          favoriteTrack: ''
+        })
+      }
+    }
+  }, [showMusicSheet, library])
 
   // ✅ FETCH DEVELOPER INFO FOR GAMES MISSING IT
   // ❌ TEMPORAIREMENT DÉSACTIVÉ - causait des milliers d'appels API
@@ -682,24 +752,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   }
 
   const getStatusColor = (status: MediaStatus) => {
-    switch (status) {
-      case 'want-to-play': return 'bg-orange-100 text-orange-700'
-      case 'playing': return 'bg-green-100 text-green-700'
-      case 'currently-playing': return 'bg-green-100 text-green-700'
-      case 'completed': return 'bg-blue-100 text-blue-700'
-      case 'paused': return 'bg-yellow-100 text-yellow-700'
-      case 'dropped': return 'bg-red-100 text-red-700'
-      case 'played': return 'bg-purple-100 text-purple-700'
-      case 'want-to-watch': return 'bg-orange-100 text-orange-700'
-      case 'watching': return 'bg-green-100 text-green-700'
-      case 'watched': return 'bg-blue-100 text-blue-700'
-      case 'want-to-listen': return 'bg-orange-100 text-orange-700'
-      case 'listened': return 'bg-blue-100 text-blue-700'
-      case 'want-to-read': return 'bg-orange-100 text-orange-700'
-      case 'reading': return 'bg-green-100 text-green-700'
-      case 'read': return 'bg-blue-100 text-blue-700'
-      default: return 'bg-gray-100 text-gray-700'
-    }
+    // Tous les badges ont maintenant le même style : texte gris sur fond blanc
+    return 'bg-white text-gray-600'
   }
 
   const getSortLabel = (sort: SortOption) => {
@@ -780,7 +834,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
           onClick={() => handleItemClick(item)}
           title={item.title}
         >
-          <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden border border-gray-200 group-hover:border-gray-300 group-hover:shadow-md transition-all">
+          <div className="aspect-[3/4] bg-gray-700 rounded-lg overflow-hidden border border-gray-700 group-hover:border-gray-600 group-hover:shadow-md transition-all">
             {item.image ? (
               <img
                 src={item.image}
@@ -788,7 +842,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-lg text-gray-400">
+              <div className="w-full h-full flex items-center justify-center text-lg text-gray-300">
                 {getCategoryIcon(item.category)}
               </div>
             )}
@@ -803,29 +857,29 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     if (!showLocalSearchModal) return null
     
     return (
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl w-full max-w-2xl border border-gray-200 shadow-lg">
-          <div className="p-4 border-b border-gray-100">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-gray-800 rounded-xl w-full max-w-2xl border border-gray-700 shadow-lg">
+          <div className="p-4 border-b border-gray-700">
             <div className="flex items-center space-x-3">
-              <Search className="text-gray-400" size={20} />
+              <Search className="text-gray-300" size={20} />
               <input
                 type="text"
                 placeholder="Search your library..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none text-lg"
+                className="flex-1 bg-transparent text-white placeholder-gray-500 outline-none text-lg"
                 autoFocus
               />
               <button
                 onClick={() => setShowLocalSearchModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                className="text-gray-300 hover:text-gray-300 p-1 rounded-lg hover:bg-gray-700 transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
           </div>
           <div className="p-4">
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-gray-300 text-center py-8">
               {searchQuery ? `Searching for "${searchQuery}" in your library...` : 'Type to search in your library'}
             </p>
           </div>
@@ -839,18 +893,18 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
 
     if (item.category !== 'games') {
       return (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
-            <div className="p-4 border-b border-gray-100">
-              <h3 className="text-gray-900 font-medium">Additional Info - {item.title}</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-xl w-full max-w-md border border-gray-700 shadow-lg">
+            <div className="p-4 border-b border-gray-700">
+              <h3 className="text-white font-medium">Additional Info - {item.title}</h3>
             </div>
             <div className="p-4">
-              <p className="text-gray-600">Feature coming soon for {item.category}!</p>
+              <p className="text-gray-300">Feature coming soon for {item.category}!</p>
             </div>
-            <div className="p-4 border-t border-gray-100">
+            <div className="p-4 border-t border-gray-700">
               <button
                 onClick={() => setShowAddInfoModal(null)}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"
+                className="w-full bg-gray-700 hover:bg-gray-700 text-gray-300 py-2 rounded-lg transition-colors"
               >
                 Close
               </button>
@@ -861,19 +915,19 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     }
 
     return (
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
-          <div className="p-4 border-b border-gray-100">
-            <h3 className="text-gray-900 font-medium">Game Info - {item.title}</h3>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-gray-800 rounded-xl w-full max-w-md border border-gray-700 shadow-lg">
+          <div className="p-4 border-b border-gray-700">
+            <h3 className="text-white font-medium">Game Info - {item.title}</h3>
           </div>
           
           <div className="p-4 space-y-4">
             <div>
-              <label className="block text-gray-700 text-sm mb-2 font-medium">Platform</label>
+              <label className="block text-gray-300 text-sm mb-2 font-medium">Platform</label>
               <select
                 value={formData.platform || ''}
                 onChange={(e) => setFormData({...formData, platform: e.target.value})}
-                className="w-full bg-white text-gray-900 rounded-lg px-3 py-2 border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
               >
                 <option value="">Select Platform</option>
                 <option value="PlayStation 5">PlayStation 5</option>
@@ -887,7 +941,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
             </div>
 
             <div>
-              <label className="block text-gray-700 text-sm mb-2 font-medium">Purchase Details</label>
+              <label className="block text-gray-300 text-sm mb-2 font-medium">Purchase Details</label>
               <div className="space-y-2">
                 <label className="flex items-center">
                   <input
@@ -911,21 +965,21 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
             </div>
 
             <div>
-              <label className="block text-gray-700 text-sm mb-2 font-medium">Purchase Price</label>
+              <label className="block text-gray-300 text-sm mb-2 font-medium">Purchase Price</label>
               <input
                 type="text"
                 placeholder="e.g. €59.99, Free, Game Pass"
                 value={formData.purchasePrice || ''}
                 onChange={(e) => setFormData({...formData, purchasePrice: e.target.value})}
-                className="w-full bg-white text-gray-900 rounded-lg px-3 py-2 border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
               />
             </div>
           </div>
 
-          <div className="p-4 border-t border-gray-100 flex space-x-2">
+          <div className="p-4 border-t border-gray-700 flex space-x-2">
             <button
               onClick={() => setShowAddInfoModal(null)}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"
+              className="flex-1 bg-gray-700 hover:bg-gray-700 text-gray-300 py-2 rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -947,15 +1001,15 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-[#0f0e17] min-h-screen">
       {/* Header sticky avec titre et icônes */}
-      <div className="sticky top-0 z-50 bg-gray-50 border-b border-gray-200">
+      <div className="sticky top-0 z-50 bg-[#0f0e17] shadow-sm">
         <div className="px-4 sm:px-6 py-4">
           {/* Titre avec nombre d'items et icônes */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3">
-              <h1 className="text-2xl font-bold text-gray-900">Your Library</h1>
-              <span className="text-xs sm:text-lg text-gray-500 sm:text-gray-500">
+              <h1 className="text-2xl font-bold text-white">Your Library</h1>
+              <span className="text-xs sm:text-lg text-gray-300">
                 ({filteredAndSortedLibrary.length} item{filteredAndSortedLibrary.length !== 1 ? 's' : ''})
               </span>
             </div>
@@ -964,22 +1018,22 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
               {/* Icône recherche locale */}
               <button
                 onClick={() => setShowLocalSearchModal(true)}
-                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-700 rounded-full transition-colors"
                 title="Search in your library"
               >
-                <Search size={20} className="text-gray-600" />
+                <Search size={20} className="text-gray-300" />
               </button>
 
               {/* Bouton basculer vue liste/mosaïque */}
               <button
                 onClick={() => setViewType(viewType === 'list' ? 'grid' : 'list')}
-                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-700 rounded-full transition-colors"
                 title={`Switch to ${viewType === 'list' ? 'grid' : 'list'} view`}
               >
                 {viewType === 'list' ? (
-                  <Grid3X3 size={20} className="text-gray-600" />
+                  <Grid3X3 size={20} className="text-gray-300" />
                 ) : (
-                  <List size={20} className="text-gray-600" />
+                  <List size={20} className="text-gray-300" />
                 )}
               </button>
               
@@ -990,10 +1044,10 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                     onOpenSearch()
                   }
                 }}
-                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-700 rounded-full transition-colors"
                 title="Add new items to your library"
               >
-                <Plus size={20} className="text-gray-600" />
+                <Plus size={20} className="text-gray-300" />
               </button>
             </div>
           </div>
@@ -1013,15 +1067,15 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 onClick={() => setActiveCategory(key)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center ${
                   activeCategory === key
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
                 }`}
                 title={label}
               >
                 {key === 'all' ? (
                   label
                 ) : (
-                  Icon && <Icon size={18} className={activeCategory === key ? 'text-white' : 'text-gray-600'} />
+                  Icon && <Icon size={18} className={activeCategory === key ? 'text-white' : 'text-gray-300'} />
                 )}
               </button>
             ))}
@@ -1030,22 +1084,22 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       </div>
 
       {/* Contenu principal */}
-      <div className="bg-white">
+      <div className="bg-[#0f0e17]">
         {/* Filtres de tri et statut */}
-        <div className="px-4 sm:px-6 py-3 border-b border-gray-100">
-          <div className="flex items-center space-x-3">
+        <div className="px-4 sm:px-6 py-3 border-b border-gray-700">
+          <div className="flex items-center justify-end space-x-3">
             {/* Menu déroulant de statut */}
             <div className="relative">
               <button
                 onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm"
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-600 rounded-lg hover:border-gray-400 transition-colors text-sm text-white"
               >
-                <span>{getStatusLabel(activeStatus)}</span>
+                <span className="text-white">{getStatusLabel(activeStatus)}</span>
                 <ChevronDown size={14} />
               </button>
               
               {showStatusDropdown && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-36">
+                <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-36">
                   {[
                     { key: 'all', label: 'All' },
                     { key: 'wishlist', label: 'Wishlist' },
@@ -1060,7 +1114,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                         setActiveStatus(key)
                         setShowStatusDropdown(false)
                       }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
+                      className="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
                     >
                       {label}
                     </button>
@@ -1073,15 +1127,15 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
             <div className="relative inline-block">
               <button
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-sm font-medium"
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-600 rounded-lg hover:border-gray-400 transition-colors text-sm font-medium text-white"
               >
                 {getSortIcon(sortBy)}
-                <span>Sorted by {getSortLabel(sortBy)}</span>
+                <span className="text-white">Sorted by {getSortLabel(sortBy)}</span>
                 <ChevronDown size={14} />
               </button>
               
               {showSortDropdown && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
+                <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-48">
                   {[
                     { key: 'date_added', label: 'Date Added', icon: <Calendar size={14} /> },
                     { key: 'date_updated', label: 'Date Updated', icon: <Clock size={14} /> },
@@ -1097,7 +1151,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                         setSortBy(key as SortOption)
                         setShowSortDropdown(false)
                       }}
-                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors text-left"
                     >
                       {icon}
                       <span>{label}</span>
@@ -1112,7 +1166,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
         {/* Liste des items groupés par catégorie */}
         <div className="px-4 sm:px-6 py-4 pb-24">
           {filteredAndSortedLibrary.length === 0 ? (
-            <div className="text-center py-8 text-gray-600">
+            <div className="text-center py-8 text-gray-300">
               <p>No items found.</p>
             </div>
           ) : activeCategory === 'all' ? (
@@ -1122,10 +1176,10 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                 <div key={category}>
                   {/* Titre de catégorie */}
                   <div className="flex items-center space-x-2 mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900">
+                    <h2 className="text-xl font-semibold text-white">
                       {getCategoryDisplayName(category)}
                     </h2>
-                    <span className="text-gray-500 text-sm">
+                    <span className="text-gray-300 text-sm">
                       ({items.length})
                     </span>
                   </div>
@@ -1138,12 +1192,12 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                       {items.map((item) => (
                       <div 
                         key={item.id} 
-                        className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
+                        className="bg-gray-800 border border-gray-700 rounded-lg hover:border-gray-600 transition-colors overflow-hidden cursor-pointer"
                         onClick={() => handleItemClick(item)}
                       >
                         <div className="flex items-start space-x-3 p-4">
                           {/* Image */}
-                          <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                          <div className="w-14 h-18 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0 border border-gray-700">
                             {item.image ? (
                               <img
                                 src={item.image}
@@ -1162,10 +1216,10 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                             {/* Titre et Add Info */}
                             <div className="flex items-start justify-between">
                               <div className="flex-1 min-w-0">
-                                <h3 className="text-gray-900 font-semibold text-sm leading-tight">
+                                <h3 className="text-white font-semibold text-sm leading-tight">
                                   {item.title}
                                 </h3>
-                                <p className="text-gray-600 text-xs mt-1">
+                                <p className="text-gray-300 text-xs mt-1">
                                   by {getCreatorForItem(item, fetchAndUpdateDeveloper, fetchAndUpdateDirector, developerCache, directorCache, fetchingDevelopers, fetchingDirectors)}
                                 </p>
                               </div>
@@ -1173,9 +1227,15 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  setShowAddInfoModal(item.id)
+                                  if (item.category === 'games') {
+                                    setShowGameSheet(item.id)
+                                  } else if (item.category === 'music') {
+                                    setShowMusicSheet(item.id)
+                                  } else {
+                                    setShowAddInfoModal(item.id)
+                                  }
                                 }}
-                                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
+                                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-300 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors ml-2 flex-shrink-0"
                               >
                                 <Edit3 size={10} />
                                 <span className="hidden sm:inline">Add Info</span>
@@ -1195,7 +1255,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                                   />
                                 ))}
                                 {item.rating && (
-                                  <span className="text-xs text-gray-500 ml-2">
+                                  <span className="text-xs text-gray-300 ml-2">
                                     avg {item.rating}
                                   </span>
                                 )}
@@ -1208,9 +1268,9 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                                   {getStatusLabel(item.status)}
                                 </span>
-                                <span className="text-xs text-gray-500">{item.year}</span>
+                                <span className="text-xs text-gray-300">{item.year}</span>
                               </div>
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-gray-300">
                                 {formatDate(item.addedAt).replace(/,.*/, '')}
                               </span>
                             </div>
@@ -1243,10 +1303,10 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
             // Vue catégorie spécifique
             <div>
               <div className="flex items-center space-x-2 mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-white">
                   {getCategoryDisplayName(activeCategory)}
                 </h2>
-                <span className="text-gray-500 text-lg">
+                <span className="text-gray-300 text-lg">
                   ({filteredAndSortedLibrary.length})
                 </span>
               </div>
@@ -1258,12 +1318,12 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                   {filteredAndSortedLibrary.map((item) => (
                   <div 
                     key={item.id} 
-                    className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors overflow-hidden cursor-pointer"
+                    className="bg-gray-800 border border-gray-700 rounded-lg hover:border-gray-600 transition-colors overflow-hidden cursor-pointer"
                     onClick={() => handleItemClick(item)}
                   >
                     <div className="flex items-start space-x-3 p-4">
                       {/* Image */}
-                      <div className="w-14 h-18 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                      <div className="w-14 h-18 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0 border border-gray-700">
                         {item.image ? (
                           <img
                             src={item.image}
@@ -1282,10 +1342,10 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                         {/* Titre et Add Info */}
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-gray-900 font-semibold text-sm leading-tight">
+                            <h3 className="text-white font-semibold text-sm leading-tight">
                               {item.title}
                             </h3>
-                            <p className="text-gray-600 text-xs mt-1">
+                            <p className="text-gray-300 text-xs mt-1">
                               by {getCreatorForItem(item, fetchAndUpdateDeveloper, fetchAndUpdateDirector, developerCache, directorCache, fetchingDevelopers, fetchingDirectors)}
                             </p>
                           </div>
@@ -1293,9 +1353,15 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              setShowAddInfoModal(item.id)
+                              if (item.category === 'games') {
+                                setShowGameSheet(item.id)
+                              } else if (item.category === 'music') {
+                                setShowMusicSheet(item.id)
+                              } else {
+                                setShowAddInfoModal(item.id)
+                              }
                             }}
-                            className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors ml-2 flex-shrink-0"
+                            className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-300 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors ml-2 flex-shrink-0"
                           >
                             <Edit3 size={10} />
                             <span className="hidden sm:inline">Add Info</span>
@@ -1315,7 +1381,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                               />
                             ))}
                             {item.rating && (
-                              <span className="text-xs text-gray-500 ml-2">
+                              <span className="text-xs text-gray-300 ml-2">
                                 avg {item.rating}
                               </span>
                             )}
@@ -1328,9 +1394,9 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                               {getStatusLabel(item.status)}
                             </span>
-                            <span className="text-xs text-gray-500">{item.year}</span>
+                            <span className="text-xs text-gray-300">{item.year}</span>
                           </div>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-gray-300">
                             {formatDate(item.addedAt).replace(/,.*/, '')}
                           </span>
                         </div>
@@ -1377,6 +1443,212 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
             setShowStatusDropdown(false)
           }}
         />
+      )}
+
+      {/* Game Sheet Modal */}
+      {showGameSheet && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-white mb-4">Game Sheet</h3>
+            
+            {/* Date Played */}
+            <div className="mb-4">
+              <label className="block text-gray-400 text-sm mb-2">Date Played</label>
+              <input
+                type="date"
+                value={gameSheetData.datePlayed}
+                onChange={(e) => setGameSheetData({...gameSheetData, datePlayed: e.target.value})}
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
+            {/* Platform */}
+            <div className="mb-4">
+              <label className="block text-gray-400 text-sm mb-2">Platform</label>
+              <select
+                value={gameSheetData.platform}
+                onChange={(e) => setGameSheetData({...gameSheetData, platform: e.target.value})}
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              >
+                <option value="">Select Platform</option>
+                <option value="PlayStation 5">PlayStation 5</option>
+                <option value="Xbox Series X/S">Xbox Series X/S</option>
+                <option value="Nintendo Switch">Nintendo Switch</option>
+                <option value="PC">PC</option>
+                <option value="Steam Deck">Steam Deck</option>
+                <option value="Mobile">Mobile</option>
+              </select>
+            </div>
+
+            {/* Access Method */}
+            <div className="mb-4">
+              <label className="block text-gray-400 text-sm mb-2">Access Method</label>
+              <select
+                value={gameSheetData.accessMethod}
+                onChange={(e) => setGameSheetData({...gameSheetData, accessMethod: e.target.value})}
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              >
+                <option value="">Select Access Method</option>
+                <option value="Purchased">Purchased</option>
+                <option value="Game Pass">Game Pass</option>
+                <option value="PlayStation Plus">PlayStation Plus</option>
+                <option value="Free to Play">Free to Play</option>
+                <option value="Gift">Gift</option>
+              </select>
+            </div>
+
+            {/* Purchase Price */}
+            <div className="mb-6">
+              <label className="block text-gray-400 text-sm mb-2">Purchase Price</label>
+              <input
+                type="text"
+                placeholder="$59.99"
+                value={gameSheetData.purchasePrice}
+                onChange={(e) => setGameSheetData({...gameSheetData, purchasePrice: e.target.value})}
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowGameSheet(null)}
+                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // Save game sheet data to library item
+                  if (onUpdateItem && showGameSheet) {
+                    console.log('🎮 Saving game sheet data:', gameSheetData)
+                    console.log('🎮 For item ID:', showGameSheet)
+                    const existingItem = library.find(item => item.id === showGameSheet)
+                    console.log('🎮 Existing item found:', existingItem)
+                    
+                    onUpdateItem(showGameSheet, { 
+                      additionalInfo: {
+                        ...existingItem?.additionalInfo,
+                        gameSheet: gameSheetData
+                      }
+                    })
+                  }
+                  setShowGameSheet(null)
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Music Sheet Modal */}
+      {showMusicSheet && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-white mb-4">Music Sheet</h3>
+            
+            {/* Date Listened */}
+            <div className="mb-4">
+              <label className="block text-gray-400 text-sm mb-2">Date Listened</label>
+              <input
+                type="date"
+                value={musicSheetData.dateListened}
+                onChange={(e) => setMusicSheetData({...musicSheetData, dateListened: e.target.value})}
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
+            {/* Platform */}
+            <div className="mb-4">
+              <label className="block text-gray-400 text-sm mb-2">Platform</label>
+              <select
+                value={musicSheetData.platform}
+                onChange={(e) => setMusicSheetData({...musicSheetData, platform: e.target.value})}
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              >
+                <option value="">Select Platform</option>
+                <option value="Spotify">Spotify</option>
+                <option value="Apple Music">Apple Music</option>
+                <option value="YouTube Music">YouTube Music</option>
+                <option value="Amazon Music">Amazon Music</option>
+                <option value="Tidal">Tidal</option>
+                <option value="SoundCloud">SoundCloud</option>
+                <option value="Physical CD">Physical CD</option>
+                <option value="Vinyl">Vinyl</option>
+              </select>
+            </div>
+
+            {/* Format */}
+            <div className="mb-4">
+              <label className="block text-gray-400 text-sm mb-2">Format</label>
+              <select
+                value={musicSheetData.format}
+                onChange={(e) => setMusicSheetData({...musicSheetData, format: e.target.value})}
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              >
+                <option value="">Select Format</option>
+                <option value="Streaming">Streaming</option>
+                <option value="Digital Purchase">Digital Purchase</option>
+                <option value="CD">CD</option>
+                <option value="Vinyl">Vinyl</option>
+                <option value="Cassette">Cassette</option>
+                <option value="Free">Free</option>
+              </select>
+            </div>
+
+            {/* Purchase Price */}
+            <div className="mb-4">
+              <label className="block text-gray-400 text-sm mb-2">Purchase Price</label>
+              <input
+                type="text"
+                placeholder="$9.99"
+                value={musicSheetData.purchasePrice}
+                onChange={(e) => setMusicSheetData({...musicSheetData, purchasePrice: e.target.value})}
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
+            {/* Favorite Track */}
+            <div className="mb-6">
+              <label className="block text-gray-400 text-sm mb-2">Favorite Track</label>
+              <input
+                type="text"
+                placeholder="Track name"
+                value={musicSheetData.favoriteTrack}
+                onChange={(e) => setMusicSheetData({...musicSheetData, favoriteTrack: e.target.value})}
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowMusicSheet(null)}
+                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // Save music sheet data to library item
+                  if (onUpdateItem && showMusicSheet) {
+                    onUpdateItem(showMusicSheet, { 
+                      additionalInfo: {
+                        ...library.find(item => item.id === showMusicSheet)?.additionalInfo,
+                        musicSheet: musicSheetData
+                      }
+                    })
+                  }
+                  setShowMusicSheet(null)
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

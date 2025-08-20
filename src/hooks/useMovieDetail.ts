@@ -31,7 +31,7 @@ interface MovieDetail {
 }
 
 interface MediaData {
-  images: string[]
+  images: Array<{ url: string; source: 'fanart' | 'tmdb' | 'fallback' }>
   trailer: { url: string; provider: string } | null
   headerImage: string | null
 }
@@ -81,7 +81,11 @@ export function useMovieDetail(movieId: string, mediaType: 'movie' | 'tv' = 'mov
       const [trailerResult, tmdbResult, fanartResult, galleryResult] = await Promise.allSettled([
         trailerService.getMovieTrailer(movieId, movieTitle, movieYear),
         tmdbImageService.getOptimizedMovieImages(movieId),
-        fanartService.getMovieImages(movieId),
+        // Fanart.tv as enhancement only - don't block on API errors
+        fanartService.getMovieImages(movieId).catch(() => {
+          console.log('🎨 [Fanart] Skipping due to API issues - using TMDB images instead')
+          return null
+        }),
         imageService.getMovieGallery(movieTitle, 10)
       ])
       
@@ -106,17 +110,45 @@ export function useMovieDetail(movieId: string, mediaType: 'movie' | 'tv' = 'mov
       
       const galleryImages = []
       
+      // Add Fanart.tv images with source tag
       if (fanartImages?.backgrounds) {
-        galleryImages.push(...fanartImages.backgrounds.slice(0, 6))
-      }
-      if (tmdbImages?.galleryImages) {
-        galleryImages.push(...tmdbImages.galleryImages.slice(0, 8))
-      }
-      if (Array.isArray(gallery)) {
-        galleryImages.push(...gallery.filter(img => img && !img.includes('N/A')).slice(0, 5))
+        fanartImages.backgrounds.slice(0, 6).forEach(url => {
+          galleryImages.push({ url, source: 'fanart' as const })
+        })
+        console.log(`🎨 [Gallery] Added ${Math.min(fanartImages.backgrounds.length, 6)} Fanart.tv backgrounds`)
       }
       
-      const finalImages = [...new Set(galleryImages)].slice(0, 15)
+      // Add TMDB images with source tag
+      if (tmdbImages?.galleryImages) {
+        tmdbImages.galleryImages.slice(0, 8).forEach(url => {
+          galleryImages.push({ url, source: 'tmdb' as const })
+        })
+        console.log(`🎬 [Gallery] Added ${Math.min(tmdbImages.galleryImages.length, 8)} TMDB images`)
+      }
+      
+      // Add fallback images with source tag
+      if (Array.isArray(gallery)) {
+        gallery.filter(img => img && !img.includes('N/A')).slice(0, 5).forEach(url => {
+          galleryImages.push({ url, source: 'fallback' as const })
+        })
+        console.log(`🖼️ [Gallery] Added ${Math.min(gallery.filter(img => img && !img.includes('N/A')).length, 5)} fallback images`)
+      }
+      
+      // Add poster as backup image if we have very few images
+      if (galleryImages.length < 3 && moviePoster && moviePoster !== 'N/A') {
+        galleryImages.push({ url: moviePoster, source: 'fallback' as const })
+        console.log(`🖼️ [Gallery] Added movie poster as backup image`)
+      }
+      
+      // Remove duplicates based on URL and limit to 15
+      const seenUrls = new Set()
+      const finalImages = galleryImages.filter(item => {
+        if (seenUrls.has(item.url)) return false
+        seenUrls.add(item.url)
+        return true
+      }).slice(0, 15)
+      
+      console.log(`🖼️ [Gallery] Final gallery: ${finalImages.length} images total`)
       
       let finalTrailer = trailerData
       if (finalTrailer?.provider === 'none' || finalTrailer?.videoId === 'none') {
@@ -142,7 +174,7 @@ export function useMovieDetail(movieId: string, mediaType: 'movie' | 'tv' = 'mov
       const emergencyImage = 'https://images.unsplash.com/photo-1489599328877-4e9ad908160a?w=1280&h=720&fit=crop&q=80'
       setMediaData({
         headerImage: emergencyImage,
-        images: [emergencyImage],
+        images: [{ url: emergencyImage, source: 'fallback' }],
         trailer: null
       })
     }
@@ -196,8 +228,14 @@ export function useMovieDetail(movieId: string, mediaType: 'movie' | 'tv' = 'mov
         setMovieDetail(cachedData.movieDetail)
         
         if (cachedData.media) {
+          // Handle legacy cache format
+          const images = cachedData.media.images || []
+          const formattedImages = Array.isArray(images) && images.length > 0 && typeof images[0] === 'string'
+            ? images.map((url: string) => ({ url, source: 'fallback' as const }))
+            : images
+            
           setMediaData({
-            images: cachedData.media.images || [],
+            images: formattedImages,
             trailer: cachedData.media.trailer || null,
             headerImage: cachedData.media.headerImage || null
           })

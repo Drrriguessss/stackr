@@ -253,6 +253,18 @@ export default function MusicDetailModalV4({
     
     try {
       setReviewSaved(true)
+      
+      // Save to localStorage
+      const reviewData = {
+        rating: userRating,
+        review: userReview,
+        privacy: reviewPrivacy,
+        interactions: userReviewData,
+        timestamp: new Date().toISOString()
+      }
+      localStorage.setItem(`music-review-${formattedMusicId}`, JSON.stringify(reviewData))
+      
+      // Also save to backend service
       await userReviewsService.submitReview({
         mediaId: musicDetail.id,
         mediaTitle: musicDetail.title,
@@ -280,7 +292,7 @@ export default function MusicDetailModalV4({
       console.error('Error saving review:', error)
       setReviewSaved(false)
     }
-  }, [musicDetail, userRating, userReview, reviewPrivacy])
+  }, [musicDetail, userRating, userReview, reviewPrivacy, formattedMusicId])
   
   // Fonction pour formater le temps Instagram-style
   const formatTimeAgo = useCallback((timestamp: string): string => {
@@ -298,12 +310,22 @@ export default function MusicDetailModalV4({
   
   // Handler pour liker sa propre review
   const handleLikeUserReview = useCallback(() => {
-    setUserReviewData(prev => ({
-      ...prev,
-      isLiked: !prev.isLiked,
-      likesCount: prev.isLiked ? prev.likesCount - 1 : prev.likesCount + 1
+    const newData = {
+      ...userReviewData,
+      isLiked: !userReviewData.isLiked,
+      likesCount: userReviewData.isLiked ? userReviewData.likesCount - 1 : userReviewData.likesCount + 1
+    }
+    setUserReviewData(newData)
+    
+    // Save to localStorage
+    const existingData = localStorage.getItem(`music-review-${formattedMusicId}`)
+    const data = existingData ? JSON.parse(existingData) : {}
+    localStorage.setItem(`music-review-${formattedMusicId}`, JSON.stringify({
+      ...data,
+      interactions: newData,
+      timestamp: new Date().toISOString()
     }))
-  }, [])
+  }, [userReviewData, formattedMusicId])
   
   // Handler pour partager sa review
   const handleShareUserReview = useCallback(() => {
@@ -325,14 +347,23 @@ export default function MusicDetailModalV4({
       isLiked: false
     }
     
-    setUserReviewData(prev => ({
-      ...prev,
-      comments: [...prev.comments, comment],
-      commentsCount: prev.commentsCount + 1
-    }))
-    
+    const newData = {
+      ...userReviewData,
+      comments: [...userReviewData.comments, comment],
+      commentsCount: userReviewData.commentsCount + 1
+    }
+    setUserReviewData(newData)
     setNewComment('')
-  }, [newComment])
+    
+    // Save to localStorage
+    const existingData = localStorage.getItem(`music-review-${formattedMusicId}`)
+    const data = existingData ? JSON.parse(existingData) : {}
+    localStorage.setItem(`music-review-${formattedMusicId}`, JSON.stringify({
+      ...data,
+      interactions: newData,
+      timestamp: new Date().toISOString()
+    }))
+  }, [newComment, userReviewData, formattedMusicId])
 
   // Save music sheet data
   const saveMusicSheetData = useCallback(() => {
@@ -397,6 +428,37 @@ export default function MusicDetailModalV4({
       if (library.length > 0) {
         const libraryItem = library.find(item => item.id === formattedMusicId)
         setSelectedStatus(libraryItem?.status || null)
+      }
+      
+      // Load saved rating, review and interactions from localStorage
+      const savedData = localStorage.getItem(`music-review-${formattedMusicId}`)
+      if (savedData) {
+        const { rating, review, privacy, interactions } = JSON.parse(savedData)
+        setUserRating(rating || 0)
+        setUserReview(review || '')
+        setReviewPrivacy(privacy || 'private')
+        
+        // Load interactions data
+        if (interactions) {
+          setUserReviewData({
+            isLiked: interactions.isLiked || false,
+            likesCount: interactions.likesCount || 0,
+            commentsCount: interactions.commentsCount || 0,
+            comments: interactions.comments || []
+          })
+        }
+      } else {
+        // Reset when switching to a new music
+        setUserRating(0)
+        setUserReview('')
+        setReviewPrivacy('private')
+        setShowInlineRating(false)
+        setUserReviewData({
+          isLiked: false,
+          likesCount: 0,
+          commentsCount: 0,
+          comments: []
+        })
       }
       
       // Fetch music detail
@@ -884,8 +946,20 @@ export default function MusicDetailModalV4({
                   // Open review box when rating (but not when clearing)
                   if (newRating > 0) {
                     setShowInlineRating(true)
+                    // Save rating immediately to localStorage
+                    const existingData = localStorage.getItem(`music-review-${formattedMusicId}`)
+                    const data = existingData ? JSON.parse(existingData) : {}
+                    localStorage.setItem(`music-review-${formattedMusicId}`, JSON.stringify({
+                      ...data,
+                      rating: newRating,
+                      interactions: userReviewData,
+                      timestamp: new Date().toISOString()
+                    }))
                   } else {
                     setShowInlineRating(false)
+                    // Clear saved data when rating is reset to 0
+                    localStorage.removeItem(`music-review-${formattedMusicId}`)
+                    setUserReview('')
                   }
                   
                   // Note: Rating will be saved when user clicks "Save Review" button
@@ -953,18 +1027,26 @@ export default function MusicDetailModalV4({
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  {!userReview.trim() && (
+                  {!userReview.trim() ? (
                     <button
                       onClick={() => {
-                        // Skip: just close the review box without saving review text
+                        // Skip: close the review box but keep the rating saved
                         setShowInlineRating(false)
+                        // Save rating without review text
+                        const reviewData = {
+                          rating: userRating,
+                          review: '',
+                          privacy: reviewPrivacy,
+                          interactions: userReviewData,
+                          timestamp: new Date().toISOString()
+                        }
+                        localStorage.setItem(`music-review-${formattedMusicId}`, JSON.stringify(reviewData))
                       }}
                       className="px-3 py-1 bg-gray-700 text-gray-300 text-xs font-medium rounded-md hover:bg-gray-600 transition-colors"
                     >
                       Skip
                     </button>
-                  )}
-                  {userReview.trim() && (
+                  ) : (
                     <button
                       onClick={handleSaveReview}
                       className={`px-3 py-1 text-white text-xs font-medium rounded-md transition-all duration-200 ${

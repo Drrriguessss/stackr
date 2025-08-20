@@ -201,11 +201,15 @@ export default function Home() {
     const refreshLibrary = async () => {
       if (!mounted) return
       try {
-        console.log('🔄 Refreshing library from Supabase...')
-        const freshLibrary = await LibraryService.getLibraryFresh()
+        console.log('🔄 Refreshing library...')
+        // For non-authenticated users, use localStorage directly
+        const storageKey = 'stackr_library_guest'
+        const stored = localStorage.getItem(storageKey)
+        const freshLibrary = stored ? JSON.parse(stored) : []
+        
         if (mounted) {
           setLibrary(freshLibrary)
-          console.log('✅ Library refreshed:', freshLibrary.length, 'items')
+          console.log('✅ Library refreshed from localStorage:', freshLibrary.length, 'items')
         }
       } catch (error) {
         console.error('❌ Error refreshing library:', error)
@@ -921,15 +925,12 @@ export default function Home() {
         return renderDiscoverContent()
       case 'search':
         return (
-          <div className="min-h-screen bg-black flex flex-col relative">
-            {/* Header Section with exact gradient from BoardGameDetailPage */}
+          <div className="min-h-screen bg-[#0f0e17] flex flex-col relative">
+            {/* Header Section - now solid black */}
             <div className="absolute inset-x-0 top-0 h-32 sm:h-40">
-              {/* Same Purple Gradient Background as BoardGameDetailPage */}
+              {/* Solid black background */}
               <div 
-                className="absolute inset-0"
-                style={{ 
-                  background: 'linear-gradient(to bottom, rgba(99, 102, 241, 0.4), rgba(126, 58, 242, 0.3), rgba(107, 33, 168, 0.2), rgba(15, 14, 23, 0.7))'
-                }}
+                className="absolute inset-0 bg-[#0f0e17]"
               />
             </div>
             
@@ -1107,6 +1108,7 @@ export default function Home() {
             onBack={handleCloseGameDetail}
             onAddToLibrary={handleAddToLibrary}
             onDeleteItem={handleDeleteItem}
+            onUpdateItem={handleUpdateItem}
             library={library}
             userReviews={selectedGameId ? userReviews[selectedGameId] || [] : []}
             googleReviews={selectedGameId ? generateSteamReviews(parseInt(selectedGameId)) : []}

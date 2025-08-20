@@ -782,7 +782,7 @@ export default function SearchModal({
     switch (category) {
       case 'games': return { color: 'bg-green-100 text-green-700 border-green-200', icon: '🎮' }
       case 'movies': return { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: '🎬' }
-      case 'music': return { color: 'bg-purple-100 text-purple-700 border-purple-200', icon: '🎵' }
+      case 'music': return { color: 'bg-gray-100 text-gray-700 border-gray-200', icon: '🎵' }
       case 'books': return { color: 'bg-orange-100 text-orange-700 border-orange-200', icon: '📚' }
       default: return { color: 'bg-gray-100 text-gray-700 border-gray-200', icon: '📄' }
     }
@@ -881,7 +881,7 @@ export default function SearchModal({
 
         {/* Filtres style Apple Music */}
         <div className="px-4 py-2">
-          <div className="flex bg-gray-900 rounded-lg p-1">
+          <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
             {[
               { key: 'movies', label: 'Movies', icon: Film },
               { key: 'games', label: 'Games', icon: Gamepad2 },
@@ -939,7 +939,7 @@ export default function SearchModal({
                           className="w-full h-full object-cover" 
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-500">
+                        <div className="w-full h-full flex items-center justify-center bg-gray-800">
                           <span className="text-white text-lg font-bold">
                             {item.title.charAt(0)}
                           </span>
@@ -991,7 +991,7 @@ export default function SearchModal({
                 <p className="text-red-500 text-sm">{error}</p>
                 <button
                   onClick={() => performSearch(query, selectedCategory)}
-                  className="mt-2 text-blue-500 hover:text-blue-400 text-sm underline"
+                  className="mt-2 text-gray-400 hover:text-gray-300 text-sm underline"
                 >
                   Try again
                 </button>
@@ -1060,7 +1060,7 @@ export default function SearchModal({
                         ) : null}
                         
                         <div 
-                          className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-800"
+                          className="w-full h-full flex items-center justify-center bg-gray-800"
                           style={{ display: result.image ? 'none' : 'flex' }}
                         >
                           <div className="text-xl">

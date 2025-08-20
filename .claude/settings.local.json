@@ -88,7 +88,8 @@
       "Bash(PORT=3000 npm run dev)",
       "Bash(\"taskkill\" \"/PID\" \"3432\" \"/F\")",
       "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\UnifiedMusicPlayer.tsx\")",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(del test-up-trailer.js)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

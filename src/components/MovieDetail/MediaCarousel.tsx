@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Play } from 'lucide-react'
 
 interface MediaCarouselProps {
   trailer: { url: string; provider: string } | null
-  images: string[]
+  images: Array<{ url: string; source: 'fanart' | 'tmdb' | 'fallback' }>
   movieTitle: string
   moviePoster?: string
 }
@@ -55,9 +55,11 @@ const MediaCarousel = memo(({ trailer, images, movieTitle, moviePoster }: MediaC
       }
     } else if (images.length > 0) {
       const imageIndex = trailer ? activeImageIndex - 1 : activeImageIndex
+      const currentImage = images[imageIndex]
+      
       return (
         <img
-          src={images[imageIndex]}
+          src={currentImage.url}
           alt={`${movieTitle} scene`}
           className="w-full h-full object-cover"
           onError={(e) => {
@@ -158,7 +160,7 @@ const MediaCarousel = memo(({ trailer, images, movieTitle, moviePoster }: MediaC
               aria-label={`View image ${index + 1}`}
             >
               <img
-                src={image}
+                src={image.url}
                 alt={`Thumbnail ${index + 1}`}
                 className="w-full h-full object-cover"
                 onError={(e) => {

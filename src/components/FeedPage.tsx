@@ -302,7 +302,7 @@ export default function FeedPage({
       case 'movies': return <Film size={16} className="text-blue-600" />
       case 'books': return <BookOpen size={16} className="text-orange-600" />
       case 'music': return <Music size={16} className="text-purple-600" />
-      default: return <Star size={16} className="text-gray-600" />
+      default: return <Star size={16} className="text-gray-400" />
     }
   }
 
@@ -376,12 +376,12 @@ export default function FeedPage({
 
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-[#0f0e17] min-h-screen">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-50 bg-[#0f0e17] shadow-sm">
         <div className="px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Feed</h1>
+            <h1 className="text-2xl font-bold text-white">Feed</h1>
             
             {/* Barre de recherche et notifications */}
             <div className="flex items-center space-x-3">
@@ -392,7 +392,7 @@ export default function FeedPage({
                   <input
                     type="text"
                     placeholder="Search games, movies, music, books..."
-                    className="pl-10 pr-4 py-2 w-64 bg-gray-50 hover:bg-gray-100 focus:bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="pl-10 pr-4 py-2 w-64 bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 border border-gray-600 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors text-white placeholder-gray-400"
                     onClick={() => window.dispatchEvent(new CustomEvent('openGlobalSearch'))}
                     readOnly
                   />
@@ -401,10 +401,10 @@ export default function FeedPage({
               
               {/* Version mobile de la recherche */}
               <button 
-                className="sm:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="sm:hidden p-2 hover:bg-gray-700 rounded-full transition-colors"
                 onClick={() => window.dispatchEvent(new CustomEvent('openGlobalSearch'))}
               >
-                <Search size={20} className="text-gray-600" />
+                <Search size={20} className="text-gray-300" />
               </button>
               
               {/* Icône notifications */}
@@ -417,7 +417,7 @@ export default function FeedPage({
                   <div className="flex items-center">
                     <button
                       onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                      className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="flex items-center gap-2 p-2 hover:bg-gray-700 rounded-lg transition-colors"
                     >
                       <div 
                         className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer overflow-hidden"
@@ -444,15 +444,15 @@ export default function FeedPage({
 
                     {/* Menu utilisateur */}
                     {isUserMenuOpen && (
-                      <div className="absolute right-0 top-12 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                        <div className="px-4 py-2 border-b border-gray-100">
-                          <p className="font-medium text-gray-900">{currentUser.name}</p>
-                          <p className="text-sm text-gray-500">{currentUser.email}</p>
+                      <div className="absolute right-0 top-12 w-56 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-2 z-50">
+                        <div className="px-4 py-2 border-b border-gray-700">
+                          <p className="font-medium text-white">{currentUser.name}</p>
+                          <p className="text-sm text-gray-400">{currentUser.email}</p>
                         </div>
                         
                         <button
                           onClick={() => setShowFriendSearchModal(true)}
-                          className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full"
+                          className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:bg-gray-700 w-full"
                         >
                           <Search size={16} />
                           Find Friends
@@ -460,7 +460,7 @@ export default function FeedPage({
 
                         <button
                           onClick={() => setShowFriendRequestsModal(true)}
-                          className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full relative"
+                          className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:bg-gray-700 w-full relative"
                         >
                           <Users size={16} />
                           Friend Requests
@@ -471,14 +471,14 @@ export default function FeedPage({
                           )}
                         </button>
 
-                        <button className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full">
+                        <button className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:bg-gray-700 w-full">
                           <Settings size={16} />
                           Settings
                         </button>
 
                         <button
                           onClick={handleSignOut}
-                          className="flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 w-full"
+                          className="flex items-center gap-3 px-4 py-2 text-red-400 hover:bg-red-900/20 w-full"
                         >
                           <LogOut size={16} />
                           Sign Out
@@ -490,7 +490,7 @@ export default function FeedPage({
                   // Utilisateur non connecté
                   <button
                     onClick={() => setIsAuthModalOpen(true)}
-                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
                     <User size={16} />
                     <span className="hidden sm:inline">Sign In</span>
@@ -505,12 +505,12 @@ export default function FeedPage({
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Recent Library Additions */}
         {recentLibraryItems.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+            <div className="p-4 border-b border-gray-700">
               <div className="flex items-center space-x-2">
-                <Plus className="text-blue-600" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900">Recently Added to Your Library</h2>
-                <Book className="text-purple-600 ml-2" size={20} />
+                <Plus className="text-blue-400" size={20} />
+                <h2 className="text-lg font-semibold text-white">Recently Added to Your Library</h2>
+                <Book className="text-purple-400 ml-2" size={20} />
               </div>
             </div>
             <div className="p-4">
@@ -542,7 +542,7 @@ export default function FeedPage({
                           }}
                         />
                       ) : null}
-                      <div className={`w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50 ${item.image ? 'hidden' : ''}`}>
+                      <div className={`w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-700 ${item.image ? 'hidden' : ''}`}>
                         {item.category === 'books' && <BookOpen size={20} />}
                         {item.category === 'games' && <Gamepad2 size={20} />}
                         {item.category === 'movies' && <Film size={20} />}
@@ -550,7 +550,7 @@ export default function FeedPage({
                         <span className="text-xs mt-1 text-center px-1">No Image</span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600 mt-1 text-center max-w-16 truncate">
+                    <p className="text-xs text-gray-300 mt-1 text-center max-w-16 truncate">
                       {item.title}
                     </p>
                   </div>
@@ -562,11 +562,11 @@ export default function FeedPage({
 
         {/* Recently Recommended - Horizontal scroll */}
         {currentUser && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+            <div className="p-4 border-b border-gray-700">
               <div className="flex items-center space-x-2">
-                <Share2 className="text-green-600" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900">Recently Recommended</h2>
+                <Share2 className="text-green-400" size={20} />
+                <h2 className="text-lg font-semibold text-white">Recently Recommended</h2>
               </div>
             </div>
             <div className="p-4">
@@ -625,7 +625,7 @@ export default function FeedPage({
                             
                             {/* Fallback icon - hidden initially if image exists, shown on error or if no image */}
                             <div 
-                              className="w-full h-full flex items-center justify-center bg-gray-200"
+                              className="w-full h-full flex items-center justify-center bg-gray-600"
                               style={{ display: activity.item_image ? 'none' : 'flex' }}
                             >
                               {getCategoryIcon(activity.item_type)}
@@ -647,10 +647,10 @@ export default function FeedPage({
                           
                           {/* Title and Friend Name */}
                           <div className="mt-2 text-center">
-                            <p className="text-xs text-gray-900 font-medium truncate px-1">
+                            <p className="text-xs text-white font-medium truncate px-1">
                               {activity.item_title}
                             </p>
-                            <p className="text-xs text-gray-500 truncate px-1">
+                            <p className="text-xs text-gray-400 truncate px-1">
                               by {activity.user?.display_name || 'Friend'}
                             </p>
                           </div>
@@ -661,9 +661,9 @@ export default function FeedPage({
                   </div>
                 ) : (
                   <div className="text-center py-6">
-                    <Share2 size={32} className="mx-auto text-gray-300 mb-2" />
-                    <p className="text-gray-500 text-sm">No recommendations yet</p>
-                    <p className="text-gray-400 text-xs">Ask friends to share content with you!</p>
+                    <Share2 size={32} className="mx-auto text-gray-500 mb-2" />
+                    <p className="text-gray-400 text-sm">No recommendations yet</p>
+                    <p className="text-gray-500 text-xs">Ask friends to share content with you!</p>
                   </div>
                 )
               })()}
@@ -673,11 +673,11 @@ export default function FeedPage({
 
         {/* Friends Recently Added These Titles */}
         {currentUser && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+            <div className="p-4 border-b border-gray-700">
               <div className="flex items-center space-x-2">
-                <Users className="text-blue-600" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900">Friends recently added these titles to their library</h2>
+                <Users className="text-blue-400" size={20} />
+                <h2 className="text-lg font-semibold text-white">Friends recently added these titles to their library</h2>
               </div>
             </div>
             <div className="p-4">
@@ -710,7 +710,7 @@ export default function FeedPage({
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                              <div className="w-full h-full flex items-center justify-center bg-gray-600">
                                 {getCategoryIcon(activity.item_type)}
                               </div>
                             )}
@@ -731,7 +731,7 @@ export default function FeedPage({
                           
                           {/* Title and Friend Name */}
                           <div className="mt-2 text-center">
-                            <p className="text-xs text-gray-900 font-medium truncate px-1">
+                            <p className="text-xs text-white font-medium truncate px-1">
                               {activity.item_title}
                             </p>
                             <p className="text-xs text-gray-500 truncate px-1">
@@ -755,11 +755,11 @@ export default function FeedPage({
 
         {/* Friends Rated These Titles */}
         {currentUser && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+            <div className="p-4 border-b border-gray-700">
               <div className="flex items-center space-x-2">
-                <Star className="text-yellow-600" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900">Friends rated these titles</h2>
+                <Star className="text-yellow-400" size={20} />
+                <h2 className="text-lg font-semibold text-white">Friends rated these titles</h2>
               </div>
             </div>
             <div className="p-4">
@@ -793,7 +793,7 @@ export default function FeedPage({
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                              <div className="w-full h-full flex items-center justify-center bg-gray-600">
                                 {getCategoryIcon(activity.item_type)}
                               </div>
                             )}
@@ -814,7 +814,7 @@ export default function FeedPage({
                           
                           {/* Title, Friend Name and Rating */}
                           <div className="mt-2 text-center">
-                            <p className="text-xs text-gray-900 font-medium truncate px-1">
+                            <p className="text-xs text-white font-medium truncate px-1">
                               {activity.item_title}
                             </p>
                             <p className="text-xs text-gray-500 truncate px-1">
@@ -822,7 +822,7 @@ export default function FeedPage({
                             </p>
                             <div className="flex items-center justify-center mt-1">
                               <Star size={10} className="text-yellow-400 fill-current" />
-                              <span className="text-xs text-gray-700 ml-1">{activity.metadata?.rating}</span>
+                              <span className="text-xs text-gray-300 ml-1">{activity.metadata?.rating}</span>
                             </div>
                           </div>
                         </div>
@@ -842,11 +842,11 @@ export default function FeedPage({
 
         {/* Recent Reviews */}
         {currentUser && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+            <div className="p-4 border-b border-gray-700">
               <div className="flex items-center space-x-2">
-                <MessageCircle className="text-purple-600" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900">Recent reviews</h2>
+                <MessageCircle className="text-purple-400" size={20} />
+                <h2 className="text-lg font-semibold text-white">Recent reviews</h2>
               </div>
             </div>
             <div className="p-4">
@@ -871,10 +871,10 @@ export default function FeedPage({
                         className="flex-shrink-0 cursor-pointer group w-64"
                         onClick={() => handleItemClick({ id: activity.item_id }, activity.item_type)}
                       >
-                        <div className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+                        <div className="bg-gray-700 rounded-xl p-4 hover:bg-gray-600 transition-colors">
                           <div className="flex items-start space-x-3">
                             {/* Media Cover */}
-                            <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 relative">
+                            <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-600 flex-shrink-0 relative">
                               {activity.item_image ? (
                                 <img
                                   src={activity.item_image}
@@ -902,15 +902,15 @@ export default function FeedPage({
                             
                             {/* Review Content */}
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-semibold text-gray-900 truncate">
+                              <h4 className="text-sm font-semibold text-white truncate">
                                 {activity.item_title}
                               </h4>
                               <div className="flex items-center space-x-1 mt-1 mb-2">
                                 <Star size={12} className="text-yellow-400 fill-current" />
-                                <span className="text-xs text-gray-700">{activity.metadata?.rating}</span>
+                                <span className="text-xs text-gray-300">{activity.metadata?.rating}</span>
                                 <span className="text-xs text-gray-500">• by {activity.user?.display_name}</span>
                               </div>
-                              <p className="text-xs text-gray-600 line-clamp-3">
+                              <p className="text-xs text-gray-400 line-clamp-3">
                                 {activity.metadata?.review_text}
                               </p>
                             </div>
@@ -932,14 +932,14 @@ export default function FeedPage({
 
         {/* My Recent Activities */}
         {currentUser && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+            <div className="p-4 border-b border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Clock className="text-indigo-600" size={20} />
-                  <h2 className="text-lg font-semibold text-gray-900">My recent activities</h2>
+                  <Clock className="text-indigo-400" size={20} />
+                  <h2 className="text-lg font-semibold text-white">My recent activities</h2>
                 </div>
-                <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                <button className="text-sm text-indigo-400 hover:text-indigo-300 font-medium">
                   See more
                 </button>
               </div>
@@ -954,7 +954,7 @@ export default function FeedPage({
                 return myRecentActivity ? (
                   <div className="flex items-start space-x-3">
                     {/* User Avatar */}
-                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-700">
                       {currentUser?.avatar_url ? (
                         <img
                           src={currentUser.avatar_url}
@@ -969,7 +969,7 @@ export default function FeedPage({
                     {/* Activity Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-2">
-                        <span className="font-semibold text-gray-900">{currentUser?.display_name}</span>
+                        <span className="font-semibold text-white">{currentUser?.display_name}</span>
                         <span className="text-sm text-gray-500">@{currentUser?.username}</span>
                         <span className="text-sm text-gray-400">•</span>
                         <span className="text-sm text-gray-500">{getTimeAgo(new Date(myRecentActivity.created_at))}</span>
@@ -978,7 +978,7 @@ export default function FeedPage({
                       {/* Activity Description */}
                       <div className="flex items-center space-x-2 mb-3">
                         {getCategoryIcon(myRecentActivity.item_type)}
-                        <span className="text-gray-700">
+                        <span className="text-gray-300">
                           {getActivityDescription(myRecentActivity)}
                           <span className="font-medium"> "{myRecentActivity.item_title}"</span>
                         </span>
@@ -987,10 +987,10 @@ export default function FeedPage({
                       {/* Item Card */}
                       {myRecentActivity.item_title && (
                         <div 
-                          className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+                          className="flex items-center space-x-3 p-3 bg-gray-700 rounded-xl cursor-pointer hover:bg-gray-600 transition-colors"
                           onClick={() => handleItemClick({ id: myRecentActivity.item_id }, myRecentActivity.item_type)}
                         >
-                          <div className="w-12 h-16 bg-gray-200 rounded-lg overflow-hidden">
+                          <div className="w-12 h-16 bg-gray-600 rounded-lg overflow-hidden">
                             {myRecentActivity.item_image ? (
                               <img
                                 src={myRecentActivity.item_image}
@@ -1004,7 +1004,7 @@ export default function FeedPage({
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900">{myRecentActivity.item_title}</h4>
+                            <h4 className="font-medium text-white">{myRecentActivity.item_title}</h4>
                             <p className="text-sm text-gray-500">
                               {myRecentActivity.item_type} • {myRecentActivity.metadata?.year || new Date(myRecentActivity.created_at).getFullYear()}
                             </p>
@@ -1026,14 +1026,14 @@ export default function FeedPage({
 
         {/* My Night Planned */}
         {currentUser && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+            <div className="p-4 border-b border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Calendar className="text-pink-600" size={20} />
-                  <h2 className="text-lg font-semibold text-gray-900">My night planned</h2>
+                  <Calendar className="text-pink-400" size={20} />
+                  <h2 className="text-lg font-semibold text-white">My night planned</h2>
                 </div>
-                <button className="text-sm text-pink-600 hover:text-pink-700 font-medium">
+                <button className="text-sm text-pink-400 hover:text-pink-300 font-medium">
                   Create event
                 </button>
               </div>
@@ -1082,18 +1082,18 @@ export default function FeedPage({
                       <div key={event.id} className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl p-4 border border-pink-100">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                            <h3 className="font-semibold text-white flex items-center gap-2">
                               {event.type === 'movie_night' ? <Film size={16} className="text-pink-600" /> : <Music size={16} className="text-pink-600" />}
                               {event.title}
                             </h3>
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className="text-sm text-gray-400 mt-1">
                               {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at {event.time}
                             </p>
                           </div>
                           <div className="flex items-center">
                             <div className="flex -space-x-2 mr-3">
                               {event.participants.slice(0, 3).map((participant, index) => (
-                                <div key={index} className="w-8 h-8 rounded-full overflow-hidden border-2 border-white bg-gray-200">
+                                <div key={index} className="w-8 h-8 rounded-full overflow-hidden border-2 border-white bg-gray-600">
                                   <img
                                     src={participant.avatar}
                                     alt={participant.name}
@@ -1102,8 +1102,8 @@ export default function FeedPage({
                                 </div>
                               ))}
                               {event.participants.length > 3 && (
-                                <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
-                                  <span className="text-xs text-gray-600">+{event.participants.length - 3}</span>
+                                <div className="w-8 h-8 rounded-full bg-gray-600 border-2 border-white flex items-center justify-center">
+                                  <span className="text-xs text-gray-400">+{event.participants.length - 3}</span>
                                 </div>
                               )}
                             </div>
@@ -1115,14 +1115,14 @@ export default function FeedPage({
                           <div className="flex space-x-2 overflow-x-auto pb-2">
                             {event.movies.map((movie, index) => (
                               <div key={index} className="flex-shrink-0">
-                                <div className="w-10 h-14 rounded-lg overflow-hidden bg-gray-200">
+                                <div className="w-10 h-14 rounded-lg overflow-hidden bg-gray-600">
                                   <img
                                     src={movie.image}
                                     alt={movie.title}
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
-                                <p className="text-xs text-gray-600 mt-1 text-center truncate w-10">
+                                <p className="text-xs text-gray-400 mt-1 text-center truncate w-10">
                                   {movie.title}
                                 </p>
                               </div>
@@ -1134,7 +1134,7 @@ export default function FeedPage({
                           <div className="flex space-x-3 overflow-x-auto pb-2">
                             {event.albums.map((album, index) => (
                               <div key={index} className="flex-shrink-0 flex items-center space-x-2">
-                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200">
+                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-600">
                                   <img
                                     src={album.image}
                                     alt={album.title}
@@ -1142,8 +1142,8 @@ export default function FeedPage({
                                   />
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="text-xs font-medium text-gray-900 truncate">{album.title}</p>
-                                  <p className="text-xs text-gray-600 truncate">{album.artist}</p>
+                                  <p className="text-xs font-medium text-white truncate">{album.title}</p>
+                                  <p className="text-xs text-gray-400 truncate">{album.artist}</p>
                                 </div>
                               </div>
                             ))}
@@ -1151,7 +1151,7 @@ export default function FeedPage({
                         )}
 
                         <div className="flex items-center justify-between mt-3 pt-3 border-t border-pink-200">
-                          <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <div className="flex items-center space-x-2 text-sm text-gray-400">
                             <Users size={14} />
                             <span>{event.participants.length} participants</span>
                           </div>
@@ -1159,7 +1159,7 @@ export default function FeedPage({
                             <button className="px-3 py-1 text-xs bg-pink-100 text-pink-700 rounded-full hover:bg-pink-200 transition-colors">
                               View details
                             </button>
-                            <button className="px-3 py-1 text-xs bg-white text-gray-700 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors">
+                            <button className="px-3 py-1 text-xs bg-gray-800 text-gray-300 border border-gray-700 rounded-full hover:bg-gray-700 transition-colors">
                               Join
                             </button>
                           </div>
@@ -1170,7 +1170,7 @@ export default function FeedPage({
                 ) : (
                   <div className="text-center py-8">
                     <Calendar size={32} className="mx-auto text-gray-300 mb-2" />
-                    <h3 className="text-sm font-semibold text-gray-900 mb-1">No events planned</h3>
+                    <h3 className="text-sm font-semibold text-white mb-1">No events planned</h3>
                     <p className="text-gray-500 text-sm mb-4">Create a movie night or music session with friends</p>
                     <button className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors text-sm">
                       Create your first event
@@ -1196,12 +1196,12 @@ export default function FeedPage({
                 const activityDescription = getActivityDescription(activity)
                 
                 return (
-                  <div key={activity.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                  <div key={activity.id} className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
                     {/* Activity Header */}
                     <div className="p-4">
                       <div className="flex items-start space-x-3">
                         {/* User Avatar */}
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-700">
                           {activity.user?.avatar_url ? (
                             <img
                               src={activity.user.avatar_url}
@@ -1216,7 +1216,7 @@ export default function FeedPage({
                         {/* Activity Content */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2 mb-2">
-                            <span className="font-semibold text-gray-900">{activity.user?.display_name}</span>
+                            <span className="font-semibold text-white">{activity.user?.display_name}</span>
                             <span className="text-sm text-gray-500">@{activity.user?.username}</span>
                             <span className="text-sm text-gray-400">•</span>
                             <span className="text-sm text-gray-500">{getTimeAgo(new Date(activity.created_at))}</span>
@@ -1225,7 +1225,7 @@ export default function FeedPage({
                           {/* Activity Description */}
                           <div className="flex items-center space-x-2 mb-3">
                             {getCategoryIcon(activity.item_type)}
-                            <span className="text-gray-700">
+                            <span className="text-gray-300">
                               {activityDescription}
                               <span className="font-medium"> "{activity.item_title}"</span>
                             </span>
@@ -1234,25 +1234,25 @@ export default function FeedPage({
                           {/* Item Card */}
                           {activity.item_title && activity.activity_type !== 'achievement' && (
                             <div 
-                              className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="flex items-center space-x-3 p-3 bg-gray-700 rounded-xl cursor-pointer hover:bg-gray-600 transition-colors"
                               onClick={() => handleItemClick({ id: activity.item_id }, activity.item_type)}
                             >
                               {activity.item_image && (
                                 <img
                                   src={activity.item_image}
                                   alt={activity.item_title}
-                                  className="w-12 h-16 rounded-lg object-cover bg-gray-200"
+                                  className="w-12 h-16 rounded-lg object-cover bg-gray-600"
                                 />
                               )}
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-gray-900 truncate">{activity.item_title}</p>
+                                <p className="font-medium text-white truncate">{activity.item_title}</p>
                                 <div className="flex items-center space-x-2 mt-1">
                                   {getCategoryIcon(activity.item_type)}
                                   <span className="text-sm text-gray-500 capitalize">{activity.item_type}</span>
                                   {metadata.rating && (
                                     <div className="flex items-center space-x-1">
                                       <Star size={12} className="text-yellow-400 fill-current" />
-                                      <span className="text-sm text-gray-600">{metadata.rating}/5</span>
+                                      <span className="text-sm text-gray-400">{metadata.rating}/5</span>
                                     </div>
                                   )}
                                 </div>
@@ -1275,11 +1275,11 @@ export default function FeedPage({
                                     }`}
                                   />
                                 ))}
-                                <span className="text-sm text-gray-600 ml-1">
+                                <span className="text-sm text-gray-400 ml-1">
                                   {metadata.rating}/5
                                 </span>
                               </div>
-                              <p className="text-gray-700 text-sm italic">"{metadata.review_text}"</p>
+                              <p className="text-gray-300 text-sm italic">"{metadata.review_text}"</p>
                             </div>
                           )}
 
@@ -1297,7 +1297,7 @@ export default function FeedPage({
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
+                      <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-700">
                         <div className="flex items-center space-x-6">
                           <button 
                             onClick={() => handleLikeActivity(activity.id, activity.user_liked || false)}
@@ -1323,9 +1323,9 @@ export default function FeedPage({
               })}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl p-8 text-center">
+            <div className="bg-gray-800 rounded-2xl p-8 text-center">
               <Users size={48} className="mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No activity yet</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">No activity yet</h3>
               <p className="text-gray-500 mb-4">Add friends to see their activity in your feed!</p>
               <button
                 onClick={() => setShowFriendSearchModal(true)}
@@ -1340,8 +1340,8 @@ export default function FeedPage({
             <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Users className="text-purple-600" size={24} />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Sign in to see your friends' activity</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-semibold text-white mb-2">Sign in to see your friends' activity</h3>
+            <p className="text-gray-400 mb-4">
               Connect with friends, share reviews, and discover new content together.
             </p>
             <button
