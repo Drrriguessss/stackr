@@ -10,27 +10,37 @@ class TMDbImageService {
         return { headerImage: null, galleryImages: [] }
       }
 
-      console.log('🎬 [TMDb] Fetching HD images for IMDB ID:', imdbId)
+      console.log('🎬 [TMDb] Fetching HD images for ID:', imdbId)
       
-      // 1. Convertir IMDB ID en TMDB ID (méthode optimisée)
-      const findResponse = await fetch(
-        `${this.baseUrl}/find/${imdbId}?api_key=${this.apiKey}&external_source=imdb_id`
-      )
+      // 1. Déterminer si c'est un ID IMDB (format ttXXXXXX) ou TMDB (numérique)
+      let tmdbId
       
-      if (!findResponse.ok) {
-        console.error('🎬 [TMDb] Find API error:', findResponse.status)
-        return { headerImage: null, galleryImages: [] }
+      if (imdbId.toString().startsWith('tt')) {
+        // C'est un ID IMDB, on doit le convertir
+        console.log('🎬 [TMDb] Converting IMDB ID to TMDB ID:', imdbId)
+        const findResponse = await fetch(
+          `${this.baseUrl}/find/${imdbId}?api_key=${this.apiKey}&external_source=imdb_id`
+        )
+        
+        if (!findResponse.ok) {
+          console.error('🎬 [TMDb] Find API error:', findResponse.status)
+          return { headerImage: null, galleryImages: [] }
+        }
+        
+        const findData = await findResponse.json()
+        
+        if (!findData.movie_results || findData.movie_results.length === 0) {
+          console.warn('🎬 [TMDb] No movie found for IMDB ID:', imdbId)
+          return { headerImage: null, galleryImages: [] }
+        }
+        
+        tmdbId = findData.movie_results[0].id
+        console.log('🎬 [TMDb] Found TMDB ID:', tmdbId)
+      } else {
+        // C'est déjà un ID TMDB
+        tmdbId = imdbId
+        console.log('🎬 [TMDb] Using TMDB ID directly:', tmdbId)
       }
-      
-      const findData = await findResponse.json()
-      
-      if (!findData.movie_results || findData.movie_results.length === 0) {
-        console.warn('🎬 [TMDb] No movie found for IMDB ID:', imdbId)
-        return { headerImage: null, galleryImages: [] }
-      }
-      
-      const tmdbId = findData.movie_results[0].id
-      console.log('🎬 [TMDb] Found TMDB ID:', tmdbId)
       
       // 2. Récupérer les détails du film, images ET vidéos en parallèle
       const [movieDetails, imagesData, videosData] = await Promise.all([
