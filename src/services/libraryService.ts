@@ -19,7 +19,7 @@ export class LibraryService {
     console.log('🔔 Library change event dispatched:', action, item?.title)
   }
 
-  // ✅ RÉCUPÉRER LA BIBLIOTHÈQUE FRAÎCHE (FORCE SUPABASE, IGNORE CACHE)
+  // ✅ RÉCUPÉRER LA BIBLIOTHÈQUE FRAÎCHE (FORCE SUPABASE POUR AUTHENTICATED, LOCALSTORAGE POUR GUEST)
   static async getLibraryFresh(): Promise<LibraryItem[]> {
     try {
       // Vérifier si on est côté client
@@ -32,22 +32,20 @@ export class LibraryService {
       const userId = currentUser?.id
       const storageKey = this.getStorageKey(userId)
 
-      console.log('🔄 [LibraryService] Fetching fresh library from Supabase for user:', userId || 'guest')
+      console.log('🔄 [LibraryService] Fetching fresh library for user:', userId || 'guest')
 
-      // Forcer le rechargement depuis Supabase (ignorer localStorage)
-      let query = supabase
-        .from('library_items')
-        .select('*')
-        .order('added_at', { ascending: false })
-
-      // Filtrer par utilisateur si connecté
+      // Si utilisateur connecté, essayer Supabase
       if (userId) {
-        query = query.eq('user_id', userId)
-      }
+        console.log('👤 User authenticated, fetching from Supabase')
+        let query = supabase
+          .from('library_items')
+          .select('*')
+          .eq('user_id', userId)
+          .order('added_at', { ascending: false })
 
-      const { data, error } = await query
+        const { data, error } = await query
 
-      if (!error && data) {
+        if (!error && data) {
         console.log('📚 Fresh library loaded from Supabase:', data.length, 'items')
         
         // Convertir les données Supabase au format LibraryItem
@@ -95,21 +93,36 @@ export class LibraryService {
           additionalInfo: item.additional_info ? JSON.parse(item.additional_info) : undefined
         }))
         
-        // Mettre à jour le cache localStorage avec les données fraîches
-        localStorage.setItem(storageKey, JSON.stringify(convertedItems))
-        return convertedItems
+          // Mettre à jour le cache localStorage avec les données fraîches
+          localStorage.setItem(storageKey, JSON.stringify(convertedItems))
+          return convertedItems
+        } else {
+          console.error('🔄 [LibraryService] Supabase error:', error)
+          // Fallback to localStorage for authenticated user
+          const stored = localStorage.getItem(storageKey)
+          const items = stored ? JSON.parse(stored) : []
+          console.log('📚 Fallback to localStorage for authenticated user:', items.length, 'items')
+          return items
+        }
       } else {
-        console.error('🔄 [LibraryService] Supabase error:', error)
-        throw new Error('Failed to fetch from Supabase')
+        // Utilisateur non-authentifié : utiliser localStorage uniquement
+        console.log('👤 User not authenticated, fetching from localStorage')
+        const stored = localStorage.getItem(storageKey)
+        const items = stored ? JSON.parse(stored) : []
+        console.log('📚 Guest library from localStorage:', items.length, 'items')
+        return items
       }
 
     } catch (error) {
       console.error('❌ [LibraryService] Error fetching fresh library:', error)
       
-      // Fallback vers localStorage seulement en cas d'erreur
+      // Fallback vers localStorage en cas d'erreur générale
+      const currentUser = await AuthService.getCurrentUser()
+      const userId = currentUser?.id
+      const storageKey = this.getStorageKey(userId)
       const stored = localStorage.getItem(storageKey)
       const items = stored ? JSON.parse(stored) : []
-      console.log('📚 Fallback to localStorage:', items.length, 'items')
+      console.log('📚 Emergency fallback to localStorage:', items.length, 'items')
       return items
     }
   }

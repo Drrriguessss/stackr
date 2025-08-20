@@ -89,7 +89,14 @@
       "Bash(\"taskkill\" \"/PID\" \"3432\" \"/F\")",
       "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\UnifiedMusicPlayer.tsx\")",
       "Bash(git rebase:*)",
-      "Bash(del test-up-trailer.js)"
+      "Bash(del test-up-trailer.js)",
+      "Bash(\"taskkill\" \"/PID\" \"18304\" \"/F\")",
+      "Bash(set NODE_ENV=development)",
+      "Bash(set NEXT_PUBLIC_TMDB_API_KEY=d627b5234a242947d749a34f0290abe3)",
+      "Bash(del test-production-fix.js)",
+      "Bash(del test-image-comparison.js)",
+      "Bash(del debug-env.js)",
+      "Bash(set PORT=3001)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

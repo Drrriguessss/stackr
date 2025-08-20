@@ -46,7 +46,6 @@ import type { LibraryItem, Review, MediaCategory, MediaStatus, ContentItem } fro
 export default function Home() {
   const [activeTab, setActiveTab] = useState<MediaCategory>('games')
   const [activeMainTab, setActiveMainTab] = useState('feed')
-  const [previousMainTab, setPreviousMainTab] = useState('feed') // Track previous tab for navigation
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null)
   const [selectedMovieType, setSelectedMovieType] = useState<'movie' | 'tv'>('movie')
@@ -126,6 +125,9 @@ export default function Home() {
 
   // User reviews state
   const [userReviews, setUserReviews] = useState<{[itemId: string]: Review[]}>({})
+  
+  // Track previous tab before opening modal
+  const [previousMainTab, setPreviousMainTab] = useState<string>('feed')
   
   // User profile state
   const [showProfileSetup, setShowProfileSetup] = useState(false)
@@ -537,6 +539,7 @@ export default function Home() {
   const handleOpenGameDetail = (gameId: string) => {
     const normalizedGameId = normalizeId(gameId)
     setSelectedGameId(normalizedGameId)
+    setPreviousMainTab(activeMainTab) // Store current tab before switching
     setActiveMainTab('game-detail')
   }
 
@@ -555,11 +558,13 @@ export default function Home() {
     setSelectedMovieId(normalizedMovieId)
     setSelectedMovieType(mediaType || 'movie') // Store media type
     setSelectedGameId(null) // Clear game selection to ensure mutual exclusivity
+    setPreviousMainTab(activeMainTab) // Store current tab before switching
     setActiveMainTab('movie-detail') // Switch to movie detail view
   }
 
   const handleOpenBookDetail = (bookId: string) => {
     console.log('📚 [DEBUG] handleOpenBookDetail called with:', bookId)
+    setPreviousMainTab(activeMainTab) // Store current tab before switching
     const normalizedBookId = normalizeId(bookId)
     console.log('📚 [DEBUG] Normalized book ID:', normalizedBookId)
     setSelectedBookId(normalizedBookId)
@@ -578,6 +583,7 @@ export default function Home() {
     setSelectedBookId(null)
     setSelectedBoardGameId(null)
     
+    setPreviousMainTab(activeMainTab) // Store current tab before switching
     setSelectedMusicId(musicId)
     setActiveMainTab('music-detail')
   }
@@ -585,31 +591,34 @@ export default function Home() {
   const handleCloseMusicDetail = () => {
     console.log('🎵 [page.tsx] Closing music detail modal')
     setSelectedMusicId(null)
-    setActiveMainTab('feed')
+    setActiveMainTab(previousMainTab)
   }
 
   const handleCloseBookDetail = () => {
     console.log('📚 [page.tsx] Closing book detail modal')
     setSelectedBookId(null)
-    setActiveMainTab('feed')
+    setActiveMainTab(previousMainTab)
   }
 
   const handleCloseMovieDetail = () => {
     console.log('🎬 [page.tsx] Closing movie detail modal')
     setSelectedMovieId(null)
-    setActiveMainTab('feed')
+    setActiveMainTab(previousMainTab)
   }
 
   const handleCloseGameDetail = () => {
     console.log('🎮 [page.tsx] Closing game detail modal')
     setSelectedGameId(null)
-    setActiveMainTab('feed')
+    setActiveMainTab(previousMainTab)
   }
 
   // Unified handler for SearchModalV2
   const handleOpenDetail = (item: any) => {
     const itemId = normalizeId(item.id?.toString() || '1')
     console.log('🎯 [handleOpenDetail] Item:', item.title || item.name, 'ID:', item.id, 'Normalized:', itemId, 'Category:', item.category)
+    
+    // Store current tab before switching
+    setPreviousMainTab(activeMainTab)
     
     // Close all modals when opening detail
     setIsSearchOpen(false)
@@ -626,10 +635,12 @@ export default function Home() {
         console.log('🎬 Setting selectedMovieId:', itemId, 'MediaType:', item.media_type)
         setSelectedMovieId(itemId)
         setSelectedMovieType(item.media_type || 'movie')
+        setActiveMainTab('movie-detail')
         break
       case 'books':
         console.log('📚 Setting selectedBookId:', itemId)
         setSelectedBookId(itemId)
+        setActiveMainTab('book-detail')
         break
       case 'music':
         console.log('🎵 Setting selectedMusicId - raw ID:', item.id, 'itemId:', itemId)
@@ -643,6 +654,7 @@ export default function Home() {
       case 'boardgames':
         console.log('🎲 Setting selectedBoardGameId:', itemId)
         setSelectedBoardGameId(itemId)
+        setActiveMainTab('boardgame-detail')
         break
       default:
         console.warn('❌ Unknown media category:', item.category, 'Item:', item)

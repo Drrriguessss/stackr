@@ -99,6 +99,12 @@ export default function MovieDetailModalV3Optimized({
   const [showInlineRating, setShowInlineRating] = useState(false)
   const [reviewPrivacy, setReviewPrivacy] = useState<'private' | 'public'>('private')
   const [expandedUserReview, setExpandedUserReview] = useState(false)
+  const [reviewSaved, setReviewSaved] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  
+  // États pour éviter les conflits de synchronisation Supabase
+  const [isUserInteracting, setIsUserInteracting] = useState(false)
+  const [lastUserAction, setLastUserAction] = useState<number>(0)
   // Photo de profil utilisateur - null si pas connecté, URL si connecté
   const isUserSignedIn = false // À remplacer par le vrai état de connexion
   const userAvatar = isUserSignedIn ? 'URL_DE_LA_VRAIE_PHOTO_DU_COMPTE' : null
@@ -142,23 +148,57 @@ export default function MovieDetailModalV3Optimized({
     personalReview: ''
   })
 
-  // Effet pour synchroniser le statut avec la bibliothèque - LIKE MUSIC MODAL
+  // État pour tracker si c'est la première ouverture du modal (pour éviter les syncs répétées)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+
+  // Effet pour synchroniser le statut avec la bibliothèque - SEULEMENT AU CHARGEMENT INITIAL OU SI PAS D'ACTION RÉCENTE
   useEffect(() => {
-    if (isOpen && movieId) {
-      console.log('🔄 [MOVIE MODAL] Synchronizing status with library for movieId:', movieId)
+    if (isOpen && movieId && isInitialLoad) {
+      console.log('🔄 [MOVIE MODAL] INITIAL LOAD - synchronizing status with library for movieId:', movieId)
+      console.log('🔄 [MOVIE MODAL] Current selectedStatus before sync:', selectedStatus)
       
-      // Check library status
+      // Check library status ONLY on modal open (initial load)
       if (library && library.length > 0) {
         const libraryItem = library.find(item => item.id === movieId)
         console.log('🔍 [MOVIE MODAL] Found library item:', libraryItem)
         const newStatus = libraryItem?.status || null
-        console.log('🔄 [MOVIE MODAL] Setting status to:', newStatus)
+        console.log('🔄 [MOVIE MODAL] Setting INITIAL status to:', newStatus)
+        
         setSelectedStatus(newStatus)
       } else {
+        console.log('🔄 [MOVIE MODAL] No library items, setting null status')
         setSelectedStatus(null)
       }
+      
+      setIsInitialLoad(false)
+      console.log('🔄 [MOVIE MODAL] ✅ Initial load complete')
     }
-  }, [isOpen, movieId, library])
+    // Bloquer toute sync supplémentaire si l'utilisateur a agi récemment (dans les 10 dernières secondes)
+    else if (isOpen && movieId && !isInitialLoad && library && library.length > 0) {
+      const timeSinceLastAction = Date.now() - lastUserAction
+      if (timeSinceLastAction > 10000) { // Plus de 10 secondes depuis la dernière action
+        console.log('🔄 [MOVIE MODAL] Allowing library sync - no recent user action')
+        const libraryItem = library.find(item => item.id === movieId)
+        const newStatus = libraryItem?.status || null
+        
+        // Only update if status actually changed from external source
+        if (newStatus !== selectedStatus) {
+          console.log(`🔄 [MOVIE MODAL] External status change detected: ${selectedStatus} -> ${newStatus}`)
+          setSelectedStatus(newStatus)
+        }
+      } else {
+        console.log(`🔄 [MOVIE MODAL] Blocking library sync - recent user action (${timeSinceLastAction}ms ago)`)
+      }
+    }
+  }, [isOpen, movieId, library, isInitialLoad, selectedStatus, lastUserAction])
+
+  // Reset initial load flag when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsInitialLoad(true)
+      console.log('🔄 [MOVIE MODAL] Modal closed - reset for next load')
+    }
+  }, [isOpen])
 
   // Effet pour charger les données de la feuille de film
   useEffect(() => {
@@ -225,6 +265,7 @@ export default function MovieDetailModalV3Optimized({
       setShowFriendsWhoWatchedModal(false)
       setStreamingProviders([])
       setLoadingProviders(false)
+      setIsUserInteracting(false) // Reset protection flag
     }
   }, [isOpen])
 
@@ -346,17 +387,30 @@ export default function MovieDetailModalV3Optimized({
     }
   }, [movieId, movieSheetData, reviewState])
 
-  // Handle status selection - MATCHED WITH MUSIC MODAL PATTERN
+  // Handle status selection - AVEC PROTECTION SUPABASE REAL-TIME
   const handleStatusSelect = useCallback(async (status: MediaStatus | null) => {
     if (!movieDetail) return
     
+    // PROTECTION: Marquer que l'utilisateur interagit pour éviter les overrides Supabase
+    const actionTimestamp = Date.now()
+    console.log('🎬 [MOVIE MODAL] 🔒 User interaction started - blocking real-time sync')
+    setIsUserInteracting(true)
+    setLastUserAction(actionTimestamp)
+    
     // Handle remove from library
     if (status === null || status === 'remove') {
+      console.log('🎬 [MOVIE MODAL] Removing item from library')
       if (onDeleteItem) {
-        onDeleteItem(movieDetail.imdbID)
+        await onDeleteItem(movieDetail.imdbID)
       }
       setSelectedStatus(null)
       setShowStatusDropdown(false)
+      
+      // Reset protection après délai plus long pour les suppressions
+      setTimeout(() => {
+        console.log('🎬 [MOVIE MODAL] 🔓 User interaction ended (removal) - allowing real-time sync')
+        setIsUserInteracting(false)
+      }, 5000) // 5 secondes pour les suppressions
       return
     }
     
@@ -380,10 +434,17 @@ export default function MovieDetailModalV3Optimized({
     }
     
     try {
-      // Add/update item in library
-      await onAddToLibrary(movieData, status)
+      console.log('🎬 [MOVIE MODAL] ⏳ Starting library update with status:', status)
+      console.log('🎬 [MOVIE MODAL] Current selectedStatus before update:', selectedStatus)
+      
+      // Set status optimistically (immediate UI feedback)
       setSelectedStatus(status)
       setShowStatusDropdown(false)
+      
+      // Add/update item in library
+      await onAddToLibrary(movieData, status)
+      
+      console.log('🎬 [MOVIE MODAL] ✅ Library update completed with status:', status)
       
       // Show friends modal for social statuses (like music modal)
       if (status === 'watched') {
@@ -391,11 +452,20 @@ export default function MovieDetailModalV3Optimized({
         setShowInlineRating(true)
       }
       
-      console.log('🎬 [MOVIE MODAL] Successfully updated library with status:', status)
+      console.log('🎬 [MOVIE MODAL] ✅ Successfully updated library with status:', status)
     } catch (error) {
       console.error('🎬 [ERROR] Failed to update library:', error)
+      // En cas d'erreur, revenir au statut précédent
+      const libraryItem = library.find(item => item.id === movieDetail.imdbID)
+      setSelectedStatus(libraryItem?.status || null)
+    } finally {
+      // PROTECTION: Débloquer la synchronisation après un délai plus long pour permettre à Supabase de se synchroniser
+      setTimeout(() => {
+        console.log('🎬 [MOVIE MODAL] 🔓 User interaction ended - allowing real-time sync')
+        setIsUserInteracting(false)
+      }, 7000) // 7 secondes de protection contre les real-time updates (was 3)
     }
-  }, [movieDetail, onAddToLibrary, onDeleteItem])
+  }, [movieDetail, onAddToLibrary, onDeleteItem, library])
 
 
   // Rendu conditionnel

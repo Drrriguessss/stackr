@@ -144,7 +144,9 @@ class StreamingService {
       )
       
       if (!response.ok) {
-        throw new Error(`TMDB providers failed: ${response.status}`)
+        console.warn(`🎬 [StreamingService] TMDB providers API failed for movie ${tmdbId}: ${response.status}`)
+        // Return empty array instead of throwing error to prevent modal crash
+        return []
       }
       
       const data: WatchProviders = await response.json()
