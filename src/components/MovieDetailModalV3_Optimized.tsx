@@ -446,11 +446,7 @@ export default function MovieDetailModalV3Optimized({
       
       console.log('🎬 [MOVIE MODAL] ✅ Library update completed with status:', status)
       
-      // Show friends modal for social statuses (like music modal)
-      if (status === 'watched') {
-        // Optional: show a rating modal or friends activity
-        setShowInlineRating(true)
-      }
+      // Note: Share your thoughts section only opens when user rates the movie, not on status change
       
       console.log('🎬 [MOVIE MODAL] ✅ Successfully updated library with status:', status)
     } catch (error) {
