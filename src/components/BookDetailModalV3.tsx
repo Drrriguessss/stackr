@@ -1753,7 +1753,7 @@ export default function BookDetailModalV3({
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm mb-2">Rating</label>
+                <label className="block text-gray-400 text-sm mb-2">Private Rating</label>
                 <div className="flex space-x-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
@@ -1769,11 +1769,11 @@ export default function BookDetailModalV3({
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm mb-1">Review</label>
+                <label className="block text-gray-400 text-sm mb-1">Private Review</label>
                 <textarea
                   value={bookSheetData.personalReview}
                   onChange={(e) => setBookSheetData({...bookSheetData, personalReview: e.target.value})}
-                  placeholder="Write your review..."
+                  placeholder="Write your private review..."
                   className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 h-20"
                 />
               </div>
