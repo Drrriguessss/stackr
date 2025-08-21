@@ -746,20 +746,12 @@ export default function BookDetailModalV3({
                         key={status.value}
                         onClick={() => handleAddToLibrary(status.value as MediaStatus)}
                         className={`w-full text-left px-4 py-3 text-sm hover:bg-purple-600/20 hover:text-purple-400 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                          selectedStatus === status.value ? 'text-purple-400 bg-purple-600/30' : 'text-gray-300'
+                          selectedStatus === status.value ? 'text-purple-400 bg-purple-600/30' : status.value === 'remove' ? 'text-red-400 hover:bg-red-600/20' : 'text-gray-300'
                         }`}
                       >
                         {status.label}
                       </button>
                     ))}
-                    {selectedStatus && (
-                      <button
-                        onClick={() => handleAddToLibrary('remove' as MediaStatus)}
-                        className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-600/20 transition-colors last:rounded-b-lg"
-                      >
-                        Remove from Library
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
