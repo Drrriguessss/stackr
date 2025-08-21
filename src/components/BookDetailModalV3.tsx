@@ -133,6 +133,10 @@ export default function BookDetailModalV3({
   const [activeTab, setActiveTab] = useState<'overview' | 'preview'>('overview')
   // Removed showInlineRating state - rating section is now always visible
   const [showBookSheet, setShowBookSheet] = useState(false)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const [showYearPicker, setShowYearPicker] = useState(false)
+  const [calendarDate, setCalendarDate] = useState(new Date())
   const [bookSheetData, setBookSheetData] = useState<BookSheetData>({
     dateRead: '',
     location: '',
@@ -335,6 +339,10 @@ export default function BookDetailModalV3({
       console.log('📚 [Cleanup] Modal closed, cleaning up states')
       setIsUserInteracting(false) // Reset protection flag
       setIsInitialLoad(true) // Reset for next load
+      // Reset calendar states
+      setShowDatePicker(false)
+      setShowMonthPicker(false)
+      setShowYearPicker(false)
     }
   }, [isOpen])
 
@@ -1707,14 +1715,243 @@ export default function BookDetailModalV3({
             </div>
             
             <div className="space-y-4">
-              <div>
+              <div className="relative">
                 <label className="block text-gray-400 text-sm mb-1">Date of reading</label>
-                <input
-                  type="date"
-                  value={bookSheetData.dateRead}
-                  onChange={(e) => setBookSheetData({...bookSheetData, dateRead: e.target.value})}
-                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
-                />
+                <div
+                  onClick={() => setShowDatePicker(true)}
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600 hover:border-gray-500 cursor-pointer flex items-center justify-between"
+                >
+                  <span className={bookSheetData.dateRead ? 'text-white' : 'text-gray-400'}>
+                    {bookSheetData.dateRead 
+                      ? new Date(bookSheetData.dateRead).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                      : 'Select date'
+                    }
+                  </span>
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
+                  </svg>
+                </div>
+
+                {/* Modern Calendar Picker - EXACTEMENT COMME MOVIE MODAL */}
+                {showDatePicker && (
+                  <div className={`absolute top-0 left-0 z-10 bg-white border border-gray-300 rounded-lg shadow-2xl overflow-hidden ${
+                    showMonthPicker ? 'w-80 h-48' : showYearPicker ? 'w-80 h-96' : 'w-80 h-auto'
+                  }`}>
+                    {/* Calendar Header */}
+                    <div className="bg-gray-50 border-b border-gray-200 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          onClick={() => {
+                            const newDate = new Date(calendarDate)
+                            newDate.setMonth(newDate.getMonth() - 1)
+                            setCalendarDate(newDate)
+                          }}
+                          className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => setShowMonthPicker(!showMonthPicker)}
+                            className="px-3 py-1 hover:bg-gray-200 rounded text-gray-800 font-medium text-sm flex items-center"
+                          >
+                            {calendarDate.toLocaleDateString('en-US', { month: 'long' })}
+                            <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => setShowYearPicker(!showYearPicker)}
+                            className="px-3 py-1 hover:bg-gray-200 rounded text-gray-800 font-medium text-sm flex items-center"
+                          >
+                            {calendarDate.getFullYear()}
+                            <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </div>
+                        
+                        <button
+                          onClick={() => {
+                            const newDate = new Date(calendarDate)
+                            newDate.setMonth(newDate.getMonth() + 1)
+                            setCalendarDate(newDate)
+                          }}
+                          className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      <button
+                        onClick={() => setShowDatePicker(false)}
+                        className="w-full px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                      >
+                        Close Calendar
+                      </button>
+                    </div>
+
+                    {/* Month Picker Overlay */}
+                    {showMonthPicker && (
+                      <div className="absolute inset-0 bg-white z-20 p-4">
+                        <div className="grid grid-cols-4 gap-3">
+                          {['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].map((month, index) => (
+                            <button
+                              key={month}
+                              onClick={() => {
+                                const newDate = new Date(calendarDate)
+                                newDate.setMonth(index)
+                                setCalendarDate(newDate)
+                                setShowMonthPicker(false)
+                              }}
+                              className={`py-3 px-2 rounded-lg text-sm font-bold transition-colors ${
+                                calendarDate.getMonth() === index
+                                  ? 'bg-blue-500 text-white shadow-lg scale-105'
+                                  : 'hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300'
+                              }`}
+                            >
+                              {month}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Year Picker Overlay */}
+                    {showYearPicker && (
+                      <div className="absolute inset-0 bg-white z-20 p-4 flex flex-col">
+                        <div className="text-center mb-3">
+                          <h4 className="text-gray-800 font-medium">Select Year</h4>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                          <div className="grid grid-cols-4 gap-2 pb-4">
+                            {Array.from({length: 80}, (_, i) => new Date().getFullYear() - i).map((year) => (
+                              <button
+                                key={year}
+                                onClick={() => {
+                                  const newDate = new Date(calendarDate)
+                                  newDate.setFullYear(year)
+                                  setCalendarDate(newDate)
+                                  setShowYearPicker(false)
+                                }}
+                                className={`py-2 px-1 rounded text-xs font-bold transition-colors ${
+                                  calendarDate.getFullYear() === year
+                                    ? 'bg-blue-500 text-white shadow-lg scale-105'
+                                    : 'hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300'
+                                }`}
+                              >
+                                {year}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Main Calendar */}
+                    {!showMonthPicker && !showYearPicker && (
+                      <div className="p-3">
+                        {/* Days of week header */}
+                        <div className="grid grid-cols-7 gap-1 mb-2">
+                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                            <div key={day} className="p-2 text-center text-xs font-medium text-gray-500">
+                              {day}
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Calendar days grid */}
+                        <div className="grid grid-cols-7 gap-1">
+                          {(() => {
+                            const year = calendarDate.getFullYear()
+                            const month = calendarDate.getMonth()
+                            const firstDay = new Date(year, month, 1)
+                            const lastDay = new Date(year, month + 1, 0)
+                            const startDate = new Date(firstDay)
+                            startDate.setDate(startDate.getDate() - firstDay.getDay())
+                            
+                            const days = []
+                            const today = new Date()
+                            const selectedDate = bookSheetData.dateRead ? new Date(bookSheetData.dateRead) : null
+                            
+                            for (let i = 0; i < 42; i++) {
+                              const currentDate = new Date(startDate)
+                              currentDate.setDate(startDate.getDate() + i)
+                              
+                              const isCurrentMonth = currentDate.getMonth() === month
+                              const isToday = currentDate.toDateString() === today.toDateString()
+                              const isSelected = selectedDate && currentDate.toDateString() === selectedDate.toDateString()
+                              const isFuture = currentDate > today
+                              
+                              days.push(
+                                <button
+                                  key={i}
+                                  onClick={() => {
+                                    if (!isFuture) {
+                                      setBookSheetData({
+                                        ...bookSheetData, 
+                                        dateRead: currentDate.toISOString().split('T')[0]
+                                      })
+                                      setShowDatePicker(false)
+                                    }
+                                  }}
+                                  disabled={isFuture}
+                                  className={`p-2 text-sm font-medium rounded transition-colors ${
+                                    isFuture
+                                      ? 'text-gray-300 cursor-not-allowed'
+                                      : isSelected
+                                      ? 'bg-blue-500 text-white'
+                                      : isToday
+                                      ? 'bg-blue-100 text-blue-600 font-bold'
+                                      : isCurrentMonth
+                                      ? 'hover:bg-gray-100 text-gray-700'
+                                      : 'text-gray-400 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {currentDate.getDate()}
+                                </button>
+                              )
+                            }
+                            
+                            return days
+                          })()}
+                        </div>
+                        
+                        {/* Footer actions */}
+                        <div className="flex justify-between mt-3 pt-3 border-t border-gray-200">
+                          <button
+                            onClick={() => {
+                              const today = new Date()
+                              setBookSheetData({...bookSheetData, dateRead: today.toISOString().split('T')[0]})
+                              setCalendarDate(today)
+                            }}
+                            className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                          >
+                            Today
+                          </button>
+                          <button
+                            onClick={() => {
+                              setBookSheetData({...bookSheetData, dateRead: ''})
+                              setShowDatePicker(false)
+                            }}
+                            className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
