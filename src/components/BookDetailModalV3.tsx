@@ -116,6 +116,13 @@ export default function BookDetailModalV3({
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showFullDescription, setShowFullDescription] = useState(false)
   
+  // Mobile reliability states (inspired by movie modal)
+  const [isUserInteracting, setIsUserInteracting] = useState(false)
+  const [lastUserAction, setLastUserAction] = useState<number>(0)
+  
+  // État pour tracker si c'est la première ouverture du modal (pour éviter les syncs répétées)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  
   // États pour les modales
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
   const [showFriendsWhoRead, setShowFriendsWhoRead] = useState(false)
@@ -156,11 +163,55 @@ export default function BookDetailModalV3({
   const [showUserReviewComments, setShowUserReviewComments] = useState(false)
   const [newComment, setNewComment] = useState('')
 
-  // Effet pour synchroniser le statut avec la bibliothèque
+  // Effet pour synchroniser le statut avec la bibliothèque - COMME MOVIE MODAL
   useEffect(() => {
-    const libraryItem = library.find(item => item.id === bookId)
-    setSelectedStatus(libraryItem?.status || null)
-  }, [bookId, library])
+    if (isOpen && bookId && isInitialLoad) {
+      console.log('📚 [BOOK MODAL] INITIAL LOAD - synchronizing status with library for bookId:', bookId)
+      console.log('📚 [BOOK MODAL] Current selectedStatus before sync:', selectedStatus)
+      
+      // Check library status ONLY on modal open (initial load)
+      if (library && library.length > 0) {
+        const libraryItem = library.find(item => item.id === bookId)
+        console.log('🔍 [BOOK MODAL] Found library item:', libraryItem)
+        const newStatus = libraryItem?.status || null
+        console.log('🔄 [BOOK MODAL] Setting INITIAL status to:', newStatus)
+        
+        setSelectedStatus(newStatus)
+      } else {
+        console.log('🔄 [BOOK MODAL] No library items, setting null status')
+        setSelectedStatus(null)
+      }
+      
+      setIsInitialLoad(false)
+      console.log('🔄 [BOOK MODAL] ✅ Initial load complete')
+    }
+    // Bloquer toute sync supplémentaire si l'utilisateur a agi récemment (dans les 5 dernières secondes)
+    else if (isOpen && bookId && !isInitialLoad && library && library.length > 0 && !isUserInteracting) {
+      const timeSinceLastAction = Date.now() - lastUserAction
+      if (timeSinceLastAction > 5000) { // Plus de 5 secondes depuis la dernière action
+        console.log('🔄 [BOOK MODAL] Allowing library sync - no recent user action')
+        const libraryItem = library.find(item => item.id === bookId)
+        const newStatus = libraryItem?.status || null
+        
+        // Only update if status actually changed from external source
+        if (newStatus !== selectedStatus) {
+          console.log(`🔄 [BOOK MODAL] External status change detected: ${selectedStatus} -> ${newStatus}`)
+          setSelectedStatus(newStatus)
+        }
+      } else {
+        console.log(`🔄 [BOOK MODAL] Blocking library sync - recent user action (${timeSinceLastAction}ms ago)`)
+      }
+    }
+  }, [isOpen, bookId, library, isInitialLoad, selectedStatus, lastUserAction, isUserInteracting])
+
+  // Reset initial load flag when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsInitialLoad(true)
+      setIsUserInteracting(false) // Reset user interaction flag
+      console.log('🔄 [BOOK MODAL] Modal closed - reset for next load')
+    }
+  }, [isOpen])
 
   // Effet pour charger les données de la feuille de livre
   useEffect(() => {
@@ -278,6 +329,15 @@ export default function BookDetailModalV3({
     }
   }, [bookId, reviewState])
 
+  // Cleanup on modal close - COMME MOVIE MODAL
+  useEffect(() => {
+    if (!isOpen) {
+      console.log('📚 [Cleanup] Modal closed, cleaning up states')
+      setIsUserInteracting(false) // Reset protection flag
+      setIsInitialLoad(true) // Reset for next load
+    }
+  }, [isOpen])
+
   const saveBookSheetData = useCallback(() => {
     try {
       localStorage.setItem(`bookSheet-${bookId}`, JSON.stringify(bookSheetData))
@@ -295,19 +355,46 @@ export default function BookDetailModalV3({
     }
   }, [bookId, bookSheetData, reviewState])
 
+  // Handle status selection - COMME MOVIE MODAL - AVEC PROTECTION SUPABASE REAL-TIME
   const handleAddToLibrary = useCallback(async (status: MediaStatus) => {
     if (!bookDetail) return
-
-    if (status === 'remove') {
+    
+    // PROTECTION: Marquer que l'utilisateur interagit pour éviter les overrides Supabase
+    const actionTimestamp = Date.now()
+    console.log('📚 [BOOK MODAL] 🔒 User interaction started - blocking real-time sync')
+    setIsUserInteracting(true)
+    setLastUserAction(actionTimestamp)
+    
+    // Handle remove from library
+    if (status === null || status === 'remove') {
+      console.log('📚 [BOOK MODAL] Removing item from library')
       if (onDeleteItem) {
-        onDeleteItem(bookDetail.id)
+        await onDeleteItem(bookDetail.id)
+        
+        // Force library refresh for mobile reliability
+        setTimeout(() => {
+          const event = new CustomEvent('library-changed', {
+            detail: { action: 'deleted', item: { id: bookDetail.id, title: bookDetail.title }, timestamp: Date.now() }
+          })
+          window.dispatchEvent(event)
+          console.log('🔔 [BOOK MODAL] Forced library-changed event for mobile')
+        }, 500)
       }
       setSelectedStatus(null)
       setShowStatusDropdown(false)
+      
+      // Reset protection après délai pour les suppressions
+      // Délai réduit sur mobile pour améliorer la réactivité  
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      const removalDelay = isMobile ? 1000 : 2000
+      setTimeout(() => {
+        console.log('📚 [BOOK MODAL] 🔓 User interaction ended (removal) - allowing real-time sync')
+        setIsUserInteracting(false)
+      }, removalDelay)
       return
     }
-
-    // Ajouter directement à la library pour TOUS les status
+    
+    // Prepare book data for library
     const bookData = {
       id: bookDetail.id,
       title: bookDetail.title,
@@ -320,13 +407,44 @@ export default function BookDetailModalV3({
       pages: bookDetail.pageCount
     }
     
-    onAddToLibrary(bookData, status)
-    setSelectedStatus(status)
-    
-    // Removed automatic inline rating display - now always visible
-    
-    setShowStatusDropdown(false)
-  }, [bookDetail, onAddToLibrary, onDeleteItem])
+    try {
+      console.log('📚 [BOOK MODAL] ⏳ Starting library update with status:', status)
+      console.log('📚 [BOOK MODAL] Current selectedStatus before update:', selectedStatus)
+      
+      // Set status optimistically (immediate UI feedback)
+      setSelectedStatus(status)
+      setShowStatusDropdown(false)
+      
+      // Add/update item in library
+      await onAddToLibrary(bookData, status)
+      
+      // Force library refresh for mobile reliability
+      setTimeout(() => {
+        const event = new CustomEvent('library-changed', {
+          detail: { action: 'updated', item: { id: bookDetail.id, title: bookDetail.title, status }, timestamp: Date.now() }
+        })
+        window.dispatchEvent(event)
+        console.log('🔔 [BOOK MODAL] Forced library-changed event for mobile')
+      }, 500)
+      
+      console.log('📚 [BOOK MODAL] ✅ Library update completed with status:', status)
+      console.log('📚 [BOOK MODAL] ✅ Successfully updated library with status:', status)
+    } catch (error) {
+      console.error('📚 [ERROR] Failed to update library:', error)
+      // En cas d'erreur, revenir au statut précédent
+      const libraryItem = library.find(item => item.id === bookDetail.id)
+      setSelectedStatus(libraryItem?.status || null)
+    } finally {
+      // PROTECTION: Débloquer la synchronisation après un délai pour permettre à Supabase de se synchroniser
+      // Délai réduit sur mobile pour améliorer la réactivité
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      const protectionDelay = isMobile ? 1500 : 3000
+      setTimeout(() => {
+        console.log('📚 [BOOK MODAL] 🔓 User interaction ended - allowing real-time sync')
+        setIsUserInteracting(false)
+      }, protectionDelay)
+    }
+  }, [bookDetail, onAddToLibrary, onDeleteItem, library])
 
   // Handler pour liker sa propre review
   const handleLikeUserReview = useCallback(() => {
