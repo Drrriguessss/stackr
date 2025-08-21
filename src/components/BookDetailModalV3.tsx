@@ -652,8 +652,8 @@ export default function BookDetailModalV3({
     <div className="bg-[#0f0e17] min-h-screen pb-20 font-system">
       {bookDetail ? (
         <>
-          {/* Large header image - 160px height */}
-          <div className="relative h-[160px] overflow-hidden">
+          {/* Large header image - 200px height COMME MOVIE MODAL */}
+          <div className="relative h-[200px] overflow-hidden">
             <img
               src={getBookHeaderImage()}
               alt={`${bookDetail.title} backdrop`}
@@ -665,183 +665,198 @@ export default function BookDetailModalV3({
               }}
             />
             
-            {/* Navigation Header - X button top right */}
-            <div className="absolute top-0 left-0 right-0 flex items-center justify-end p-5" style={{ zIndex: 20 }}>
+            {/* Gradient overlay - COMME MOVIE MODAL */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0f0e17] via-[#0f0e17]/60 to-transparent" />
+            
+            {/* Close button - COMME MOVIE MODAL */}
+            <div className="absolute top-0 right-0 p-5">
               <button
                 onClick={onClose}
                 className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
+                aria-label="Close book details"
               >
                 <X size={20} />
               </button>
             </div>
           </div>
 
-          {/* Book Info Section with GRAY/BLACK Gradient */}
-          <div className="relative min-h-[240px] overflow-visible">
-            {/* GRAY/BLACK Gradient Background */}
-            <div 
-              className="absolute inset-0"
-              style={{ 
-                background: 'linear-gradient(to bottom, rgba(55, 65, 81, 0.4), rgba(31, 41, 55, 0.3), rgba(17, 24, 39, 0.2), rgba(15, 14, 23, 0.7))',
-                zIndex: 1
-              }}
-            />
-            
-            {/* Book Info Container */}
-            <div className="px-5 py-6 relative z-30">
-              {/* Book Thumbnail + Title Section */}
-              <div className="flex gap-4 items-start mb-4">
-                {/* Book Thumbnail - 100x100 comme dans le film */}
-                <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden border-2 border-white/10 flex-shrink-0">
-                  <img
-                    src={bookDetail.imageLinks?.thumbnail || bookDetail.imageLinks?.small || 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop&q=80'}
-                    alt={bookDetail.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement
-                      target.src = 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop&q=80'
-                    }}
-                  />
-                </div>
-                
-                {/* Book Title Section */}
-                <div className="flex-1 pt-1">
-                  <h1 className="text-xl font-bold text-white mb-1 leading-tight">{bookDetail.title}</h1>
-                  <p className="text-sm text-gray-400 mb-1">{bookDetail.authors?.join(', ') || 'Unknown Author'}</p>
-                  
-                  {/* Book Stats on same line */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                    {bookDetail.publishedDate && <span>{new Date(bookDetail.publishedDate).getFullYear()}</span>}
-                    {bookDetail.pageCount && (
-                      <>
-                        <span className="text-gray-600">•</span>
-                        <span>{bookDetail.pageCount} pages</span>
-                      </>
-                    )}
-                    {/* Calculer temps de lecture si possible */}
-                    {bookDetail.pageCount && (
-                      <>
-                        <span className="text-gray-600">•</span>
-                        <span>{Math.round(bookDetail.pageCount / 250 * 60)}min read</span>
-                      </>
-                    )}
-                  </div>
-                </div>
+          {/* Book Info Section - COMME MOVIE MODAL avec -mt-16 pour chevaucher */}
+          <div className="px-6 py-6 relative -mt-16">
+            {/* Thumbnail + Basic Info - COMME MOVIE MODAL */}
+            <div className="flex gap-4 items-start mb-4 relative z-10">
+              {/* Book Thumbnail - 100x100 COMME MOVIE MODAL */}
+              <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden border-2 border-white/10 flex-shrink-0">
+                <img
+                  src={bookDetail.imageLinks?.thumbnail || bookDetail.imageLinks?.small || 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop&q=80'}
+                  alt={bookDetail.title}
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                  style={{ imageRendering: 'crisp-edges', backfaceVisibility: 'hidden' }}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.src = 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop&q=80'
+                  }}
+                />
               </div>
-
-              {/* Buttons - full width - STYLE VIOLET avec dégradé comme film */}
-              <div className="flex space-x-3 mt-3 relative z-50" style={{ zIndex: 100000 }}>
-                {/* Status Button - Style violet dégradé comme film */}
-                <div className="relative flex-1">
-                  <button
-                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-gray-600 to-gray-800 text-white font-medium rounded-lg hover:from-gray-700 hover:to-gray-900 transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
-                  >
-                    <span>{formatStatusForDisplay(selectedStatus)}</span>
-                  </button>
-                  
-                  {showStatusDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-purple-500 rounded-lg shadow-2xl z-[99999]">
-                      {getAvailableStatuses().map((status) => (
-                        <button
-                          key={status.value}
-                          onClick={() => handleAddToLibrary(status.value as MediaStatus)}
-                          className={`w-full text-left px-4 py-3 text-sm hover:bg-purple-600/20 hover:text-purple-400 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                            selectedStatus === status.value ? 'text-purple-400 bg-purple-600/30' : 'text-gray-300'
-                          }`}
-                        >
-                          {status.label}
-                        </button>
-                      ))}
-                    </div>
+              
+              {/* Title and Author - COMME MOVIE MODAL */}
+              <div className="flex-1 pt-1">
+                <h1 className="text-xl font-bold text-white mb-1 leading-tight">{bookDetail.title}</h1>
+                <p className="text-sm text-gray-400 mb-1">{bookDetail.authors?.join(', ') || 'Unknown Author'}</p>
+                
+                {/* Book Stats - COMME MOVIE MODAL */}
+                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  {bookDetail.publishedDate && <span>{new Date(bookDetail.publishedDate).getFullYear()}</span>}
+                  {bookDetail.pageCount && (
+                    <>
+                      <span className="text-gray-600">•</span>
+                      <span>{bookDetail.pageCount} pages</span>
+                    </>
+                  )}
+                  {/* Calculer temps de lecture si possible */}
+                  {bookDetail.pageCount && (
+                    <>
+                      <span className="text-gray-600">•</span>
+                      <span>{Math.round(bookDetail.pageCount / 250 * 60)}min read</span>
+                    </>
                   )}
                 </div>
-                
-                {/* Share Button - Style violet dégradé comme film */}
-                <button 
-                  onClick={() => setShowShareWithFriendsModal(true)}
-                  className="px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
-                >
-                  <Share size={16} />
-                  <span>Share</span>
-                </button>
               </div>
+            </div>
 
-              {/* Friends who read this book */}
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-400 text-sm">Friends who read:</span>
+            {/* Action Buttons - COMME MOVIE MODAL */}
+            <div className="flex space-x-3 mt-3">
+              {/* Status Button - COMME MOVIE MODAL */}
+              <div className="relative flex-1">
+                <button
+                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                  className="w-full h-12 px-3 bg-gradient-to-r from-gray-600 to-gray-800 text-white font-medium rounded-lg hover:from-gray-700 hover:to-gray-900 transition-all duration-200 flex items-center justify-center space-x-1 text-xs"
+                >
+                  <span className="truncate">{formatStatusForDisplay(selectedStatus)}</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`transition-transform flex-shrink-0 ${showStatusDropdown ? 'rotate-180' : ''}`}>
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                
+                {/* Dropdown - COMME MOVIE MODAL */}
+                {showStatusDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-purple-500 rounded-lg shadow-2xl z-[99999]">
+                    {getAvailableStatuses().map((status) => (
+                      <button
+                        key={status.value}
+                        onClick={() => handleAddToLibrary(status.value as MediaStatus)}
+                        className={`w-full text-left px-4 py-3 text-sm hover:bg-purple-600/20 hover:text-purple-400 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                          selectedStatus === status.value ? 'text-purple-400 bg-purple-600/30' : 'text-gray-300'
+                        }`}
+                      >
+                        {status.label}
+                      </button>
+                    ))}
+                    {selectedStatus && (
+                      <button
+                        onClick={() => handleAddToLibrary('remove' as MediaStatus)}
+                        className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-600/20 transition-colors last:rounded-b-lg"
+                      >
+                        Remove from Library
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Share Button - COMME MOVIE MODAL */}
+              <button 
+                onClick={() => setShowShareWithFriendsModal(true)}
+                className="h-12 px-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200 flex items-center space-x-1 text-xs"
+              >
+                <Share size={14} />
+                <span>Share</span>
+              </button>
+            </div>
+
+            {/* Friends who read - EXACTEMENT COMME MOVIE MODAL */}
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-400 text-sm">Friends who read:</span>
+                  {friendsWhoRead.length > 0 ? (
                     <div className="flex -space-x-1">
-                      {loadingFriendsWhoRead ? (
-                        <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs animate-pulse">
-                          ...
-                        </div>
-                      ) : friendsWhoRead.length === 0 ? (
-                        <span className="text-gray-500 text-xs">None</span>
-                      ) : (
-                        <>
-                          {friendsWhoRead.slice(0, 4).map((friend) => (
-                            <div
-                              key={friend.id}
-                              className="w-6 h-6 bg-gradient-to-r from-gray-500 to-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
-                              title={`${friend.name} - ${friend.rating}/5 stars`}
-                            >
+                      {friendsWhoRead.slice(0, 4).map((friend) => (
+                        <div
+                          key={friend.id}
+                          className="w-6 h-6 rounded-full overflow-hidden border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform"
+                          title={`${friend.name} - ${friend.rating}/5 stars`}
+                        >
+                          {friend.avatar ? (
+                            <img
+                              src={friend.avatar}
+                              alt={friend.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = 'none'
+                                target.parentElement!.innerHTML = `<div class="w-full h-full bg-gradient-to-r from-purple-500 to-indigo-600 flex items-center justify-center text-xs font-medium text-white">${friend.name.charAt(0)}</div>`
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-r from-purple-500 to-indigo-600 flex items-center justify-center text-xs font-medium text-white">
                               {friend.name.charAt(0)}
                             </div>
-                          ))}
-                          {friendsWhoRead.length > 4 && (
-                            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17]">
-                              +{friendsWhoRead.length - 4}
-                            </div>
                           )}
-                        </>
+                        </div>
+                      ))}
+                      {friendsWhoRead.length > 4 && (
+                        <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[#0f0e17] cursor-pointer hover:scale-110 transition-transform">
+                          +{friendsWhoRead.length - 4}
+                        </div>
                       )}
                     </div>
-                  </div>
-                  {friendsWhoRead.length > 0 && (
-                    <button
-                      onClick={() => setShowFriendsWhoRead(true)}
-                      className="text-gray-400 hover:text-gray-300 text-sm cursor-pointer"
-                    >
-                      View all
-                    </button>
+                  ) : (
+                    <span className="text-gray-500 text-sm">None</span>
                   )}
                 </div>
-                
-                {/* Customize book sheet - SIMPLE TEXTE */}
-                <button
-                  onClick={() => setShowBookSheet(true)}
-                  className="text-purple-400 hover:text-purple-300 text-sm flex items-center space-x-1 cursor-pointer"
-                >
-                  <FileText size={14} />
-                  <span>Customize book sheet</span>
-                </button>
+                {friendsWhoRead.length > 0 && (
+                  <button
+                    onClick={() => setShowFriendsWhoRead(true)}
+                    className="text-gray-400 hover:text-purple-400 text-sm transition-colors"
+                  >
+                    View all
+                  </button>
+                )}
+              </div>
+              
+              {/* Customize book sheet - COMME MOVIE MODAL */}
+              <button
+                onClick={() => setShowBookSheet(true)}
+                className="text-purple-400 hover:text-purple-300 text-sm flex items-center space-x-1 cursor-pointer transition-colors"
+              >
+                <FileText size={14} />
+                <span>Customize book sheet</span>
+              </button>
 
-                {/* Tabs: Overview / Preview */}
-                <div className="mt-6 mb-4">
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={() => setActiveTab('overview')}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                        activeTab === 'overview'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
-                    >
-                      Overview
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('preview')}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                        activeTab === 'preview'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
-                    >
-                      Preview
-                    </button>
-                  </div>
+              {/* Tabs: Overview / Preview */}
+              <div className="mt-6 mb-4">
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => setActiveTab('overview')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                      activeTab === 'overview'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    Overview
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('preview')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                      activeTab === 'preview'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    Preview
+                  </button>
                 </div>
               </div>
             </div>
