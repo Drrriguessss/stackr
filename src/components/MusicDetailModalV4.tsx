@@ -8,6 +8,7 @@ import { musicMetacriticService, type MetacriticScore } from '@/services/musicMe
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
 import { avatarService } from '@/services/avatarService'
 import { musicVideoService } from '@/services/musicVideoService'
+import { AuthService } from '@/services/authService'
 import StackrLoadingSkeleton from './StackrLoadingSkeleton'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 
@@ -59,7 +60,8 @@ export default function MusicDetailModalV4({
   const [activeTab, setActiveTab] = useState<'overview' | 'media'>('overview')
   const [expandedUserReview, setExpandedUserReview] = useState(false)
   const [reviewSaved, setReviewSaved] = useState(false)
-  const userAvatar = null // Will be implemented later with user system
+  // Photo de profil utilisateur - récupérée via AuthService - COMME MOVIE MODAL
+  const [currentUser, setCurrentUser] = useState<any | null>(null)
   
   // États pour Your Review interactions Instagram-like
   const [userReviewData, setUserReviewData] = useState({
@@ -300,6 +302,24 @@ export default function MusicDetailModalV4({
       setReviewSaved(false)
     }
   }, [musicDetail, userRating, userReview, reviewPrivacy, formattedMusicId])
+
+  // Load current user on mount - COMME MOVIE MODAL
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const user = await AuthService.getCurrentUser()
+      setCurrentUser(user)
+    }
+    loadCurrentUser()
+    
+    // Listen for auth state changes
+    const { data: { subscription } } = AuthService.onAuthStateChange((user) => {
+      setCurrentUser(user)
+    })
+    
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [])
   
   // Fonction pour formater le temps Instagram-style
   const formatTimeAgo = useCallback((timestamp: string): string => {
@@ -1196,19 +1216,19 @@ export default function MusicDetailModalV4({
             <div className="py-2">
               {/* Avatar + You + Rating */}
               <div className="flex items-center space-x-3 mb-2">
-                {userAvatar ? (
+                {currentUser?.avatar ? (
                   <img 
-                    src={userAvatar} 
+                    src={currentUser.avatar} 
                     alt="Your avatar" 
                     className="w-8 h-8 rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
-                    U
+                    {currentUser ? currentUser.name?.[0]?.toUpperCase() || currentUser.email[0]?.toUpperCase() : 'U'}
                   </div>
                 )}
                 <div className="flex items-center space-x-2 flex-1">
-                  <span className="text-white font-medium text-sm">You</span>
+                  <span className="text-white font-medium text-sm">{currentUser?.name || 'You'}</span>
                   {/* Rating en violet */}
                   <div className="flex">
                     {[1, 2, 3, 4, 5].map((star) => (

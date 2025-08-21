@@ -524,6 +524,20 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     personalReview: '',
     favoriteTrack: ''
   })
+  const [showBookSheet, setShowBookSheet] = useState<string | null>(null)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const [showYearPicker, setShowYearPicker] = useState(false)
+  const [calendarDate, setCalendarDate] = useState(new Date())
+  const [bookSheetData, setBookSheetData] = useState({
+    dateRead: '',
+    location: '',
+    mood: '',
+    format: 'physical',
+    friendsRead: [] as number[],
+    personalRating: 0,
+    personalReview: ''
+  })
   const [showLocalSearchModal, setShowLocalSearchModal] = useState(false)
   const [fetchingMissingInfo, setFetchingMissingInfo] = useState(false)
   const [viewType, setViewType] = useState<'list' | 'grid'>('list')
@@ -576,6 +590,35 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       }
     }
   }, [showMusicSheet, library])
+
+  useEffect(() => {
+    if (showBookSheet) {
+      const item = library.find(item => item.id === showBookSheet)
+      if (item?.additionalInfo?.bookSheet) {
+        setBookSheetData(item.additionalInfo.bookSheet)
+      } else {
+        // Reset to default values
+        setBookSheetData({
+          dateRead: '',
+          location: '',
+          mood: '',
+          format: 'physical',
+          friendsRead: [],
+          personalRating: 0,
+          personalReview: ''
+        })
+      }
+    }
+  }, [showBookSheet, library])
+
+  // Reset calendar states when modal closes
+  useEffect(() => {
+    if (!showBookSheet) {
+      setShowDatePicker(false)
+      setShowMonthPicker(false)
+      setShowYearPicker(false)
+    }
+  }, [showBookSheet])
 
   // ✅ FETCH DEVELOPER INFO FOR GAMES MISSING IT
   // ❌ TEMPORAIREMENT DÉSACTIVÉ - causait des milliers d'appels API
@@ -1231,6 +1274,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                                     setShowGameSheet(item.id)
                                   } else if (item.category === 'music') {
                                     setShowMusicSheet(item.id)
+                                  } else if (item.category === 'books') {
+                                    setShowBookSheet(item.id)
                                   } else {
                                     setShowAddInfoModal(item.id)
                                   }
@@ -1357,6 +1402,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                                 setShowGameSheet(item.id)
                               } else if (item.category === 'music') {
                                 setShowMusicSheet(item.id)
+                              } else if (item.category === 'books') {
+                                setShowBookSheet(item.id)
                               } else {
                                 setShowAddInfoModal(item.id)
                               }
@@ -1643,6 +1690,346 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                   setShowMusicSheet(null)
                 }}
                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Book Sheet Modal */}
+      {showBookSheet && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-white">Customize book sheet</h3>
+              <button
+                onClick={() => setShowBookSheet(null)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="relative">
+                <label className="block text-gray-400 text-sm mb-1">Date of reading</label>
+                <div
+                  onClick={() => setShowDatePicker(true)}
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600 hover:border-gray-500 cursor-pointer flex items-center justify-between"
+                >
+                  <span className={bookSheetData.dateRead ? 'text-white' : 'text-gray-400'}>
+                    {bookSheetData.dateRead 
+                      ? new Date(bookSheetData.dateRead).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                      : 'Select date'
+                    }
+                  </span>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+
+                {/* Modern Calendar Picker - EXACTEMENT COMME MOVIE MODAL */}
+                {showDatePicker && (
+                  <div className={`absolute top-0 left-0 z-10 bg-white border border-gray-300 rounded-lg shadow-2xl overflow-hidden ${
+                    showMonthPicker ? 'w-80 h-48' : showYearPicker ? 'w-80 h-96' : 'w-80 h-auto'
+                  }`}>
+                    {/* Calendar Header */}
+                    <div className="bg-gray-50 border-b border-gray-200 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          onClick={() => {
+                            const newDate = new Date(calendarDate)
+                            newDate.setMonth(newDate.getMonth() - 1)
+                            setCalendarDate(newDate)
+                          }}
+                          className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => setShowMonthPicker(!showMonthPicker)}
+                            className="px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-200 rounded"
+                          >
+                            {calendarDate.toLocaleDateString('en-US', { month: 'long' })}
+                          </button>
+                          <button
+                            onClick={() => setShowYearPicker(!showYearPicker)}
+                            className="px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-200 rounded"
+                          >
+                            {calendarDate.getFullYear()}
+                          </button>
+                        </div>
+                        
+                        <button
+                          onClick={() => {
+                            const newDate = new Date(calendarDate)
+                            newDate.setMonth(newDate.getMonth() + 1)
+                            setCalendarDate(newDate)
+                          }}
+                          className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      <button
+                        onClick={() => setShowDatePicker(false)}
+                        className="w-full px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                      >
+                        Close Calendar
+                      </button>
+                    </div>
+
+                    {/* Month Picker Overlay */}
+                    {showMonthPicker && (
+                      <div className="absolute inset-0 bg-white z-20 p-4">
+                        <div className="grid grid-cols-4 gap-3">
+                          {['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].map((month, index) => (
+                            <button
+                              key={month}
+                              onClick={() => {
+                                const newDate = new Date(calendarDate)
+                                newDate.setMonth(index)
+                                setCalendarDate(newDate)
+                                setShowMonthPicker(false)
+                              }}
+                              className={`py-3 px-2 rounded-lg text-sm font-bold transition-colors ${
+                                calendarDate.getMonth() === index
+                                  ? 'bg-blue-500 text-white shadow-lg scale-105'
+                                  : 'hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300'
+                              }`}
+                            >
+                              {month}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Year Picker Overlay */}
+                    {showYearPicker && (
+                      <div className="absolute inset-0 bg-white z-20 p-4 overflow-y-auto">
+                        <div className="grid grid-cols-4 gap-2">
+                          {Array.from({ length: 50 }, (_, i) => {
+                            const year = new Date().getFullYear() - i
+                            return (
+                              <button
+                                key={year}
+                                onClick={() => {
+                                  const newDate = new Date(calendarDate)
+                                  newDate.setFullYear(year)
+                                  setCalendarDate(newDate)
+                                  setShowYearPicker(false)
+                                }}
+                                className={`py-2 px-1 rounded text-xs font-bold transition-colors ${
+                                  calendarDate.getFullYear() === year
+                                    ? 'bg-blue-500 text-white shadow-lg scale-105'
+                                    : 'hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300'
+                                }`}
+                              >
+                                {year}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Main Calendar */}
+                    {!showMonthPicker && !showYearPicker && (
+                      <div className="p-3">
+                        {/* Days of week header */}
+                        <div className="grid grid-cols-7 gap-1 mb-2">
+                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                            <div key={day} className="p-2 text-center text-xs font-medium text-gray-500">
+                              {day}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Calendar days grid */}
+                        <div className="grid grid-cols-7 gap-1">
+                          {(() => {
+                            const year = calendarDate.getFullYear()
+                            const month = calendarDate.getMonth()
+                            const firstDay = new Date(year, month, 1)
+                            const lastDay = new Date(year, month + 1, 0)
+                            const startDate = new Date(firstDay)
+                            startDate.setDate(startDate.getDate() - firstDay.getDay())
+                            
+                            const days = []
+                            const today = new Date()
+                            const selectedDate = bookSheetData.dateRead ? new Date(bookSheetData.dateRead) : null
+                            
+                            for (let i = 0; i < 42; i++) {
+                              const currentDate = new Date(startDate)
+                              currentDate.setDate(startDate.getDate() + i)
+                              
+                              const isCurrentMonth = currentDate.getMonth() === month
+                              const isToday = currentDate.toDateString() === today.toDateString()
+                              const isSelected = selectedDate && currentDate.toDateString() === selectedDate.toDateString()
+                              const isFuture = currentDate > today
+                              
+                              days.push(
+                                <button
+                                  key={i}
+                                  onClick={() => {
+                                    if (!isFuture) {
+                                      setBookSheetData({
+                                        ...bookSheetData, 
+                                        dateRead: currentDate.toISOString().split('T')[0]
+                                      })
+                                      setShowDatePicker(false)
+                                    }
+                                  }}
+                                  disabled={isFuture}
+                                  className={`p-2 text-sm font-medium rounded transition-colors ${
+                                    isFuture
+                                      ? 'text-gray-300 cursor-not-allowed'
+                                      : isSelected
+                                      ? 'bg-blue-500 text-white'
+                                      : isToday
+                                      ? 'bg-blue-100 text-blue-600 font-bold'
+                                      : isCurrentMonth
+                                      ? 'text-gray-900 hover:bg-gray-100'
+                                      : 'text-gray-400 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {currentDate.getDate()}
+                                </button>
+                              )
+                            }
+                            
+                            return days
+                          })()}
+                        </div>
+
+                        {/* Quick action buttons */}
+                        <div className="flex justify-between mt-4 pt-3 border-t border-gray-200">
+                          <button
+                            onClick={() => {
+                              const today = new Date()
+                              setBookSheetData({...bookSheetData, dateRead: today.toISOString().split('T')[0]})
+                              setCalendarDate(today)
+                            }}
+                            className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                          >
+                            Today
+                          </button>
+                          <button
+                            onClick={() => {
+                              setBookSheetData({...bookSheetData, dateRead: ''})
+                              setShowDatePicker(false)
+                            }}
+                            className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Location</label>
+                <input
+                  type="text"
+                  value={bookSheetData.location}
+                  onChange={(e) => setBookSheetData({...bookSheetData, location: e.target.value})}
+                  placeholder="Where did you read this?"
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Mood</label>
+                <input
+                  type="text"
+                  value={bookSheetData.mood}
+                  onChange={(e) => setBookSheetData({...bookSheetData, mood: e.target.value})}
+                  placeholder="What was your mood?"
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Format</label>
+                <select
+                  value={bookSheetData.format}
+                  onChange={(e) => setBookSheetData({...bookSheetData, format: e.target.value})}
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  <option value="physical">Physical book</option>
+                  <option value="ebook">E-book</option>
+                  <option value="audiobook">Audiobook</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Private Rating</label>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={24}
+                      className={`cursor-pointer transition-colors ${
+                        star <= bookSheetData.personalRating 
+                          ? 'text-yellow-500 fill-current' 
+                          : 'text-gray-300 hover:text-yellow-400'
+                      }`}
+                      onClick={() => setBookSheetData({...bookSheetData, personalRating: star})}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Private Review</label>
+                <textarea
+                  value={bookSheetData.personalReview}
+                  onChange={(e) => setBookSheetData({...bookSheetData, personalReview: e.target.value})}
+                  placeholder="Write your private review..."
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 h-20"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowBookSheet(null)}
+                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // Save book sheet data to library item
+                  if (onUpdateItem && showBookSheet) {
+                    const existingItem = library.find(item => item.id === showBookSheet)
+                    onUpdateItem(showBookSheet, { 
+                      additionalInfo: {
+                        ...existingItem?.additionalInfo,
+                        bookSheet: bookSheetData
+                      }
+                    })
+                  }
+                  setShowBookSheet(null)
+                }}
+                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
               >
                 Save
               </button>
