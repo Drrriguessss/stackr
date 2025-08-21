@@ -155,6 +155,18 @@ export default function DebugLibraryPage() {
     (item.title.includes('Red, White & Royal Blue 2') || item.id === '1288115')
   )
 
+  // Find problematic music tracks (like Taylor Swift - Track 1440913923)
+  const problematicMusic = library.filter(item => 
+    item.category === 'music' && 
+    (item.title.includes('Track 1440913923') || 
+     item.title.includes('Taylor Swift - Track') ||
+     item.id === '1440913923' ||
+     item.id === 'track-1440913923')
+  )
+
+  // Combine all problematic items
+  const allProblematicItems = [...problematicMovies, ...problematicMusic]
+
   useEffect(() => {
     checkUserAndLibrary()
   }, [])
@@ -164,25 +176,44 @@ export default function DebugLibraryPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold text-center">🔍 Debug Library - Authenticated Users</h1>
         
-        {/* Problematic Movies Alert */}
-        {problematicMovies.length > 0 && (
+        {/* Problematic Items Alert */}
+        {allProblematicItems.length > 0 && (
           <div className="bg-red-900 border border-red-700 p-4 rounded">
             <div className="flex items-start">
               <AlertTriangle className="h-6 w-6 text-red-400 mt-1 mr-3 flex-shrink-0" />
               <div className="flex-1">
-                <h2 className="font-semibold text-red-200 mb-2">⚠️ Films Problématiques Détectés</h2>
+                <h2 className="font-semibold text-red-200 mb-2">⚠️ Éléments Problématiques Détectés</h2>
                 <p className="text-red-300 text-sm mb-4">
-                  Ces films ont des problèmes (ne peuvent pas se charger) et doivent être supprimés:
+                  Ces éléments ont des problèmes (ne peuvent pas se charger) et doivent être supprimés:
                 </p>
                 <div className="space-y-3">
-                  {problematicMovies.map(item => (
+                  {allProblematicItems.map(item => (
                     <div key={item.id} className="bg-red-800 rounded p-3 border border-red-600">
                       <div className="flex items-center justify-between">
                         <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              item.category === 'movies' ? 'bg-red-600 text-red-100' :
+                              item.category === 'music' ? 'bg-purple-600 text-purple-100' :
+                              'bg-gray-600 text-gray-100'
+                            }`}>
+                              {item.category === 'movies' ? '🎬' : item.category === 'music' ? '🎵' : '📁'} {item.category}
+                            </span>
+                          </div>
                           <h3 className="font-medium text-white">{item.title}</h3>
                           <p className="text-red-200 text-sm">
                             ID: {item.id} | Status: {item.status} | Ajouté: {new Date(item.addedAt).toLocaleDateString()}
                           </p>
+                          {item.category === 'music' && (
+                            <p className="text-red-300 text-xs mt-1">
+                              🎵 Track problématique: ID invalide ou données corrompues
+                            </p>
+                          )}
+                          {item.category === 'movies' && (
+                            <p className="text-red-300 text-xs mt-1">
+                              🎬 Film problématique: IMDB ID invalide pour film non sorti
+                            </p>
+                          )}
                         </div>
                         <button
                           onClick={() => deleteItem(item.id, item.title)}
@@ -300,12 +331,21 @@ export default function DebugLibraryPage() {
             <li>Modifiez son statut</li>
             <li>Vérifiez que les changements persistent</li>
           </ol>
-          <div className="mt-4 p-3 bg-red-900 rounded border border-red-700">
-            <p className="text-red-200 font-semibold">🚨 Film Problématique:</p>
-            <p className="text-red-300 text-xs">
-              "Red, White & Royal Blue 2" (ID: 1288115) ne peut pas se charger car il utilise un IMDB ID invalide pour un film non sorti. 
-              Utilisez le bouton "Supprimer" ci-dessus pour le retirer de votre bibliothèque.
-            </p>
+          <div className="mt-4 space-y-3">
+            <div className="p-3 bg-red-900 rounded border border-red-700">
+              <p className="text-red-200 font-semibold">🚨 Éléments Problématiques Connus:</p>
+              <div className="space-y-2 mt-2">
+                <p className="text-red-300 text-xs">
+                  🎬 <strong>"Red, White & Royal Blue 2"</strong> (ID: 1288115) - IMDB ID invalide pour un film non sorti
+                </p>
+                <p className="text-red-300 text-xs">
+                  🎵 <strong>"Taylor Swift - Track 1440913923"</strong> - ID de track invalide ou données corrompues
+                </p>
+              </div>
+              <p className="text-red-200 text-xs mt-2">
+                Utilisez les boutons "Supprimer" ci-dessus pour les retirer de votre bibliothèque.
+              </p>
+            </div>
           </div>
           <div className="mt-2 text-center">
             <a href="/" className="text-blue-400 hover:text-blue-300">← Retour à l'application principale</a>
