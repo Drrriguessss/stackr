@@ -1985,7 +1985,7 @@ export default function MusicDetailModalV4({
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm mb-2">Rating</label>
+                <label className="block text-gray-400 text-sm mb-2">Private Rating</label>
                 <div className="flex space-x-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
@@ -2001,7 +2001,7 @@ export default function MusicDetailModalV4({
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm mb-1">Review</label>
+                <label className="block text-gray-400 text-sm mb-1">Private Review</label>
                 <textarea
                   value={musicSheetData.personalReview}
                   onChange={(e) => setMusicSheetData({...musicSheetData, personalReview: e.target.value})}

@@ -525,6 +525,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     favoriteTrack: ''
   })
   const [showBookSheet, setShowBookSheet] = useState<string | null>(null)
+  const [showMovieSheet, setShowMovieSheet] = useState<string | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showMonthPicker, setShowMonthPicker] = useState(false)
   const [showYearPicker, setShowYearPicker] = useState(false)
@@ -535,6 +536,14 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
     mood: '',
     format: 'physical',
     friendsRead: [] as number[],
+    personalRating: 0,
+    personalReview: ''
+  })
+  const [movieSheetData, setMovieSheetData] = useState({
+    dateWatched: '',
+    location: '',
+    watchedWith: '',
+    format: 'theater',
     personalRating: 0,
     personalReview: ''
   })
@@ -610,6 +619,25 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
       }
     }
   }, [showBookSheet, library])
+
+  useEffect(() => {
+    if (showMovieSheet) {
+      const item = library.find(item => item.id === showMovieSheet)
+      if (item?.additionalInfo?.movieSheet) {
+        setMovieSheetData(item.additionalInfo.movieSheet)
+      } else {
+        // Reset to default values
+        setMovieSheetData({
+          dateWatched: '',
+          location: '',
+          watchedWith: '',
+          format: 'theater',
+          personalRating: 0,
+          personalReview: ''
+        })
+      }
+    }
+  }, [showMovieSheet, library])
 
   // Reset calendar states when modal closes
   useEffect(() => {
@@ -1276,6 +1304,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                                     setShowMusicSheet(item.id)
                                   } else if (item.category === 'books') {
                                     setShowBookSheet(item.id)
+                                  } else if (item.category === 'movies') {
+                                    setShowMovieSheet(item.id)
                                   } else {
                                     setShowAddInfoModal(item.id)
                                   }
@@ -1404,6 +1434,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                                 setShowMusicSheet(item.id)
                               } else if (item.category === 'books') {
                                 setShowBookSheet(item.id)
+                              } else if (item.category === 'movies') {
+                                setShowMovieSheet(item.id)
                               } else {
                                 setShowAddInfoModal(item.id)
                               }
@@ -2028,6 +2060,261 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({
                     })
                   }
                   setShowBookSheet(null)
+                }}
+                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Movie Sheet Modal */}
+      {showMovieSheet && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-white">Customize movie sheet</h3>
+              <button
+                onClick={() => setShowMovieSheet(null)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Date watched</label>
+                <div
+                  onClick={() => setShowDatePicker(true)}
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600 hover:border-gray-500 cursor-pointer flex items-center justify-between"
+                >
+                  <span className={movieSheetData.dateWatched ? 'text-white' : 'text-gray-400'}>
+                    {movieSheetData.dateWatched 
+                      ? new Date(movieSheetData.dateWatched).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                      : 'Select date'
+                    }
+                  </span>
+                  <Calendar size={16} className="text-gray-400" />
+                </div>
+
+                {/* Date Picker Modal */}
+                {showDatePicker && (
+                  <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/50">
+                    <div 
+                      className="absolute inset-0" 
+                      onClick={() => setShowDatePicker(false)}
+                    />
+                    <div className="relative bg-white rounded-lg shadow-lg p-4 mx-4 max-w-sm w-full">
+                      {/* Calendar header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <button
+                          onClick={() => {
+                            const newDate = new Date(calendarDate)
+                            newDate.setMonth(newDate.getMonth() - 1)
+                            setCalendarDate(newDate)
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded"
+                        >
+                          ←
+                        </button>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          {calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </h3>
+                        <button
+                          onClick={() => {
+                            const newDate = new Date(calendarDate)
+                            newDate.setMonth(newDate.getMonth() + 1)
+                            setCalendarDate(newDate)
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded"
+                        >
+                          →
+                        </button>
+                      </div>
+
+                      {/* Days of week */}
+                      <div className="grid grid-cols-7 gap-1 mb-2">
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                          <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Calendar days */}
+                      <div className="grid grid-cols-7 gap-1">
+                        {(() => {
+                          const year = calendarDate.getFullYear()
+                          const month = calendarDate.getMonth()
+                          const firstDay = new Date(year, month, 1)
+                          const lastDay = new Date(year, month + 1, 0)
+                          const startDate = new Date(firstDay)
+                          startDate.setDate(startDate.getDate() - firstDay.getDay())
+                          
+                          const days = []
+                          const today = new Date()
+                          const selectedDate = movieSheetData.dateWatched ? new Date(movieSheetData.dateWatched) : null
+                          
+                          for (let i = 0; i < 42; i++) {
+                            const currentDate = new Date(startDate)
+                            currentDate.setDate(startDate.getDate() + i)
+                            
+                            const isCurrentMonth = currentDate.getMonth() === month
+                            const isToday = currentDate.toDateString() === today.toDateString()
+                            const isSelected = selectedDate && currentDate.toDateString() === selectedDate.toDateString()
+                            const isFuture = currentDate > today
+                            
+                            days.push(
+                              <button
+                                key={i}
+                                onClick={() => {
+                                  if (!isFuture) {
+                                    setMovieSheetData({
+                                      ...movieSheetData, 
+                                      dateWatched: currentDate.toISOString().split('T')[0]
+                                    })
+                                    setShowDatePicker(false)
+                                  }
+                                }}
+                                disabled={isFuture}
+                                className={`w-8 h-8 text-xs rounded transition-colors ${
+                                  isFuture 
+                                    ? 'text-gray-300 cursor-not-allowed' 
+                                    : isSelected
+                                      ? 'bg-blue-500 text-white'
+                                      : isToday
+                                        ? 'bg-blue-100 text-blue-600 font-semibold'
+                                        : isCurrentMonth
+                                          ? 'text-gray-700 hover:bg-gray-100'
+                                          : 'text-gray-400 hover:bg-gray-50'
+                                }`}
+                              >
+                                {currentDate.getDate()}
+                              </button>
+                            )
+                          }
+                          return days
+                        })()}
+                      </div>
+
+                      {/* Footer actions */}
+                      <div className="flex justify-between mt-3 pt-3 border-t border-gray-200">
+                        <button
+                          onClick={() => {
+                            const today = new Date()
+                            setMovieSheetData({...movieSheetData, dateWatched: today.toISOString().split('T')[0]})
+                            setCalendarDate(today)
+                          }}
+                          className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                          Today
+                        </button>
+                        <button
+                          onClick={() => {
+                            setMovieSheetData({...movieSheetData, dateWatched: ''})
+                            setShowDatePicker(false)
+                          }}
+                          className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Location</label>
+                <input
+                  type="text"
+                  value={movieSheetData.location}
+                  onChange={(e) => setMovieSheetData({...movieSheetData, location: e.target.value})}
+                  placeholder="Where did you watch this?"
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Watched with</label>
+                <input
+                  type="text"
+                  value={movieSheetData.watchedWith}
+                  onChange={(e) => setMovieSheetData({...movieSheetData, watchedWith: e.target.value})}
+                  placeholder="Who did you watch this with?"
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Format</label>
+                <select
+                  value={movieSheetData.format}
+                  onChange={(e) => setMovieSheetData({...movieSheetData, format: e.target.value})}
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  <option value="theater">Theater</option>
+                  <option value="streaming">Streaming</option>
+                  <option value="blu-ray">Blu-ray</option>
+                  <option value="dvd">DVD</option>
+                  <option value="digital">Digital</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Private Rating</label>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={24}
+                      className={`cursor-pointer transition-colors ${
+                        star <= movieSheetData.personalRating ? 'text-yellow-500 fill-current' : 'text-gray-600'
+                      }`}
+                      onClick={() => setMovieSheetData({...movieSheetData, personalRating: star})}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Private Review</label>
+                <textarea
+                  value={movieSheetData.personalReview}
+                  onChange={(e) => setMovieSheetData({...movieSheetData, personalReview: e.target.value})}
+                  placeholder="Write your review..."
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 h-20"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowMovieSheet(null)}
+                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // Save movie sheet data to library item
+                  if (onUpdateItem && showMovieSheet) {
+                    const existingItem = library.find(item => item.id === showMovieSheet)
+                    onUpdateItem(showMovieSheet, { 
+                      additionalInfo: {
+                        ...existingItem?.additionalInfo,
+                        movieSheet: movieSheetData
+                      }
+                    })
+                  }
+                  setShowMovieSheet(null)
                 }}
                 className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
               >
