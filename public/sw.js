@@ -59,6 +59,11 @@ self.addEventListener('fetch', (event) => {
 
 // Cache-first strategy for static assets
 async function cacheFirstStrategy(request) {
+  // Only cache GET requests
+  if (request.method !== 'GET') {
+    return fetch(request);
+  }
+  
   const cache = await caches.open(CACHE_NAME);
   const cachedResponse = await cache.match(request);
   
@@ -86,6 +91,11 @@ async function cacheFirstStrategy(request) {
 
 // Network-first strategy for API calls
 async function networkFirstStrategy(request) {
+  // Only cache GET requests for APIs too
+  if (request.method !== 'GET') {
+    return fetch(request);
+  }
+  
   const cache = await caches.open(API_CACHE_NAME);
   
   try {
@@ -113,6 +123,11 @@ async function networkFirstStrategy(request) {
 
 // Background fetch and cache update
 async function fetchAndCache(request, cache) {
+  // Only cache GET requests
+  if (request.method !== 'GET') {
+    return;
+  }
+  
   try {
     const networkResponse = await fetch(request);
     if (networkResponse.ok) {

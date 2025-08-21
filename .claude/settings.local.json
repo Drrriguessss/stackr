@@ -96,7 +96,13 @@
       "Bash(del test-production-fix.js)",
       "Bash(del test-image-comparison.js)",
       "Bash(del debug-env.js)",
-      "Bash(set PORT=3001)"
+      "Bash(set PORT=3001)",
+      "Bash(PORT=3005 npm run dev)",
+      "Bash(PORT=3007 npm run dev)",
+      "Bash(PORT=3020 npm run dev)",
+      "Bash(del debug-duplicates.js)",
+      "Bash(npx kill-port:*)",
+      "Bash(PORT=3030 npm run dev)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

@@ -261,6 +261,9 @@ export function useMovieDetail(movieId: string, mediaType: 'movie' | 'tv' = 'mov
             : Promise.resolve(),
           loadMovieReviews(movieData.Title, movieData.Year)
         ])
+      } else {
+        console.warn(`⚠️ Movie not found in OMDB: ${movieId} (IMDB: ${imdbId})`)
+        setError('Movie details not available. This might be an unreleased or limited release film.')
       }
     } catch (err) {
       console.error('❌ Error loading movie:', err)

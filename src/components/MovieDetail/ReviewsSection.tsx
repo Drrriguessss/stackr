@@ -79,16 +79,10 @@ const ReviewsSection = memo(({ reviews, maxInitialReviews = 3 }: ReviewsSectionP
                 <div className="flex-1">
                   <span className="text-white font-medium text-sm">{review.author}</span>
                 </div>
-                
-                {/* Comments count à droite (plus petit) */}
-                <div className="flex items-center space-x-1 text-gray-400">
-                  <span className="text-xs">💬</span>
-                  <span className="text-xs">{Math.floor(Math.random() * 100) + 10}</span>
-                </div>
               </div>
               
-              {/* Rating + Date sur ligne séparée (sous le username) */}
-              <div className="flex items-center justify-between mb-3 ml-11 md:ml-12">
+              {/* Rating sur ligne séparée (sous le username) */}
+              <div className="flex items-center mb-3 ml-11 md:ml-12">
                 {/* Rating étoiles */}
                 <div className="flex items-center space-x-2">
                   <div className="flex">
@@ -105,9 +99,6 @@ const ReviewsSection = memo(({ reviews, maxInitialReviews = 3 }: ReviewsSectionP
                     ))}
                   </div>
                 </div>
-                
-                {/* Date */}
-                <span className="text-gray-500 text-xs">{review.date}</span>
               </div>
               
               {/* Review text - PLEINE LARGEUR et police plus petite */}
@@ -130,14 +121,34 @@ const ReviewsSection = memo(({ reviews, maxInitialReviews = 3 }: ReviewsSectionP
                 </div>
               )}
               
-              {/* Footer: Likes en bas */}
+              {/* Actions Instagram style avec date */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-1 text-gray-400">
-                  <span className="text-xs">❤️</span>
-                  <span className="text-xs">
-                    {Math.floor(Math.random() * 100) + 10} likes
-                  </span>
+                <div className="flex items-center space-x-4">
+                  {/* Like - Heart outline */}
+                  <button className="text-gray-400 hover:text-gray-300 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                  </button>
+                  
+                  {/* Comment - Chat bubble */}
+                  <button className="text-gray-400 hover:text-gray-300 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </button>
+                  
+                  {/* Share - Send arrow */}
+                  <button className="text-gray-400 hover:text-gray-300 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M22 2L11 13"/>
+                      <path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+                    </svg>
+                  </button>
                 </div>
+                
+                {/* Date */}
+                <span className="text-gray-500 text-xs">{review.date}</span>
               </div>
             </div>
             

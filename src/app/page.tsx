@@ -167,6 +167,30 @@ export default function Home() {
     loadLibrary()
   }, [])
 
+  // Handle sign out
+  useEffect(() => {
+    if (activeMainTab === 'signout') {
+      const handleSignOut = async () => {
+        console.log('🚪 [Auth] Signing out user...')
+        const { error } = await AuthService.signOut()
+        
+        if (error) {
+          console.error('❌ [Auth] Sign out error:', error)
+        } else {
+          console.log('✅ [Auth] User signed out successfully')
+          // Reset app state
+          setCurrentUser(null)
+          setLibrary([])
+          setActiveMainTab('discover') // Redirect to discover page
+          // Refresh the page to ensure clean state
+          window.location.reload()
+        }
+      }
+      
+      handleSignOut()
+    }
+  }, [activeMainTab])
+
   // Listen for profile navigation events
   useEffect(() => {
     const handleNavigateToProfile = () => {
@@ -204,14 +228,12 @@ export default function Home() {
       if (!mounted) return
       try {
         console.log('🔄 Refreshing library...')
-        // For non-authenticated users, use localStorage directly
-        const storageKey = 'stackr_library_guest'
-        const stored = localStorage.getItem(storageKey)
-        const freshLibrary = stored ? JSON.parse(stored) : []
+        // Use the proper LibraryService to get fresh data (handles authentication)
+        const freshLibrary = await LibraryService.getLibraryFresh()
         
         if (mounted) {
           setLibrary(freshLibrary)
-          console.log('✅ Library refreshed from localStorage:', freshLibrary.length, 'items')
+          console.log('✅ Library refreshed from LibraryService:', freshLibrary.length, 'items')
         }
       } catch (error) {
         console.error('❌ Error refreshing library:', error)
@@ -483,12 +505,14 @@ export default function Home() {
     }
 
     try {
-      // Check if item already exists in library
-      const existingItem = library.find(libItem => libItem.id === normalizedId)
+      // ✅ Check if item already exists in FRESH library data (not cached state)
+      console.log('🔍 [DEBUG PAGE] Checking for existing item in fresh library data...')
+      const freshLibrary = await LibraryService.getLibraryFresh()
+      const existingItem = freshLibrary.find(libItem => libItem.id === normalizedId)
       
       if (existingItem) {
         // If item exists, update its status
-        console.log('🔍 [DEBUG PAGE] Item already in library, updating status:', normalizedId, status)
+        console.log('🔍 [DEBUG PAGE] Item already in library, updating status:', normalizedId, 'from', existingItem.status, 'to', status)
         const updateStart = performance.now()
         await LibraryService.updateLibraryItem(normalizedId, { status })
         console.log('🔍 [DEBUG PAGE] LibraryService.updateLibraryItem took:', performance.now() - updateStart, 'ms')
@@ -924,9 +948,9 @@ export default function Home() {
           <FeedPage 
             library={library}
             onOpenGameDetail={handleOpenGameDetail}
-            onOpenMovieDetail={(movieId) => setSelectedMovieId(movieId)}
-            onOpenBookDetail={(bookId) => setSelectedBookId(bookId)}
-            onOpenMusicDetail={(musicId) => setSelectedMusicId(musicId)}
+            onOpenMovieDetail={handleOpenMovieDetail}
+            onOpenBookDetail={handleOpenBookDetail}
+            onOpenMusicDetail={handleOpenMusicDetail}
           />
         )
       case 'home':
@@ -1205,9 +1229,9 @@ export default function Home() {
           <FeedPage 
             library={library}
             onOpenGameDetail={handleOpenGameDetail}
-            onOpenMovieDetail={(movieId) => setSelectedMovieId(movieId)}
-            onOpenBookDetail={(bookId) => setSelectedBookId(bookId)}
-            onOpenMusicDetail={(musicId) => setSelectedMusicId(musicId)}
+            onOpenMovieDetail={handleOpenMovieDetail}
+            onOpenBookDetail={handleOpenBookDetail}
+            onOpenMusicDetail={handleOpenMusicDetail}
           />
         )
     }

@@ -286,13 +286,32 @@ export default function FeedPage({
     }
   }, [isUserMenuOpen])
 
-  const handleSignOut = async () => {
-    const { error } = await AuthService.signOut()
-    if (!error) {
-      setCurrentUser(null)
+  const handleSignOut = async (e?: React.MouseEvent) => {
+    try {
+      console.log('🚪 [FeedPage] Sign out button clicked - starting sign out process')
+      
+      if (e) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+      
+      // Close menu immediately for better UX
       setIsUserMenuOpen(false)
-      // Optionnel: recharger la page pour vider les données
-      window.location.reload()
+      
+      const { error } = await AuthService.signOut()
+      if (!error) {
+        console.log('✅ [FeedPage] Sign out successful, clearing state and reloading')
+        setCurrentUser(null)
+        
+        // Add a small delay for mobile to ensure proper state cleanup
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
+      } else {
+        console.error('❌ [FeedPage] Sign out error:', error)
+      }
+    } catch (error) {
+      console.error('❌ [FeedPage] Exception during sign out:', error)
     }
   }
 
@@ -416,26 +435,26 @@ export default function FeedPage({
                   // Utilisateur connecté
                   <div className="flex items-center">
                     <button
-                      onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        console.log('🖱️ [FeedPage] Profile button clicked, current user:', currentUser)
+                        setIsUserMenuOpen(!isUserMenuOpen)
+                      }}
                       className="flex items-center gap-2 p-2 hover:bg-gray-700 rounded-lg transition-colors"
                     >
                       <div 
                         className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer overflow-hidden"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          window.dispatchEvent(new CustomEvent('navigateToProfile'))
-                          setIsUserMenuOpen(false)
-                        }}
                       >
-                        {userAvatar ? (
+                        {currentUser.avatar || userAvatar ? (
                           <img 
-                            src={userAvatar} 
+                            src={currentUser.avatar || userAvatar || ''} 
                             alt={currentUser.name || 'User'} 
                             className="w-8 h-8 rounded-full object-cover"
                           />
                         ) : (
                           <span className="text-white text-sm font-medium">
-                            {currentUser.name?.charAt(0)?.toUpperCase() || '👤'}
+                            {currentUser.name?.charAt(0)?.toUpperCase() || currentUser.email?.charAt(0)?.toUpperCase() || '👤'}
                           </span>
                         )}
                       </div>
@@ -477,7 +496,7 @@ export default function FeedPage({
                         </button>
 
                         <button
-                          onClick={handleSignOut}
+                          onClick={(e) => handleSignOut(e)}
                           className="flex items-center gap-3 px-4 py-2 text-red-400 hover:bg-red-900/20 w-full"
                         >
                           <LogOut size={16} />

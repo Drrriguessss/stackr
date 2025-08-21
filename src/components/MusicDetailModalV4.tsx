@@ -654,7 +654,6 @@ export default function MusicDetailModalV4({
   const getAvailableStatuses = useCallback(() => {
     const baseStatuses = [
       { value: 'want-to-listen', label: 'Want to Listen' },
-      { value: 'currently-listening', label: 'Currently Listening' },
       { value: 'listened', label: 'Listened' }
     ]
     
@@ -671,7 +670,6 @@ export default function MusicDetailModalV4({
     
     const statusLabels = {
       'want-to-listen': 'Want to Listen',
-      'currently-listening': 'Currently Listening',
       'listened': 'Listened'
     } as const
     

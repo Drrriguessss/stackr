@@ -14,6 +14,7 @@ import MovieInfoSection from './MovieDetail/MovieInfoSection'
 import MediaCarousel from './MovieDetail/MediaCarousel'
 import ReviewsSection from './MovieDetail/ReviewsSection'
 import StackrLoadingSkeleton from './StackrLoadingSkeleton'
+import { AuthService, type AuthUser } from '@/services/authService'
 
 // Lazy load des modales pour optimiser le chargement initial
 const ShareWithFriendsModal = lazy(() => import('./ShareWithFriendsModal'))
@@ -105,9 +106,26 @@ export default function MovieDetailModalV3Optimized({
   // États pour éviter les conflits de synchronisation Supabase
   const [isUserInteracting, setIsUserInteracting] = useState(false)
   const [lastUserAction, setLastUserAction] = useState<number>(0)
-  // Photo de profil utilisateur - null si pas connecté, URL si connecté
-  const isUserSignedIn = false // À remplacer par le vrai état de connexion
-  const userAvatar = isUserSignedIn ? 'URL_DE_LA_VRAIE_PHOTO_DU_COMPTE' : null
+  // Photo de profil utilisateur - récupérée via AuthService
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
+  
+  // Load current user on mount
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const user = await AuthService.getCurrentUser()
+      setCurrentUser(user)
+    }
+    loadCurrentUser()
+    
+    // Listen for auth state changes
+    const { data: { subscription } } = AuthService.onAuthStateChange((user) => {
+      setCurrentUser(user)
+    })
+    
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [])
   
   // États pour streaming providers
   const [streamingProviders, setStreamingProviders] = useState<AffiliateLink[]>([])
@@ -173,10 +191,10 @@ export default function MovieDetailModalV3Optimized({
       setIsInitialLoad(false)
       console.log('🔄 [MOVIE MODAL] ✅ Initial load complete')
     }
-    // Bloquer toute sync supplémentaire si l'utilisateur a agi récemment (dans les 10 dernières secondes)
-    else if (isOpen && movieId && !isInitialLoad && library && library.length > 0) {
+    // Bloquer toute sync supplémentaire si l'utilisateur a agi récemment (dans les 5 dernières secondes)
+    else if (isOpen && movieId && !isInitialLoad && library && library.length > 0 && !isUserInteracting) {
       const timeSinceLastAction = Date.now() - lastUserAction
-      if (timeSinceLastAction > 10000) { // Plus de 10 secondes depuis la dernière action
+      if (timeSinceLastAction > 5000) { // Plus de 5 secondes depuis la dernière action
         console.log('🔄 [MOVIE MODAL] Allowing library sync - no recent user action')
         const libraryItem = library.find(item => item.id === movieId)
         const newStatus = libraryItem?.status || null
@@ -190,12 +208,13 @@ export default function MovieDetailModalV3Optimized({
         console.log(`🔄 [MOVIE MODAL] Blocking library sync - recent user action (${timeSinceLastAction}ms ago)`)
       }
     }
-  }, [isOpen, movieId, library, isInitialLoad, selectedStatus, lastUserAction])
+  }, [isOpen, movieId, library, isInitialLoad, selectedStatus, lastUserAction, isUserInteracting])
 
   // Reset initial load flag when modal closes
   useEffect(() => {
     if (!isOpen) {
       setIsInitialLoad(true)
+      setIsUserInteracting(false) // Reset user interaction flag
       console.log('🔄 [MOVIE MODAL] Modal closed - reset for next load')
     }
   }, [isOpen])
@@ -401,22 +420,34 @@ export default function MovieDetailModalV3Optimized({
     if (status === null || status === 'remove') {
       console.log('🎬 [MOVIE MODAL] Removing item from library')
       if (onDeleteItem) {
-        await onDeleteItem(movieDetail.imdbID)
+        await onDeleteItem(movieId) // Use original TMDB ID, not converted IMDB ID
+        
+        // Force library refresh for mobile reliability
+        setTimeout(() => {
+          const event = new CustomEvent('library-changed', {
+            detail: { action: 'deleted', item: { id: movieId, title: movieDetail.Title }, timestamp: Date.now() }
+          })
+          window.dispatchEvent(event)
+          console.log('🔔 [MOVIE MODAL] Forced library-changed event for mobile')
+        }, 500)
       }
       setSelectedStatus(null)
       setShowStatusDropdown(false)
       
-      // Reset protection après délai plus long pour les suppressions
+      // Reset protection après délai pour les suppressions
+      // Délai réduit sur mobile pour améliorer la réactivité  
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      const removalDelay = isMobile ? 1000 : 2000
       setTimeout(() => {
         console.log('🎬 [MOVIE MODAL] 🔓 User interaction ended (removal) - allowing real-time sync')
         setIsUserInteracting(false)
-      }, 5000) // 5 secondes pour les suppressions
+      }, removalDelay)
       return
     }
     
-    // Prepare movie data for library
+    // Prepare movie data for library - USE ORIGINAL TMDB ID for consistency
     const movieData = {
-      id: movieDetail.imdbID,
+      id: movieId, // Use original TMDB ID, not converted IMDB ID
       title: movieDetail.Title,
       category: 'movies' as const,
       image: movieDetail.Poster,
@@ -444,6 +475,15 @@ export default function MovieDetailModalV3Optimized({
       // Add/update item in library
       await onAddToLibrary(movieData, status)
       
+      // Force library refresh for mobile reliability
+      setTimeout(() => {
+        const event = new CustomEvent('library-changed', {
+          detail: { action: 'updated', item: { id: movieId, title: movieDetail.Title, status }, timestamp: Date.now() }
+        })
+        window.dispatchEvent(event)
+        console.log('🔔 [MOVIE MODAL] Forced library-changed event for mobile')
+      }, 500)
+      
       console.log('🎬 [MOVIE MODAL] ✅ Library update completed with status:', status)
       
       // Note: Share your thoughts section only opens when user rates the movie, not on status change
@@ -452,14 +492,17 @@ export default function MovieDetailModalV3Optimized({
     } catch (error) {
       console.error('🎬 [ERROR] Failed to update library:', error)
       // En cas d'erreur, revenir au statut précédent
-      const libraryItem = library.find(item => item.id === movieDetail.imdbID)
+      const libraryItem = library.find(item => item.id === movieId)
       setSelectedStatus(libraryItem?.status || null)
     } finally {
-      // PROTECTION: Débloquer la synchronisation après un délai plus long pour permettre à Supabase de se synchroniser
+      // PROTECTION: Débloquer la synchronisation après un délai pour permettre à Supabase de se synchroniser
+      // Délai réduit sur mobile pour améliorer la réactivité
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      const protectionDelay = isMobile ? 1500 : 3000
       setTimeout(() => {
         console.log('🎬 [MOVIE MODAL] 🔓 User interaction ended - allowing real-time sync')
         setIsUserInteracting(false)
-      }, 7000) // 7 secondes de protection contre les real-time updates (was 3)
+      }, protectionDelay)
     }
   }, [movieDetail, onAddToLibrary, onDeleteItem, library])
 
@@ -561,19 +604,19 @@ export default function MovieDetailModalV3Optimized({
                     <div className="py-2">
                       {/* Avatar + You + Rating */}
                       <div className="flex items-center space-x-3 mb-2">
-                        {userAvatar ? (
+                        {currentUser?.avatar ? (
                           <img 
-                            src={userAvatar} 
+                            src={currentUser.avatar} 
                             alt="Your avatar" 
                             className="w-8 h-8 rounded-full object-cover"
                           />
                         ) : (
                           <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
-                            U
+                            {currentUser ? currentUser.name?.[0]?.toUpperCase() || currentUser.email[0]?.toUpperCase() : 'U'}
                           </div>
                         )}
                         <div className="flex items-center space-x-2 flex-1">
-                          <span className="text-white font-medium text-sm">You</span>
+                          <span className="text-white font-medium text-sm">{currentUser?.name || 'You'}</span>
                           {/* Rating en violet */}
                           <div className="flex">
                             {[1, 2, 3, 4, 5].map((star) => (
@@ -1177,9 +1220,9 @@ export default function MovieDetailModalV3Optimized({
             <div className="border-t border-gray-700 p-3">
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 rounded-full overflow-hidden">
-                  {userAvatar ? (
+                  {currentUser?.avatar ? (
                     <img 
-                      src={userAvatar} 
+                      src={currentUser.avatar} 
                       alt="Your avatar" 
                       className="w-full h-full object-cover"
                     />
