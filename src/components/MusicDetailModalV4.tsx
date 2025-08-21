@@ -99,6 +99,10 @@ export default function MusicDetailModalV4({
   const [musicVideo, setMusicVideo] = useState<any>(null)
   const [loadingVideo, setLoadingVideo] = useState(false)
   const [videosLoaded, setVideosLoaded] = useState(false)
+  
+  // Mobile reliability states (inspired by movie modal)
+  const [isUserInteracting, setIsUserInteracting] = useState(false)
+  const [lastUserAction, setLastUserAction] = useState<number>(0)
 
   // Format ID function - ensure consistent formatting
   const formatMusicId = useCallback((id: string) => {
@@ -610,19 +614,48 @@ export default function MusicDetailModalV4({
     }
   }, [onMusicSelect, audioRef])
 
-  // Add to library
+  // Add to library - ENHANCED FOR MOBILE RELIABILITY
   const handleAddToLibrary = useCallback(async (status: MediaStatus) => {
     if (!musicDetail) return
     
+    // PROTECTION: Mark user interaction to prevent real-time sync interference
+    const actionTimestamp = Date.now()
+    console.log('🎵 [MUSIC MODAL] 🔒 User interaction started - blocking real-time sync')
+    setIsUserInteracting(true)
+    setLastUserAction(actionTimestamp)
+    
+    // Handle remove from library
     if (status === 'remove') {
+      console.log('🎵 [MUSIC MODAL] Removing item from library')
       if (onDeleteItem) {
-        onDeleteItem(musicDetail.id)
+        await onDeleteItem(musicDetail.id)
+        
+        // Force library refresh for mobile reliability
+        setTimeout(() => {
+          const event = new CustomEvent('library-changed', {
+            detail: { action: 'deleted', item: { id: musicDetail.id, title: musicDetail.title }, timestamp: Date.now() }
+          })
+          window.dispatchEvent(event)
+          console.log('🔔 [MUSIC MODAL] Forced library-changed event for mobile')
+        }, 500)
       }
       setSelectedStatus(null)
       setShowStatusDropdown(false)
+      
+      // Reset protection after delay for deletions
+      // Reduced delay on mobile for better reactivity
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      const removalDelay = isMobile ? 1000 : 2000
+      
+      setTimeout(() => {
+        console.log('🎵 [MUSIC MODAL] 🔓 User interaction ended - allowing real-time sync')
+        setIsUserInteracting(false)
+      }, removalDelay)
+      
       return
     }
     
+    // Handle regular status updates
     const musicData = {
       id: musicDetail.id,
       title: musicDetail.title,
@@ -645,8 +678,19 @@ export default function MusicDetailModalV4({
       if (status === 'listened') {
         setShowInlineRating(true)
       }
+      
+      // Reset protection after regular actions
+      setTimeout(() => {
+        console.log('🎵 [MUSIC MODAL] 🔓 User interaction ended - allowing real-time sync')
+        setIsUserInteracting(false)
+      }, 1500)
+      
     } catch (error) {
       console.error('🎵 [ERROR] Failed to add to library:', error)
+      // Reset protection on error
+      setTimeout(() => {
+        setIsUserInteracting(false)
+      }, 1000)
     }
   }, [musicDetail, onAddToLibrary, onDeleteItem, isAlbum])
 
