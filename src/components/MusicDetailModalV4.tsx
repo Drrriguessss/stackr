@@ -103,6 +103,9 @@ export default function MusicDetailModalV4({
   // Mobile reliability states (inspired by movie modal)
   const [isUserInteracting, setIsUserInteracting] = useState(false)
   const [lastUserAction, setLastUserAction] = useState<number>(0)
+  
+  // État pour tracker si c'est la première ouverture du modal (pour éviter les syncs répétées)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
   // Format ID function - ensure consistent formatting
   const formatMusicId = useCallback((id: string) => {
@@ -425,16 +428,59 @@ export default function MusicDetailModalV4({
     }
   }, [formattedMusicId, isAlbum, loadAlbumTracks, loadMetacriticScore, loadExistingReview])
 
-  // Check library status
+  // Effet pour synchroniser le statut avec la bibliothèque - COMME MOVIE MODAL
   useEffect(() => {
-    if (isOpen && formattedMusicId) {
-      // Check library status
-      if (library.length > 0) {
+    if (isOpen && formattedMusicId && isInitialLoad) {
+      console.log('🎵 [MUSIC MODAL] INITIAL LOAD - synchronizing status with library for musicId:', formattedMusicId)
+      console.log('🎵 [MUSIC MODAL] Current selectedStatus before sync:', selectedStatus)
+      
+      // Check library status ONLY on modal open (initial load)
+      if (library && library.length > 0) {
         const libraryItem = library.find(item => item.id === formattedMusicId)
-        setSelectedStatus(libraryItem?.status || null)
+        console.log('🔍 [MUSIC MODAL] Found library item:', libraryItem)
+        const newStatus = libraryItem?.status || null
+        console.log('🔄 [MUSIC MODAL] Setting INITIAL status to:', newStatus)
+        
+        setSelectedStatus(newStatus)
+      } else {
+        console.log('🔄 [MUSIC MODAL] No library items, setting null status')
+        setSelectedStatus(null)
       }
       
-      // Load saved rating, review and interactions from localStorage
+      setIsInitialLoad(false)
+      console.log('🔄 [MUSIC MODAL] ✅ Initial load complete')
+    }
+    // Bloquer toute sync supplémentaire si l'utilisateur a agi récemment (dans les 5 dernières secondes)
+    else if (isOpen && formattedMusicId && !isInitialLoad && library && library.length > 0 && !isUserInteracting) {
+      const timeSinceLastAction = Date.now() - lastUserAction
+      if (timeSinceLastAction > 5000) { // Plus de 5 secondes depuis la dernière action
+        console.log('🔄 [MUSIC MODAL] Allowing library sync - no recent user action')
+        const libraryItem = library.find(item => item.id === formattedMusicId)
+        const newStatus = libraryItem?.status || null
+        
+        // Only update if status actually changed from external source
+        if (newStatus !== selectedStatus) {
+          console.log(`🔄 [MUSIC MODAL] External status change detected: ${selectedStatus} -> ${newStatus}`)
+          setSelectedStatus(newStatus)
+        }
+      } else {
+        console.log(`🔄 [MUSIC MODAL] Blocking library sync - recent user action (${timeSinceLastAction}ms ago)`)
+      }
+    }
+  }, [isOpen, formattedMusicId, library, isInitialLoad, selectedStatus, lastUserAction, isUserInteracting])
+
+  // Reset initial load flag when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsInitialLoad(true)
+      setIsUserInteracting(false) // Reset user interaction flag
+      console.log('🔄 [MUSIC MODAL] Modal closed - reset for next load')
+    }
+  }, [isOpen])
+
+  // Load saved rating, review and interactions from localStorage
+  useEffect(() => {
+    if (isOpen && formattedMusicId) {
       const savedData = localStorage.getItem(`music-review-${formattedMusicId}`)
       if (savedData) {
         const { rating, review, privacy, interactions } = JSON.parse(savedData)
@@ -468,7 +514,7 @@ export default function MusicDetailModalV4({
       // Fetch music detail
       fetchMusicDetail()
     }
-  }, [isOpen, formattedMusicId, library, fetchMusicDetail])
+  }, [isOpen, formattedMusicId, fetchMusicDetail])
   
   // Load videos when Videos tab is selected (only for singles, not albums)
   useEffect(() => {
@@ -511,6 +557,8 @@ export default function MusicDetailModalV4({
       setMusicVideo(null)
       setLoadingVideo(false)
       setVideosLoaded(false)
+      setIsUserInteracting(false) // Reset protection flag
+      setIsInitialLoad(true) // Reset for next load
     }
   }, [isOpen, cleanupAudio])
 
@@ -614,18 +662,18 @@ export default function MusicDetailModalV4({
     }
   }, [onMusicSelect, audioRef])
 
-  // Add to library - ENHANCED FOR MOBILE RELIABILITY
+  // Handle status selection - COMME MOVIE MODAL - AVEC PROTECTION SUPABASE REAL-TIME
   const handleAddToLibrary = useCallback(async (status: MediaStatus) => {
     if (!musicDetail) return
     
-    // PROTECTION: Mark user interaction to prevent real-time sync interference
+    // PROTECTION: Marquer que l'utilisateur interagit pour éviter les overrides Supabase
     const actionTimestamp = Date.now()
     console.log('🎵 [MUSIC MODAL] 🔒 User interaction started - blocking real-time sync')
     setIsUserInteracting(true)
     setLastUserAction(actionTimestamp)
     
     // Handle remove from library
-    if (status === 'remove') {
+    if (status === null || status === 'remove') {
       console.log('🎵 [MUSIC MODAL] Removing item from library')
       if (onDeleteItem) {
         await onDeleteItem(musicDetail.id)
@@ -642,20 +690,18 @@ export default function MusicDetailModalV4({
       setSelectedStatus(null)
       setShowStatusDropdown(false)
       
-      // Reset protection after delay for deletions
-      // Reduced delay on mobile for better reactivity
+      // Reset protection après délai pour les suppressions
+      // Délai réduit sur mobile pour améliorer la réactivité  
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
       const removalDelay = isMobile ? 1000 : 2000
-      
       setTimeout(() => {
-        console.log('🎵 [MUSIC MODAL] 🔓 User interaction ended - allowing real-time sync')
+        console.log('🎵 [MUSIC MODAL] 🔓 User interaction ended (removal) - allowing real-time sync')
         setIsUserInteracting(false)
       }, removalDelay)
-      
       return
     }
     
-    // Handle regular status updates
+    // Prepare music data for library
     const musicData = {
       id: musicDetail.id,
       title: musicDetail.title,
@@ -670,29 +716,49 @@ export default function MusicDetailModalV4({
     }
     
     try {
-      await onAddToLibrary(musicData, status)
+      console.log('🎵 [MUSIC MODAL] ⏳ Starting library update with status:', status)
+      console.log('🎵 [MUSIC MODAL] Current selectedStatus before update:', selectedStatus)
+      
+      // Set status optimistically (immediate UI feedback)
       setSelectedStatus(status)
       setShowStatusDropdown(false)
+      
+      // Add/update item in library
+      await onAddToLibrary(musicData, status)
+      
+      // Force library refresh for mobile reliability
+      setTimeout(() => {
+        const event = new CustomEvent('library-changed', {
+          detail: { action: 'updated', item: { id: musicDetail.id, title: musicDetail.title, status }, timestamp: Date.now() }
+        })
+        window.dispatchEvent(event)
+        console.log('🔔 [MUSIC MODAL] Forced library-changed event for mobile')
+      }, 500)
+      
+      console.log('🎵 [MUSIC MODAL] ✅ Library update completed with status:', status)
       
       // Show inline rating for listened status
       if (status === 'listened') {
         setShowInlineRating(true)
       }
       
-      // Reset protection after regular actions
+      console.log('🎵 [MUSIC MODAL] ✅ Successfully updated library with status:', status)
+    } catch (error) {
+      console.error('🎵 [ERROR] Failed to update library:', error)
+      // En cas d'erreur, revenir au statut précédent
+      const libraryItem = library.find(item => item.id === musicDetail.id)
+      setSelectedStatus(libraryItem?.status || null)
+    } finally {
+      // PROTECTION: Débloquer la synchronisation après un délai pour permettre à Supabase de se synchroniser
+      // Délai réduit sur mobile pour améliorer la réactivité
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      const protectionDelay = isMobile ? 1500 : 3000
       setTimeout(() => {
         console.log('🎵 [MUSIC MODAL] 🔓 User interaction ended - allowing real-time sync')
         setIsUserInteracting(false)
-      }, 1500)
-      
-    } catch (error) {
-      console.error('🎵 [ERROR] Failed to add to library:', error)
-      // Reset protection on error
-      setTimeout(() => {
-        setIsUserInteracting(false)
-      }, 1000)
+      }, protectionDelay)
     }
-  }, [musicDetail, onAddToLibrary, onDeleteItem, isAlbum])
+  }, [musicDetail, onAddToLibrary, onDeleteItem, library])
 
   // Get available statuses
   const getAvailableStatuses = useCallback(() => {
