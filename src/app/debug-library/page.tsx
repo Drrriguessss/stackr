@@ -155,17 +155,30 @@ export default function DebugLibraryPage() {
     (item.title.includes('Red, White & Royal Blue 2') || item.id === '1288115')
   )
 
-  // Find problematic music tracks (like Taylor Swift - Track 1440913923)
+  // Find problematic music tracks (like Taylor Swift - Track 1440913923 and bonus track versions)
   const problematicMusic = library.filter(item => 
     item.category === 'music' && 
     (item.title.includes('Track 1440913923') || 
      item.title.includes('Taylor Swift - Track') ||
+     item.title.includes('bonus track version') ||
+     item.title.includes('Bonus Track Version') ||
      item.id === '1440913923' ||
-     item.id === 'track-1440913923')
+     item.id === 'track-1440913923' ||
+     item.id === 'album-1440913923' ||
+     // Detect potential duplicates with similar Taylor Swift titles
+     (item.title.toLowerCase().includes('taylor swift') && 
+      (item.title.includes('Track ') || item.title.includes('track ') || 
+       item.id.includes('1440913923'))))
   )
 
   // Combine all problematic items
   const allProblematicItems = [...problematicMovies, ...problematicMusic]
+
+  // Find all Taylor Swift albums to help identify duplicates
+  const taylorSwiftAlbums = library.filter(item => 
+    item.category === 'music' && 
+    item.title.toLowerCase().includes('taylor swift')
+  )
 
   useEffect(() => {
     checkUserAndLibrary()
@@ -206,7 +219,13 @@ export default function DebugLibraryPage() {
                           </p>
                           {item.category === 'music' && (
                             <p className="text-red-300 text-xs mt-1">
-                              🎵 Track problématique: ID invalide ou données corrompues
+                              🎵 Track problématique: {
+                                item.title.toLowerCase().includes('bonus track') 
+                                  ? 'Version bonus en double ou données dupliquées'
+                                  : item.title.includes('Track 1440913923')
+                                  ? 'ID de track invalide (1440913923)'
+                                  : 'ID invalide ou données corrompues'
+                              }
                             </p>
                           )}
                           {item.category === 'movies' && (
@@ -236,6 +255,58 @@ export default function DebugLibraryPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Taylor Swift Albums Debug Section */}
+        {taylorSwiftAlbums.length > 1 && (
+          <div className="bg-yellow-900 border border-yellow-700 p-4 rounded">
+            <div className="flex items-start">
+              <div className="h-6 w-6 text-yellow-400 mt-1 mr-3 flex-shrink-0">🎵</div>
+              <div className="flex-1">
+                <h2 className="font-semibold text-yellow-200 mb-2">📀 Albums Taylor Swift Détectés ({taylorSwiftAlbums.length})</h2>
+                <p className="text-yellow-300 text-sm mb-4">
+                  Plusieurs albums Taylor Swift trouvés - vérifiez les doublons:
+                </p>
+                <div className="space-y-2">
+                  {taylorSwiftAlbums.map(item => (
+                    <div key={item.id} className="bg-yellow-800 rounded p-3 border border-yellow-600">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium text-white text-sm">{item.title}</h3>
+                          <p className="text-yellow-200 text-xs">
+                            ID: {item.id} | Status: {item.status} | Ajouté: {new Date(item.addedAt).toLocaleDateString()}
+                          </p>
+                          {item.notes && (
+                            <p className="text-yellow-300 text-xs mt-1">Notes: {item.notes}</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => deleteItem(item.id, item.title)}
+                          disabled={deletingItems.has(item.id)}
+                          className="flex items-center space-x-2 px-3 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {deletingItems.has(item.id) ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              <span>Suppression...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 size={16} />
+                              <span>Supprimer</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-yellow-300 text-xs mt-3">
+                  💡 Si vous voyez le même album plusieurs fois (ex: version normale + bonus track), supprimez les doublons.
+                </p>
               </div>
             </div>
           </div>
@@ -339,7 +410,7 @@ export default function DebugLibraryPage() {
                   🎬 <strong>"Red, White & Royal Blue 2"</strong> (ID: 1288115) - IMDB ID invalide pour un film non sorti
                 </p>
                 <p className="text-red-300 text-xs">
-                  🎵 <strong>"Taylor Swift - Track 1440913923"</strong> - ID de track invalide ou données corrompues
+                  🎵 <strong>"Taylor Swift - Track 1440913923"</strong> et <strong>"Bonus Track Version"</strong> - Albums en double ou données dupliquées
                 </p>
               </div>
               <p className="text-red-200 text-xs mt-2">
