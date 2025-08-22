@@ -1129,7 +1129,7 @@ export default function MusicDetailModalV4({
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
             >
-              Videos
+              Videos / Photos
             </button>
           </div>
         </div>
@@ -1584,7 +1584,7 @@ export default function MusicDetailModalV4({
             )}
             
             {/* Main Media Display Area */}
-            {!isAlbum && (musicVideo || artistImages.length > 0) && (
+            {((!isAlbum && musicVideo) || artistImages.length > 0) && (
               <div className="space-y-4">
                 {/* Main display area */}
                 <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
@@ -1795,8 +1795,8 @@ export default function MusicDetailModalV4({
             {isAlbum && !loadingFanart && artistImages.length === 0 && (
               <div className="text-center text-gray-400 py-16">
                 <div className="text-6xl mb-4">📀</div>
-                <div className="text-lg mb-2">Albums don't have videos</div>
-                <div className="text-sm">Only singles have music videos available</div>
+                <div className="text-lg mb-2">No media available</div>
+                <div className="text-sm">No artist photos found for this album</div>
               </div>
             )}
             
