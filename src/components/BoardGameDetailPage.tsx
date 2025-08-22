@@ -302,9 +302,9 @@ export default function BoardGameDetailPage({
     hasChanges: false,
   });
 
-  // Handle status change - MOBILE OPTIMIZED: INSTANT UI + DEFERRED SAVE
+  // Handle status change - LIKE MUSIC MODAL: IMMEDIATE SAVE
   const handleStatusChange = async (status: MediaStatus | null) => {
-    if (isProcessingStatus) return; // Prevent double-tap on mobile
+    if (isProcessingStatus || !gameDetail) return; // Prevent double-tap on mobile
 
     setIsProcessingStatus(true);
     setShowDropdown(false);
@@ -312,20 +312,51 @@ export default function BoardGameDetailPage({
     // 🚀 INSTANT UI UPDATE (zero delay for mobile)
     setCurrentStatus(status);
 
-    // 📝 TRACK PENDING CHANGES (save on modal close)
-    setPendingStatusChange({
-      status,
-      hasChanges: true,
-    });
-
     console.log(
-      "📱 [MOBILE OPTIMIZED] Status changed instantly to:",
+      "🎲 [BOARDGAME MODAL] Status changed instantly to:",
       status,
-      "- will save on modal close",
+      "- saving immediately like Music Modal",
     );
 
-    // Reset processing state immediately for fluid UX
-    setTimeout(() => setIsProcessingStatus(false), 100);
+    try {
+      if (status === null) {
+        // Remove from library
+        if (onDeleteItem) {
+          await onDeleteItem(gameId);
+          console.log("🗑️ [BOARDGAME MODAL] Item removed from library");
+        }
+      } else {
+        // Add/update in library
+        const gameForLibrary = {
+          id: gameDetail.id,
+          title: gameDetail.name || "",
+          category: "boardgames" as const,
+          image: gameDetail.image,
+          year: gameDetail.yearPublished,
+          author: gameDetail.designers?.[0]?.name || "Unknown Designer",
+          genre: gameDetail.categories?.[0]?.name || "Board Game",
+        };
+
+        await onAddToLibrary(gameForLibrary, status);
+        console.log(
+          "✅ [BOARDGAME MODAL] Item saved to library with status:",
+          status,
+        );
+      }
+
+      // Clear pending changes since we saved immediately
+      setPendingStatusChange({
+        status: null,
+        hasChanges: false,
+      });
+    } catch (error) {
+      console.error("❌ [BOARDGAME MODAL] Failed to save changes:", error);
+      // Revert UI state on error
+      const libraryItem = library.find((item) => item.id === gameId);
+      setCurrentStatus(libraryItem?.status || null);
+    }
+
+    setTimeout(() => setIsProcessingStatus(false), 300); // Prevent rapid clicks
   };
 
   // Deferred save function: save changes when modal closes
@@ -374,11 +405,9 @@ export default function BoardGameDetailPage({
     }
   };
 
-  // Handle modal close with deferred save
-  const handleModalClose = async () => {
-    // Save any pending changes before closing
-    await savePendingChanges();
-    // Then close the modal
+  // Handle modal close - simplified since we save immediately
+  const handleModalClose = () => {
+    // No need for deferred save since we save immediately
     onBack();
   };
 
@@ -1172,10 +1201,6 @@ export default function BoardGameDetailPage({
                 aria-label="Close game details"
               >
                 <X size={20} />
-                {/* Pending changes indicator */}
-                {pendingStatusChange.hasChanges && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border border-white/20" />
-                )}
               </button>
             </div>
           </div>
