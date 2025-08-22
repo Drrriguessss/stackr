@@ -108,6 +108,7 @@ export default function MusicDetailModalV4({
   const [loadingFanart, setLoadingFanart] = useState(false)
   const [fanartLoaded, setFanartLoaded] = useState(false)
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null)
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   
   // Mobile reliability states (inspired by movie modal)
   const [isUserInteracting, setIsUserInteracting] = useState(false)
@@ -575,6 +576,21 @@ export default function MusicDetailModalV4({
       setLoadingFanart(false)
     }
   }, [fanartLoaded])
+  
+  // Navigation functions for media carousel
+  const nextMedia = () => {
+    const totalItems = (musicVideo ? 1 : 0) + artistImages.length
+    if (totalItems > 0) {
+      setActiveMediaIndex((prev) => (prev + 1) % totalItems)
+    }
+  }
+
+  const prevMedia = () => {
+    const totalItems = (musicVideo ? 1 : 0) + artistImages.length
+    if (totalItems > 0) {
+      setActiveMediaIndex((prev) => (prev - 1 + totalItems) % totalItems)
+    }
+  }
   
   // Load videos and fanart images when Media tab is selected
   useEffect(() => {
@@ -1559,35 +1575,168 @@ export default function MusicDetailModalV4({
               </div>
             )}
             
-            {/* Artist Images Gallery from Fanart.tv */}
-            {!loadingFanart && artistImages.length > 0 && (
+            {/* Main Media Display Area */}
+            {!isAlbum && (musicVideo || artistImages.length > 0) && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 text-white">
-                  <div className="text-lg font-medium">Artist Gallery</div>
-                  <div className="text-xs bg-purple-600/30 text-purple-300 px-2 py-1 rounded">
-                    {artistImages.length} images
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {artistImages.map((image, index) => (
-                    <div
-                      key={index}
-                      className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200"
-                      onClick={() => setSelectedImageIndex(index)}
-                    >
-                      <img
-                        src={image}
-                        alt={`${musicDetail?.artist} - Image ${index + 1}`}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200">
-                        <div className="absolute bottom-2 left-2 text-white text-xs">
-                          View Full Size
+                {/* Main display area */}
+                <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                  {/* Display video if it's selected and embeddable */}
+                  {activeMediaIndex === 0 && musicVideo && musicVideo.isEmbeddable ? (
+                    <iframe
+                      src={musicVideo.embedUrl}
+                      title={`${musicDetail?.title} - ${musicDetail?.artist} (Official Music Video)`}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      loading="lazy"
+                    />
+                  ) : activeMediaIndex === 0 && musicVideo && !musicVideo.isEmbeddable ? (
+                    /* Video thumbnail with play button for non-embeddable videos */
+                    <div className="relative w-full h-full group cursor-pointer">
+                      <div className="absolute inset-0">
+                        {musicDetail?.image ? (
+                          <img
+                            src={musicDetail.image}
+                            alt="Video thumbnail"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900"></div>
+                        )}
+                      </div>
+                      
+                      {/* Dark overlay */}
+                      <div className="absolute inset-0 bg-black/60 group-hover:bg-black/40 transition-colors"></div>
+                      
+                      {/* YouTube branding and play button */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
+                        {/* YouTube logo */}
+                        <div className="bg-red-600 px-4 py-2 rounded-lg flex items-center space-x-2">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                          </svg>
+                          <span className="text-white font-medium">YouTube</span>
+                        </div>
+                        
+                        {/* Large play button */}
+                        <div className="bg-red-600 hover:bg-red-700 rounded-full p-6 group-hover:scale-110 transition-transform">
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
+                        
+                        <div className="text-white text-center">
+                          <div className="font-medium text-lg">Official Music Video</div>
+                          <div className="text-red-200 text-sm">Click to watch on YouTube</div>
                         </div>
                       </div>
+                      
+                      {/* Click overlay */}
+                      <a
+                        href={musicVideo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute inset-0"
+                      />
                     </div>
-                  ))}
+                  ) : (
+                    /* Display artist image */
+                    artistImages[musicVideo ? activeMediaIndex - 1 : activeMediaIndex] && (
+                      <img
+                        src={artistImages[musicVideo ? activeMediaIndex - 1 : activeMediaIndex]}
+                        alt={`${musicDetail?.artist} - Image ${activeMediaIndex + 1}`}
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => setSelectedImageIndex(musicVideo ? activeMediaIndex - 1 : activeMediaIndex)}
+                      />
+                    )
+                  )}
+                  
+                  {/* Navigation arrows for main display */}
+                  {((musicVideo ? 1 : 0) + artistImages.length) > 1 && (
+                    <>
+                      <button
+                        onClick={prevMedia}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-black/60 hover:bg-black/80 text-white p-3 rounded-full transition-colors"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M15 18l-6-6 6-6"/>
+                        </svg>
+                      </button>
+                      
+                      <button
+                        onClick={nextMedia}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-black/60 hover:bg-black/80 text-white p-3 rounded-full transition-colors"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M9 18l6-6-6-6"/>
+                        </svg>
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                {/* Thumbnails carousel */}
+                <div className="space-y-2">
+                  <div className="text-sm text-gray-400">Media Gallery</div>
+                  <div className="flex space-x-2 overflow-x-auto pb-2">
+                    {/* Video thumbnail */}
+                    {musicVideo && (
+                      <button
+                        onClick={() => setActiveMediaIndex(0)}
+                        className={`flex-shrink-0 w-24 h-16 rounded overflow-hidden border-2 transition-colors relative ${
+                          activeMediaIndex === 0 ? 'border-red-500' : 'border-transparent hover:border-red-300'
+                        }`}
+                      >
+                        {musicDetail?.image ? (
+                          <img
+                            src={musicDetail.image}
+                            alt="Video thumbnail"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-700"></div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-red-600/90 text-white text-xs px-1 py-0.5 text-center">
+                          VIDEO
+                        </div>
+                      </button>
+                    )}
+                    
+                    {/* Artist Images thumbnails */}
+                    {artistImages.map((image, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          const imageIndex = musicVideo ? index + 1 : index
+                          setActiveMediaIndex(imageIndex)
+                        }}
+                        className={`flex-shrink-0 w-24 h-16 rounded overflow-hidden border-2 transition-colors ${
+                          (musicVideo ? index + 1 : index) === activeMediaIndex 
+                            ? 'border-purple-500' 
+                            : 'border-transparent hover:border-purple-300'
+                        }`}
+                      >
+                        <img
+                          src={image}
+                          alt={`Artist image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -1635,141 +1784,23 @@ export default function MusicDetailModalV4({
               </div>
             )}
             
-            {isAlbum ? (
-              // Albums don't have videos - show artist images if available
-              !loadingFanart && artistImages.length === 0 ? (
-                <div className="text-center text-gray-400 py-16">
-                  <div className="text-6xl mb-4">📀</div>
-                  <div className="text-lg mb-2">Albums don't have videos</div>
-                  <div className="text-sm">Only singles have music videos available</div>
-                </div>
-              ) : null
-            ) : loadingVideo ? (
-              // Loading state
+            {isAlbum && !loadingFanart && artistImages.length === 0 && (
+              <div className="text-center text-gray-400 py-16">
+                <div className="text-6xl mb-4">📀</div>
+                <div className="text-lg mb-2">Albums don't have videos</div>
+                <div className="text-sm">Only singles have music videos available</div>
+              </div>
+            )}
+            
+            {!isAlbum && loadingVideo && (
               <div className="text-center text-gray-400 py-16">
                 <div className="text-lg mb-2">Loading video...</div>
                 <div className="text-sm">Finding the best music video for this track</div>
               </div>
-            ) : musicVideo && musicVideo.isEmbeddable ? (
-              // Show embedded YouTube video
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 text-white">
-                  <div className="text-lg font-medium">Official Music Video</div>
-                  <div className="text-xs bg-red-600/30 text-red-300 px-2 py-1 rounded flex items-center space-x-1">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                    </svg>
-                    <span>YouTube</span>
-                  </div>
-                </div>
-                <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                  <iframe
-                    src={musicVideo.embedUrl}
-                    title={`${musicDetail?.title} - ${musicDetail?.artist} (Official Music Video)`}
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    loading="lazy"
-                  />
-                </div>
-                {musicVideo.fallbackReason && (
-                  <div className="text-xs text-gray-500">
-                    {musicVideo.fallbackReason}
-                  </div>
-                )}
-                <div className="text-center">
-                  <a
-                    href={musicVideo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-2 text-red-400 hover:text-red-300 text-sm transition-colors"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                    </svg>
-                    <span>Watch on YouTube</span>
-                  </a>
-                </div>
-              </div>
-            ) : musicVideo && !musicVideo.isEmbeddable ? (
-              // Video found but not embeddable - show thumbnail with play button
-              <div className="space-y-4">
-                <div className="text-white text-lg font-medium">Music Video Available</div>
-                <div className="relative">
-                  {/* YouTube thumbnail placeholder with album/single artwork */}
-                  <div className="aspect-video rounded-lg overflow-hidden relative group cursor-pointer">
-                    {/* Background album/single image */}
-                    <div className="absolute inset-0">
-                      <img
-                        src={musicDetail?.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=450&fit=crop&q=80'}
-                        alt={`${musicDetail?.title} artwork`}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      {/* Dark overlay for readability */}
-                      <div className="absolute inset-0 bg-black/50"></div>
-                    </div>
-                    
-                    {/* Play button centered */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="bg-black/60 rounded-full p-6 group-hover:bg-black/80 group-hover:scale-110 transition-all duration-300">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                      </div>
-                    </div>
-                    
-                    {/* Music info overlay at bottom */}
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <div className="bg-black/70 backdrop-blur-sm rounded-lg p-3">
-                        <div className="text-white font-medium text-sm">{musicDetail?.title}</div>
-                        <div className="text-gray-200 text-xs">{musicDetail?.artist}</div>
-                      </div>
-                    </div>
-                    
-                    {/* YouTube badge */}
-                    <div className="absolute top-4 right-4">
-                      <div className="bg-red-600 text-white text-xs px-2 py-1 rounded flex items-center space-x-1 shadow-lg">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </svg>
-                        <span>YouTube</span>
-                      </div>
-                    </div>
-                    
-                    {/* Optional music note decoration */}
-                    <div className="absolute top-4 left-4">
-                      <div className="text-white/70 text-2xl">🎵</div>
-                    </div>
-                  </div>
-                  
-                  {/* Click overlay */}
-                  <a
-                    href={musicVideo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute inset-0"
-                  />
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-gray-400 text-sm mb-3">
-                    Video cannot be embedded due to copyright restrictions
-                  </div>
-                  <a
-                    href={musicVideo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                    </svg>
-                    <span>Watch on YouTube</span>
-                  </a>
-                </div>
-              </div>
-            ) : (
+            )}
+            
+            
+            {!isAlbum && !loadingVideo && !musicVideo && artistImages.length === 0 && (
               // No video found - show multiple search options
               <div className="space-y-6">
                 <div className="text-center py-8">
