@@ -27,6 +27,7 @@ import {
 } from "@/services/reviewInteractionsService";
 import ShareWithFriendsModal from "./ShareWithFriendsModal";
 import { avatarService } from "@/services/avatarService";
+import { AuthService } from "@/services/authService";
 import {
   fetchYouTubeVideos,
   getVideoTypeLabel,
@@ -143,6 +144,8 @@ export default function BoardGameDetailPage({
     personalRating: 0,
     personalReview: "",
   });
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Removed libraryDropdownRef - using modal popup instead
 
@@ -262,6 +265,27 @@ export default function BoardGameDetailPage({
       setSelectedStatus(null);
     }
   }, [gameId, library]);
+
+  // Load user avatar when modal opens
+  useEffect(() => {
+    const loadUserAvatar = async () => {
+      try {
+        const user = await AuthService.getCurrentUser();
+        setCurrentUser(user);
+        
+        if (user) {
+          const avatar = await avatarService.getUserAvatar(user.id);
+          setUserAvatar(avatar);
+        }
+      } catch (error) {
+        console.error('Error loading user avatar:', error);
+      }
+    };
+
+    if (gameId) {
+      loadUserAvatar();
+    }
+  }, [gameId]);
 
   // Helper function moved up
   const getStatusLabel = (status: MediaStatus) => {
@@ -1620,9 +1644,26 @@ export default function BoardGameDetailPage({
                 <div className="py-2">
                   {/* Avatar + You + Rating */}
                   <div className="flex items-center space-x-3 mb-2">
-                    <div className="w-8 h-8 bg-gradient-to-r from-gray-600 to-gray-800 rounded-full flex items-center justify-center text-xs font-medium text-white">
-                      U
-                    </div>
+                    {currentUser && userAvatar ? (
+                      <img
+                        src={userAvatar}
+                        alt="Your avatar"
+                        className="w-8 h-8 rounded-full object-cover border border-gray-600"
+                      />
+                    ) : currentUser ? (
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white border border-gray-600"
+                        style={{
+                          backgroundColor: avatarService.getAvatarColor(currentUser.id),
+                        }}
+                      >
+                        {avatarService.getInitials(currentUser.user_metadata?.display_name || currentUser.email || 'U')}
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 bg-gradient-to-r from-gray-600 to-gray-800 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                        U
+                      </div>
+                    )}
                     <div className="flex items-center space-x-2 flex-1">
                       <span className="text-white font-medium text-sm">
                         You
