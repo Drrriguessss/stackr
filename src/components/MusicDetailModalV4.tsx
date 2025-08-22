@@ -543,26 +543,6 @@ export default function MusicDetailModalV4({
     }
   }, [isOpen, formattedMusicId, fetchMusicDetail])
   
-  // Load videos and fanart images when Media tab is selected
-  useEffect(() => {
-    if (activeTab === 'media' && musicDetail) {
-      console.log('🎨 [Fanart] Media tab activated for artist:', musicDetail.artist)
-      
-      // Load video for singles
-      if (!isAlbum && !videosLoaded) {
-        loadMusicVideo()
-      }
-      
-      // Load fanart images for artist
-      if (!fanartLoaded && musicDetail.artist) {
-        console.log('🎨 [Fanart] Triggering fanart load for:', musicDetail.artist)
-        loadArtistFanart(musicDetail.artist)
-      } else if (fanartLoaded) {
-        console.log('🎨 [Fanart] Already loaded, skipping')
-      }
-    }
-  }, [activeTab, musicDetail, isAlbum, videosLoaded, fanartLoaded, loadArtistFanart])
-  
   // Load artist fanart images
   const loadArtistFanart = useCallback(async (artistName: string) => {
     if (fanartLoaded) return
@@ -595,6 +575,26 @@ export default function MusicDetailModalV4({
       setLoadingFanart(false)
     }
   }, [fanartLoaded])
+  
+  // Load videos and fanart images when Media tab is selected
+  useEffect(() => {
+    if (activeTab === 'media' && musicDetail) {
+      console.log('🎨 [Fanart] Media tab activated for artist:', musicDetail.artist)
+      
+      // Load video for singles
+      if (!isAlbum && !videosLoaded) {
+        loadMusicVideo()
+      }
+      
+      // Load fanart images for artist
+      if (!fanartLoaded && musicDetail.artist) {
+        console.log('🎨 [Fanart] Triggering fanart load for:', musicDetail.artist)
+        loadArtistFanart(musicDetail.artist)
+      } else if (fanartLoaded) {
+        console.log('🎨 [Fanart] Already loaded, skipping')
+      }
+    }
+  }, [activeTab, musicDetail, isAlbum, videosLoaded, fanartLoaded, loadArtistFanart, loadMusicVideo])
 
   // Cleanup on modal close
   useEffect(() => {
