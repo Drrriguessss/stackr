@@ -546,6 +546,8 @@ export default function MusicDetailModalV4({
   // Load videos and fanart images when Media tab is selected
   useEffect(() => {
     if (activeTab === 'media' && musicDetail) {
+      console.log('🎨 [Fanart] Media tab activated for artist:', musicDetail.artist)
+      
       // Load video for singles
       if (!isAlbum && !videosLoaded) {
         loadMusicVideo()
@@ -553,10 +555,13 @@ export default function MusicDetailModalV4({
       
       // Load fanart images for artist
       if (!fanartLoaded && musicDetail.artist) {
+        console.log('🎨 [Fanart] Triggering fanart load for:', musicDetail.artist)
         loadArtistFanart(musicDetail.artist)
+      } else if (fanartLoaded) {
+        console.log('🎨 [Fanart] Already loaded, skipping')
       }
     }
-  }, [activeTab, musicDetail, isAlbum, videosLoaded, fanartLoaded])
+  }, [activeTab, musicDetail, isAlbum, videosLoaded, fanartLoaded, loadArtistFanart])
   
   // Load artist fanart images
   const loadArtistFanart = useCallback(async (artistName: string) => {

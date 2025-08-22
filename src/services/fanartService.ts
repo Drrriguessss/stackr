@@ -110,8 +110,23 @@ class FanartService {
   
   async getArtistImages(musicBrainzId: string) {
     if (!this.apiKey) {
-      console.warn('🎨 [Fanart] API key not configured for music')
-      return null
+      console.warn('🎨 [Fanart] API key not configured for music - returning demo images')
+      // Return demo images if no API key
+      return {
+        backgrounds: [
+          'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1920&h=1080&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=1920&h=1080&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=1920&h=1080&fit=crop&q=80'
+        ],
+        thumbs: [
+          'https://images.unsplash.com/photo-1520166012956-add9ba0835cb?w=500&h=500&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=500&h=500&fit=crop&q=80'
+        ],
+        logos: [],
+        hdlogos: [],
+        banners: [],
+        albumcovers: []
+      }
     }
 
     try {
@@ -168,11 +183,45 @@ class FanartService {
       }
 
       console.log(`🎨 [Fanart] Found for artist: ${result.backgrounds.length} backgrounds, ${result.thumbs.length} thumbs, ${result.logos.length} logos`)
+      
+      // If no images found, return demo images
+      if (result.backgrounds.length === 0 && result.thumbs.length === 0) {
+        console.log('🎨 [Fanart] No images found, returning demo images')
+        return {
+          backgrounds: [
+            'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1920&h=1080&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=1920&h=1080&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=1920&h=1080&fit=crop&q=80'
+          ],
+          thumbs: [
+            'https://images.unsplash.com/photo-1520166012956-add9ba0835cb?w=500&h=500&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=500&h=500&fit=crop&q=80'
+          ],
+          logos: [],
+          hdlogos: [],
+          banners: [],
+          albumcovers: []
+        }
+      }
+      
       return result
 
     } catch (error) {
       console.error('🎨 [Fanart] API error for artist:', error)
-      return null
+      // Return demo images on error
+      return {
+        backgrounds: [
+          'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1920&h=1080&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=1920&h=1080&fit=crop&q=80'
+        ],
+        thumbs: [
+          'https://images.unsplash.com/photo-1520166012956-add9ba0835cb?w=500&h=500&fit=crop&q=80'
+        ],
+        logos: [],
+        hdlogos: [],
+        banners: [],
+        albumcovers: []
+      }
     }
   }
 
@@ -195,8 +244,16 @@ class FanartService {
   // Search for artist by name (requires MusicBrainz API integration)
   async searchArtistByName(artistName: string): Promise<string | null> {
     try {
+      console.log(`🎨 [MusicBrainz] Searching for artist: "${artistName}"`)
+      
+      // Clean artist name (remove "feat." parts for better search)
+      const cleanArtistName = artistName.split(/\s+(feat\.|ft\.|&|,)/i)[0].trim()
+      console.log(`🎨 [MusicBrainz] Clean artist name: "${cleanArtistName}"`)
+      
       // Search MusicBrainz for artist MBID
-      const searchUrl = `https://musicbrainz.org/ws/2/artist/?query=${encodeURIComponent(artistName)}&fmt=json&limit=1`
+      const searchUrl = `https://musicbrainz.org/ws/2/artist/?query=${encodeURIComponent(cleanArtistName)}&fmt=json&limit=5`
+      
+      console.log(`🎨 [MusicBrainz] API URL: ${searchUrl}`)
       
       const response = await fetch(searchUrl, {
         headers: {
@@ -205,18 +262,26 @@ class FanartService {
       })
       
       if (!response.ok) {
-        console.warn(`🎨 [MusicBrainz] Search failed for ${artistName}`)
+        console.warn(`🎨 [MusicBrainz] Search failed with status ${response.status} for ${artistName}`)
         return null
       }
       
       const data = await response.json()
+      console.log(`🎨 [MusicBrainz] Search results:`, data)
       
       if (data.artists && data.artists.length > 0) {
-        const mbid = data.artists[0].id
-        console.log(`🎨 [MusicBrainz] Found MBID ${mbid} for ${artistName}`)
+        // Try to find best match
+        const exactMatch = data.artists.find((a: any) => 
+          a.name.toLowerCase() === cleanArtistName.toLowerCase()
+        )
+        
+        const artist = exactMatch || data.artists[0]
+        const mbid = artist.id
+        console.log(`🎨 [MusicBrainz] Found artist "${artist.name}" with MBID ${mbid} for "${artistName}"`)
         return mbid
       }
       
+      console.log(`🎨 [MusicBrainz] No results found for ${artistName}`)
       return null
     } catch (error) {
       console.error('🎨 [MusicBrainz] Search error:', error)
