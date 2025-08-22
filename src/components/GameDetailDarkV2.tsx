@@ -7,6 +7,7 @@ import { userReviewsService, type UserReview } from '@/services/userReviewsServi
 import { realGameReviewsService, type RealGameReview } from '@/services/realGameReviewsService'
 import { fetchWithCache, apiCache } from '@/utils/apiCache'
 import { rawgService, type RAWGGame } from '@/services/rawgService'
+import { igdbService } from '@/services/igdbService'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 
 interface GameDetailDarkV2Props {
@@ -70,6 +71,9 @@ export default function GameDetailDarkV2({
   const [gameImages, setGameImages] = useState<string[]>([])
   const [imagesLoading, setImagesLoading] = useState(false)
   const [validatedTrailers, setValidatedTrailers] = useState<ValidatedTrailer[]>([])
+  const [igdbArtwork, setIgdbArtwork] = useState<string | null>(null)
+  const [igdbVideos, setIgdbVideos] = useState<any[]>([])
+  const [videosLoading, setVideosLoading] = useState(false)
   
   // New states for enhanced functionality
   const [showFriendsModal, setShowFriendsModal] = useState(false)
@@ -123,6 +127,14 @@ export default function GameDetailDarkV2({
     }
   }, [gameId])
 
+  // Fetch IGDB artwork and videos when game details are loaded
+  useEffect(() => {
+    if (gameDetail?.name) {
+      fetchIGDBArtwork(gameDetail.name)
+      fetchIGDBVideos(gameDetail.name)
+    }
+  }, [gameDetail])
+
   const loadGameSheetData = () => {
     const libraryItem = library.find(item => 
       item.id === gameId || item.id === `game-${gameId}`
@@ -168,6 +180,74 @@ export default function GameDetailDarkV2({
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showLibraryDropdown])
+
+  const fetchIGDBArtwork = async (gameName: string) => {
+    try {
+      console.log('🎮 [IGDB] Fetching artwork for:', gameName)
+      
+      // Search for game on IGDB
+      const games = await igdbService.searchGames(gameName, 1)
+      
+      if (games && games.length > 0) {
+        const gameId = games[0].id
+        
+        // Fetch artworks for this game
+        const artworks = await igdbService.getGameArtworks(gameId)
+        
+        if (artworks && artworks.length > 0) {
+          // Use the first artwork as header image
+          const artworkUrl = igdbService.getImageUrl(artworks[0].image_id, 'screenshot_big')
+          setIgdbArtwork(artworkUrl)
+          console.log('🎮 [IGDB] Artwork found:', artworkUrl)
+        } else {
+          console.log('🎮 [IGDB] No artworks found, trying screenshots')
+          // Fallback to screenshots if no artworks
+          const screenshots = await igdbService.getGameScreenshots(gameId)
+          if (screenshots && screenshots.length > 0) {
+            const screenshotUrl = igdbService.getImageUrl(screenshots[0].image_id, 'screenshot_big')
+            setIgdbArtwork(screenshotUrl)
+            console.log('🎮 [IGDB] Screenshot found:', screenshotUrl)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('🎮 [IGDB] Error fetching artwork:', error)
+      // Keep using RAWG image as fallback
+    }
+  }
+
+  const fetchIGDBVideos = async (gameName: string) => {
+    try {
+      setVideosLoading(true)
+      console.log('🎬 [IGDB] Fetching videos for:', gameName)
+      
+      // Search for game on IGDB first
+      const games = await igdbService.searchGames(gameName, 1)
+      
+      if (games && games.length > 0) {
+        const gameId = games[0].id
+        
+        // Fetch videos for this game
+        const videos = await igdbService.getGameVideos(gameId)
+        
+        if (videos && videos.length > 0) {
+          console.log(`🎬 [IGDB] Found ${videos.length} videos for ${gameName}`)
+          setIgdbVideos(videos)
+        } else {
+          console.log('🎬 [IGDB] No videos found for', gameName)
+          setIgdbVideos([])
+        }
+      } else {
+        console.log('🎬 [IGDB] Game not found for video search:', gameName)
+        setIgdbVideos([])
+      }
+    } catch (error) {
+      console.error('🎬 [IGDB] Error fetching videos:', error)
+      setIgdbVideos([])
+    } finally {
+      setVideosLoading(false)
+    }
+  }
 
   const fetchGameDetail = async () => {
     setLoading(true)
@@ -305,10 +385,10 @@ export default function GameDetailDarkV2({
             </div>
           ) : gameDetail ? (
             <>
-              {/* Header with backdrop image - Same as MusicModal */}
+              {/* Header with backdrop image - Using IGDB Artwork when available */}
               <div className="relative h-[200px] overflow-hidden">
                 <img
-                  src={gameDetail.background_image || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1280&h=720&fit=crop&q=80'}
+                  src={igdbArtwork || gameDetail.background_image || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1280&h=720&fit=crop&q=80'}
                   alt={`${gameDetail.name} backdrop`}
                   className="w-full h-full object-cover"
                   loading="eager"
@@ -600,6 +680,32 @@ export default function GameDetailDarkV2({
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-white mb-3">Media</h3>
                     
+                    {/* IGDB Videos/Trailers */}
+                    {videosLoading && (
+                      <div className="text-gray-400 text-sm bg-gray-800/50 rounded-lg p-4">
+                        Loading trailers...
+                      </div>
+                    )}
+                    
+                    {!videosLoading && igdbVideos.length > 0 && (
+                      <div>
+                        <h4 className="text-md font-medium text-white mb-3">Trailers</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {igdbVideos.slice(0, 4).map((video, index) => (
+                            <div key={video.video_id || index} className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                              <iframe
+                                src={igdbService.getVideoUrl(video.video_id)}
+                                title={video.name || `${gameDetail.name} Trailer ${index + 1}`}
+                                className="w-full h-full"
+                                allowFullScreen
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Screenshots */}
                     {gameImages.length > 0 && (
                       <div>
@@ -619,7 +725,7 @@ export default function GameDetailDarkV2({
                       </div>
                     )}
 
-                    {gameImages.length === 0 && (
+                    {!videosLoading && gameImages.length === 0 && igdbVideos.length === 0 && (
                       <div className="text-gray-400 text-sm bg-gray-800/50 rounded-lg p-4">
                         No media available for this game.
                       </div>

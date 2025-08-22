@@ -63,11 +63,6 @@ class IGDBService {
    */
   async searchGames(query: string, limit: number = 10): Promise<IGDBGame[]> {
     try {
-      if (!this.clientId || !this.accessToken) {
-        console.warn('🎮 [IGDB] Cannot search - missing credentials')
-        return []
-      }
-
       // IGDB utilise une syntaxe SQL-like dans le body
       const requestBody = `
         search "${query}";
@@ -79,10 +74,16 @@ class IGDBService {
       console.log('🎮 [IGDB] Searching games:', query)
       console.log('🎮 [IGDB] Request body:', requestBody)
 
-      const response = await fetch(`${IGDB_BASE_URL}/games`, {
+      // Use our API route to avoid CORS issues
+      const response = await fetch('/api/igdb', {
         method: 'POST',
-        headers: this.getHeaders(),
-        body: requestBody
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint: 'games',
+          body: requestBody
+        })
       })
 
       if (!response.ok) {
@@ -183,6 +184,131 @@ class IGDBService {
       console.error('🎮 [IGDB] New releases error:', error)
       return this.getMockGames()
     }
+  }
+
+  /**
+   * 🎨 Récupérer les artworks d'un jeu
+   */
+  async getGameArtworks(gameId: number): Promise<any[]> {
+    try {
+      const requestBody = `
+        fields image_id, width, height;
+        where game = ${gameId};
+        limit 10;
+      `.trim()
+
+      const response = await fetch('/api/igdb', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint: 'artworks',
+          body: requestBody
+        })
+      })
+
+      if (!response.ok) {
+        console.error('🎮 [IGDB] Artworks request failed:', response.status)
+        return []
+      }
+
+      const artworks = await response.json()
+      console.log(`🎮 [IGDB] Found ${artworks.length} artworks for game ${gameId}`)
+      return artworks
+
+    } catch (error) {
+      console.error('🎮 [IGDB] Artworks error:', error)
+      return []
+    }
+  }
+
+  /**
+   * 📸 Récupérer les screenshots d'un jeu
+   */
+  async getGameScreenshots(gameId: number): Promise<any[]> {
+    try {
+      const requestBody = `
+        fields image_id, width, height;
+        where game = ${gameId};
+        limit 10;
+      `.trim()
+
+      const response = await fetch('/api/igdb', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint: 'screenshots',
+          body: requestBody
+        })
+      })
+
+      if (!response.ok) {
+        console.error('🎮 [IGDB] Screenshots request failed:', response.status)
+        return []
+      }
+
+      const screenshots = await response.json()
+      console.log(`🎮 [IGDB] Found ${screenshots.length} screenshots for game ${gameId}`)
+      return screenshots
+
+    } catch (error) {
+      console.error('🎮 [IGDB] Screenshots error:', error)
+      return []
+    }
+  }
+
+  /**
+   * 🎬 Récupérer les vidéos/trailers d'un jeu
+   */
+  async getGameVideos(gameId: number): Promise<any[]> {
+    try {
+      const requestBody = `
+        fields video_id, name, checksum;
+        where game = ${gameId};
+        limit 10;
+      `.trim()
+
+      const response = await fetch('/api/igdb', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint: 'game_videos',
+          body: requestBody
+        })
+      })
+
+      if (!response.ok) {
+        console.error('🎮 [IGDB] Videos request failed:', response.status)
+        return []
+      }
+
+      const videos = await response.json()
+      console.log(`🎮 [IGDB] Found ${videos.length} videos for game ${gameId}`)
+      return videos
+
+    } catch (error) {
+      console.error('🎮 [IGDB] Videos error:', error)
+      return []
+    }
+  }
+
+  /**
+   * 🎬 Générer l'URL d'une vidéo IGDB (YouTube)
+   */
+  getVideoUrl(videoId: string): string {
+    return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=localhost`
+  }
+
+  /**
+   * 🖼️ Générer l'URL d'une image IGDB
+   */
+  getImageUrl(imageId: string, size: 'cover_small' | 'screenshot_med' | 'cover_big' | 'logo_med' | '720p' | '1080p' | 'screenshot_big' = 'screenshot_big'): string {
+    return `https://images.igdb.com/igdb/image/upload/t_${size}/${imageId}.jpg`
   }
 
   /**
