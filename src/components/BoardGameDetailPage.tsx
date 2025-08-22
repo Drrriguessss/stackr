@@ -87,7 +87,7 @@ export default function BoardGameDetailPage({
   const [similarGamesLoaded, setSimilarGamesLoaded] = useState(false);
   const [designerGamesLoaded, setDesignerGamesLoaded] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState<MediaStatus | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null);
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] =
     useState(false);
   const [showGameSheet, setShowGameSheet] = useState(false);
@@ -253,12 +253,14 @@ export default function BoardGameDetailPage({
     }
   };
 
-  // Sync currentStatus with library
+  // Sync selectedStatus with library - LIKE MOVIE MODAL
   useEffect(() => {
     const libraryItem = library.find((item) => item.id === gameId);
-    const currentLibraryStatus = libraryItem?.status || null;
-
-    setCurrentStatus(currentLibraryStatus);
+    if (libraryItem) {
+      setSelectedStatus(libraryItem.status);
+    } else {
+      setSelectedStatus(null);
+    }
   }, [gameId, library]);
 
   // Helper function moved up
@@ -279,28 +281,25 @@ export default function BoardGameDetailPage({
     }
   };
 
-  // Dynamic button text based on current status
-  const currentButtonText = currentStatus
-    ? getStatusLabel(currentStatus)
+  // Dynamic button text based on selected status
+  const currentButtonText = selectedStatus
+    ? getStatusLabel(selectedStatus)
     : "Add to Library";
 
   // Mobile touch optimization: prevent double-tap issues
   const [isProcessingStatus, setIsProcessingStatus] = useState(false);
 
-  // Handle status change - LIKE MUSIC MODAL: IMMEDIATE SAVE
+  // Handle status change - LIKE MOVIE MODAL: SIMPLE PATTERN
   const handleStatusChange = async (status: MediaStatus | null) => {
     if (isProcessingStatus || !gameDetail) return; // Prevent double-tap on mobile
 
     setIsProcessingStatus(true);
     setShowDropdown(false);
 
-    // 🚀 INSTANT UI UPDATE (zero delay for mobile)
-    setCurrentStatus(status);
-
     console.log(
-      "🎲 [BOARDGAME MODAL] Status changed instantly to:",
+      "🎲 [BOARDGAME MODAL] Status changed to:",
       status,
-      "- saving immediately like Music Modal",
+      "- using Movie Modal pattern",
     );
 
     try {
@@ -311,7 +310,7 @@ export default function BoardGameDetailPage({
           console.log("🗑️ [BOARDGAME MODAL] Item removed from library");
         }
       } else {
-        // Add/update in library
+        // Add/update in library - LIKE MOVIE MODAL
         const gameForLibrary = {
           id: gameDetail.id,
           title: gameDetail.name || "",
@@ -322,7 +321,8 @@ export default function BoardGameDetailPage({
           genre: gameDetail.categories?.[0]?.name || "Board Game",
         };
 
-        await onAddToLibrary(gameForLibrary, status);
+        onAddToLibrary(gameForLibrary, status);
+        setSelectedStatus(status);
         console.log(
           "✅ [BOARDGAME MODAL] Item saved to library with status:",
           status,
@@ -332,7 +332,7 @@ export default function BoardGameDetailPage({
       console.error("❌ [BOARDGAME MODAL] Failed to save changes:", error);
       // Revert UI state on error
       const libraryItem = library.find((item) => item.id === gameId);
-      setCurrentStatus(libraryItem?.status || null);
+      setSelectedStatus(libraryItem?.status || null);
     }
 
     setTimeout(() => setIsProcessingStatus(false), 300); // Prevent rapid clicks
@@ -1242,7 +1242,7 @@ export default function BoardGameDetailPage({
                     >
                       Played
                     </button>
-                    {currentStatus && (
+                    {selectedStatus && (
                       <button
                         onClick={() => handleStatusChange(null)}
                         className="w-full text-left px-4 py-3 text-sm hover:bg-red-600/20 transition-colors last:rounded-b-lg text-red-400 border-t border-gray-700"
