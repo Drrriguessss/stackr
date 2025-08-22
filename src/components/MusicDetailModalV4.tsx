@@ -655,6 +655,14 @@ export default function MusicDetailModalV4({
     }
   }, [isOpen, cleanupAudio])
 
+  // Load artist images for header as soon as modal opens
+  useEffect(() => {
+    if (isOpen && musicDetail?.artist && !fanartLoaded) {
+      console.log('🎨 [Header] Loading Fanart.tv images for header:', musicDetail.artist)
+      loadArtistFanart(musicDetail.artist)
+    }
+  }, [isOpen, musicDetail?.artist, fanartLoaded, loadArtistFanart])
+
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
@@ -918,8 +926,8 @@ export default function MusicDetailModalV4({
       {/* Header with backdrop image */}
       <div className="relative h-[200px] overflow-hidden">
         <img
-          src={musicDetail.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1280&h=720&fit=crop&q=80'}
-          alt={`${musicDetail.title} backdrop`}
+          src={artistImages.length > 0 ? artistImages[0] : (musicDetail.image || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1280&h=720&fit=crop&q=80')}
+          alt={artistImages.length > 0 ? `${musicDetail.artist} - Artist backdrop` : `${musicDetail.title} backdrop`}
           className="w-full h-full object-cover"
           loading="eager"
         />
