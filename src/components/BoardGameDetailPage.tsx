@@ -253,18 +253,12 @@ export default function BoardGameDetailPage({
     }
   };
 
-  // Sync currentStatus with library and initialize pending changes
+  // Sync currentStatus with library
   useEffect(() => {
     const libraryItem = library.find((item) => item.id === gameId);
     const currentLibraryStatus = libraryItem?.status || null;
 
     setCurrentStatus(currentLibraryStatus);
-
-    // Initialize pending changes to match current library status
-    setPendingStatusChange({
-      status: currentLibraryStatus,
-      hasChanges: false,
-    });
   }, [gameId, library]);
 
   // Helper function moved up
@@ -292,15 +286,6 @@ export default function BoardGameDetailPage({
 
   // Mobile touch optimization: prevent double-tap issues
   const [isProcessingStatus, setIsProcessingStatus] = useState(false);
-
-  // Deferred save optimization: track pending changes
-  const [pendingStatusChange, setPendingStatusChange] = useState<{
-    status: MediaStatus | null;
-    hasChanges: boolean;
-  }>({
-    status: null,
-    hasChanges: false,
-  });
 
   // Handle status change - LIKE MUSIC MODAL: IMMEDIATE SAVE
   const handleStatusChange = async (status: MediaStatus | null) => {
@@ -343,12 +328,6 @@ export default function BoardGameDetailPage({
           status,
         );
       }
-
-      // Clear pending changes since we saved immediately
-      setPendingStatusChange({
-        status: null,
-        hasChanges: false,
-      });
     } catch (error) {
       console.error("❌ [BOARDGAME MODAL] Failed to save changes:", error);
       // Revert UI state on error
@@ -359,51 +338,6 @@ export default function BoardGameDetailPage({
     setTimeout(() => setIsProcessingStatus(false), 300); // Prevent rapid clicks
   };
 
-  // Deferred save function: save changes when modal closes
-  const savePendingChanges = async () => {
-    if (!pendingStatusChange.hasChanges || !gameDetail) return;
-
-    console.log(
-      "💾 [DEFERRED SAVE] Saving pending changes on modal close:",
-      pendingStatusChange.status,
-    );
-
-    try {
-      if (pendingStatusChange.status === null) {
-        // Remove from library
-        if (onDeleteItem) {
-          await onDeleteItem(gameId);
-          console.log("🗑️ [DEFERRED SAVE] Item removed from library");
-        }
-      } else {
-        // Add/update in library
-        const gameForLibrary = {
-          id: gameDetail.id,
-          title: gameDetail.name || "",
-          category: "boardgames" as const,
-          image: gameDetail.image,
-          year: gameDetail.yearPublished,
-          author: gameDetail.designers?.[0]?.name || "Unknown Designer",
-          genre: gameDetail.categories?.[0]?.name || "Board Game",
-        };
-
-        await onAddToLibrary(gameForLibrary, pendingStatusChange.status);
-        console.log(
-          "✅ [DEFERRED SAVE] Item saved to library with status:",
-          pendingStatusChange.status,
-        );
-      }
-
-      // Clear pending changes
-      setPendingStatusChange({
-        status: null,
-        hasChanges: false,
-      });
-    } catch (error) {
-      console.error("❌ [DEFERRED SAVE] Failed to save changes:", error);
-      // Optionally revert UI state here
-    }
-  };
 
   // Handle modal close - simplified since we save immediately
   const handleModalClose = () => {
