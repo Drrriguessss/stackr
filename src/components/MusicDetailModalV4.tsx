@@ -9,6 +9,7 @@ import { userReviewsService, type UserReview } from '@/services/userReviewsServi
 import { avatarService } from '@/services/avatarService'
 import { musicVideoService } from '@/services/musicVideoService'
 import { AuthService } from '@/services/authService'
+import { fanartService } from '@/services/fanartService'
 import StackrLoadingSkeleton from './StackrLoadingSkeleton'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 
@@ -101,6 +102,12 @@ export default function MusicDetailModalV4({
   const [musicVideo, setMusicVideo] = useState<any>(null)
   const [loadingVideo, setLoadingVideo] = useState(false)
   const [videosLoaded, setVideosLoaded] = useState(false)
+  
+  // Fanart images states
+  const [artistImages, setArtistImages] = useState<string[]>([])
+  const [loadingFanart, setLoadingFanart] = useState(false)
+  const [fanartLoaded, setFanartLoaded] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null)
   
   // Mobile reliability states (inspired by movie modal)
   const [isUserInteracting, setIsUserInteracting] = useState(false)
@@ -536,12 +543,53 @@ export default function MusicDetailModalV4({
     }
   }, [isOpen, formattedMusicId, fetchMusicDetail])
   
-  // Load videos when Videos tab is selected (only for singles, not albums)
+  // Load videos and fanart images when Media tab is selected
   useEffect(() => {
-    if (activeTab === 'media' && musicDetail && !isAlbum && !videosLoaded) {
-      loadMusicVideo()
+    if (activeTab === 'media' && musicDetail) {
+      // Load video for singles
+      if (!isAlbum && !videosLoaded) {
+        loadMusicVideo()
+      }
+      
+      // Load fanart images for artist
+      if (!fanartLoaded && musicDetail.artist) {
+        loadArtistFanart(musicDetail.artist)
+      }
     }
-  }, [activeTab, musicDetail, isAlbum, videosLoaded, loadMusicVideo])
+  }, [activeTab, musicDetail, isAlbum, videosLoaded, fanartLoaded])
+  
+  // Load artist fanart images
+  const loadArtistFanart = useCallback(async (artistName: string) => {
+    if (fanartLoaded) return
+    
+    try {
+      setLoadingFanart(true)
+      setFanartLoaded(true)
+      
+      console.log('🎨 [Fanart] Loading artist images for:', artistName)
+      
+      // First, search for artist MBID
+      const mbid = await fanartService.searchArtistByName(artistName)
+      
+      if (mbid) {
+        // Get gallery images from fanart.tv
+        const images = await fanartService.getArtistGalleryImages(mbid)
+        
+        if (images && images.length > 0) {
+          console.log(`🎨 [Fanart] Found ${images.length} images for ${artistName}`)
+          setArtistImages(images)
+        } else {
+          console.log('🎨 [Fanart] No images found for artist')
+        }
+      } else {
+        console.log('🎨 [Fanart] Could not find MBID for artist:', artistName)
+      }
+    } catch (error) {
+      console.error('🎨 [Fanart] Error loading artist images:', error)
+    } finally {
+      setLoadingFanart(false)
+    }
+  }, [fanartLoaded])
 
   // Cleanup on modal close
   useEffect(() => {
@@ -577,6 +625,10 @@ export default function MusicDetailModalV4({
       setMusicVideo(null)
       setLoadingVideo(false)
       setVideosLoaded(false)
+      setArtistImages([])
+      setLoadingFanart(false)
+      setFanartLoaded(false)
+      setSelectedImageIndex(null)
       setIsUserInteracting(false) // Reset protection flag
       setIsInitialLoad(true) // Reset for next load
     }
@@ -1495,13 +1547,98 @@ export default function MusicDetailModalV4({
         {/* Videos Content */}
         <div style={{ display: activeTab === 'media' ? 'block' : 'none' }}>
           <div className="mt-4 space-y-6">
-            {isAlbum ? (
-              // Albums don't have videos - show message
-              <div className="text-center text-gray-400 py-16">
-                <div className="text-6xl mb-4">📀</div>
-                <div className="text-lg mb-2">Albums don't have videos</div>
-                <div className="text-sm">Only singles have music videos available</div>
+            {/* Loading state for fanart */}
+            {loadingFanart && (
+              <div className="text-center text-gray-400 py-4">
+                <div className="text-sm">Loading artist images...</div>
               </div>
+            )}
+            
+            {/* Artist Images Gallery from Fanart.tv */}
+            {!loadingFanart && artistImages.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 text-white">
+                  <div className="text-lg font-medium">Artist Gallery</div>
+                  <div className="text-xs bg-purple-600/30 text-purple-300 px-2 py-1 rounded">
+                    {artistImages.length} images
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {artistImages.map((image, index) => (
+                    <div
+                      key={index}
+                      className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200"
+                      onClick={() => setSelectedImageIndex(index)}
+                    >
+                      <img
+                        src={image}
+                        alt={`${musicDetail?.artist} - Image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200">
+                        <div className="absolute bottom-2 left-2 text-white text-xs">
+                          View Full Size
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Lightbox for full-size image viewing */}
+            {selectedImageIndex !== null && (
+              <div 
+                className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
+                onClick={() => setSelectedImageIndex(null)}
+              >
+                <button
+                  onClick={() => setSelectedImageIndex(null)}
+                  className="absolute top-4 right-4 text-white/80 hover:text-white p-2"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                <img
+                  src={artistImages[selectedImageIndex]}
+                  alt={`${musicDetail?.artist} - Full size`}
+                  className="max-w-full max-h-full object-contain"
+                />
+                {/* Navigation arrows */}
+                {selectedImageIndex > 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedImageIndex(selectedImageIndex - 1)
+                    }}
+                    className="absolute left-4 text-white/80 hover:text-white p-2"
+                  >
+                    <ChevronDown className="w-8 h-8 rotate-90" />
+                  </button>
+                )}
+                {selectedImageIndex < artistImages.length - 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedImageIndex(selectedImageIndex + 1)
+                    }}
+                    className="absolute right-4 text-white/80 hover:text-white p-2"
+                  >
+                    <ChevronDown className="w-8 h-8 -rotate-90" />
+                  </button>
+                )}
+              </div>
+            )}
+            
+            {isAlbum ? (
+              // Albums don't have videos - show artist images if available
+              !loadingFanart && artistImages.length === 0 ? (
+                <div className="text-center text-gray-400 py-16">
+                  <div className="text-6xl mb-4">📀</div>
+                  <div className="text-lg mb-2">Albums don't have videos</div>
+                  <div className="text-sm">Only singles have music videos available</div>
+                </div>
+              ) : null
             ) : loadingVideo ? (
               // Loading state
               <div className="text-center text-gray-400 py-16">
@@ -1511,7 +1648,15 @@ export default function MusicDetailModalV4({
             ) : musicVideo && musicVideo.isEmbeddable ? (
               // Show embedded YouTube video
               <div className="space-y-4">
-                <div className="text-white text-lg font-medium">Official Music Video</div>
+                <div className="flex items-center space-x-2 text-white">
+                  <div className="text-lg font-medium">Official Music Video</div>
+                  <div className="text-xs bg-red-600/30 text-red-300 px-2 py-1 rounded flex items-center space-x-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    <span>YouTube</span>
+                  </div>
+                </div>
                 <div className="aspect-video bg-black rounded-lg overflow-hidden">
                   <iframe
                     src={musicVideo.embedUrl}
