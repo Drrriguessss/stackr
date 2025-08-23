@@ -76,6 +76,11 @@ export default function GameDetailDarkV2({
   const [videosLoading, setVideosLoading] = useState(false)
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   
+  // Interactive header carousel states
+  const [showFullscreenCarousel, setShowFullscreenCarousel] = useState(false)
+  const [headerCarouselIndex, setHeaderCarouselIndex] = useState(0)
+  const [headerAutoRotate, setHeaderAutoRotate] = useState(true)
+  
   // New states for enhanced functionality
   const [showFriendsModal, setShowFriendsModal] = useState(false)
   const [selectedFriends, setSelectedFriends] = useState<any[]>([])
@@ -182,6 +187,19 @@ export default function GameDetailDarkV2({
     }
   }, [showLibraryDropdown])
 
+  // Auto-rotate header carousel
+  useEffect(() => {
+    if (!showFullscreenCarousel && headerAutoRotate) {
+      const totalHeaderMedia = getHeaderMediaItems().length
+      if (totalHeaderMedia > 1) {
+        const interval = setInterval(() => {
+          setHeaderCarouselIndex((prev) => (prev + 1) % totalHeaderMedia)
+        }, 4000) // 4 seconds per slide
+        return () => clearInterval(interval)
+      }
+    }
+  }, [showFullscreenCarousel, headerAutoRotate, igdbVideos, gameImages, igdbArtwork, gameDetail])
+
   const fetchIGDBArtwork = async (gameName: string) => {
     try {
       console.log('🎮 [IGDB] Fetching artwork for:', gameName)
@@ -263,6 +281,73 @@ export default function GameDetailDarkV2({
     if (totalItems > 0) {
       setActiveMediaIndex((prev) => (prev - 1 + totalItems) % totalItems)
     }
+  }
+
+  // Header carousel media management
+  const getHeaderMediaItems = () => {
+    const items = []
+    
+    // Add videos first
+    igdbVideos.forEach((video, index) => {
+      items.push({
+        type: 'video' as const,
+        id: video.video_id,
+        url: igdbService.getVideoUrl(video.video_id),
+        thumbnail: `https://img.youtube.com/vi/${video.video_id}/maxresdefault.jpg`,
+        title: video.name || 'Game Trailer'
+      })
+    })
+    
+    // Add images
+    gameImages.forEach((image, index) => {
+      items.push({
+        type: 'image' as const,
+        id: `img-${index}`,
+        url: image,
+        thumbnail: image,
+        title: 'Game Screenshot'
+      })
+    })
+    
+    // Add fallback artwork if no other media
+    if (items.length === 0 && (igdbArtwork || gameDetail?.background_image)) {
+      items.push({
+        type: 'image' as const,
+        id: 'fallback',
+        url: igdbArtwork || gameDetail.background_image,
+        thumbnail: igdbArtwork || gameDetail.background_image,
+        title: gameDetail?.name || 'Game Image'
+      })
+    }
+    
+    return items
+  }
+
+  const nextHeaderMedia = () => {
+    const totalItems = getHeaderMediaItems().length
+    if (totalItems > 0) {
+      setHeaderCarouselIndex((prev) => (prev + 1) % totalItems)
+    }
+  }
+
+  const prevHeaderMedia = () => {
+    const totalItems = getHeaderMediaItems().length
+    if (totalItems > 0) {
+      setHeaderCarouselIndex((prev) => (prev - 1 + totalItems) % totalItems)
+    }
+  }
+
+  const openFullscreenCarousel = (startIndex?: number) => {
+    if (startIndex !== undefined) {
+      setHeaderCarouselIndex(startIndex)
+    }
+    setHeaderAutoRotate(false)
+    setShowFullscreenCarousel(true)
+  }
+
+  const closeFullscreenCarousel = () => {
+    setShowFullscreenCarousel(false)
+    setHeaderAutoRotate(true)
   }
 
   const fetchGameDetail = async () => {
@@ -401,23 +486,94 @@ export default function GameDetailDarkV2({
             </div>
           ) : gameDetail ? (
             <>
-              {/* Header with backdrop image - Using IGDB Artwork when available */}
-              <div className="relative h-[200px] overflow-hidden">
-                <img
-                  src={igdbArtwork || gameDetail.background_image || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1280&h=720&fit=crop&q=80'}
-                  alt={`${gameDetail.name} backdrop`}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                />
+              {/* Interactive Header Carousel */}
+              <div className="relative h-[200px] overflow-hidden group">
+                {(() => {
+                  const headerMedia = getHeaderMediaItems()
+                  const currentMedia = headerMedia[headerCarouselIndex] || {
+                    type: 'image' as const,
+                    url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1280&h=720&fit=crop&q=80',
+                    thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1280&h=720&fit=crop&q=80',
+                    title: gameDetail.name || 'Game'
+                  }
+                  
+                  return (
+                    <>
+                      {/* Current Media Display */}
+                      <div 
+                        className="w-full h-full cursor-pointer transition-transform duration-300 hover:scale-105"
+                        onClick={() => openFullscreenCarousel()}
+                      >
+                        {currentMedia.type === 'video' ? (
+                          <img
+                            src={currentMedia.thumbnail}
+                            alt={currentMedia.title}
+                            className="w-full h-full object-cover"
+                            loading="eager"
+                          />
+                        ) : (
+                          <img
+                            src={currentMedia.url}
+                            alt={currentMedia.title}
+                            className="w-full h-full object-cover"
+                            loading="eager"
+                          />
+                        )}
+                      </div>
+                      
+                      {/* Navigation arrows (only show on hover if multiple items) */}
+                      {headerMedia.length > 1 && (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); prevHeaderMedia(); }}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); nextHeaderMedia(); }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </>
+                      )}
+                      
+                      {/* Media indicators */}
+                      {headerMedia.length > 1 && (
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2">
+                          {headerMedia.map((_, index) => (
+                            <button
+                              key={index}
+                              onClick={(e) => { e.stopPropagation(); setHeaderCarouselIndex(index); }}
+                              className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+                                index === headerCarouselIndex 
+                                  ? 'bg-white' 
+                                  : 'bg-white/50 hover:bg-white/75'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Media type indicator */}
+                      {currentMedia.type === 'video' && (
+                        <div className="absolute top-3 left-3 px-2 py-1 bg-black/50 text-white text-xs rounded-full backdrop-blur-sm">
+                          🎬 Trailer
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
                 
-                {/* Gradient overlay - Same as MusicModal */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0f0e17] via-[#0f0e17]/60 to-transparent" />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0f0e17] via-[#0f0e17]/60 to-transparent pointer-events-none" />
                 
-                {/* Close button - Same as MusicModal */}
+                {/* Close button */}
                 <div className="absolute top-0 right-0 p-5">
                   <button
                     onClick={onBack}
-                    className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50"
+                    className="w-10 h-10 bg-black/30 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-xl transition-all duration-200 active:scale-95 hover:bg-black/50 z-10"
                   >
                     <X size={20} />
                   </button>
@@ -825,6 +981,107 @@ export default function GameDetailDarkV2({
           )}
       
       {/* All the modals and popups */}
+        
+        {/* Fullscreen Carousel Modal */}
+        {showFullscreenCarousel && (
+          <div className="fixed inset-0 z-[100] bg-black">
+            {(() => {
+              const headerMedia = getHeaderMediaItems()
+              const currentMedia = headerMedia[headerCarouselIndex]
+              
+              if (!currentMedia) return null
+              
+              return (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  {/* Media Display */}
+                  <div className="relative w-full h-full">
+                    {currentMedia.type === 'video' ? (
+                      <iframe
+                        src={currentMedia.url}
+                        title={currentMedia.title}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <img
+                        src={currentMedia.url}
+                        alt={currentMedia.title}
+                        className="w-full h-full object-contain"
+                      />
+                    )}
+                  </div>
+                  
+                  {/* Navigation Controls */}
+                  {headerMedia.length > 1 && (
+                    <>
+                      <button
+                        onClick={prevHeaderMedia}
+                        className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/70 hover:bg-black/90 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors z-10"
+                      >
+                        <ChevronLeft size={24} />
+                      </button>
+                      <button
+                        onClick={nextHeaderMedia}
+                        className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/70 hover:bg-black/90 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors z-10"
+                      >
+                        <ChevronRight size={24} />
+                      </button>
+                    </>
+                  )}
+                  
+                  {/* Close Button */}
+                  <button
+                    onClick={closeFullscreenCarousel}
+                    className="absolute top-6 right-6 w-12 h-12 bg-black/70 hover:bg-black/90 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors z-10"
+                  >
+                    <X size={24} />
+                  </button>
+                  
+                  {/* Media Info */}
+                  <div className="absolute bottom-6 left-6 right-6 z-10">
+                    <div className="bg-black/70 rounded-lg p-4 backdrop-blur-sm">
+                      <h3 className="text-white font-semibold text-lg mb-2">
+                        {currentMedia.title}
+                      </h3>
+                      
+                      {/* Media Thumbnails */}
+                      {headerMedia.length > 1 && (
+                        <div className="flex space-x-3 overflow-x-auto pb-2">
+                          {headerMedia.map((media, index) => (
+                            <button
+                              key={media.id}
+                              onClick={() => setHeaderCarouselIndex(index)}
+                              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                                index === headerCarouselIndex
+                                  ? 'border-white'
+                                  : 'border-white/30 hover:border-white/60'
+                              }`}
+                            >
+                              <img
+                                src={media.thumbnail}
+                                alt={media.title}
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Media Counter */}
+                      {headerMedia.length > 1 && (
+                        <p className="text-white/70 text-sm mt-2">
+                          {headerCarouselIndex + 1} of {headerMedia.length}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
+        )}
         
         {/* Friends Modal */}
         {showFriendsModal && (

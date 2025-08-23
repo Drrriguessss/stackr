@@ -102,7 +102,9 @@
       "Bash(PORT=3020 npm run dev)",
       "Bash(del debug-duplicates.js)",
       "Bash(npx kill-port:*)",
-      "Bash(PORT=3030 npm run dev)"
+      "Bash(PORT=3030 npm run dev)",
+      "Bash(PORT=3031 npm run dev)",
+      "Bash(7m2mop28n6h0813ozar5jpcl19im72)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
