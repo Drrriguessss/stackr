@@ -375,7 +375,6 @@ export default function BoardGameDetailPage({
     setLastUserAction(actionTimestamp);
 
     setIsProcessingStatus(true);
-    setShowDropdown(false);
 
     console.log(
       "🎲 [BOARDGAME MODAL] Status changed to:",
@@ -386,9 +385,12 @@ export default function BoardGameDetailPage({
     try {
       if (status === null) {
         // Remove from library
+        console.log('🎲 [BOARDGAME MODAL] Removing item from library');
+        setSelectedStatus(null); // Reset button to "Add to Library" IMMEDIATELY
+        setShowDropdown(false); // Close dropdown immediately
+        
         if (onDeleteItem) {
           await onDeleteItem(gameId);
-          setSelectedStatus(null); // Reset button to "Add to Library"
           console.log("🗑️ [BOARDGAME MODAL] Item removed from library");
           
           // Force library refresh event for mobile reliability
@@ -401,7 +403,13 @@ export default function BoardGameDetailPage({
           }, 500);
         }
       } else {
-        // Add/update in library - LIKE MOVIE MODAL
+        // Add/update in library - LIKE BOOK MODAL
+        console.log('🎲 [BOARDGAME MODAL] Adding/updating item with status:', status);
+        
+        // Set status IMMEDIATELY for instant UI feedback
+        setSelectedStatus(status);
+        setShowDropdown(false);
+        
         const gameForLibrary = {
           id: gameDetail.id,
           title: gameDetail.name || "",
@@ -412,8 +420,7 @@ export default function BoardGameDetailPage({
           genre: gameDetail.categories?.[0]?.name || "Board Game",
         };
 
-        onAddToLibrary(gameForLibrary, status);
-        setSelectedStatus(status);
+        await onAddToLibrary(gameForLibrary, status);
         console.log(
           "✅ [BOARDGAME MODAL] Item saved to library with status:",
           status,
