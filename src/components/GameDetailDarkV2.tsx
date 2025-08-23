@@ -184,7 +184,7 @@ export default function GameDetailDarkV2({
 
   const fetchIGDBArtwork = async (gameName: string) => {
     try {
-      console.log('🎮 [IGDB] Fetching images for:', gameName)
+      console.log('🎮 [IGDB] Fetching artwork for:', gameName)
       
       // Search for game on IGDB
       const games = await igdbService.searchGames(gameName, 1)
@@ -192,27 +192,27 @@ export default function GameDetailDarkV2({
       if (games && games.length > 0) {
         const gameId = games[0].id
         
-        // Priority 1: Try screenshots first (real in-game images)
-        console.log('🎮 [IGDB] Trying screenshots first (in-game images)...')
-        const screenshots = await igdbService.getGameScreenshots(gameId)
+        // Priority 1: Try artworks first (promotional/concept art)
+        const artworks = await igdbService.getGameArtworks(gameId)
         
-        if (screenshots && screenshots.length > 0) {
-          const screenshotUrl = igdbService.getImageUrl(screenshots[0].image_id, 'screenshot_big')
-          setIgdbArtwork(screenshotUrl)
-          console.log('🎮 [IGDB] Screenshot found (priority):', screenshotUrl)
+        if (artworks && artworks.length > 0) {
+          // Use the first artwork as header image
+          const artworkUrl = igdbService.getImageUrl(artworks[0].image_id, 'screenshot_big')
+          setIgdbArtwork(artworkUrl)
+          console.log('🎮 [IGDB] Artwork found:', artworkUrl)
         } else {
-          console.log('🎮 [IGDB] No screenshots found, trying artworks as fallback')
-          // Priority 2: Fallback to artworks if no screenshots
-          const artworks = await igdbService.getGameArtworks(gameId)
-          if (artworks && artworks.length > 0) {
-            const artworkUrl = igdbService.getImageUrl(artworks[0].image_id, 'screenshot_big')
-            setIgdbArtwork(artworkUrl)
-            console.log('🎮 [IGDB] Artwork found (fallback):', artworkUrl)
+          console.log('🎮 [IGDB] No artworks found, trying screenshots')
+          // Priority 2: Fallback to screenshots if no artworks
+          const screenshots = await igdbService.getGameScreenshots(gameId)
+          if (screenshots && screenshots.length > 0) {
+            const screenshotUrl = igdbService.getImageUrl(screenshots[0].image_id, 'screenshot_big')
+            setIgdbArtwork(screenshotUrl)
+            console.log('🎮 [IGDB] Screenshot found:', screenshotUrl)
           }
         }
       }
     } catch (error) {
-      console.error('🎮 [IGDB] Error fetching images:', error)
+      console.error('🎮 [IGDB] Error fetching artwork:', error)
       // Keep using RAWG image as fallback
     }
   }
