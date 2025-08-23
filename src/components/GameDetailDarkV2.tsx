@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { X, Star, Send, ChevronDown, Share, FileText } from 'lucide-react'
+import { X, Star, Send, ChevronDown, Share, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { LibraryItem, Review, MediaStatus } from '@/types'
 import { newTrailerService, type ValidatedTrailer } from '@/services/newTrailerService'
 import { userReviewsService, type UserReview } from '@/services/userReviewsService'
@@ -74,6 +74,7 @@ export default function GameDetailDarkV2({
   const [igdbArtwork, setIgdbArtwork] = useState<string | null>(null)
   const [igdbVideos, setIgdbVideos] = useState<any[]>([])
   const [videosLoading, setVideosLoading] = useState(false)
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   
   // New states for enhanced functionality
   const [showFriendsModal, setShowFriendsModal] = useState(false)
@@ -183,7 +184,7 @@ export default function GameDetailDarkV2({
 
   const fetchIGDBArtwork = async (gameName: string) => {
     try {
-      console.log('🎮 [IGDB] Fetching artwork for:', gameName)
+      console.log('🎮 [IGDB] Fetching images for:', gameName)
       
       // Search for game on IGDB
       const games = await igdbService.searchGames(gameName, 1)
@@ -191,27 +192,27 @@ export default function GameDetailDarkV2({
       if (games && games.length > 0) {
         const gameId = games[0].id
         
-        // Fetch artworks for this game
-        const artworks = await igdbService.getGameArtworks(gameId)
+        // Priority 1: Try screenshots first (real in-game images)
+        console.log('🎮 [IGDB] Trying screenshots first (in-game images)...')
+        const screenshots = await igdbService.getGameScreenshots(gameId)
         
-        if (artworks && artworks.length > 0) {
-          // Use the first artwork as header image
-          const artworkUrl = igdbService.getImageUrl(artworks[0].image_id, 'screenshot_big')
-          setIgdbArtwork(artworkUrl)
-          console.log('🎮 [IGDB] Artwork found:', artworkUrl)
+        if (screenshots && screenshots.length > 0) {
+          const screenshotUrl = igdbService.getImageUrl(screenshots[0].image_id, 'screenshot_big')
+          setIgdbArtwork(screenshotUrl)
+          console.log('🎮 [IGDB] Screenshot found (priority):', screenshotUrl)
         } else {
-          console.log('🎮 [IGDB] No artworks found, trying screenshots')
-          // Fallback to screenshots if no artworks
-          const screenshots = await igdbService.getGameScreenshots(gameId)
-          if (screenshots && screenshots.length > 0) {
-            const screenshotUrl = igdbService.getImageUrl(screenshots[0].image_id, 'screenshot_big')
-            setIgdbArtwork(screenshotUrl)
-            console.log('🎮 [IGDB] Screenshot found:', screenshotUrl)
+          console.log('🎮 [IGDB] No screenshots found, trying artworks as fallback')
+          // Priority 2: Fallback to artworks if no screenshots
+          const artworks = await igdbService.getGameArtworks(gameId)
+          if (artworks && artworks.length > 0) {
+            const artworkUrl = igdbService.getImageUrl(artworks[0].image_id, 'screenshot_big')
+            setIgdbArtwork(artworkUrl)
+            console.log('🎮 [IGDB] Artwork found (fallback):', artworkUrl)
           }
         }
       }
     } catch (error) {
-      console.error('🎮 [IGDB] Error fetching artwork:', error)
+      console.error('🎮 [IGDB] Error fetching images:', error)
       // Keep using RAWG image as fallback
     }
   }
@@ -246,6 +247,21 @@ export default function GameDetailDarkV2({
       setIgdbVideos([])
     } finally {
       setVideosLoading(false)
+    }
+  }
+
+  // Navigation functions for media carousel
+  const nextMedia = () => {
+    const totalItems = igdbVideos.length + gameImages.length
+    if (totalItems > 0) {
+      setActiveMediaIndex((prev) => (prev + 1) % totalItems)
+    }
+  }
+
+  const prevMedia = () => {
+    const totalItems = igdbVideos.length + gameImages.length
+    if (totalItems > 0) {
+      setActiveMediaIndex((prev) => (prev - 1 + totalItems) % totalItems)
     }
   }
 
@@ -677,51 +693,116 @@ export default function GameDetailDarkV2({
 
                 {/* Trailers Content */}
                 <div style={{ display: activeTab === 'trailers' ? 'block' : 'none' }}>
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <h3 className="text-lg font-semibold text-white mb-3">Media</h3>
                     
-                    {/* IGDB Videos/Trailers */}
+                    {/* Loading state */}
                     {videosLoading && (
                       <div className="text-gray-400 text-sm bg-gray-800/50 rounded-lg p-4">
                         Loading trailers...
                       </div>
                     )}
                     
-                    {!videosLoading && igdbVideos.length > 0 && (
-                      <div>
-                        <h4 className="text-md font-medium text-white mb-3">Trailers</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {igdbVideos.slice(0, 4).map((video, index) => (
-                            <div key={video.video_id || index} className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                    {/* Media Carousel */}
+                    {!videosLoading && (igdbVideos.length > 0 || gameImages.length > 0) && (
+                      <div className="space-y-4 mb-6">
+                        <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                          {/* Current media item */}
+                          {activeMediaIndex < igdbVideos.length ? (
+                            /* IGDB Video */
+                            <div className="w-full h-full">
                               <iframe
-                                src={igdbService.getVideoUrl(video.video_id)}
-                                title={video.name || `${gameDetail.name} Trailer ${index + 1}`}
+                                src={igdbService.getVideoUrl(igdbVideos[activeMediaIndex].video_id)}
+                                title={igdbVideos[activeMediaIndex].name || `${gameDetail.name} Trailer ${activeMediaIndex + 1}`}
                                 className="w-full h-full"
                                 allowFullScreen
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                               />
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Screenshots */}
-                    {gameImages.length > 0 && (
-                      <div>
-                        <h4 className="text-md font-medium text-white mb-3">Screenshots</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          {gameImages.slice(0, 6).map((screenshot, index) => (
-                            <div key={index} className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                              <img
-                                src={screenshot}
-                                alt={`${gameDetail.name} screenshot ${index + 1}`}
-                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-200 cursor-pointer"
-                                onClick={() => window.open(screenshot, '_blank')}
-                              />
+                          ) : gameImages.length > 0 ? (
+                            /* Screenshot */
+                            <img
+                              src={gameImages[activeMediaIndex - igdbVideos.length]}
+                              alt={`${gameDetail.name} screenshot ${activeMediaIndex - igdbVideos.length + 1}`}
+                              className="w-full h-full object-cover cursor-pointer"
+                              onClick={() => window.open(gameImages[activeMediaIndex - igdbVideos.length], '_blank')}
+                            />
+                          ) : (
+                            /* Fallback */
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              No media available
                             </div>
-                          ))}
+                          )}
+                          
+                          {/* Navigation arrows */}
+                          {(igdbVideos.length + gameImages.length) > 1 && (
+                            <>
+                              <button
+                                onClick={prevMedia}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+                              >
+                                <ChevronLeft size={20} />
+                              </button>
+                              <button
+                                onClick={nextMedia}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+                              >
+                                <ChevronRight size={20} />
+                              </button>
+                            </>
+                          )}
                         </div>
+                        
+                        {/* Media thumbnails */}
+                        {(igdbVideos.length + gameImages.length) > 1 && (
+                          <div className="flex space-x-2 overflow-x-auto pb-2">
+                            {/* IGDB Video thumbnails */}
+                            {igdbVideos.map((video, index) => (
+                              <button
+                                key={video.video_id || index}
+                                onClick={() => setActiveMediaIndex(index)}
+                                className={`flex-shrink-0 w-20 h-12 rounded overflow-hidden border-2 transition-colors relative ${
+                                  activeMediaIndex === index ? 'border-white' : 'border-transparent'
+                                }`}
+                              >
+                                {gameDetail.background_image ? (
+                                  <img
+                                    src={gameDetail.background_image}
+                                    alt={`Video ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                                    <span className="text-xs text-gray-300">V{index + 1}</span>
+                                  </div>
+                                )}
+                                {/* Play icon overlay */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-4 h-4 bg-white/80 rounded-full flex items-center justify-center">
+                                    <div className="w-0 h-0 border-l-2 border-l-black border-t-1 border-t-transparent border-b-1 border-b-transparent ml-0.5"></div>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                            
+                            {/* Screenshot thumbnails */}
+                            {gameImages.map((image, index) => (
+                              <button
+                                key={index}
+                                onClick={() => setActiveMediaIndex(igdbVideos.length + index)}
+                                className={`flex-shrink-0 w-20 h-12 rounded overflow-hidden border-2 transition-colors ${
+                                  (igdbVideos.length + index) === activeMediaIndex ? 'border-white' : 'border-transparent'
+                                }`}
+                              >
+                                <img
+                                  src={image}
+                                  alt={`Screenshot ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 

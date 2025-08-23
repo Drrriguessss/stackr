@@ -182,6 +182,13 @@ export default function BoardGameDetailPage({
     }
   }, [activeTab, gameDetail?.name, videosLoaded]);
 
+  // Load videos immediately when game detail is available (for header image)
+  useEffect(() => {
+    if (gameDetail?.name && !videosLoaded) {
+      loadYouTubeVideos();
+    }
+  }, [gameDetail?.name, videosLoaded]);
+
   // Ref pour éviter les appels API multiples
   const hasLoadedRef = useRef<string | null>(null);
 
@@ -1131,12 +1138,14 @@ export default function BoardGameDetailPage({
         </div>
       ) : gameDetail ? (
         <div>
-          {/* Large header image - 200px height COMME BOOK MODAL */}
+          {/* Large header image - 200px height - Using first video thumbnail or fallback */}
           <div className="relative h-[200px] overflow-hidden">
             <img
               src={
-                gameDetail.image ||
-                "https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?w=1280&h=720&fit=crop&q=80"
+                youtubeVideos.length > 0 
+                  ? youtubeVideos[0].thumbnail
+                  : gameDetail.image ||
+                    "https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?w=1280&h=720&fit=crop&q=80"
               }
               alt={`${decodeHtmlEntities(gameDetail.name)} backdrop`}
               className="w-full h-full object-cover"
