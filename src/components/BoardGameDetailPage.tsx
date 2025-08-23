@@ -34,6 +34,7 @@ import {
   getVideoTypeColor,
   type YouTubeVideo,
 } from "@/services/youtubeService";
+import { boardGameAtlasService } from "@/services/boardGameAtlasService";
 // Removed BoardGameStatusManager import - using simple dropdown now
 
 interface BoardGameDetailPageProps {
@@ -99,6 +100,24 @@ export default function BoardGameDetailPage({
   const [youtubeVideos, setYoutubeVideos] = useState<YouTubeVideo[]>([]);
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [videosLoaded, setVideosLoaded] = useState(false);
+  // Board Game Atlas states
+  const [bgaImages, setBgaImages] = useState<{
+    mainImage?: string;
+    thumbnail?: string;
+    componentImages: string[];
+    gameplayPhotos: string[];
+    rulesImages: string[];
+    setupPhotos: string[];
+    allImages: string[];
+  }>({
+    componentImages: [],
+    gameplayPhotos: [],
+    rulesImages: [],
+    setupPhotos: [],
+    allImages: []
+  });
+  const [loadingBgaImages, setLoadingBgaImages] = useState(false);
+  const [bgaImagesLoaded, setBgaImagesLoaded] = useState(false);
   // Removed updatingLibrary - now handled by BoardGameStatusManager
 
   // Body scroll lock for Game Sheet Modal
@@ -177,6 +196,14 @@ export default function BoardGameDetailPage({
     setDesignerGamesLoaded(false);
     setVideosLoaded(false);
     setYoutubeVideos([]);
+    setBgaImagesLoaded(false);
+    setBgaImages({
+      componentImages: [],
+      gameplayPhotos: [],
+      rulesImages: [],
+      setupPhotos: [],
+      allImages: []
+    });
   }, [gameId]);
 
   // Load YouTube videos when media tab is selected
@@ -184,7 +211,11 @@ export default function BoardGameDetailPage({
     if (activeTab === "media" && gameDetail?.name && !videosLoaded) {
       loadYouTubeVideos();
     }
-  }, [activeTab, gameDetail?.name, videosLoaded]);
+    // Also load Board Game Atlas images when media tab is selected
+    if (activeTab === "media" && gameDetail?.name && !bgaImagesLoaded) {
+      loadBoardGameAtlasImages();
+    }
+  }, [activeTab, gameDetail?.name, videosLoaded, bgaImagesLoaded]);
 
   // Load videos immediately when game detail is available (for header image)
   useEffect(() => {
@@ -864,6 +895,23 @@ export default function BoardGameDetailPage({
       console.error("Error loading YouTube videos:", error);
     } finally {
       setLoadingVideos(false);
+    }
+  };
+
+  const loadBoardGameAtlasImages = async () => {
+    if (!gameDetail?.name || bgaImagesLoaded) return;
+
+    setLoadingBgaImages(true);
+    try {
+      console.log('🎲 [BGA] Loading Board Game Atlas images for:', gameDetail.name);
+      const images = await boardGameAtlasService.getGameImages(gameDetail.name);
+      setBgaImages(images);
+      setBgaImagesLoaded(true);
+      console.log('🎲 [BGA] Images loaded:', images);
+    } catch (error) {
+      console.error("Error loading Board Game Atlas images:", error);
+    } finally {
+      setLoadingBgaImages(false);
     }
   };
 
@@ -1611,6 +1659,206 @@ export default function BoardGameDetailPage({
                     </div>
                   </div>
                 )}
+
+                {/* Board Game Atlas Images Section */}
+                <div className="mt-8 border-t border-gray-700 pt-8">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      Board Game Atlas Images (Test)
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      Testing Board Game Atlas API for additional game images
+                    </p>
+                  </div>
+
+                  {loadingBgaImages ? (
+                    <div className="text-center text-gray-400 py-8">
+                      <div className="text-sm">Loading Board Game Atlas images...</div>
+                    </div>
+                  ) : bgaImages.allImages.length > 0 ? (
+                    <div className="space-y-6">
+                      {/* Main Images */}
+                      {(bgaImages.mainImage || bgaImages.thumbnail) && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-300 mb-3">Main Images</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            {bgaImages.mainImage && (
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">Main Image</p>
+                                <img
+                                  src={bgaImages.mainImage}
+                                  alt="Main game image"
+                                  className="w-full rounded-lg"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            )}
+                            {bgaImages.thumbnail && bgaImages.thumbnail !== bgaImages.mainImage && (
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">Thumbnail</p>
+                                <img
+                                  src={bgaImages.thumbnail}
+                                  alt="Thumbnail"
+                                  className="w-full rounded-lg"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Component Images */}
+                      {bgaImages.componentImages.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-300 mb-3">
+                            Component Images ({bgaImages.componentImages.length})
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {bgaImages.componentImages.map((img, index) => (
+                              <img
+                                key={index}
+                                src={img}
+                                alt={`Component ${index + 1}`}
+                                className="w-full rounded-lg hover:scale-105 transition-transform duration-200"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Gameplay Photos */}
+                      {bgaImages.gameplayPhotos.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-300 mb-3">
+                            Gameplay Photos ({bgaImages.gameplayPhotos.length})
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {bgaImages.gameplayPhotos.map((img, index) => (
+                              <img
+                                key={index}
+                                src={img}
+                                alt={`Gameplay ${index + 1}`}
+                                className="w-full rounded-lg hover:scale-105 transition-transform duration-200"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Rules Images */}
+                      {bgaImages.rulesImages.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-300 mb-3">
+                            Rules & Player Aids ({bgaImages.rulesImages.length})
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {bgaImages.rulesImages.map((img, index) => (
+                              <img
+                                key={index}
+                                src={img}
+                                alt={`Rules ${index + 1}`}
+                                className="w-full rounded-lg hover:scale-105 transition-transform duration-200"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Setup Photos */}
+                      {bgaImages.setupPhotos.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-300 mb-3">
+                            Setup Photos ({bgaImages.setupPhotos.length})
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {bgaImages.setupPhotos.map((img, index) => (
+                              <img
+                                key={index}
+                                src={img}
+                                alt={`Setup ${index + 1}`}
+                                className="w-full rounded-lg hover:scale-105 transition-transform duration-200"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* All Images (if no categorization) */}
+                      {bgaImages.componentImages.length === 0 && 
+                       bgaImages.gameplayPhotos.length === 0 && 
+                       bgaImages.rulesImages.length === 0 && 
+                       bgaImages.setupPhotos.length === 0 &&
+                       bgaImages.allImages.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-300 mb-3">
+                            All Available Images ({bgaImages.allImages.length})
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {bgaImages.allImages.map((img, index) => (
+                              <img
+                                key={index}
+                                src={img}
+                                alt={`Game image ${index + 1}`}
+                                className="w-full rounded-lg hover:scale-105 transition-transform duration-200"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Debug Info */}
+                      <div className="mt-4 p-4 bg-gray-800/50 rounded-lg">
+                        <h4 className="text-xs font-medium text-gray-400 mb-2">Debug Info:</h4>
+                        <pre className="text-xs text-gray-500 overflow-x-auto">
+                          {JSON.stringify({
+                            gameName: gameDetail?.name,
+                            totalImages: bgaImages.allImages.length,
+                            hasMainImage: !!bgaImages.mainImage,
+                            hasThumbnail: !!bgaImages.thumbnail,
+                            componentImages: bgaImages.componentImages.length,
+                            gameplayPhotos: bgaImages.gameplayPhotos.length,
+                            rulesImages: bgaImages.rulesImages.length,
+                            setupPhotos: bgaImages.setupPhotos.length
+                          }, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-400 py-8">
+                      <div className="text-sm mb-2">No Board Game Atlas images found</div>
+                      <div className="text-xs">
+                        This game might not be in the Board Game Atlas database
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
