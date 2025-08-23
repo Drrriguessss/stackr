@@ -388,7 +388,17 @@ export default function BoardGameDetailPage({
         // Remove from library
         if (onDeleteItem) {
           await onDeleteItem(gameId);
+          setSelectedStatus(null); // Reset button to "Add to Library"
           console.log("🗑️ [BOARDGAME MODAL] Item removed from library");
+          
+          // Force library refresh event for mobile reliability
+          setTimeout(() => {
+            const event = new CustomEvent('library-changed', {
+              detail: { action: 'deleted', item: { id: gameId, title: gameDetail.name }, timestamp: Date.now() }
+            });
+            window.dispatchEvent(event);
+            console.log('🔔 [BOARDGAME MODAL] Forced library-changed event for mobile');
+          }, 500);
         }
       } else {
         // Add/update in library - LIKE MOVIE MODAL
