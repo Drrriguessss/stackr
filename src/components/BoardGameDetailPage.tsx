@@ -89,6 +89,10 @@ export default function BoardGameDetailPage({
   const [designerGamesLoaded, setDesignerGamesLoaded] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null);
+  // Protection states from Book Modal pattern
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const [lastUserAction, setLastUserAction] = useState<number>(0);
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] =
     useState(false);
   const [showGameSheet, setShowGameSheet] = useState(false);
@@ -263,15 +267,55 @@ export default function BoardGameDetailPage({
     }
   };
 
-  // Sync selectedStatus with library - LIKE MOVIE MODAL
+  // Sync selectedStatus with library - PROTECTED LIKE BOOK MODAL
   useEffect(() => {
-    const libraryItem = library.find((item) => item.id === gameId);
-    if (libraryItem) {
-      setSelectedStatus(libraryItem.status);
-    } else {
-      setSelectedStatus(null);
+    if (gameId && isInitialLoad) {
+      console.log('🎲 [BOARDGAME MODAL] INITIAL LOAD - synchronizing status with library for gameId:', gameId);
+      console.log('🎲 [BOARDGAME MODAL] Current selectedStatus before sync:', selectedStatus);
+      
+      // Check library status ONLY on modal open (initial load)
+      if (library && library.length > 0) {
+        const libraryItem = library.find((item) => item.id === gameId);
+        console.log('🔍 [BOARDGAME MODAL] Found library item:', libraryItem);
+        const newStatus = libraryItem?.status || null;
+        console.log('🔄 [BOARDGAME MODAL] Setting INITIAL status to:', newStatus);
+        
+        setSelectedStatus(newStatus);
+      } else {
+        console.log('🔄 [BOARDGAME MODAL] No library items, setting null status');
+        setSelectedStatus(null);
+      }
+      
+      setIsInitialLoad(false);
+      console.log('🔄 [BOARDGAME MODAL] ✅ Initial load complete');
     }
-  }, [gameId, library]);
+    // Block any additional sync if user has acted recently (within last 5 seconds)
+    else if (gameId && !isInitialLoad && library && library.length > 0 && !isUserInteracting) {
+      const timeSinceLastAction = Date.now() - lastUserAction;
+      if (timeSinceLastAction > 5000) { // More than 5 seconds since last action
+        console.log('🔄 [BOARDGAME MODAL] Allowing library sync - no recent user action');
+        const libraryItem = library.find((item) => item.id === gameId);
+        const newStatus = libraryItem?.status || null;
+        
+        // Only update if status actually changed from external source
+        if (newStatus !== selectedStatus) {
+          console.log(`🔄 [BOARDGAME MODAL] External status change detected: ${selectedStatus} -> ${newStatus}`);
+          setSelectedStatus(newStatus);
+        }
+      } else {
+        console.log(`🔄 [BOARDGAME MODAL] Blocking library sync - recent user action (${timeSinceLastAction}ms ago)`);
+      }
+    }
+  }, [gameId, library, isInitialLoad, selectedStatus, lastUserAction, isUserInteracting]);
+
+  // Reset initial load flag when component unmounts or gameId changes
+  useEffect(() => {
+    return () => {
+      setIsInitialLoad(true);
+      setIsUserInteracting(false);
+      console.log('🔄 [BOARDGAME MODAL] Reset for next load');
+    };
+  }, [gameId]);
 
   // Load user avatar when modal opens
   useEffect(() => {
@@ -320,9 +364,15 @@ export default function BoardGameDetailPage({
   // Mobile touch optimization: prevent double-tap issues
   const [isProcessingStatus, setIsProcessingStatus] = useState(false);
 
-  // Handle status change - LIKE MOVIE MODAL: SIMPLE PATTERN
+  // Handle status change - PROTECTED LIKE BOOK MODAL
   const handleStatusChange = async (status: MediaStatus | null) => {
     if (isProcessingStatus || !gameDetail) return; // Prevent double-tap on mobile
+
+    // PROTECTION: Mark user interaction to avoid Supabase real-time overrides
+    const actionTimestamp = Date.now();
+    console.log('🎲 [BOARDGAME MODAL] 🔒 User interaction started - blocking real-time sync');
+    setIsUserInteracting(true);
+    setLastUserAction(actionTimestamp);
 
     setIsProcessingStatus(true);
     setShowDropdown(false);
@@ -330,7 +380,7 @@ export default function BoardGameDetailPage({
     console.log(
       "🎲 [BOARDGAME MODAL] Status changed to:",
       status,
-      "- using Movie Modal pattern",
+      "- using Book Modal protection pattern",
     );
 
     try {
@@ -358,6 +408,15 @@ export default function BoardGameDetailPage({
           "✅ [BOARDGAME MODAL] Item saved to library with status:",
           status,
         );
+        
+        // Force library refresh event for mobile reliability
+        setTimeout(() => {
+          const event = new CustomEvent('library-changed', {
+            detail: { action: 'updated', item: { id: gameDetail.id, title: gameDetail.name }, timestamp: Date.now() }
+          });
+          window.dispatchEvent(event);
+          console.log('🔔 [BOARDGAME MODAL] Forced library-changed event for mobile');
+        }, 500);
       }
     } catch (error) {
       console.error("❌ [BOARDGAME MODAL] Failed to save changes:", error);
@@ -366,7 +425,14 @@ export default function BoardGameDetailPage({
       setSelectedStatus(libraryItem?.status || null);
     }
 
-    setTimeout(() => setIsProcessingStatus(false), 300); // Prevent rapid clicks
+    // Reset protection after delay (shorter on mobile for better reactivity)
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const resetDelay = isMobile ? 2000 : 3000;
+    setTimeout(() => {
+      console.log('🎲 [BOARDGAME MODAL] 🔓 User interaction ended - allowing real-time sync');
+      setIsUserInteracting(false);
+      setIsProcessingStatus(false);
+    }, resetDelay);
   };
 
 
@@ -787,11 +853,35 @@ export default function BoardGameDetailPage({
   // Library status management - moved above with friends modal logic
 
   const handleRemoveFromLibrary = async () => {
+    // PROTECTION: Mark user interaction for removal
+    const actionTimestamp = Date.now();
+    console.log('🎲 [BOARDGAME MODAL] 🔒 User interaction (removal) - blocking real-time sync');
+    setIsUserInteracting(true);
+    setLastUserAction(actionTimestamp);
+    
     // Simplified remove function for BoardGameStatusManager
     if (onDeleteItem) {
       try {
         await onDeleteItem(gameId);
+        setSelectedStatus(null);
         console.log("🎲 [BoardGame] Item removed successfully");
+        
+        // Force library refresh for mobile reliability
+        setTimeout(() => {
+          const event = new CustomEvent('library-changed', {
+            detail: { action: 'deleted', item: { id: gameId, title: gameDetail?.name }, timestamp: Date.now() }
+          });
+          window.dispatchEvent(event);
+          console.log('🔔 [BOARDGAME MODAL] Forced library-changed event for mobile');
+        }, 500);
+        
+        // Reset protection after shorter delay for removals
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const removalDelay = isMobile ? 1000 : 2000;
+        setTimeout(() => {
+          console.log('🎲 [BOARDGAME MODAL] 🔓 User interaction ended (removal) - allowing real-time sync');
+          setIsUserInteracting(false);
+        }, removalDelay);
       } catch (error) {
         console.error("🎲 [BoardGame] Error removing item:", error);
         throw error; // Let BoardGameStatusManager handle the error
