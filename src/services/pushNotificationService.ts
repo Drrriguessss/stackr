@@ -237,8 +237,8 @@ class PushNotificationService {
   ): Promise<boolean> {
     const notification: NotificationData = {
       type: 'friend_recommendation',
-      title: `${recommenderName} vous recommande quelque chose !`,
-      body: `Découvrez "${mediaTitle}" dans ${mediaType}`,
+      title: `${recommenderName} recommends something for you!`,
+      body: `Check out "${mediaTitle}" in ${mediaType}`,
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-96.png',
       data: {
@@ -251,12 +251,12 @@ class PushNotificationService {
       actions: [
         {
           action: 'view',
-          title: 'Voir',
+          title: 'View',
           icon: '/icons/eye.png'
         },
         {
           action: 'dismiss',
-          title: 'Plus tard',
+          title: 'Later',
           icon: '/icons/clock.png'
         }
       ]

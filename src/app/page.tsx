@@ -11,6 +11,7 @@ import MusicDetailModalV4 from '@/components/MusicDetailModalV4'
 import SearchModal from '@/components/SearchModal'
 import SearchModalV2 from '@/components/OLD_SearchModalV2'
 import UnifiedSearchBar from '@/components/UnifiedSearchBar'
+import SearchTabModal from '@/components/SearchTabModal'
 // All search modals removed - using unified SearchModal only
 import MoviesTVModalV2 from '@/components/MoviesTVModalV2'
 import GamesV2Section from '@/components/GamesV2Section'
@@ -53,7 +54,7 @@ export default function Home() {
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null)
   const [selectedBoardGameId, setSelectedBoardGameId] = useState<string | null>(null)
   
-  // Test modal state
+  // Search modal state
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   
   // Board games search state preservation
@@ -63,7 +64,7 @@ export default function Home() {
     isSearching: false,
     hasSearched: false
   })
-  const [useUnifiedSearch, setUseUnifiedSearch] = useState(true) // Toggle between old and new search
+  // Removed useUnifiedSearch - now using UnifiedSearchModal by default
   
   // Simplified search - using only SearchModal
   const [isMoviesTVV2Open, setIsMoviesTVV2Open] = useState(false)
@@ -686,7 +687,7 @@ export default function Home() {
   }
 
   const handleOpenSearch = () => {
-    // Use the legacy SearchModal that works
+    // Open the search modal that replicates the Search tab
     setIsSearchOpen(true)
   }
 
@@ -951,6 +952,7 @@ export default function Home() {
             onOpenMovieDetail={handleOpenMovieDetail}
             onOpenBookDetail={handleOpenBookDetail}
             onOpenMusicDetail={handleOpenMusicDetail}
+            onOpenSearch={handleOpenSearch}
           />
         )
       case 'home':
@@ -1232,6 +1234,7 @@ export default function Home() {
             onOpenMovieDetail={handleOpenMovieDetail}
             onOpenBookDetail={handleOpenBookDetail}
             onOpenMusicDetail={handleOpenMusicDetail}
+            onOpenSearch={handleOpenSearch}
           />
         )
     }
@@ -1259,18 +1262,7 @@ export default function Home() {
             </div>
             
             <div className="flex items-center ml-4 space-x-2">
-              {/* Search Version Toggle */}
-              <button
-                onClick={() => setUseUnifiedSearch(!useUnifiedSearch)}
-                className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-                  useUnifiedSearch 
-                    ? 'bg-green-100 text-green-700 border border-green-200' 
-                    : 'bg-gray-100 text-gray-700 border border-gray-200'
-                }`}
-                title="Toggle search version"
-              >
-                {useUnifiedSearch ? '🚀 V2' : '📂 V1'}
-              </button>
+              {/* Search toggle removed - now using UnifiedSearchModal by default */}
               
               <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
@@ -1376,19 +1368,6 @@ export default function Home() {
         onTabChange={setActiveMainTab} 
       />
 
-      {/* LEGACY SEARCH MODAL - Simple search bar for all media */}
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onOpenGameDetail={handleOpenGameDetail}
-        onOpenMovieDetail={handleOpenMovieDetail}
-        onOpenBookDetail={handleOpenBookDetail}
-        onOpenMusicDetail={handleOpenMusicDetail}
-        onOpenBoardGameDetail={handleOpenBoardGameDetail}
-        library={library}
-      />
-
       {/* Old separate modals removed - using unified SearchModal only */}
 
       <MoviesTVModalV2
@@ -1440,27 +1419,18 @@ export default function Home() {
         }}
       />
 
-      {/* Legacy Search Modal */}
-      {useUnifiedSearch ? (
-        <SearchModalV2
-          isOpen={isSearchOpen}
-          onClose={() => setIsSearchOpen(false)}
-          onAddToLibrary={handleAddToLibraryLegacy}
-          onOpenDetail={handleOpenDetail}
-        />
-      ) : (
-        <SearchModal
-          isOpen={isSearchOpen}
-          onClose={() => setIsSearchOpen(false)}
-          onAddToLibrary={handleAddToLibrary}
-          onOpenGameDetail={handleOpenGameDetail}
-          onOpenMovieDetail={handleOpenMovieDetail}
-          onOpenBookDetail={handleOpenBookDetail}
-          onOpenMusicDetail={handleOpenMusicDetail}
-          onOpenBoardGameDetail={handleOpenBoardGameDetail}
-          library={library}
-        />
-      )}
+      {/* Search Tab Modal - Exact replica of Search tab in modal form */}
+      <SearchTabModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onAddToLibrary={handleAddToLibrary}
+        onOpenGameDetail={handleOpenGameDetail}
+        onOpenMovieDetail={handleOpenMovieDetail}
+        onOpenBookDetail={handleOpenBookDetail}
+        onOpenMusicDetail={handleOpenMusicDetail}
+        onOpenBoardGameDetail={handleOpenBoardGameDetail}
+        library={library}
+      />
 
       {/* User Profile Setup Modal */}
       <UserProfileSetup

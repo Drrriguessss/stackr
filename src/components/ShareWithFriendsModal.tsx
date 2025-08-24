@@ -13,6 +13,7 @@ interface ShareWithFriendsModalProps {
     type: 'games' | 'movies' | 'music' | 'books' | 'boardgames'
     title: string
     image?: string
+    customMessage?: string // Message personnalisé pour le partage de review
   }
 }
 
@@ -30,14 +31,15 @@ export default function ShareWithFriendsModal({ isOpen, onClose, item }: ShareWi
       setIsVisible(true)
       // Reset state when opening
       setSelectedFriends([])
-      setShareMessage('')
+      // Use custom message if provided, otherwise empty
+      setShareMessage(item.customMessage || '')
       // Load friends
       loadFriends()
     } else {
       // Delay hiding to allow animation
       setTimeout(() => setIsVisible(false), 300)
     }
-  }, [isOpen])
+  }, [isOpen, item.customMessage])
 
   const loadFriends = async () => {
     setIsLoading(true)

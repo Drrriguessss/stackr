@@ -104,7 +104,11 @@
       "Bash(npx kill-port:*)",
       "Bash(PORT=3030 npm run dev)",
       "Bash(PORT=3031 npm run dev)",
-      "Bash(7m2mop28n6h0813ozar5jpcl19im72)"
+      "Bash(7m2mop28n6h0813ozar5jpcl19im72)",
+      "WebFetch(domain:www.boardgameatlas.com)",
+      "WebFetch(domain:publicapi.dev)",
+      "Bash(del test-reviews.json)",
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\UnifiedSearchModal.tsx\")"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

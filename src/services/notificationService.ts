@@ -106,7 +106,8 @@ class NotificationService {
     mediaType: string,
     mediaId: string,
     mediaImage?: string,
-    fromUserId?: string
+    fromUserId?: string,
+    friendProfileImage?: string
   ): Promise<boolean> {
     try {
       console.log('🔔 [NotificationService] Creating notification:', {
@@ -117,7 +118,9 @@ class NotificationService {
         mediaImage,
         hasMediaImage: !!mediaImage,
         mediaImageType: typeof mediaImage,
-        fromUserId: fromUserId?.slice(0, 8) + '...'
+        fromUserId: fromUserId?.slice(0, 8) + '...',
+        friendProfileImage,
+        hasFriendProfileImage: !!friendProfileImage
       })
 
       // First, verify we can access the notifications table
@@ -134,8 +137,8 @@ class NotificationService {
       const notificationData = {
         user_id: recipientId,
         type: 'media_shared' as const,
-        title: 'Nouvelle recommandation',
-        message: `${recommenderName} vous recommande "${mediaTitle}" (${mediaType}:${mediaId}${mediaImage ? `|${mediaImage}` : ''})`,
+        title: `${recommenderName} recommends "${mediaTitle}"`,
+        message: `${recommenderName} recommends "${mediaTitle}" (${mediaType}:${mediaId}${mediaImage ? `|${mediaImage}` : ''})`,
         read: false,
         ...(fromUserId && { from_user_id: fromUserId }),
         related_id: mediaId,
@@ -144,7 +147,8 @@ class NotificationService {
           mediaId,
           mediaTitle,
           mediaImage: mediaImage || null, // Ensure it's explicitly null if undefined
-          recommenderName
+          recommenderName,
+          friendProfileImage: friendProfileImage || null // Include friend's profile image
         })
       }
 

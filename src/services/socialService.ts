@@ -444,10 +444,10 @@ class SocialService {
       throw error
     }
 
-    // Get current user's profile for push notification
+    // Get current user's profile for push notification (including avatar)
     const { data: fromUserProfile } = await supabase
       .from('user_profiles')
-      .select('display_name, username')
+      .select('display_name, username, avatar_url')
       .eq('id', user.id)
       .single()
 
@@ -480,7 +480,8 @@ class SocialService {
       item.type,
       item.id,
       item.image,
-      user.id
+      user.id,
+      fromUserProfile?.avatar_url // Add friend's avatar URL
     )
     
     console.log('🔔 Notification created successfully:', notificationCreated)

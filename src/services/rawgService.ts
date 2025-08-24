@@ -2,6 +2,28 @@
 import { getSimilarGameIds } from '@/data/similarGamesMapping'
 import SteamImageService from './steamImageService'
 
+export interface RAWGReview {
+  id: number
+  user?: {
+    id: number
+    username: string
+    full_name: string
+    avatar?: string
+  } | null
+  text: string
+  rating: number
+  created: string
+  edited: string
+  likes_count: number
+  comments_count: number
+  external_author?: string
+  external_store?: {
+    name: string
+    domain: string
+  }
+  is_external: boolean
+}
+
 export interface RAWGGame {
   id: number
   name: string
@@ -732,6 +754,36 @@ class RAWGService {
       
     } catch (error) {
       console.error(`🎮 [Similar Games] Intelligent fallback error:`, error)
+      return []
+    }
+  }
+
+  /**
+   * 🎮 Get reviews for a specific game
+   */
+  async getGameReviews(gameId: string): Promise<RAWGReview[]> {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/games/${gameId}/reviews?key=${this.apiKey}&page_size=20`
+      )
+
+      if (!response.ok) {
+        console.error('🎮 [RAWG] Error fetching reviews:', response.status)
+        return []
+      }
+
+      const data = await response.json()
+      console.log(`🎮 [RAWG] Fetched ${data.results?.length || 0} reviews for game ${gameId}`)
+      
+      // Filter out reviews with very low quality or spam
+      const filteredReviews = (data.results || []).filter((review: RAWGReview) => {
+        // Keep reviews with actual content
+        return review.text && review.text.length > 50
+      })
+      
+      return filteredReviews
+    } catch (error) {
+      console.error('🎮 [RAWG] Error fetching reviews:', error)
       return []
     }
   }

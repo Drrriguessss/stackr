@@ -42,9 +42,10 @@ interface BoardGameAtlasSearchResponse {
 
 class BoardGameAtlasService {
   private readonly BASE_URL = 'https://api.boardgameatlas.com/api';
-  // Free tier client_id - you should replace this with your own
-  // Get one at: https://www.boardgameatlas.com/api/docs/apps
-  private readonly CLIENT_ID = 'JLBr5npPhV'; // This is a demo key, replace with your own
+  // Board Game Atlas API requires a client_id
+  // Get your own key at: https://www.boardgameatlas.com/api/docs/apps
+  // Registration takes about 90 seconds and is free
+  private readonly CLIENT_ID = process.env.NEXT_PUBLIC_BGA_CLIENT_ID || 'JLBr5npPhV';
   
   /**
    * Search for a game by name to get its Board Game Atlas ID
@@ -63,7 +64,11 @@ class BoardGameAtlasService {
       const response = await fetch(`${this.BASE_URL}/search?${params}`);
       
       if (!response.ok) {
-        console.error('🎲 [BGA] API error:', response.status);
+        if (response.status === 401 || response.status === 403) {
+          console.error('🎲 [BGA] Invalid API key. Get your free key at: https://www.boardgameatlas.com/api/docs/apps');
+        } else {
+          console.error('🎲 [BGA] API error:', response.status, response.statusText);
+        }
         return null;
       }
       
@@ -77,7 +82,11 @@ class BoardGameAtlasService {
       console.log('🎲 [BGA] No games found');
       return null;
     } catch (error) {
-      console.error('🎲 [BGA] Search error:', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('🎲 [BGA] Network error: Could not connect to Board Game Atlas API. Check your internet connection or try again later.');
+      } else {
+        console.error('🎲 [BGA] Search error:', error);
+      }
       return null;
     }
   }
@@ -97,7 +106,11 @@ class BoardGameAtlasService {
       const response = await fetch(`${this.BASE_URL}/search?${params}`);
       
       if (!response.ok) {
-        console.error('🎲 [BGA] API error:', response.status);
+        if (response.status === 401 || response.status === 403) {
+          console.error('🎲 [BGA] Invalid API key. Get your free key at: https://www.boardgameatlas.com/api/docs/apps');
+        } else {
+          console.error('🎲 [BGA] API error:', response.status, response.statusText);
+        }
         return null;
       }
       
@@ -243,7 +256,11 @@ class BoardGameAtlasService {
       
       return result;
     } catch (error) {
-      console.error('🎲 [BGA] Error getting game images:', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('🎲 [BGA] Network error: Could not connect to Board Game Atlas API. Please check your internet connection or try again later.');
+      } else {
+        console.error('🎲 [BGA] Error getting game images:', error);
+      }
       return result;
     }
   }

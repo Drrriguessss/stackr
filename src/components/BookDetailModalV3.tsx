@@ -125,6 +125,7 @@ export default function BookDetailModalV3({
   
   // États pour les modales
   const [showShareWithFriendsModal, setShowShareWithFriendsModal] = useState(false)
+  const [shareReviewMode, setShareReviewMode] = useState(false) // Pour savoir si on partage la review ou le livre
   const [showFriendsWhoRead, setShowFriendsWhoRead] = useState(false)
   const [friendsWhoRead, setFriendsWhoRead] = useState<Friend[]>([])
   const [loadingFriendsWhoRead, setLoadingFriendsWhoRead] = useState(false)
@@ -567,19 +568,9 @@ export default function BookDetailModalV3({
 
   // Handler pour partager sa review
   const handleShareUserReview = useCallback(() => {
-    // Logique de partage (copier lien, partager sur réseaux sociaux, etc.)
-    if (navigator.share) {
-      navigator.share({
-        title: `My review of ${bookDetail?.title}`,
-        text: reviewState.userReview,
-        url: window.location.href
-      })
-    } else {
-      // Fallback: copier dans le presse-papier
-      navigator.clipboard.writeText(window.location.href)
-      console.log('Link copied to clipboard')
-    }
-  }, [bookDetail, reviewState.userReview])
+    setShareReviewMode(true) // Indique qu'on partage la review
+    setShowShareWithFriendsModal(true) // Ouvre la modal de partage
+  }, [])
 
   // Handler pour soumettre un commentaire
   const handleSubmitComment = useCallback(() => {
@@ -766,7 +757,10 @@ export default function BookDetailModalV3({
               
               {/* Share Button - COMME MOVIE MODAL */}
               <button 
-                onClick={() => setShowShareWithFriendsModal(true)}
+                onClick={() => {
+                  setShareReviewMode(false) // Pas de mode review pour le partage principal
+                  setShowShareWithFriendsModal(true)
+                }}
                 className="h-12 px-3 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white rounded-lg transition-all duration-200 flex items-center space-x-1 text-xs"
               >
                 <Share size={14} />
@@ -1509,12 +1503,20 @@ export default function BookDetailModalV3({
         {bookDetail && showShareWithFriendsModal && (
           <ShareWithFriendsModal
             isOpen={showShareWithFriendsModal}
-            onClose={() => setShowShareWithFriendsModal(false)}
+            onClose={() => {
+              setShowShareWithFriendsModal(false)
+              setShareReviewMode(false) // Reset le mode
+            }}
             item={{
               id: bookDetail.id,
               type: 'books',
-              title: bookDetail.title,
-              image: bookDetail.imageLinks?.thumbnail
+              title: shareReviewMode 
+                ? `My review of ${bookDetail.title}: "${reviewState.userReview}" - ${reviewState.userRating}/5 stars`
+                : bookDetail.title,
+              image: bookDetail.imageLinks?.thumbnail,
+              customMessage: shareReviewMode 
+                ? `Check out my review of ${bookDetail.title}:\n\n"${reviewState.userReview}"\n\nRating: ${reviewState.userRating}/5 ⭐`
+                : undefined
             }}
           />
         )}

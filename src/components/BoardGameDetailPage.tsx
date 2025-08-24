@@ -1363,7 +1363,7 @@ export default function BoardGameDetailPage({
                 </p>
 
                 {/* Game Stats - COMME BOOK MODAL */}
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 justify-start">
                   {gameDetail.yearPublished && (
                     <span>{gameDetail.yearPublished}</span>
                   )}
@@ -1853,8 +1853,11 @@ export default function BoardGameDetailPage({
                   ) : (
                     <div className="text-center text-gray-400 py-8">
                       <div className="text-sm mb-2">No Board Game Atlas images found</div>
-                      <div className="text-xs">
-                        This game might not be in the Board Game Atlas database
+                      <div className="text-xs space-y-1">
+                        <div>This could be due to:</div>
+                        <div>• Game not in Board Game Atlas database</div>
+                        <div>• Network connection issues</div>
+                        <div>• Invalid API key (get your free key at <span className="text-blue-400">boardgameatlas.com/api/docs/apps</span>)</div>
                       </div>
                     </div>
                   )}
@@ -2187,7 +2190,7 @@ export default function BoardGameDetailPage({
             )}
 
             {/* Game Information */}
-            <div className="space-y-3">
+            <div className="space-y-3 flex flex-col items-start">
               <div className="flex">
                 <span className="text-gray-400 w-24 flex-shrink-0 text-sm">
                   Designer:
