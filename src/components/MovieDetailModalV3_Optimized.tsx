@@ -670,17 +670,6 @@ export default function MovieDetailModalV3Optimized({
 
           {/* Contenu principal avec tabs */}
           <div className="px-6 py-4 relative z-1">
-            {/* Customize movie sheet - LIKE MUSIC MODAL */}
-            <div className="mb-4">
-              <button 
-                onClick={() => setShowMovieSheet(true)}
-                className="text-purple-400 hover:text-purple-300 text-sm flex items-center space-x-1 cursor-pointer transition-colors"
-              >
-                <FileText size={14} />
-                <span>Customize movie sheet</span>
-              </button>
-            </div>
-
             {/* Navigation par tabs - Game style with horizontal scroll */}
             <div className="mb-4">
               <div className="flex space-x-2 horizontal-scroll pb-1">
