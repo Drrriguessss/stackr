@@ -168,10 +168,26 @@ export default function NotificationList({
   const getDisplayMessage = (notification: Notification): string => {
     // Clean up the message by removing image URL if present
     let message = notification.message.split('|')[0]
+    const originalMessage = message
     
-    // Remove technical IDs like (books:_zas123), (movies:tt123456), (boardgames:43), etc.
-    // Keep only "X recommends Y" format
+    // More aggressive cleaning for technical IDs
+    // Remove patterns like (books:zAsEQAAQBAJ), (movies:tt0133093), (games:12345), etc.
     message = message.replace(/\s*\([^)]*:[^)]*\)\s*/g, '')
+    
+    // Also remove any remaining parentheses with just IDs (fallback)
+    message = message.replace(/\s*\([a-zA-Z0-9_-]+\)\s*/g, '')
+    
+    // Clean up extra spaces that might remain
+    message = message.replace(/\s+/g, ' ')
+    
+    // Debug log for problematic notifications
+    if (originalMessage !== message.trim()) {
+      console.log('🧹 [NotificationList] Cleaned message:', {
+        original: originalMessage,
+        cleaned: message.trim(),
+        notificationId: notification.id
+      })
+    }
     
     return message.trim()
   }

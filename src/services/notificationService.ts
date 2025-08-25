@@ -138,7 +138,7 @@ class NotificationService {
         user_id: recipientId,
         type: 'media_shared' as const,
         title: `${recommenderName} recommends "${mediaTitle}"`,
-        message: `${recommenderName} recommends "${mediaTitle}" (${mediaType}:${mediaId}${mediaImage ? `|${mediaImage}` : ''})`,
+        message: `${recommenderName} recommends "${mediaTitle}"${mediaImage ? `|${mediaImage}` : ''}`,
         read: false,
         ...(fromUserId && { from_user_id: fromUserId }),
         related_id: mediaId,
