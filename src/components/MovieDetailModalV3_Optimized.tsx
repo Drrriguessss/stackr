@@ -668,6 +668,32 @@ export default function MovieDetailModalV3Optimized({
             setMovieSheetData={setMovieSheetData}
           />
 
+          {/* Ratings - IMDb, Rotten Tomatoes, Letterboxd */}
+          <div className="px-6">
+            {extractedRatings && movieDetail.imdbRating !== 'N/A' && (
+              <div className="flex space-x-8 mb-6">
+                {extractedRatings.imdb !== 'N/A' && (
+                  <div>
+                    <h4 className="text-white font-semibold mb-1">IMDb</h4>
+                    <p className="text-gray-300">{extractedRatings.imdb}</p>
+                  </div>
+                )}
+                {extractedRatings.rottenTomatoes !== 'N/A' && (
+                  <div>
+                    <h4 className="text-white font-semibold mb-1">Rotten Tomatoes</h4>
+                    <p className="text-gray-300">{extractedRatings.rottenTomatoes}</p>
+                  </div>
+                )}
+                {extractedRatings.letterboxd !== 'N/A' && (
+                  <div>
+                    <h4 className="text-white font-semibold mb-1">Letterboxd</h4>
+                    <p className="text-gray-300">{extractedRatings.letterboxd}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Contenu principal avec tabs */}
           <div className="px-6 py-4 relative z-1">
             {/* Navigation par tabs - Game style with horizontal scroll */}
@@ -1057,29 +1083,6 @@ export default function MovieDetailModalV3Optimized({
                   )}
                 </div>
 
-                {/* Ratings - IMDb, Rotten Tomatoes, Letterboxd */}
-                {extractedRatings && movieDetail.imdbRating !== 'N/A' && (
-                  <div className="flex space-x-8 mb-6">
-                    {extractedRatings.imdb !== 'N/A' && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-1">IMDb</h4>
-                        <p className="text-gray-300">{extractedRatings.imdb}</p>
-                      </div>
-                    )}
-                    {extractedRatings.rottenTomatoes !== 'N/A' && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-1">Rotten Tomatoes</h4>
-                        <p className="text-gray-300">{extractedRatings.rottenTomatoes}</p>
-                      </div>
-                    )}
-                    {extractedRatings.letterboxd !== 'N/A' && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-1">Letterboxd</h4>
-                        <p className="text-gray-300">{extractedRatings.letterboxd}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* Where to Watch Section */}
                 {(streamingProviders.length > 0 || loadingProviders) && (
