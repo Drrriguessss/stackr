@@ -11,6 +11,7 @@ import { igdbService } from '@/services/igdbService'
 import ShareWithFriendsModal from './ShareWithFriendsModal'
 import { avatarService } from '@/services/avatarService'
 import { AuthService } from '@/services/authService'
+import UnifiedLoadingSkeleton from './UnifiedLoadingSkeleton'
 
 interface Comment {
   id: string
@@ -810,9 +811,7 @@ export default function GameDetailDarkV2({
   return (
     <div className="bg-[#0f0e17] min-h-screen pb-20 font-system">
       {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
+            <UnifiedLoadingSkeleton message="Loading game details..." />
           ) : gameDetail ? (
             <>
               {/* Interactive Header Carousel */}

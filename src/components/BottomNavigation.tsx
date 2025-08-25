@@ -24,6 +24,7 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
     { id: 'lists', label: 'Lists', description: 'Create custom collections' },
     { id: 'roadmap', label: 'Roadmap', description: 'See what\'s coming next' },
     { id: 'contact', label: 'Contact Us', description: 'Get help and support' },
+    { id: 'discover', label: 'Discover', description: 'Explore trending content' },
     { id: 'signout', label: 'Sign Out', description: '', isDanger: true },
   ]
 

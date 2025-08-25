@@ -24,7 +24,7 @@ import { avatarService } from "@/services/avatarService";
 import { musicVideoService } from "@/services/musicVideoService";
 import { AuthService } from "@/services/authService";
 import { fanartService } from "@/services/fanartService";
-import StackrLoadingSkeleton from "./StackrLoadingSkeleton";
+import UnifiedLoadingSkeleton from "./UnifiedLoadingSkeleton";
 import ShareWithFriendsModal from "./ShareWithFriendsModal";
 
 interface MusicDetailModalV4Props {
@@ -1086,7 +1086,7 @@ export default function MusicDetailModalV4({
   if (loading) {
     return (
       <div className="fixed top-0 left-0 right-0 bottom-16 z-30 bg-[#0f0e17] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+        <UnifiedLoadingSkeleton message="Loading music details..." />
       </div>
     );
   }

@@ -14,7 +14,7 @@ import { avatarService } from '@/services/avatarService'
 import { AuthService } from '@/services/authService'
 
 // Composants
-import StackrLoadingSkeleton from './StackrLoadingSkeleton'
+import UnifiedLoadingSkeleton from './UnifiedLoadingSkeleton'
 
 // Lazy load des modales
 const ShareWithFriendsModal = lazy(() => import('./ShareWithFriendsModal'))
@@ -631,7 +631,7 @@ export default function BookDetailModalV3({
   if (loading) {
     return (
       <div className="bg-[#0f0e17] min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+        <UnifiedLoadingSkeleton message="Loading book details..." />
       </div>
     )
   }

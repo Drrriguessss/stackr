@@ -35,6 +35,7 @@ import {
   type YouTubeVideo,
 } from "@/services/youtubeService";
 import { boardGameAtlasService } from "@/services/boardGameAtlasService";
+import UnifiedLoadingSkeleton from "./UnifiedLoadingSkeleton";
 // Removed BoardGameStatusManager import - using simple dropdown now
 
 interface BoardGameDetailPageProps {
@@ -1288,9 +1289,7 @@ export default function BoardGameDetailPage({
   return (
     <div className="bg-[#0f0e17] min-h-screen pb-20 font-system">
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-        </div>
+        <UnifiedLoadingSkeleton message="Loading board game details..." />
       ) : gameDetail ? (
         <div>
           {/* Large header image - 200px height - Using first video thumbnail or fallback */}

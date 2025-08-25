@@ -8,12 +8,15 @@ import { streamingService, type AffiliateLink } from '@/services/streamingServic
 import { useMovieDetail } from '@/hooks/useMovieDetail'
 import { useMovieReview } from '@/hooks/useMovieReview'
 
+// Services AI
+import { type ReviewSummary } from '@/services/groqService'
+
 // Composants modulaires
 import MovieHeader from './MovieDetail/MovieHeader'
 import MovieInfoSection from './MovieDetail/MovieInfoSection'
 import MediaCarousel from './MovieDetail/MediaCarousel'
 import ReviewsSection from './MovieDetail/ReviewsSection'
-import StackrLoadingSkeleton from './StackrLoadingSkeleton'
+import UnifiedLoadingSkeleton from './UnifiedLoadingSkeleton'
 import { AuthService, type AuthUser } from '@/services/authService'
 
 // Lazy load des modales pour optimiser le chargement initial
@@ -73,6 +76,20 @@ const FRIENDS_WHO_WATCHED: Friend[] = [
   // }
 ]
 
+// Sources disponibles pour les reviews
+const AVAILABLE_SOURCES = [
+  { domain: 'reddit.com', name: 'Reddit', icon: '💬', description: 'Community discussions' },
+  { domain: 'metacritic.com', name: 'Metacritic', icon: '📊', description: 'Critics & User scores' },
+  { domain: 'rottentomatoes.com', name: 'Rotten Tomatoes', icon: '🍅', description: 'Critics consensus' },
+  { domain: 'imdb.com', name: 'IMDb', icon: '🎬', description: 'User reviews' },
+  { domain: 'letterboxd.com', name: 'Letterboxd', icon: '📖', description: 'Film diary reviews' },
+  { domain: 'rogerebert.com', name: 'Roger Ebert', icon: '⭐', description: 'Professional critics' },
+  { domain: 'variety.com', name: 'Variety', icon: '📰', description: 'Industry reviews' },
+  { domain: 'hollywoodreporter.com', name: 'Hollywood Reporter', icon: '🎭', description: 'Entertainment news' },
+  { domain: 'theguardian.com', name: 'The Guardian', icon: '📝', description: 'Film critics' },
+  { domain: 'empireonline.com', name: 'Empire', icon: '👑', description: 'Movie magazine' }
+]
+
 export default function MovieDetailModalV3Optimized({
   isOpen,
   onClose,
@@ -90,7 +107,19 @@ export default function MovieDetailModalV3Optimized({
   // États locaux simplifiés
   const [selectedStatus, setSelectedStatus] = useState<MediaStatus | null>(null)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'trailers'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'trailers' | 'reviews'>('overview')
+  const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(null)
+  const [loadingReviewSummary, setLoadingReviewSummary] = useState(false)
+  const [reviewLoadingStep, setReviewLoadingStep] = useState<string>('cache-check')
+  const [reviewSummaryError, setReviewSummaryError] = useState<string | null>(null)
+  const [selectedSources, setSelectedSources] = useState<string[]>([
+    'reddit.com',
+    'metacritic.com', 
+    'rottentomatoes.com',
+    'imdb.com',
+    'letterboxd.com'
+  ])
+  const [showSourceSelector, setShowSourceSelector] = useState(true)
   const [showFullPlot, setShowFullPlot] = useState(false)
   
   // États pour rating et review - LIKE MUSIC MODAL
@@ -216,8 +245,89 @@ export default function MovieDetailModalV3Optimized({
       setIsInitialLoad(true)
       setIsUserInteracting(false) // Reset user interaction flag
       console.log('🔄 [MOVIE MODAL] Modal closed - reset for next load')
+      // Reset review summary when modal closes
+      setReviewSummary(null)
+      setReviewSummaryError(null)
     }
   }, [isOpen])
+
+  // Load Review Summary with selected sources
+  const loadReviewSummary = useCallback(async (forcedSources?: string[]) => {
+    if (!movieDetail) return
+    
+    setLoadingReviewSummary(true)
+    setReviewSummaryError(null)
+    setReviewLoadingStep('search-reviews')
+    
+    try {
+      const sourcesToUse = forcedSources || selectedSources
+      console.log('🎬 Loading review summary for:', movieDetail.Title, 'with sources:', sourcesToUse)
+      
+      // Create AbortController for timeout handling
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => {
+        controller.abort()
+      }, 25000)
+      
+      // API Call with selected sources
+      const response = await fetch('/api/review-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          movieTitle: movieDetail.Title,
+          year: movieDetail.Year,
+          selectedSources: sourcesToUse
+        }),
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to fetch review summary')
+      }
+
+      // Final step
+      setReviewLoadingStep('formatting')
+      const data = await response.json()
+      
+      if (data.summary) {
+        setReviewSummary(data.summary)
+        
+        // Afficher si c'est du cache pour info
+        if (data.cached) {
+          console.log('⚡ Review loaded from cache (instant)')
+        } else {
+          console.log('🔍 Review analyzed fresh from web sources')
+        }
+      } else if (data.error) {
+        setReviewSummaryError(data.error)
+      } else {
+        setReviewSummaryError('Unable to generate review summary')
+      }
+    } catch (error) {
+      console.error('Error loading review summary:', error)
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        setReviewSummaryError('Request timed out. Please try again.')
+      } else {
+        setReviewSummaryError('Review analysis is temporarily unavailable. Please try again later.')
+      }
+    } finally {
+      setLoadingReviewSummary(false)
+      setReviewLoadingStep('search-reviews')
+    }
+  }, [movieDetail, selectedSources])
+
+  // AUTO-LOADING when tab opens
+  useEffect(() => {
+    if (activeTab === 'reviews' && !reviewSummary && !loadingReviewSummary) {
+      loadReviewSummary()
+    }
+  }, [activeTab, reviewSummary, loadingReviewSummary, loadReviewSummary])
 
   // Effet pour charger les données de la feuille de film
   useEffect(() => {
@@ -515,7 +625,7 @@ export default function MovieDetailModalV3Optimized({
   if (loading) {
     return (
       <div className="bg-[#0f0e17] min-h-screen flex items-center justify-center">
-        <StackrLoadingSkeleton />
+        <UnifiedLoadingSkeleton message="Loading movie details..." />
       </div>
     )
   }
@@ -560,21 +670,40 @@ export default function MovieDetailModalV3Optimized({
 
           {/* Contenu principal avec tabs */}
           <div className="px-6 py-4 relative z-1">
-            {/* Navigation par tabs */}
-            <div className="flex space-x-2 mb-6">
-              {(['overview', 'trailers'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                    activeTab === tab
+            {/* Navigation par tabs - Game style with horizontal scroll */}
+            <div className="mb-4">
+              <div className="flex space-x-2 horizontal-scroll pb-1">
+                <button 
+                  onClick={() => setActiveTab('overview')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm flex-shrink-0 ${
+                    activeTab === 'overview'
                       ? 'bg-purple-600 text-white'
                       : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                   }`}
                 >
-                  {tab === 'overview' ? 'Overview' : 'Trailers/Photos'}
+                  Overview
                 </button>
-              ))}
+                <button 
+                  onClick={() => setActiveTab('trailers')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm flex-shrink-0 ${
+                    activeTab === 'trailers'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  Trailers/Photos
+                </button>
+                <button 
+                  onClick={() => setActiveTab('reviews')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm flex-shrink-0 ${
+                    activeTab === 'reviews'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  Review Summary - Beta 🤖
+                </button>
+              </div>
             </div>
 
             {/* Contenu des tabs */}
@@ -1125,6 +1254,214 @@ export default function MovieDetailModalV3Optimized({
                   movieTitle={movieDetail.Title}
                   moviePoster={movieDetail.Poster}
                 />
+              </div>
+            )}
+
+            {/* Review Summary Tab */}
+            {activeTab === 'reviews' && (
+              <div className="space-y-6">
+                {loadingReviewSummary ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="relative mb-6">
+                      <div className="w-20 h-20 border-4 border-purple-200/20 rounded-full"></div>
+                      <div className="absolute top-0 left-0 w-20 h-20 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                    <div className="text-center max-w-sm">
+                      <p className="text-white text-lg font-medium mb-2">Analyzing Reviews</p>
+                      <p className="text-gray-400 text-sm mb-4">
+                        {reviewLoadingStep === 'search-reviews' ? 'Searching web sources...' :
+                         reviewLoadingStep === 'formatting' ? 'Almost done...' : 'Processing...'}
+                      </p>
+                      <div className="bg-gray-800/50 px-4 py-2 rounded-full">
+                        <p className="text-xs text-gray-400">
+                          🔍 Reddit • IMDb • Metacritic • Rotten Tomatoes
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : reviewSummaryError ? (
+                  <div className="bg-red-900/20 border border-red-800 rounded-lg p-6 text-center">
+                    <p className="text-red-400">{reviewSummaryError}</p>
+                    <button 
+                      onClick={() => loadReviewSummary()}
+                      className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : reviewSummary ? (
+                  <div className="space-y-6">
+                    {/* Summary Section with proper text wrapping */}
+                    <div className="relative">
+                      {/* Overall Reception - Floating Badge */}
+                      <div className={`float-right ml-4 mb-3 w-32 md:w-36 rounded-lg p-3 text-center shadow-lg ${
+                        reviewSummary.overallSentiment === 'positive' 
+                          ? 'bg-green-900/40 border border-green-700 backdrop-blur-sm'
+                          : reviewSummary.overallSentiment === 'negative'
+                          ? 'bg-red-900/40 border border-red-700 backdrop-blur-sm'
+                          : 'bg-yellow-900/40 border border-yellow-700 backdrop-blur-sm'
+                      }`}>
+                        <p className="text-xs text-gray-400 mb-1">Overall Reception</p>
+                        <p className={`text-sm font-semibold ${
+                          reviewSummary.overallSentiment === 'positive' 
+                            ? 'text-green-400'
+                            : reviewSummary.overallSentiment === 'negative'
+                            ? 'text-red-400'
+                            : 'text-yellow-400'
+                        }`}>
+                          {reviewSummary.overallSentiment === 'positive' ? '👍 Positive' :
+                           reviewSummary.overallSentiment === 'negative' ? '👎 Negative' :
+                           '🤔 Mixed'}
+                        </p>
+                      </div>
+
+                      {/* Critical Consensus with proper margin to avoid overlap */}
+                      <h3 className="text-lg font-semibold text-white mb-3" style={{ marginRight: '164px' }}>Critical Consensus</h3>
+                      <div 
+                        className="text-gray-300 leading-relaxed text-sm" 
+                        style={{ 
+                          marginRight: '164px', // w-32(128px) + ml-4(16px) + padding(12px*2) + buffer(8px) = 164px
+                          textAlign: 'justify'
+                        }}
+                      >
+                        {reviewSummary.summary}
+                      </div>
+                      <div className="clear-both"></div>
+                    </div>
+
+                    {/* Pros and Cons Grid */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Pros */}
+                      <div className="bg-green-900/20 border border-green-800 rounded-lg p-6">
+                        <h4 className="text-green-400 font-semibold mb-4 flex items-center">
+                          <span className="mr-2">✅</span> Strengths
+                        </h4>
+                        <ul className="space-y-2">
+                          {reviewSummary.pros.map((pro, index) => (
+                            <li key={index} className="text-gray-300 flex items-start">
+                              <span className="text-green-500 mr-2">•</span>
+                              <span className="text-sm">{pro}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Cons */}
+                      <div className="bg-red-900/20 border border-red-800 rounded-lg p-6">
+                        <h4 className="text-red-400 font-semibold mb-4 flex items-center">
+                          <span className="mr-2">❌</span> Weaknesses
+                        </h4>
+                        <ul className="space-y-2">
+                          {reviewSummary.cons.map((con, index) => (
+                            <li key={index} className="text-gray-300 flex items-start">
+                              <span className="text-red-500 mr-2">•</span>
+                              <span className="text-sm">{con}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Sources */}
+                    {reviewSummary.sources.length > 0 && (
+                      <div className="bg-gray-800/30 rounded-lg p-4">
+                        <p className="text-xs text-gray-500 mb-2">Sources analyzed:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {reviewSummary.sources.map((source, index) => (
+                            <span key={index} className="text-xs bg-gray-700 text-gray-400 px-2 py-1 rounded">
+                              {source}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Beta Notice */}
+                    <div className="bg-purple-900/20 border border-purple-700 rounded-lg p-4 text-center">
+                      <p className="text-purple-400 text-sm">
+                        🤖 This is an AI-generated summary based on web reviews. 
+                        Results may vary. Beta feature powered by Tavily & Groq.
+                      </p>
+                    </div>
+
+                    {/* Sources Section - Mobile Optimized */}
+                    <div className="bg-gray-900/30 border border-gray-700 rounded-lg p-4 md:p-6">
+                      <h3 className="text-white text-base md:text-lg font-semibold mb-3 flex items-center">
+                        🔍 Sources
+                        <span className="ml-2 text-xs bg-blue-600 text-white px-2 py-1 rounded-full">
+                          {selectedSources.length} selected
+                        </span>
+                      </h3>
+                      
+                      {/* Mobile: 1 column, Desktop: 2 columns */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6">
+                        {AVAILABLE_SOURCES.map((source) => (
+                          <div key={source.domain} className="relative">
+                            <input
+                              type="checkbox"
+                              id={`source-${source.domain}`}
+                              checked={selectedSources.includes(source.domain)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedSources([...selectedSources, source.domain])
+                                } else {
+                                  setSelectedSources(selectedSources.filter(s => s !== source.domain))
+                                }
+                              }}
+                              className="absolute opacity-0 w-full h-full cursor-pointer"
+                            />
+                            <label 
+                              htmlFor={`source-${source.domain}`}
+                              className={`block p-2 md:p-3 rounded-lg border-2 transition-all cursor-pointer hover:border-blue-500 ${
+                                selectedSources.includes(source.domain) 
+                                  ? 'border-blue-600 bg-blue-900/30' 
+                                  : 'border-gray-700 bg-gray-800/30'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm md:text-lg">{source.icon}</span>
+                                  <span className="text-white font-medium text-xs md:text-sm">{source.name}</span>
+                                </div>
+                                {selectedSources.includes(source.domain) && (
+                                  <span className="text-blue-400 text-sm">✓</span>
+                                )}
+                              </div>
+                              <p className="text-gray-400 text-xs hidden md:block">{source.description}</p>
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3">
+                        <button
+                          onClick={() => loadReviewSummary()}
+                          disabled={selectedSources.length === 0}
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-medium py-2 md:py-3 px-4 md:px-6 rounded-lg transition-all flex items-center justify-center space-x-2 text-sm md:text-base"
+                        >
+                          <span>🔍</span>
+                          <span>Re-analyze Reviews</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            const allSources = AVAILABLE_SOURCES.map(s => s.domain)
+                            setSelectedSources(selectedSources.length === allSources.length ? [] : allSources)
+                          }}
+                          className="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 md:py-3 px-4 md:px-6 rounded-lg transition-all text-sm md:text-base"
+                        >
+                          {selectedSources.length === AVAILABLE_SOURCES.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                      </div>
+
+                      {selectedSources.length === 0 && (
+                        <p className="text-red-400 text-sm mt-3 text-center">
+                          Please select at least one source to analyze reviews
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

@@ -108,7 +108,9 @@
       "WebFetch(domain:www.boardgameatlas.com)",
       "WebFetch(domain:publicapi.dev)",
       "Bash(del test-reviews.json)",
-      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\UnifiedSearchModal.tsx\")"
+      "Bash(del \"C:\\Users\\rgeoris\\desktop\\stackr\\src\\components\\UnifiedSearchModal.tsx\")",
+      "Bash(del test-api-keys.js)",
+      "Bash(\"taskkill\" \"/PID\" \"16900\" \"/F\")"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
