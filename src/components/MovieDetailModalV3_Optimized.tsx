@@ -1293,14 +1293,22 @@ export default function MovieDetailModalV3Optimized({
                   <div className="space-y-6">
                     {/* Summary Section with proper text wrapping */}
                     <div className="relative">
-                      {/* Overall Reception - Floating Badge */}
-                      <div className={`float-right ml-4 mb-3 w-32 md:w-36 rounded-lg p-3 text-center shadow-lg ${
-                        reviewSummary.overallSentiment === 'positive' 
-                          ? 'bg-green-900/40 border border-green-700 backdrop-blur-sm'
-                          : reviewSummary.overallSentiment === 'negative'
-                          ? 'bg-red-900/40 border border-red-700 backdrop-blur-sm'
-                          : 'bg-yellow-900/40 border border-yellow-700 backdrop-blur-sm'
-                      }`}>
+                      <h3 className="text-lg font-semibold text-white mb-3">Critical Consensus</h3>
+                      
+                      {/* Overall Reception - FLOATING dans le texte */}
+                      <div 
+                        className={`float-right ml-4 mb-4 w-32 md:w-36 rounded-lg p-3 text-center shadow-lg ${
+                          reviewSummary.overallSentiment === 'positive' 
+                            ? 'bg-green-900/40 border border-green-700 backdrop-blur-sm'
+                            : reviewSummary.overallSentiment === 'negative'
+                            ? 'bg-red-900/40 border border-red-700 backdrop-blur-sm'
+                            : 'bg-yellow-900/40 border border-yellow-700 backdrop-blur-sm'
+                        }`}
+                        style={{
+                          shapeOutside: 'inset(0 round 8px)',
+                          clipPath: 'inset(0 round 8px)'
+                        }}
+                      >
                         <p className="text-xs text-gray-400 mb-1">Overall Reception</p>
                         <p className={`text-sm font-semibold ${
                           reviewSummary.overallSentiment === 'positive' 
@@ -1315,17 +1323,11 @@ export default function MovieDetailModalV3Optimized({
                         </p>
                       </div>
 
-                      {/* Critical Consensus with proper margin to avoid overlap */}
-                      <h3 className="text-lg font-semibold text-white mb-3" style={{ marginRight: '164px' }}>Critical Consensus</h3>
-                      <div 
-                        className="text-gray-300 leading-relaxed text-sm" 
-                        style={{ 
-                          marginRight: '164px', // w-32(128px) + ml-4(16px) + padding(12px*2) + buffer(8px) = 164px
-                          textAlign: 'justify'
-                        }}
-                      >
+                      {/* Texte qui s'adapte AUTOUR du carré */}
+                      <div className="text-gray-300 leading-relaxed text-sm">
                         {reviewSummary.summary}
                       </div>
+                      
                       <div className="clear-both"></div>
                     </div>
 
