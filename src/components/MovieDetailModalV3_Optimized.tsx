@@ -854,29 +854,6 @@ export default function MovieDetailModalV3Optimized({
                   </div>
                 )}
 
-                {/* Ratings - MOVED BEFORE DESCRIPTION */}
-                {extractedRatings && movieDetail.imdbRating !== 'N/A' && (
-                  <div className="flex space-x-8 mb-6">
-                    {extractedRatings.imdb !== 'N/A' && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-1">IMDb</h4>
-                        <p className="text-gray-300">{extractedRatings.imdb}</p>
-                      </div>
-                    )}
-                    {extractedRatings.rottenTomatoes !== 'N/A' && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-1">Rotten Tomatoes</h4>
-                        <p className="text-gray-300">{extractedRatings.rottenTomatoes}</p>
-                      </div>
-                    )}
-                    {extractedRatings.letterboxd !== 'N/A' && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-1">Letterboxd</h4>
-                        <p className="text-gray-300">{extractedRatings.letterboxd}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* Rate this movie section - EXACTLY LIKE MUSIC MODAL */}
                 <div className="mt-4">
@@ -1090,6 +1067,30 @@ export default function MovieDetailModalV3Optimized({
                     <span>Customize movie sheet</span>
                   </button>
                 </div>
+
+                {/* Ratings - IMDb, Rotten Tomatoes, Letterboxd */}
+                {extractedRatings && movieDetail.imdbRating !== 'N/A' && (
+                  <div className="flex space-x-8 mb-6">
+                    {extractedRatings.imdb !== 'N/A' && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-1">IMDb</h4>
+                        <p className="text-gray-300">{extractedRatings.imdb}</p>
+                      </div>
+                    )}
+                    {extractedRatings.rottenTomatoes !== 'N/A' && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-1">Rotten Tomatoes</h4>
+                        <p className="text-gray-300">{extractedRatings.rottenTomatoes}</p>
+                      </div>
+                    )}
+                    {extractedRatings.letterboxd !== 'N/A' && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-1">Letterboxd</h4>
+                        <p className="text-gray-300">{extractedRatings.letterboxd}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Where to Watch Section */}
                 {(streamingProviders.length > 0 || loadingProviders) && (
